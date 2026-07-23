@@ -2,190 +2,299 @@
 <html lang="en">
 <head>
   <%- include('../layouts/head', { title: title || 'Certificate Setup - HelloRun' }) %>
-  <link rel="stylesheet" href="/css/create-event.css">
+  <link rel="stylesheet" href="/css/certificate-setup.css">
+  <script src="/js/certificate-setup.js" defer></script>
 </head>
 <body>
   <%- include('../layouts/nav') %>
 
-  <main class="create-event-page">
-  <section class="create-event-shell">
-    <div class="page-header">
-      <div>
-        <p class="eyebrow">Certificate Template</p>
-        <h1><%= event.title %></h1>
-        <p class="header-subtitle">Configure the certificate runners receive after an approved result or completed challenge.</p>
+  <main class="certificate-builder-page">
+    <div class="certificate-builder-shell">
+      <nav class="certificate-builder-breadcrumb" aria-label="Breadcrumb">
+        <a href="/organizer/events"><i data-lucide="calendar-days" aria-hidden="true"></i> My Events</a>
+        <span aria-hidden="true">/</span>
+        <a href="/organizer/events/<%= event._id %>"><%= event.title %></a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">Certificate</span>
+      </nav>
+
+      <header class="certificate-builder-header">
+        <div class="certificate-builder-identity">
+          <div class="certificate-builder-meta">
+            <span class="certificate-status certificate-status--<%= presentation.statusTone %>"><%= presentation.statusLabel %></span>
+            <span><i data-lucide="clock-3" aria-hidden="true"></i> Updated <%= presentation.updatedLabel %></span>
+            <% if (presentation.publishedLabel) { %>
+              <span><i data-lucide="send" aria-hidden="true"></i> Published <%= presentation.publishedLabel %></span>
+            <% } %>
+          </div>
+          <h1>Certificate setup</h1>
+          <p><%= event.title %> · Design the certificate runners receive after an eligible result is finalized.</p>
+        </div>
+        <a class="btn btn-outline certificate-builder-back" href="/organizer/events/<%= event._id %>">
+          <i data-lucide="arrow-left" aria-hidden="true"></i><span>Back to Event Management</span>
+        </a>
+      </header>
+
+      <% if (message) { %>
+        <div class="certificate-alert certificate-alert--<%= message.type === 'success' ? 'success' : 'error' %>" role="status">
+          <i data-lucide="<%= message.type === 'success' ? 'circle-check' : 'circle-alert' %>" aria-hidden="true"></i>
+          <span><%= message.text %></span>
+        </div>
+      <% } %>
+
+      <% if (!presentation.certificatesEnabled) { %>
+        <div class="certificate-alert certificate-alert--warning" role="note">
+          <i data-lucide="triangle-alert" aria-hidden="true"></i>
+          <div><strong>Digital certificates are disabled.</strong> Editing and preview remain available, but runners will not receive certificates until this is enabled in the event’s Rewards and Inclusions settings.</div>
+        </div>
+      <% } %>
+
+      <div class="certificate-builder-workspace">
+        <div class="certificate-builder-editor">
+          <form id="certificateTemplateForm" class="certificate-template-form" method="POST" action="/organizer/events/<%= event._id %>/certificate" data-certificate-editor>
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+            <section class="certificate-panel" aria-labelledby="certificate-layout-heading">
+              <div class="certificate-panel-heading">
+                <div>
+                  <span>1 · Composition</span>
+                  <h2 id="certificate-layout-heading">Choose a layout</h2>
+                  <p>Both layouts use HelloRun’s authoritative PDF renderer and verification data.</p>
+                </div>
+              </div>
+              <% const selectedLayoutKey = template.layoutKey === 'split_panel_event' ? 'split_panel_event' : 'verified_achievement'; %>
+              <fieldset class="certificate-layout-options">
+                <legend class="sr-only">Certificate layout</legend>
+                <% presentation.layouts.forEach((layout) => { %>
+                  <label class="certificate-layout-card">
+                    <input type="radio" name="layoutKey" value="<%= layout.value %>" <%= selectedLayoutKey === layout.value ? 'checked' : '' %>>
+                    <span class="certificate-layout-card-copy">
+                      <span class="certificate-layout-icon"><i data-lucide="<%= layout.value === 'split_panel_event' ? 'panel-left' : 'badge-check' %>" aria-hidden="true"></i></span>
+                      <span><strong><%= layout.label %></strong><small><%= layout.description %></small></span>
+                      <i class="certificate-layout-check" data-lucide="check-circle-2" aria-hidden="true"></i>
+                    </span>
+                  </label>
+                <% }) %>
+              </fieldset>
+              <% if (selectedLayoutKey !== template.layoutKey) { %>
+                <p class="certificate-inline-note"><i data-lucide="info" aria-hidden="true"></i> This legacy template previews with Verified Achievement. Saving stores the canonical layout name.</p>
+              <% } %>
+            </section>
+
+            <section class="certificate-panel" aria-labelledby="certificate-appearance-heading">
+              <div class="certificate-panel-heading">
+                <div>
+                  <span>2 · Appearance</span>
+                  <h2 id="certificate-appearance-heading">Colors and print format</h2>
+                  <p>Apply the event identity while keeping a reliable printable composition.</p>
+                </div>
+              </div>
+              <div class="certificate-color-grid">
+                <% [
+                  ['primaryColor', 'Primary', 'Header and verification details', template.styleOptions.primaryColor || '#0F172A'],
+                  ['accentColor', 'Achievement accent', 'Seal and metric highlights', template.styleOptions.accentColor || '#FA9A4B'],
+                  ['secondaryAccentColor', 'Secondary', 'Supporting details', template.styleOptions.secondaryAccentColor || '#78C0E9']
+                ].forEach(([name, label, help, value]) => { %>
+                  <label class="certificate-color-field">
+                    <span><%= label %></span>
+                    <span class="certificate-color-control">
+                      <input type="color" name="<%= name %>" value="<%= value %>" aria-label="<%= label %> color">
+                      <small><%= help %></small>
+                    </span>
+                  </label>
+                <% }) %>
+              </div>
+              <div class="certificate-fields certificate-fields--two">
+                <label>Page size
+                  <select name="pageSize" data-certificate-page-size>
+                    <option value="A4" <%= !['LETTER', 'CUSTOM'].includes(template.styleOptions.pageSize) ? 'selected' : '' %>>A4</option>
+                    <option value="LETTER" <%= template.styleOptions.pageSize === 'LETTER' ? 'selected' : '' %>>Letter</option>
+                    <option value="CUSTOM" <%= template.styleOptions.pageSize === 'CUSTOM' ? 'selected' : '' %>>Custom size</option>
+                  </select>
+                </label>
+                <label data-certificate-orientation-field>Orientation
+                  <select name="orientation" data-certificate-orientation>
+                    <option value="landscape" <%= template.styleOptions.orientation !== 'portrait' ? 'selected' : '' %>>Landscape</option>
+                    <option value="portrait" <%= template.styleOptions.orientation === 'portrait' ? 'selected' : '' %>>Portrait</option>
+                  </select>
+                  <small data-certificate-orientation-help>Applies to A4 and Letter.</small>
+                </label>
+              </div>
+              <div class="certificate-custom-size-fields" data-certificate-custom-size-fields>
+                <label>Custom width (mm)
+                  <input type="number" name="customPageWidthMm" min="100" max="1000" step="0.1" value="<%= template.styleOptions.customPageWidthMm || 297 %>" inputmode="decimal">
+                </label>
+                <label>Custom height (mm)
+                  <input type="number" name="customPageHeightMm" min="100" max="1000" step="0.1" value="<%= template.styleOptions.customPageHeightMm || 210 %>" inputmode="decimal">
+                </label>
+                <p>Custom dimensions are the exact final page size. Width and height must each be between 100 and 1,000 mm.</p>
+              </div>
+            </section>
+
+            <section class="certificate-panel" aria-labelledby="certificate-copy-heading">
+              <div class="certificate-panel-heading certificate-panel-heading--with-action">
+                <div>
+                  <span>3 · Certificate copy</span>
+                  <h2 id="certificate-copy-heading">Recognition message</h2>
+                  <p>Write reusable copy. Runner and result values are inserted when a certificate is generated.</p>
+                </div>
+                <details class="certificate-placeholder-guide">
+                  <summary>View placeholders <i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+                  <div>
+                    <code>{{runnerName}}</code><code>{{eventTitle}}</code><code>{{distance}}</code><code>{{certificateNumber}}</code><code>{{goalDistance}}</code><code>{{verifiedDistance}}</code>
+                    <p>Goal and verified distance are intended for accumulated challenges.</p>
+                  </div>
+                </details>
+              </div>
+              <div class="certificate-fields">
+                <label for="heading">Heading
+                  <input id="heading" name="heading" value="<%= template.content.heading %>" maxlength="120">
+                </label>
+                <label for="bodyText">Body text
+                  <textarea id="bodyText" name="bodyText" rows="4" maxlength="1000"><%= template.content.bodyText %></textarea>
+                </label>
+                <label for="footerText">Footer text
+                  <input id="footerText" name="footerText" value="<%= template.content.footerText %>" maxlength="300">
+                </label>
+                <div class="certificate-fields certificate-fields--two">
+                  <label>Signature name
+                    <input name="signatureName" value="<%= template.content.signatureName %>" maxlength="120">
+                  </label>
+                  <label>Signature role
+                    <input name="signatureRole" value="<%= template.content.signatureRole %>" maxlength="120">
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            <section class="certificate-panel" aria-labelledby="certificate-data-heading">
+              <div class="certificate-panel-heading">
+                <div>
+                  <span>4 · Display options</span>
+                  <h2 id="certificate-data-heading">Displayed runner data</h2>
+                  <p>Choose the result, verification, and branding elements included in generated certificates.</p>
+                </div>
+              </div>
+              <% const optionGroups = [
+                ['Result details', [['showDistance', 'Distance'], ['showFinishTime', 'Finish time'], ['showRank', 'Rank'], ['showEventDate', 'Event date']]],
+                ['Verification', [['showCertificateNumber', 'Certificate number'], ['showQrCode', 'Verification QR code']]],
+                ['Branding', [['showOrganizerLogo', 'Organiser logo'], ['showEventLogo', 'Event logo'], ['showSponsorLogos', 'Sponsor logos']]]
+              ]; %>
+              <div class="certificate-option-groups">
+                <% optionGroups.forEach(([legend, options]) => { %>
+                  <fieldset class="certificate-option-group">
+                    <legend><%= legend %></legend>
+                    <% options.forEach(([name, label]) => { %>
+                      <input type="hidden" name="<%= name %>" value="0">
+                      <label><input type="checkbox" name="<%= name %>" value="1" <%= template.displayOptions[name] ? 'checked' : '' %>><span><%= label %></span></label>
+                    <% }) %>
+                  </fieldset>
+                <% }) %>
+              </div>
+            </section>
+          </form>
+
+          <details class="certificate-panel certificate-assets" data-certificate-assets>
+            <summary>
+              <span class="certificate-assets-summary-icon"><i data-lucide="images" aria-hidden="true"></i></span>
+              <span><strong>Branding assets</strong><small><%= presentation.assetSummary %> · JPEG, PNG, or WebP up to <%= presentation.uploadMaxMb %> MB each</small></span>
+              <i data-lucide="chevron-down" aria-hidden="true"></i>
+            </summary>
+            <div class="certificate-assets-body">
+              <p class="certificate-assets-warning"><i data-lucide="info" aria-hidden="true"></i> Asset uploads are saved separately. Save any certificate text or design changes before uploading files.</p>
+              <form id="certificateAssetsForm" method="POST" action="/organizer/events/<%= event._id %>/certificate/assets" enctype="multipart/form-data" data-certificate-assets-form>
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="certificate-asset-grid">
+                  <% presentation.assetItems.forEach((asset) => { %>
+                    <label class="certificate-asset-field"><span><%= asset.label %></span>
+                      <% if (asset.url) { %>
+                        <span class="certificate-asset-preview <%= asset.key === 'signatureImageUrl' ? 'certificate-asset-preview--signature' : '' %>">
+                          <img src="<%= asset.url %>" alt="<%= asset.alt %>"><small>Current <%= asset.label.toLowerCase() %></small>
+                        </span>
+                      <% } %>
+                      <input type="file" name="<%= asset.field %>" accept="image/jpeg,image/png,image/webp">
+                    </label>
+                  <% }) %>
+                  <label class="certificate-asset-field"><span>Sponsor logos</span>
+                    <% if (presentation.sponsorUrls.length) { %>
+                      <span class="certificate-sponsor-previews">
+                        <% presentation.sponsorUrls.forEach((url, index) => { %><img src="<%= url %>" alt="Current sponsor logo <%= index + 1 %>"><% }) %>
+                      </span>
+                    <% } %>
+                    <input type="file" name="sponsorLogoFiles" accept="image/jpeg,image/png,image/webp" multiple>
+                    <small>Choose up to six. A new upload replaces the current sponsor set.</small>
+                  </label>
+                </div>
+                <button type="submit" class="btn btn-outline certificate-assets-submit"><i data-lucide="upload" aria-hidden="true"></i> Upload assets</button>
+              </form>
+            </div>
+          </details>
+        </div>
+
+        <aside class="certificate-builder-sidebar" aria-label="Certificate status and actions">
+          <section class="certificate-status-card">
+            <div class="certificate-status-card-heading">
+              <span class="certificate-status-icon"><i data-lucide="award" aria-hidden="true"></i></span>
+              <div><span>Template state</span><h2><%= presentation.statusLabel %></h2></div>
+            </div>
+            <dl>
+              <div><dt>Availability</dt><dd class="<%= presentation.certificatesEnabled ? 'is-enabled' : 'is-disabled' %>"><%= presentation.availabilityLabel %></dd></div>
+              <div><dt>Last saved</dt><dd><%= presentation.updatedLabel %></dd></div>
+              <% if (presentation.publishedLabel) { %><div><dt>Published</dt><dd><%= presentation.publishedLabel %></dd></div><% } %>
+              <div><dt>Branding</dt><dd><%= presentation.assetSummary %></dd></div>
+            </dl>
+            <p><%= presentation.availabilityCopy %></p>
+
+            <div class="certificate-actions">
+              <button type="submit" form="certificateTemplateForm" formaction="/organizer/events/<%= event._id %>/certificate/preview" formtarget="_blank" class="btn btn-outline" data-preview-certificate>
+                <i data-lucide="file-search" aria-hidden="true"></i> Preview PDF
+              </button>
+              <button type="submit" form="certificateTemplateForm" class="btn btn-primary" data-save-certificate>
+                <i data-lucide="save" aria-hidden="true"></i> <%= presentation.isActive ? 'Save Active Template' : 'Save Draft' %>
+              </button>
+              <% if (!presentation.isActive) { %>
+                <button type="submit" form="certificateTemplateForm" formaction="/organizer/events/<%= event._id %>/certificate/publish" class="btn btn-success" data-open-certificate-publish>
+                  <i data-lucide="send" aria-hidden="true"></i> Publish Template
+                </button>
+              <% } %>
+            </div>
+            <% if (presentation.isActive) { %>
+              <p class="certificate-active-warning"><i data-lucide="circle-alert" aria-hidden="true"></i> Saved changes affect certificates generated after the save. Existing issued certificates keep their stored snapshot.</p>
+            <% } %>
+          </section>
+        </aside>
       </div>
-      <a class="btn btn-outline" href="/organizer/events/<%= event._id %>/edit">Back to Event</a>
     </div>
-
-    <% if (message) { %>
-      <div class="alert alert-<%= message.type === 'success' ? 'success' : 'error' %>"><%= message.text %></div>
-    <% } %>
-
-    <% if (event.digitalCertificateEnabled === false) { %>
-      <div class="alert alert-warning">Digital certificates are currently disabled for this event. Enable them in Rewards and Inclusions before publishing certificates.</div>
-    <% } %>
-
-    <form class="create-event-form" method="POST" action="/organizer/events/<%= event._id %>/certificate">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-
-      <div class="form-section">
-        <div class="section-header">
-          <div>
-            <h2>Template Layout</h2>
-            <p>Choose a fixed layout for reliable PDF generation.</p>
-          </div>
-        </div>
-        <% const selectedLayoutKey = template.layoutKey === 'split_panel_event' ? 'split_panel_event' : 'verified_achievement'; %>
-        <label for="layoutKey">Layout</label>
-        <select id="layoutKey" name="layoutKey">
-          <% [
-            ['verified_achievement', 'Verified Achievement'],
-            ['split_panel_event', 'Split Panel Event']
-          ].forEach(([value, label]) => { %>
-            <option value="<%= value %>" <%= selectedLayoutKey === value ? 'selected' : '' %>><%= label %></option>
-          <% }) %>
-        </select>
-        <% if (selectedLayoutKey !== template.layoutKey) { %>
-          <p class="form-help">This legacy template now renders with the upgraded Verified Achievement design. Saving stores the canonical layout name.</p>
-        <% } %>
-      </div>
-
-      <div class="form-section">
-        <div class="section-header">
-          <div>
-            <h2>Design and Print Format</h2>
-            <p>Apply your event identity within the verified HelloRun certificate composition.</p>
-          </div>
-        </div>
-        <div class="certificate-color-grid">
-          <label>Primary color
-            <span class="certificate-color-control"><input type="color" name="primaryColor" value="<%= template.styleOptions.primaryColor || '#0F172A' %>"><span>Navy header and verification details</span></span>
-          </label>
-          <label>Achievement accent
-            <span class="certificate-color-control"><input type="color" name="accentColor" value="<%= template.styleOptions.accentColor || '#FA9A4B' %>"><span>Verified seal and metric highlights</span></span>
-          </label>
-          <label>Secondary color
-            <span class="certificate-color-control"><input type="color" name="secondaryAccentColor" value="<%= template.styleOptions.secondaryAccentColor || '#78C0E9' %>"><span>Header blend and supporting details</span></span>
-          </label>
-        </div>
-        <div class="form-grid two-col">
-          <label>Page size
-            <select name="pageSize">
-              <option value="A4" <%= template.styleOptions.pageSize !== 'LETTER' ? 'selected' : '' %>>A4</option>
-              <option value="LETTER" <%= template.styleOptions.pageSize === 'LETTER' ? 'selected' : '' %>>Letter</option>
-            </select>
-          </label>
-          <label>Orientation
-            <select name="orientation">
-              <option value="landscape" <%= template.styleOptions.orientation !== 'portrait' ? 'selected' : '' %>>Landscape</option>
-              <option value="portrait" <%= template.styleOptions.orientation === 'portrait' ? 'selected' : '' %>>Portrait</option>
-            </select>
-          </label>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <div class="section-header">
-          <div>
-            <h2>Certificate Text</h2>
-            <p>Use placeholders like {{runnerName}}, {{distance}}, {{eventTitle}}, and {{certificateNumber}}. Accumulated challenges also support {{goalDistance}} and {{verifiedDistance}}.</p>
-          </div>
-        </div>
-        <label for="heading">Heading</label>
-        <input id="heading" name="heading" value="<%= template.content.heading %>" maxlength="120">
-
-        <label for="bodyText">Body text</label>
-        <textarea id="bodyText" name="bodyText" rows="4" maxlength="1000"><%= template.content.bodyText %></textarea>
-
-        <label for="footerText">Footer text</label>
-        <input id="footerText" name="footerText" value="<%= template.content.footerText %>" maxlength="300">
-
-        <div class="form-grid two-col">
-          <label>Signature name
-            <input name="signatureName" value="<%= template.content.signatureName %>" maxlength="120">
-          </label>
-          <label>Signature role
-            <input name="signatureRole" value="<%= template.content.signatureRole %>" maxlength="120">
-          </label>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <div class="section-header">
-          <div>
-            <h2>Displayed Runner Data</h2>
-            <p>Control which fields appear in generated certificates.</p>
-          </div>
-        </div>
-        <div class="checkbox-grid">
-          <% [
-            ['showDistance', 'Distance'],
-            ['showFinishTime', 'Finish time'],
-            ['showRank', 'Rank'],
-            ['showEventDate', 'Event date'],
-            ['showCertificateNumber', 'Certificate number'],
-            ['showQrCode', 'QR code'],
-            ['showOrganizerLogo', 'Organiser logo'],
-            ['showEventLogo', 'Event logo'],
-            ['showSponsorLogos', 'Sponsor logos']
-          ].forEach(([name, label]) => { %>
-            <input type="hidden" name="<%= name %>" value="0">
-            <label><input type="checkbox" name="<%= name %>" value="1" <%= template.displayOptions[name] ? 'checked' : '' %>> <%= label %></label>
-          <% }) %>
-        </div>
-      </div>
-
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Save Draft</button>
-        <button type="submit" formaction="/organizer/events/<%= event._id %>/certificate/publish" class="btn btn-success">Publish Template</button>
-        <button type="submit" formaction="/organizer/events/<%= event._id %>/certificate/preview" formtarget="_blank" class="btn btn-outline">Preview PDF</button>
-      </div>
-    </form>
-
-    <form class="form-section" method="POST" action="/organizer/events/<%= event._id %>/certificate/assets" enctype="multipart/form-data">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <div class="section-header">
-        <div>
-          <h2>Branding Assets</h2>
-          <p>JPEG, PNG, and WebP images are supported.</p>
-        </div>
-      </div>
-      <div class="form-grid two-col certificate-asset-grid">
-        <label>Background image
-          <% if (template.assets.backgroundImageUrl) { %><span class="certificate-asset-preview"><img src="<%= template.assets.backgroundImageUrl %>" alt="Current certificate background"><span>Current background</span></span><% } %>
-          <input type="file" name="backgroundImageFile" accept="image/jpeg,image/png,image/webp">
-        </label>
-        <label>Event logo override
-          <% if (template.assets.eventLogoUrl) { %><span class="certificate-asset-preview"><img src="<%= template.assets.eventLogoUrl %>" alt="Current event logo"><span>Current event logo</span></span><% } %>
-          <input type="file" name="eventLogoFile" accept="image/jpeg,image/png,image/webp">
-        </label>
-        <label>Event artwork or medal image
-          <% if (template.assets.eventArtworkUrl) { %><span class="certificate-asset-preview"><img src="<%= template.assets.eventArtworkUrl %>" alt="Current event artwork"><span>Current event artwork</span></span><% } %>
-          <input type="file" name="eventArtworkFile" accept="image/jpeg,image/png,image/webp">
-        </label>
-        <label>Organiser logo
-          <% if (template.assets.organizerLogoUrl) { %><span class="certificate-asset-preview"><img src="<%= template.assets.organizerLogoUrl %>" alt="Current organiser logo"><span>Current organiser logo</span></span><% } %>
-          <input type="file" name="organizerLogoFile" accept="image/jpeg,image/png,image/webp">
-        </label>
-        <label>Signature image
-          <% if (template.assets.signatureImageUrl) { %><span class="certificate-asset-preview certificate-asset-preview--signature"><img src="<%= template.assets.signatureImageUrl %>" alt="Current signature"><span>Current signature</span></span><% } %>
-          <input type="file" name="signatureImageFile" accept="image/jpeg,image/png,image/webp">
-        </label>
-        <label>Sponsor logos
-          <% if (template.assets.sponsorLogoUrls && template.assets.sponsorLogoUrls.length) { %>
-            <span class="certificate-sponsor-previews">
-              <% template.assets.sponsorLogoUrls.slice(0, 6).forEach((url, index) => { %><img src="<%= url %>" alt="Current sponsor logo <%= index + 1 %>"><% }) %>
-            </span>
-          <% } %>
-          <input type="file" name="sponsorLogoFiles" accept="image/jpeg,image/png,image/webp" multiple>
-          <span class="form-help">Upload up to six logos. New uploads replace the current sponsor set.</span>
-        </label>
-      </div>
-      <button type="submit" class="btn btn-outline">Upload Assets</button>
-    </form>
-  </section>
   </main>
+
+  <% if (!presentation.isActive) { %>
+    <div class="certificate-dialog hidden" id="certificatePublishDialog" aria-hidden="true">
+      <button class="certificate-dialog-backdrop" type="button" tabindex="-1" data-close-certificate-dialog aria-label="Cancel publication"></button>
+      <section class="certificate-dialog-panel" role="dialog" aria-modal="true" aria-labelledby="certificatePublishTitle" tabindex="-1">
+        <span class="certificate-dialog-icon"><i data-lucide="send" aria-hidden="true"></i></span>
+        <h2 id="certificatePublishTitle">Publish this certificate template?</h2>
+        <p>Publishing makes this design available for future eligible certificates for <strong><%= event.title %></strong>. Preview it first if you need to verify the PDF.</p>
+        <% if (!presentation.certificatesEnabled) { %><p class="certificate-dialog-note">Certificates are disabled for this event, so publishing the template will not enable runner issuance.</p><% } %>
+        <div class="certificate-dialog-actions">
+          <button type="button" class="btn btn-outline" data-close-certificate-dialog>Cancel</button>
+          <button type="submit" form="certificateTemplateForm" formaction="/organizer/events/<%= event._id %>/certificate/publish" class="btn btn-success" data-confirm-certificate-publish>Publish Template</button>
+        </div>
+      </section>
+    </div>
+  <% } %>
+
+  <div class="certificate-dialog hidden" id="certificateUnsavedAssetsDialog" aria-hidden="true">
+    <button class="certificate-dialog-backdrop" type="button" tabindex="-1" data-close-certificate-dialog aria-label="Keep editing"></button>
+    <section class="certificate-dialog-panel" role="dialog" aria-modal="true" aria-labelledby="certificateUnsavedAssetsTitle" tabindex="-1">
+      <span class="certificate-dialog-icon certificate-dialog-icon--warning"><i data-lucide="triangle-alert" aria-hidden="true"></i></span>
+      <h2 id="certificateUnsavedAssetsTitle">Upload without saving template changes?</h2>
+      <p>The asset upload reloads this page. Unsaved certificate text, layout, color, or display changes will be discarded.</p>
+      <div class="certificate-dialog-actions">
+        <button type="button" class="btn btn-outline" data-close-certificate-dialog>Keep editing</button>
+        <button type="button" class="btn btn-primary" data-confirm-asset-upload>Upload anyway</button>
+      </div>
+    </section>
+  </div>
 
   <%- include('../layouts/footer') %>
 </body>

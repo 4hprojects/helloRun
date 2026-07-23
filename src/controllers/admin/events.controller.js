@@ -1,7 +1,7 @@
 'use strict';
 
 const {
-  User, OrganiserApplication, Registration, Submission, Event, Blog, BlogComment, BlogReport,
+  mongoose, User, OrganiserApplication, Registration, Submission, Event, Blog, BlogComment, BlogReport,
   logger, uploadService, publishEvent, recordCriticalAuditEventInBackground,
   ADMIN_EVENT_STATUSES,
   normalizeAdminEventFilters, buildAdminEventQuery, getEventCountsById, formatEventStatusLabel,

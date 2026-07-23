@@ -2,249 +2,204 @@
 <html lang="en">
 <head>
   <%- include('../layouts/head', { title: title || 'Run Submissions - HelloRun Organizer' }) %>
-  <link rel="stylesheet" href="/css/organizer-events.css">
   <link rel="stylesheet" href="/css/submission-hub.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
 
-  <main class="events-page organizer-registrants-page run-proof-review-page">
-    <section class="events-shell">
-      <header class="events-header">
+  <main class="organizer-submission-page" id="main-content" data-organizer-submissions>
+    <div class="organizer-submission-shell">
+      <header class="organizer-submission-header">
         <div>
+          <p class="organizer-submission-kicker">Result moderation</p>
           <h1>Run Submissions</h1>
-          <p>Browse pending, approved, and rejected run proofs across your events.</p>
+          <p>Review activity proof across your events, with the oldest pending work first.</p>
         </div>
-        <div class="header-actions run-proof-header-actions" aria-label="Submission navigation">
-          <a href="<%= links.dashboard %>" class="nav-login-btn registrant-header-btn run-proof-header-btn" data-tooltip="<%= isAdminViewer ? 'Admin Dashboard' : 'Dashboard' %>" aria-label="<%= isAdminViewer ? 'Admin Dashboard' : 'Dashboard' %>">
-            <i data-lucide="layout-dashboard" aria-hidden="true"></i>
-          </a>
-          <% if (!isAdminViewer) { %>
-            <a href="<%= links.events %>" class="nav-login-btn registrant-header-btn run-proof-header-btn" data-tooltip="My Events" aria-label="My Events">
-              <i data-lucide="calendar-days" aria-hidden="true"></i>
-            </a>
-          <% } %>
-        </div>
+        <nav class="organizer-submission-header-actions" aria-label="Submission workspace actions">
+          <a href="<%= links.dashboard %>" class="nav-login-btn"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span><%= isAdminViewer ? 'Admin Dashboard' : 'Dashboard' %></span></a>
+          <% if (!isAdminViewer) { %><a href="<%= links.events %>" class="nav-login-btn"><i data-lucide="calendar-days" aria-hidden="true"></i><span>My Events</span></a><% } %>
+        </nav>
       </header>
 
-      <section class="registrant-summary">
-        <a href="<%= links.all %>" class="summary-card payment-proof-summary-link <%= filters.status === 'all' ? 'is-active' : '' %>">
-          <strong>All Submissions</strong>
-          <span><%= counts.total %></span>
-        </a>
-        <a href="<%= links.submitted %>" class="summary-card payment-proof-summary-link <%= filters.status === 'submitted' ? 'is-active' : '' %>">
-          <strong>Pending Review</strong>
-          <span><%= counts.submitted %></span>
-        </a>
-        <a href="<%= links.approved %>" class="summary-card payment-proof-summary-link <%= filters.status === 'approved' ? 'is-active' : '' %>">
-          <strong>Approved</strong>
-          <span><%= counts.approved %></span>
-        </a>
-        <a href="<%= links.rejected %>" class="summary-card payment-proof-summary-link <%= filters.status === 'rejected' ? 'is-active' : '' %>">
-          <strong>Rejected</strong>
-          <span><%= counts.rejected %></span>
-        </a>
+      <% if (message) { %><div class="page-message page-message-<%= message.type %>" role="status"><%= message.text %></div><% } %>
+      <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>" data-submission-csrf>
+
+      <nav class="organizer-submission-status-strip" aria-label="Filter submissions by status">
+        <% [
+          { label: 'Pending', count: counts.submitted, href: links.submitted, selected: filters.status === 'submitted' },
+          { label: 'Approved', count: counts.approved, href: links.approved, selected: filters.status === 'approved' },
+          { label: 'Rejected', count: counts.rejected, href: links.rejected, selected: filters.status === 'rejected' },
+          { label: 'Total', count: counts.total, href: links.all, selected: filters.status === 'all' }
+        ].forEach((item) => { %>
+          <a href="<%= item.href %>" class="<%= item.selected ? 'is-selected' : '' %>" aria-current="<%= item.selected ? 'page' : 'false' %>">
+            <span><%= item.label %></span><strong><%= item.count %></strong>
+          </a>
+        <% }); %>
+      </nav>
+
+      <section class="organizer-submission-discovery" aria-labelledby="submission-discovery-heading">
+        <h2 id="submission-discovery-heading" class="visually-hidden">Find and filter run submissions</h2>
+        <form method="GET" action="/organizer/submissions" class="organizer-submission-filter-form">
+          <input type="hidden" name="status" value="<%= filters.status %>">
+          <div class="organizer-submission-search">
+            <label for="submissionSearch">Search submissions</label>
+            <div>
+              <input id="submissionSearch" name="q" type="search" placeholder="Runner, email, event, or confirmation code" value="<%= filters.q || '' %>">
+              <button type="submit" class="nav-signup-btn"><i data-lucide="search" aria-hidden="true"></i><span>Search</span></button>
+            </div>
+          </div>
+
+          <details class="organizer-submission-filter-details" <%= hasAdvancedFilters ? 'open' : '' %>>
+            <summary><span><i data-lucide="sliders-horizontal" aria-hidden="true"></i>Filters &amp; sort</span><i data-lucide="chevron-down" class="organizer-submission-filter-chevron" aria-hidden="true"></i></summary>
+            <div class="organizer-submission-filter-grid">
+              <div>
+                <label for="submissionEvent">Event</label>
+                <select id="submissionEvent" name="eventId">
+                  <option value="">All events</option>
+                  <% events.forEach((event) => { %><option value="<%= event.id %>" <%= filters.eventId === event.id ? 'selected' : '' %>><%= event.title %></option><% }); %>
+                </select>
+              </div>
+              <div>
+                <label for="submissionType">Submission type</label>
+                <select id="submissionType" name="type">
+                  <option value="all" <%= filters.type === 'all' ? 'selected' : '' %>>All types</option>
+                  <option value="standard" <%= filters.type === 'standard' ? 'selected' : '' %>>Standard result</option>
+                  <option value="accumulated" <%= filters.type === 'accumulated' ? 'selected' : '' %>>Accumulated activity</option>
+                </select>
+              </div>
+              <div>
+                <label for="submissionSort">Sort</label>
+                <select id="submissionSort" name="sort">
+                  <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest first</option>
+                  <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest first</option>
+                </select>
+              </div>
+              <div>
+                <label for="submissionPageSize">Per page</label>
+                <select id="submissionPageSize" name="pageSize">
+                  <% [25, 50, 100].forEach((size) => { %><option value="<%= size %>" <%= filters.pageSize === size ? 'selected' : '' %>><%= size %></option><% }); %>
+                </select>
+              </div>
+              <div class="organizer-submission-filter-actions">
+                <button type="submit" class="nav-signup-btn">Apply</button>
+                <a href="<%= links.reset %>" class="nav-login-btn">Clear</a>
+              </div>
+            </div>
+          </details>
+        </form>
       </section>
 
-      <form method="GET" action="/organizer/submissions" class="filter-bar run-proof-filter-bar">
-        <div class="run-proof-filter-field">
-          <label for="status">Status</label>
-          <select id="status" name="status">
-            <option value="all" <%= filters.status === 'all' ? 'selected' : '' %>>All statuses</option>
-            <option value="submitted" <%= filters.status === 'submitted' ? 'selected' : '' %>>Pending</option>
-            <option value="approved" <%= filters.status === 'approved' ? 'selected' : '' %>>Approved</option>
-            <option value="rejected" <%= filters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
-          </select>
-        </div>
-
-        <div class="run-proof-filter-field">
-          <label for="type">Type</label>
-          <select id="type" name="type">
-            <option value="all" <%= filters.type === 'all' ? 'selected' : '' %>>All types</option>
-            <option value="standard" <%= filters.type === 'standard' ? 'selected' : '' %>>Standard</option>
-            <option value="accumulated" <%= filters.type === 'accumulated' ? 'selected' : '' %>>Accumulated</option>
-          </select>
-        </div>
-
-        <div class="run-proof-filter-field">
-          <label for="eventId">Event</label>
-          <select id="eventId" name="eventId">
-            <option value="" <%= !filters.eventId ? 'selected' : '' %>>All events</option>
-            <% events.forEach((event) => { %>
-              <option value="<%= event.id %>" <%= filters.eventId === event.id ? 'selected' : '' %>><%= event.title %></option>
-            <% }) %>
-          </select>
-        </div>
-
-        <div class="run-proof-filter-field">
-          <label for="sort">Sort</label>
-          <select id="sort" name="sort">
-            <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest first</option>
-            <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest first</option>
-          </select>
-        </div>
-
-        <div class="run-proof-filter-field run-proof-search-field">
-          <label for="q">Search</label>
-          <div class="run-proof-search-wrapper">
-            <div class="run-proof-search-control">
-              <input id="q" name="q" type="search" placeholder="Event, name, email, or code" value="<%= filters.q || '' %>">
-            </div>
-            <button type="submit" class="run-proof-search-btn" aria-label="Search">
-              <i data-lucide="search" aria-hidden="true"></i>
-            </button>
-          </div>
-        </div>
-
-        <div class="filter-actions">
-          <button type="submit" class="nav-signup-btn">Apply Filters</button>
-          <a href="<%= links.reset %>" class="nav-login-btn">Reset</a>
-        </div>
-      </form>
-
-      <div class="results-meta run-proof-results-meta">
-        <span>Showing <strong><%= submissions.length %></strong> of <strong><%= pagination.totalItems %></strong> submission<%= pagination.totalItems === 1 ? '' : 's' %></span>
-        <span class="run-proof-results-note"><%= counts.standard %> standard, <%= counts.accumulated %> accumulated</span>
+      <div class="organizer-submission-results-heading">
+        <% const resultStart = pagination.totalItems ? ((pagination.page - 1) * pagination.pageSize) + 1 : 0; %>
+        <% const resultEnd = pagination.totalItems ? resultStart + submissions.length - 1 : 0; %>
+        <p>Showing <strong><%= resultStart %>–<%= resultEnd %></strong> of <strong><%= pagination.totalItems %></strong> matching submissions</p>
+        <p><%= counts.standard %> standard · <%= counts.accumulated %> accumulated</p>
       </div>
 
-      <% const pendingSubmissions = (submissions || []).filter(s => s.status === 'submitted'); %>
-      <% if (!isAdminViewer && pendingSubmissions.length) { %>
-        <form method="POST" action="/organizer/submissions/bulk-approve" id="js-bulk-submission-form" class="bulk-action-bar">
+      <% const eligibleSubmissions = (submissions || []).filter((item) => item.quickApprovalEligible); %>
+      <% if (!isAdminViewer && eligibleSubmissions.length) { %>
+        <form method="POST" action="/organizer/submissions/bulk-approve" id="organizerBulkApproveForm" class="organizer-submission-bulk-bar" data-bulk-approval-form>
           <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-          <input type="hidden" name="submissionIds" id="js-bulk-submission-ids" value="">
-          <label class="bulk-select-all-label">
-            <input type="checkbox" id="js-select-all-submissions" class="bulk-select-all"> Select all pending (<%= pendingSubmissions.length %>)
-          </label>
-          <span class="bulk-selected-count" id="js-submission-selected-count" style="display:none">0 selected</span>
-          <textarea name="reviewNotes" placeholder="Optional approval notes (shared across all selected)" rows="1" class="form-input bulk-notes-input" maxlength="1200"></textarea>
-          <button type="submit" class="nav-signup-btn bulk-approve-btn" id="js-bulk-submission-approve" disabled>Approve Selected</button>
+          <input type="hidden" name="returnStatus" value="<%= filters.status %>">
+          <input type="hidden" name="returnType" value="<%= filters.type %>">
+          <input type="hidden" name="returnEventId" value="<%= filters.eventId %>">
+          <input type="hidden" name="returnSort" value="<%= filters.sort %>">
+          <input type="hidden" name="returnQ" value="<%= filters.q %>">
+          <input type="hidden" name="returnPageSize" value="<%= filters.pageSize %>">
+          <input type="hidden" name="returnPage" value="<%= filters.page %>">
+          <label><input type="checkbox" data-select-all-eligible> Select clean results on this page</label>
+          <span data-selected-count aria-live="polite">0 selected</span>
+          <textarea name="reviewNotes" rows="1" maxlength="1200" placeholder="Optional shared approval note"></textarea>
+          <button type="submit" class="nav-signup-btn" disabled data-bulk-approve-button>Approve selected</button>
         </form>
       <% } %>
 
       <% if (submissions && submissions.length) { %>
-        <section class="run-proof-review-list">
-          <% submissions.forEach((item) => { %>
-            <article class="run-proof-review-card submission-hub-card" data-submission-id="<%= item.id %>" data-status="<%= item.status %>">
-              <div class="run-proof-card-main">
-                <div class="run-proof-card-header">
-                  <div>
-                    <h2><%= item.participantName %></h2>
-                    <p><%= item.participantEmail %></p>
-                  </div>
-                  <span class="status-badge status-badge-<%= item.statusClass %>"><%= item.statusLabel %></span>
-                </div>
-
-                <div class="run-proof-card-labels">
-                  <span class="mode-badge"><%= item.submissionTypeLabel %></span>
-                  <span class="mode-badge"><%= item.eventTitle %></span>
-                  <% if (item.isAutoApproved) { %>
-                    <span class="mode-badge mode-auto-approved">Auto validation</span>
+        <div class="organizer-submission-table-wrap">
+          <table class="organizer-submission-table <%= isAdminViewer ? 'is-admin-viewer' : '' %>">
+            <thead><tr>
+              <% if (!isAdminViewer) { %><th class="organizer-submission-check-column"><span class="visually-hidden">Select</span></th><% } %>
+              <th>Runner &amp; event</th><th>Result</th><th>Evidence</th><th>Submitted</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody>
+              <% submissions.forEach((item) => { %>
+                <tr data-submission-id="<%= item.id %>" data-status="<%= item.status %>">
+                  <% if (!isAdminViewer) { %>
+                    <td class="organizer-submission-check-column" data-label="Select">
+                      <% if (item.quickApprovalEligible) { %><input type="checkbox" name="submissionIds" value="<%= item.id %>" form="organizerBulkApproveForm" data-eligible-submission aria-label="Select <%= item.participantName %> for approval"><% } else { %><span aria-hidden="true">—</span><% } %>
+                    </td>
                   <% } %>
-                  <% if (item.suspiciousFlag || item.reviewSignal?.label) { %>
-                    <span class="mode-badge mode-warning" title="<%= item.reviewSignal?.description || item.suspiciousFlagReason %>"><%= item.reviewSignal?.label || 'Suspicious' %></span>
-                  <% } %>
-                </div>
-
-                <dl class="run-proof-meta-grid">
-                  <div>
-                    <dt>Confirmation</dt>
-                    <dd><%= item.confirmationCode %></dd>
-                  </div>
-                  <div>
-                    <dt>Distance</dt>
-                    <dd><%= item.distanceLabel %></dd>
-                  </div>
-                  <div>
-                    <dt>Elapsed</dt>
-                    <dd><%= item.elapsedLabel %></dd>
-                  </div>
-                  <div>
-                    <dt>Submitted</dt>
-                    <dd>
-                      <%= item.submittedAtLabel %>
-                      <% if (item.status === 'submitted' && item.submittedAt) {
-                        const daysWaiting = Math.floor((Date.now() - new Date(item.submittedAt).getTime()) / 86400000);
-                      %>
-                        <span class="waiting-label"><%= daysWaiting === 0 ? 'Today' : daysWaiting === 1 ? 'Waiting 1 day' : `Waiting ${daysWaiting} days` %></span>
-                      <% } %>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Reviewed</dt>
-                    <dd><%= item.reviewedAtLabel %></dd>
-                  </div>
-                  <div>
-                    <dt>Proof</dt>
-                    <dd><%= item.proofTypeLabel %> / <%= item.sourceLabel %></dd>
-                  </div>
-                </dl>
-              </div>
-
-              <div class="run-proof-card-actions submission-hub-card-actions">
-                <% if (!isAdminViewer && item.status === 'submitted') { %>
-                  <label class="bulk-card-checkbox-label" title="Select for bulk approve">
-                    <input type="checkbox" class="js-submission-checkbox bulk-card-checkbox" value="<%= item.id %>" aria-label="Select submission">
-                  </label>
-                <% } %>
-                <a href="<%= item.actionHref %>" class="nav-signup-btn submission-hub-action-btn" data-submission-modal-link data-modal-title="Review Submission" data-submission-id="<%= item.id %>">Open Review</a>
-                <% if (!isAdminViewer && item.status === 'submitted' && !item.suspiciousFlag && !item.reviewSignal?.label) { %>
-                  <button type="button" class="btn btn-sm btn-success js-quick-approve" data-submission-id="<%= item.id %>" data-approve-url="<%= item.approveUrl %>" title="Quick approve">✓ Approve</button>
-                <% } %>
-                <a href="<%= item.eventProofsHref %>" class="nav-login-btn submission-hub-action-btn" data-submission-modal-link data-modal-title="Event Proofs">Event Proofs</a>
-              </div>
-            </article>
-          <% }) %>
-        </section>
-
-        <div class="filter-actions pagination-actions">
-          <% if (links.prev) { %><a href="<%= links.prev %>" class="nav-login-btn">Previous</a><% } %>
-          <span class="results-meta">Page <%= pagination.page %> of <%= pagination.totalPages %></span>
-          <% if (links.next) { %><a href="<%= links.next %>" class="nav-login-btn">Next</a><% } %>
+                  <td data-label="Runner & event" class="organizer-submission-identity">
+                    <strong><%= item.participantName %></strong>
+                    <span><%= item.participantEmail %> · <span class="mono"><%= item.confirmationCode %></span></span>
+                    <a href="<%= item.eventQueueHref %>"><%= item.eventTitle %></a>
+                    <small><%= item.raceDistance %> · <%= item.submissionTypeLabel %></small>
+                  </td>
+                  <td data-label="Result"><strong><%= item.distanceLabel %></strong><span><%= item.elapsedLabel %></span></td>
+                  <td data-label="Evidence"><strong><%= item.sourceLabel %></strong><span><%= item.proofTypeLabel %></span></td>
+                  <td data-label="Submitted"><strong><%= item.submittedAtLabel %></strong><span class="organizer-submission-waiting"><%= item.waitingLabel %></span></td>
+                  <td data-label="Status">
+                    <span class="status-badge status-badge-<%= item.statusClass %>"><%= item.statusLabel %></span>
+                    <% if (item.suspiciousFlag || item.reviewSignal?.label) { %><span class="organizer-submission-warning" title="<%= item.reviewSignal?.description || item.suspiciousFlagReason %>"><i data-lucide="triangle-alert" aria-hidden="true"></i><%= item.reviewSignal?.label || 'Integrity review required' %></span><% } %>
+                  </td>
+                  <td data-label="Actions" class="organizer-submission-actions">
+                    <% const reviewActionLabel = item.status === 'submitted' ? 'Review submission' : 'View submission details'; %>
+                    <a href="<%= item.actionHref %>" class="nav-signup-btn organizer-submission-icon-action" data-submission-modal-link data-submission-id="<%= item.id %>" aria-label="<%= reviewActionLabel %>" aria-describedby="submission-action-<%= item.id %>">
+                      <i data-lucide="<%= item.status === 'submitted' ? 'clipboard-check' : 'eye' %>" aria-hidden="true"></i>
+                      <span class="organizer-submission-action-tooltip" id="submission-action-<%= item.id %>" role="tooltip"><%= reviewActionLabel %></span>
+                    </a>
+                    <% if (!isAdminViewer && item.quickApprovalEligible) { %>
+                      <form method="POST" action="/organizer/submissions/<%= item.id %>/quick-approve" data-quick-approval-form data-runner="<%= item.participantName %>" data-event="<%= item.eventTitle %>" data-result="<%= item.distanceLabel %>">
+                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                        <input type="hidden" name="returnStatus" value="<%= filters.status %>"><input type="hidden" name="returnType" value="<%= filters.type %>"><input type="hidden" name="returnEventId" value="<%= filters.eventId %>"><input type="hidden" name="returnSort" value="<%= filters.sort %>"><input type="hidden" name="returnQ" value="<%= filters.q %>"><input type="hidden" name="returnPageSize" value="<%= filters.pageSize %>"><input type="hidden" name="returnPage" value="<%= filters.page %>">
+                        <button type="submit" class="nav-login-btn organizer-submission-icon-action" aria-label="Quick approve submission" aria-describedby="quick-approve-action-<%= item.id %>">
+                          <i data-lucide="circle-check-big" aria-hidden="true"></i>
+                          <span class="organizer-submission-action-tooltip" id="quick-approve-action-<%= item.id %>" role="tooltip">Quick approve</span>
+                        </button>
+                      </form>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
         </div>
+
+        <% if (pagination.totalPages > 1) { %>
+          <nav class="organizer-submission-pagination" aria-label="Submission pagination">
+            <% if (links.prev) { %><a href="<%= links.prev %>" class="nav-login-btn"><i data-lucide="chevron-left" aria-hidden="true"></i>Previous</a><% } else { %><span></span><% } %>
+            <p>Page <strong><%= pagination.page %></strong> of <strong><%= pagination.totalPages %></strong></p>
+            <% if (links.next) { %><a href="<%= links.next %>" class="nav-login-btn">Next<i data-lucide="chevron-right" aria-hidden="true"></i></a><% } else { %><span></span><% } %>
+          </nav>
+        <% } %>
       <% } else { %>
-        <div class="empty-state">
-          <i data-lucide="clipboard-list"></i>
-          <h3>No run submissions found</h3>
-          <p>Try changing the status, event, or search filters.</p>
-          <a href="<%= links.reset %>" class="nav-login-btn">View All Run Submissions</a>
-        </div>
+        <section class="organizer-submission-empty">
+          <i data-lucide="clipboard-check" aria-hidden="true"></i>
+          <% if (filters.status === 'submitted' && !filters.q && !filters.eventId && filters.type === 'all') { %><h2>No pending reviews</h2><p>Your cross-event result queue is clear.</p><a href="<%= links.all %>" class="nav-login-btn">View submission history</a>
+          <% } else { %><h2>No matching submissions</h2><p>Try another search or clear the current filters.</p><a href="<%= links.reset %>" class="nav-login-btn">Clear filters</a><% } %>
+        </section>
       <% } %>
-    </section>
+    </div>
   </main>
+
+  <div class="organizer-approval-dialog-backdrop" data-approval-dialog hidden>
+    <section class="organizer-approval-dialog" role="dialog" aria-modal="true" aria-labelledby="approvalDialogTitle" aria-describedby="approvalDialogDescription" tabindex="-1">
+      <div class="organizer-approval-dialog-icon"><i data-lucide="circle-check" aria-hidden="true"></i></div>
+      <h2 id="approvalDialogTitle" data-approval-title>Approve submission?</h2>
+      <p id="approvalDialogDescription" data-approval-description>Confirm that you reviewed the selected result.</p>
+      <div class="organizer-approval-selection" data-approval-selection></div>
+      <p class="organizer-approval-error" data-approval-error role="alert" hidden></p>
+      <div class="organizer-approval-dialog-actions">
+        <button type="button" class="nav-login-btn" data-approval-cancel>Cancel</button>
+        <button type="button" class="nav-signup-btn" data-approval-confirm>Confirm approval</button>
+      </div>
+    </section>
+  </div>
 
   <%- include('../layouts/footer') %>
   <%- include('../partials/submission-link-modal') %>
   <script src="/js/main.js"></script>
   <script src="/js/submission-link-modal.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
-  <script>
-    (function () {
-      var selectAll = document.getElementById('js-select-all-submissions');
-      var idsInput = document.getElementById('js-bulk-submission-ids');
-      var approveBtn = document.getElementById('js-bulk-submission-approve');
-      var countEl = document.getElementById('js-submission-selected-count');
-      var checkboxes = Array.from(document.querySelectorAll('.js-submission-checkbox'));
-      if (!selectAll || !checkboxes.length) return;
-
-      function updateState() {
-        var selected = checkboxes.filter(function (c) { return c.checked; });
-        if (idsInput) idsInput.value = selected.map(function (c) { return c.value; }).join(',');
-        if (approveBtn) approveBtn.disabled = selected.length === 0;
-        if (countEl) {
-          countEl.style.display = selected.length > 0 ? '' : 'none';
-          countEl.textContent = selected.length + ' selected' + (selected.length > 50 ? ' (first 50 will be processed)' : '');
-        }
-        selectAll.indeterminate = selected.length > 0 && selected.length < checkboxes.length;
-        selectAll.checked = selected.length === checkboxes.length && checkboxes.length > 0;
-      }
-
-      selectAll.addEventListener('change', function () {
-        checkboxes.forEach(function (c) { c.checked = selectAll.checked; });
-        updateState();
-      });
-      checkboxes.forEach(function (c) { c.addEventListener('change', updateState); });
-      updateState();
-    })();
-  </script>
+  <script src="/js/organizer-submissions.js"></script>
 </body>
 </html>

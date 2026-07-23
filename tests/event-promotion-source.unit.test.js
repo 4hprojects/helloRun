@@ -102,3 +102,39 @@ test('organizer basic promotion quota is 25 emails per day', () => {
   assert.match(organizerRoutes, /const PROMO_DAILY_LIMIT = 25;/);
   assert.match(tracker, /Daily cap: 25 emails\/day/);
 });
+
+test('event forms can schedule one consent-aware promotion for the public posting date', () => {
+  const model = read('src/models/Event.js');
+  const formService = read('src/services/event-form.service.js');
+  const createView = read('src/views/organizer/create-event.ejs');
+  const editView = read('src/views/organizer/edit-event.ejs');
+  const creationRoutes = read('src/routes/organiser/event-creation.js');
+
+  assert.match(model, /autoEmailPromotionEnabled/);
+  assert.match(model, /autoEmailPromotionScheduledAt/);
+  assert.match(formService, /applyAutoEmailPromotionSettings/);
+  assert.match(formService, /autoEmailPromotionStatus = 'pending'/);
+  assert.match(createView, /name="autoEmailPromotionEnabled"/);
+  assert.match(createView, /Runners who opted out are excluded/);
+  assert.match(editView, /autoEmailPromotionStatus/);
+  assert.match(creationRoutes, /formData\.autoEmailPromotionEnabled = false/);
+});
+
+test('automatic publish promotions are claimed once and use eligible opted-in runners', () => {
+  const worker = read('src/workers/event-promotion-worker.js');
+  const service = read('src/services/event-promotion.service.js');
+  const promotionModel = read('src/models/EventPromotion.js');
+  const server = read('src/server.js');
+
+  assert.match(worker, /autoEmailPromotionStatus: 'pending'/);
+  assert.match(worker, /findOneAndUpdate/);
+  assert.match(worker, /event-publish:/);
+  assert.match(worker, /source: 'automatic_publish'/);
+  assert.match(worker, /generateDefaultEventBadges/);
+  assert.match(service, /resolveAutomaticPublishPromotionRecipients/);
+  assert.match(service, /emailVerified: true/);
+  assert.match(service, /accountStatus: 'active'/);
+  assert.match(promotionModel, /automaticKey/);
+  assert.match(promotionModel, /unique: true/);
+  assert.match(server, /startEventPromotionWorker/);
+});

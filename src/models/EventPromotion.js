@@ -19,6 +19,16 @@ const eventPromotionSchema = new mongoose.Schema(
     dateKey: { type: String, required: true },
     status: { type: String, enum: ['sending', 'completed', 'partial', 'failed'], default: 'sending' },
     adminTriggered: { type: Boolean, default: false },
+    source: {
+      type: String,
+      enum: ['manual', 'automatic_publish'],
+      default: 'manual'
+    },
+    automaticKey: {
+      type: String,
+      trim: true,
+      default: null
+    },
     sentAt: { type: Date }
   },
   { timestamps: true }
@@ -26,5 +36,9 @@ const eventPromotionSchema = new mongoose.Schema(
 
 eventPromotionSchema.index({ organizerId: 1, dateKey: 1 });
 eventPromotionSchema.index({ eventId: 1, dateKey: 1 });
+eventPromotionSchema.index(
+  { automaticKey: 1 },
+  { unique: true, partialFilterExpression: { automaticKey: { $type: 'string' } } }
+);
 
 module.exports = mongoose.model('EventPromotion', eventPromotionSchema);

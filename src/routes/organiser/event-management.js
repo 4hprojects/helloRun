@@ -47,7 +47,6 @@ const {
   getPublishReadinessErrors,
   renderEventDetailsMarkdown,
   getPageMessage,
-  escapeRegex,
   getEventAuditTargetIds,
   isChecked,
   acceptsJson,
@@ -59,6 +58,8 @@ const {
   toObjectId
 } = require('../../services/event-promotion.service');
 const { synchronizeEventBadgeImages } = require('../../services/event-badge.service');
+const { listOrganizerEvents } = require('../../services/organizer-event-list.service');
+const { getOrganizerEventDetailPresentation } = require('../../services/organizer-event-detail.service');
 
 /* ==========================================
    GET: My Events
@@ -76,48 +77,12 @@ router.get('/events', requireCanCreateEvents, async (req, res) => {
       });
     }
 
-    const selectedStatus = ['draft', 'pending_review', 'published', 'closed', 'archived'].includes(req.query.status)
-      ? req.query.status
-      : '';
-    const selectedSort = ['newest', 'oldest', 'start_asc', 'start_desc'].includes(req.query.sort)
-      ? req.query.sort
-      : 'newest';
-    const searchQuery = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 80) : '';
-
-    const query = { organizerId: user._id, isDeleted: { $ne: true } };
-    if (selectedStatus) {
-      query.status = selectedStatus;
-    } else {
-      query.status = { $ne: 'archived' };
-    }
-    if (searchQuery) {
-      const safePattern = new RegExp(escapeRegex(searchQuery), 'i');
-      query.$or = [
-        { title: safePattern },
-        { organiserName: safePattern },
-        { slug: safePattern },
-        { venueName: safePattern },
-        { city: safePattern },
-        { country: safePattern }
-      ];
-    }
-
-    const sortMap = {
-      newest: { createdAt: -1 },
-      oldest: { createdAt: 1 },
-      start_asc: { eventStartAt: 1, createdAt: -1 },
-      start_desc: { eventStartAt: -1, createdAt: -1 }
-    };
-
-    const events = await Event.find(query).sort(sortMap[selectedSort]);
+    const presentation = await listOrganizerEvents(user._id, req.query);
 
     return res.render('organizer/events', {
       title: 'My Events - HelloRun',
       user,
-      events,
-      selectedStatus,
-      selectedSort,
-      searchQuery,
+      ...presentation,
       message: getPageMessage(req.query)
     });
   } catch (error) {
@@ -159,49 +124,19 @@ router.get('/events/:id', requireCanCreateEvents, async (req, res) => {
         ? getEventBadgesByMongoEventId(event._id).catch(() => [])
         : Promise.resolve([])
     ]);
-    const operationalReadiness = [];
-    if (event.feeMode === 'paid' && (!event.paymentAccountName || !event.paymentInstructions)) {
-      operationalReadiness.push({
-        key: 'payment',
-        title: 'Complete payment instructions',
-        impact: 'Runners cannot confidently pay or submit a verifiable receipt until the payee and instructions are complete.',
-        href: `/organizer/events/${event._id}/edit`,
-        action: 'Edit payment setup'
-      });
-    }
-    if (event.digitalCertificateEnabled && !activeCertificateTemplate) {
-      operationalReadiness.push({
-        key: 'certificate',
-        title: 'Publish a certificate template',
-        impact: 'Approved runners will not receive the intended event certificate until an active template is available.',
-        href: `/organizer/events/${event._id}/certificate`,
-        action: 'Set up certificate'
-      });
-    }
-    if (event.digitalBadgeEnabled && !eventBadges.length) {
-      operationalReadiness.push({
-        key: 'badge',
-        title: 'Generate event badges',
-        impact: 'Badge awards cannot be displayed until event badge definitions exist.',
-        href: `/organizer/events/${event._id}/badges/manage`,
-        action: 'Manage badges'
-      });
-    }
-    if (!['published', 'closed', 'archived'].includes(event.status)) {
-      operationalReadiness.push({
-        key: 'publication',
-        title: 'Complete publication readiness',
-        impact: 'The public event lifecycle and runner registration depend on a publish-ready event.',
-        href: `/organizer/events/${event._id}/edit`,
-        action: 'Review event setup'
-      });
-    }
+    const publishReadinessErrors = getPublishReadinessErrors(event);
+    const presentation = await getOrganizerEventDetailPresentation({
+      event,
+      hasActiveCertificate: Boolean(activeCertificateTemplate),
+      eventBadgeCount: eventBadges.length,
+      publishReadinessErrors
+    });
 
     return res.render('organizer/event-details', {
       title: `Event Details - ${event.title}`,
       user,
       event,
-      operationalReadiness,
+      presentation,
       eventDetailsHtml: renderEventDetailsMarkdown(event.eventDetailsMarkdown),
       message: getPageMessage(req.query)
     });

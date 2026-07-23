@@ -1,536 +1,201 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: title }) %>
+  <%- include('../layouts/head', { title }) %>
   <link rel="stylesheet" href="/css/event-manage.css">
+  <link rel="stylesheet" href="/css/organizer-event-detail.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
+  <% const p = presentation; %>
 
-  <main class="manage-page organizer-event-detail-page">
-    <section class="manage-shell">
-      <header class="manage-header">
-        <div class="manage-header-copy">
-          <p class="manage-eyebrow">Event Workspace</p>
+  <main class="organizer-event-detail-page" id="main-content" data-organizer-event-detail>
+    <div class="organizer-event-detail-shell">
+      <nav class="organizer-event-detail-breadcrumb" aria-label="Breadcrumb">
+        <a href="/organizer/events"><i data-lucide="arrow-left" aria-hidden="true"></i> My Events</a>
+        <span aria-hidden="true">/</span><span aria-current="page"><%= p.referenceCode %></span>
+      </nav>
+
+      <header class="organizer-event-detail-header">
+        <div class="organizer-event-detail-identity">
+          <div class="organizer-event-detail-title-meta">
+            <span class="status status-<%= event.status %>"><%= p.statusLabel %></span>
+            <span><i data-lucide="route" aria-hidden="true"></i><%= p.formatLabel %></span>
+            <span><i data-lucide="map-pin" aria-hidden="true"></i><%= p.locationLabel %></span>
+          </div>
           <h1><%= event.title %></h1>
-          <p>Event details and configuration snapshot.</p>
+          <p><code><%= p.referenceCode %></code> · Updated <%= event.updatedAt ? new Date(event.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' }) : 'date unavailable' %></p>
         </div>
-        <div class="header-actions">
-          <a href="/organizer/events" class="nav-login-btn detail-nav-btn">Back to Events</a>
-          <% if (event.status !== 'closed' && event.status !== 'archived') { %>
-            <a href="/organizer/events/<%= event._id %>/edit" class="nav-signup-btn detail-nav-btn">Edit Event</a>
-          <% } %>
-          <a href="/organizer/events/<%= event._id %>/clone" class="nav-login-btn detail-nav-btn">Clone Event</a>
-          <a href="/organizer/preview-event?eventId=<%= event._id %>&previewSource=edit" class="nav-login-btn detail-nav-btn">Preview Saved Event</a>
-          <a href="/organizer/events/<%= event._id %>/badges/manage" class="nav-login-btn detail-nav-btn">Manage Badges</a>
-          <a href="/organizer/events/<%= event._id %>/shop" class="nav-login-btn detail-nav-btn">Manage Shop</a>
-          <a href="/organizer/events/<%= event._id %>/registrants" class="nav-login-btn detail-nav-btn">View Registrants</a>
-          <a href="/organizer/events/<%= event._id %>/run-proofs/review" class="nav-login-btn detail-nav-btn">Run Proof Review</a>
-          <a href="/organizer/events/<%= event._id %>/audit" class="nav-login-btn detail-nav-btn">Audit Trail</a>
-        </div>
+        <nav class="organizer-event-detail-header-actions organizer-event-detail-header-actions-<%= p.canEdit ? 3 : 2 %>" aria-label="Event actions">
+          <a href="/organizer/events" class="nav-login-btn"><i data-lucide="list" aria-hidden="true"></i><span>Events</span></a>
+          <% if (p.canEdit) { %><a href="/organizer/events/<%= event._id %>/edit" class="nav-signup-btn"><i data-lucide="pencil" aria-hidden="true"></i><span>Edit Event</span></a><% } %>
+          <a href="<%= p.publicVisibleNow ? p.publicHref : p.previewHref %>" class="nav-login-btn" aria-label="<%= p.publicVisibleNow ? 'View Public Event Page' : 'Preview Saved Event' %>"><i data-lucide="<%= p.publicVisibleNow ? 'globe' : 'eye' %>" aria-hidden="true"></i><span><%= p.publicVisibleNow ? 'Public Page' : 'Preview' %></span></a>
+        </nav>
       </header>
 
-      <% if (message) { %>
-        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
-      <% } %>
-      <section class="operational-readiness" aria-labelledby="operationalReadinessTitle">
-        <div class="operational-readiness-header">
-          <div>
-            <p class="manage-eyebrow">Operational readiness</p>
-            <h2 id="operationalReadinessTitle"><%= operationalReadiness.length ? `${operationalReadiness.length} setup task${operationalReadiness.length === 1 ? '' : 's'} need attention` : 'Core event setup is ready' %></h2>
-          </div>
-          <span class="status status-<%= operationalReadiness.length ? 'pending_review' : 'published' %>"><%= operationalReadiness.length ? 'Needs attention' : 'Ready' %></span>
-        </div>
-        <% if (operationalReadiness.length) { %>
-          <div class="operational-readiness-list">
-            <% operationalReadiness.forEach((item) => { %>
-              <article>
-                <div><strong><%= item.title %></strong><p><%= item.impact %></p></div>
-                <a href="<%= item.href %>" class="btn btn-sm"><%= item.action %></a>
+      <% if (message) { %><div class="page-message page-message-<%= message.type %>" role="status"><%= message.text %></div><% } %>
+
+      <section class="organizer-event-detail-overview" aria-labelledby="eventOverviewTitle">
+        <h2 id="eventOverviewTitle" class="visually-hidden">Event operations overview</h2>
+        <% p.metrics.forEach((metric) => { %>
+          <% if (metric.actionable && metric.href) { %>
+            <a href="<%= metric.href %>" class="organizer-event-detail-metric metric-<%= metric.key %> <%= metric.value && ['payments', 'results'].includes(metric.key) ? 'has-work' : '' %>">
+              <span><%= metric.label %></span><strong><%= metric.value %></strong><small>Open <i data-lucide="arrow-right" aria-hidden="true"></i></small>
+            </a>
+          <% } else { %>
+            <article class="organizer-event-detail-metric metric-<%= metric.key %>"><span><%= metric.label %></span><strong><%= metric.value %></strong><small>No review needed</small></article>
+          <% } %>
+        <% }); %>
+      </section>
+
+      <div class="organizer-event-detail-layout">
+        <div class="organizer-event-detail-main">
+          <section class="organizer-event-detail-section organizer-event-readiness <%= p.readinessTasks.length ? 'needs-attention' : 'is-ready' %>" aria-labelledby="eventReadinessTitle">
+            <div class="organizer-event-detail-section-heading">
+              <div><span>Operational readiness</span><h2 id="eventReadinessTitle"><%= p.readinessTasks.length ? `${p.readinessTasks.length} task${p.readinessTasks.length === 1 ? '' : 's'} need attention` : 'Core event setup is ready' %></h2></div>
+              <span class="status status-<%= p.readinessTasks.length ? 'pending_review' : 'published' %>"><%= p.readinessTasks.length ? 'Needs attention' : 'Ready' %></span>
+            </div>
+            <% if (p.readinessTasks.length) { %>
+              <div class="organizer-event-readiness-list">
+                <% p.readinessTasks.forEach((item) => { %><article><div><strong><%= item.title %></strong><p><%= item.impact %></p></div><a href="<%= item.href %>" class="nav-login-btn"><%= item.action %></a></article><% }); %>
+              </div>
+            <% } else { %><p class="organizer-event-detail-helper">Current publishing, payment, certificate, and badge requirements are complete.</p><% } %>
+          </section>
+
+          <section class="organizer-event-detail-section" aria-labelledby="eventSetupTitle">
+            <div class="organizer-event-detail-section-heading"><div><span>Essential configuration</span><h2 id="eventSetupTitle">Event setup</h2></div></div>
+            <div class="organizer-event-fact-grid">
+              <article class="organizer-event-fact-card">
+                <h3><i data-lucide="calendar-days" aria-hidden="true"></i>Schedule</h3>
+                <dl><% p.schedule.forEach((item) => { %><div><dt><%= item.label %></dt><dd><%= item.value %></dd></div><% }); %></dl>
+                <small>Dates are shown in Asia/Manila.</small>
               </article>
-            <% }) %>
-          </div>
-        <% } else { %>
-          <p>Payment, certificate, badge, and publication prerequisites currently enabled for this event are complete.</p>
-        <% } %>
-      </section>
-      <% const showLocationPanel = event.eventType === 'onsite' || event.eventType === 'hybrid' || (event.eventTypesAllowed || []).includes('onsite'); %>
-      <% const eventReferenceCode = event.referenceCode || `EVT-${String(event._id || '').slice(0, 8).toUpperCase()}`; %>
-      <% const publicEventPath = `/events/${event.slug}`; %>
-      <%
-        const organizerRaceCategories = Array.isArray(event.raceCategories) ? event.raceCategories : [];
-        const organizerCategoryTypeLabel = (value) => ({ distance: 'Distance', challenge: 'Challenge', open: 'Open', other: 'Other' }[value] || 'Category');
-        const organizerCategorySummary = (category) => [
-          category.distanceLabel,
-          Number(category.distanceKm || 0) > 0 ? `${Number(category.distanceKm).toLocaleString('en-US')} km` : '',
-          Number(category.slots || 0) > 0 ? `${Number(category.slots).toLocaleString('en-US')} slots` : '',
-          category.cutoffTime,
-          category.ageGroup
-        ].filter(Boolean).join(' | ') || organizerCategoryTypeLabel(category.type);
-      %>
 
-      <div class="detail-grid">
-        <article class="detail-card">
-          <h3>Timeline</h3>
-          <p><strong>Created:</strong> <%= event.createdAt ? new Date(event.createdAt).toLocaleString('en-US') : 'N/A' %></p>
-          <p><strong>Last Updated:</strong> <%= event.updatedAt ? new Date(event.updatedAt).toLocaleString('en-US') : 'N/A' %></p>
-          <p><strong>Registration Opens:</strong> <%= event.registrationOpenAt ? new Date(event.registrationOpenAt).toLocaleString('en-US') : 'N/A' %></p>
-          <p><strong>Registration Closes:</strong> <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleString('en-US') : 'N/A' %></p>
-        </article>
+              <article class="organizer-event-fact-card">
+                <h3><i data-lucide="map" aria-hidden="true"></i>Format and location</h3>
+                <dl>
+                  <div><dt>Format</dt><dd><%= p.formatLabel %></dd></div>
+                  <div><dt>Allowed modes</dt><dd><%= (event.eventTypesAllowed || []).join(', ') || event.eventType || 'Not configured' %></dd></div>
+                  <div><dt>Location</dt><dd><%= p.locationLabel %></dd></div>
+                  <div><dt>Distance mode</dt><dd><%= event.virtualCompletionMode === 'accumulated_distance' ? 'Accumulated distance' : 'Single activity' %></dd></div>
+                </dl>
+              </article>
 
-        <article class="detail-card">
-          <h3>Basic</h3>
-          <p><strong>Status:</strong> <span class="status status-<%= event.status %>"><%= event.status %></span></p>
-          <p><strong>Event Type:</strong> <%= event.eventType %></p>
-          <p><strong>Allowed Modes:</strong> <%= (event.eventTypesAllowed || []).join(', ') || 'N/A' %></p>
-          <p><strong>Race Distances:</strong> <%= (event.raceDistances || []).join(', ') || 'N/A' %></p>
-          <p><strong>Fee:</strong> <%= event.feeMode === 'paid' ? `${event.feeCurrency || 'PHP'} ${Number(event.feeAmount || 0).toFixed(2)}` : 'Free' %></p>
-          <p><strong>Pricing Mode:</strong> <%= event.pricingMode || 'free' %></p>
-          <p><strong>Event URL:</strong> <code><%= event.slug %></code></p>
-        </article>
+              <article class="organizer-event-fact-card organizer-event-category-card">
+                <h3><i data-lucide="milestone" aria-hidden="true"></i>Categories</h3>
+                <% if (p.categories.length) { %><ul><% p.categories.forEach((category) => { %><li><strong><%= category.name %></strong><span><%= category.summary %></span><% if (category.rewards) { %><small><%= category.rewards %></small><% } %></li><% }); %></ul>
+                <% } else { %><p>No categories configured.</p><% } %>
+              </article>
 
-        <article class="detail-card">
-          <h3>Race Categories</h3>
-          <% if (organizerRaceCategories.length) { %>
-            <% organizerRaceCategories.forEach((category) => { %>
-              <p>
-                <strong><%= category.name || category.distanceLabel || 'Unnamed category' %>:</strong>
-                <%= organizerCategorySummary(category) %>
-                <% if (category.rewardsDescription) { %>
-                  <br>
-                  <small><%= category.rewardsDescription %></small>
-                <% } %>
-              </p>
-            <% }) %>
-          <% } else { %>
-            <p><strong>Configured Categories:</strong> N/A</p>
-          <% } %>
-        </article>
+              <article class="organizer-event-fact-card">
+                <h3><i data-lucide="wallet-cards" aria-hidden="true"></i>Pricing</h3>
+                <dl>
+                  <div><dt>Registration fee</dt><dd><%= p.pricing.feeLabel %></dd></div>
+                  <div><dt>Pricing mode</dt><dd class="capitalize"><%= p.pricing.modeLabel %></dd></div>
+                  <div><dt>Payment account</dt><dd><%= p.pricing.paymentAccount %></dd></div>
+                  <div><dt>Packages</dt><dd><%= (event.registrationPackages || []).length %></dd></div>
+                </dl>
+              </article>
 
-        <article class="detail-card">
-          <h3>Dates</h3>
-          <p><strong>Registration Open:</strong> <%= event.registrationOpenAt ? new Date(event.registrationOpenAt).toLocaleString('en-US') : 'N/A' %></p>
-          <p><strong>Registration Close:</strong> <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleString('en-US') : 'N/A' %></p>
-          <p><strong>Event Start:</strong> <%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleString('en-US') : 'N/A' %></p>
-          <p><strong>Event End:</strong> <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleString('en-US') : 'N/A' %></p>
-        </article>
-
-        <% if (showLocationPanel) { %>
-          <article class="detail-card">
-            <h3>Location</h3>
-            <p><strong>Venue:</strong> <%= event.venueName || 'N/A' %></p>
-            <p><strong>Address:</strong> <%= event.venueAddress || 'N/A' %></p>
-            <p><strong>City/Province:</strong> <%= [event.city, event.province].filter(Boolean).join(', ') || 'N/A' %></p>
-            <p><strong>Country:</strong> <%= event.country || 'N/A' %></p>
-            <p><strong>Geo:</strong> <%= event.geo && typeof event.geo.lat === 'number' && typeof event.geo.lng === 'number' ? `${event.geo.lat}, ${event.geo.lng}` : 'N/A' %></p>
-          </article>
-        <% } %>
-
-        <article class="detail-card">
-          <h3>Branding</h3>
-          <% if (event.bannerImageUrl) { %>
-            <p><strong>Banner:</strong></p>
-            <img class="detail-banner-image" src="<%= event.bannerImageUrl %>" alt="<%= event.title %> banner">
-          <% } else { %>
-            <p><strong>Banner:</strong> N/A</p>
-          <% } %>
-          <% if (event.logoUrl) { %>
-            <p><strong>Logo:</strong></p>
-            <img class="detail-logo-image" src="<%= event.logoUrl %>" alt="<%= event.title %> logo">
-          <% } else { %>
-            <p><strong>Logo:</strong> N/A</p>
-          <% } %>
-          <% if (event.posterImageUrl) { %>
-            <p><strong>Promotional Poster:</strong></p>
-            <button
-              type="button"
-              class="detail-poster-thumb-btn"
-              data-poster-src="<%= event.posterImageUrl %>"
-              aria-label="Open promotional poster"
-            >
-              <img class="detail-poster-image" src="<%= event.posterImageUrl %>" alt="<%= event.title %> poster">
-            </button>
-          <% } else { %>
-            <p><strong>Promotional Poster:</strong> N/A</p>
-          <% } %>
-          <% if (event.galleryImageUrls && event.galleryImageUrls.length) { %>
-            <p><strong>Gallery:</strong></p>
-            <div class="detail-gallery-grid">
-              <% event.galleryImageUrls.forEach((galleryUrl, galleryIndex) => { %>
-                <button
-                  type="button"
-                  class="detail-gallery-thumb-btn"
-                  data-gallery-index="<%= galleryIndex %>"
-                  data-gallery-src="<%= galleryUrl %>"
-                  aria-label="Open gallery image <%= galleryIndex + 1 %>"
-                >
-                  <img class="detail-gallery-image" src="<%= galleryUrl %>" alt="<%= event.title %> gallery image <%= galleryIndex + 1 %>">
-                </button>
-              <% }) %>
+              <article class="organizer-event-fact-card organizer-event-runner-experience">
+                <h3><i data-lucide="person-standing" aria-hidden="true"></i>Runner experience</h3>
+                <dl>
+                  <div><dt>Proof types</dt><dd><%= p.runnerExperience.proofTypes %></dd></div>
+                  <div><dt>Digital badge</dt><dd><%= p.runnerExperience.digitalBadge %></dd></div>
+                  <div><dt>Certificate</dt><dd><%= p.runnerExperience.digitalCertificate %></dd></div>
+                  <div><dt>Leaderboard</dt><dd><%= p.runnerExperience.leaderboard %></dd></div>
+                  <div><dt>Physical rewards</dt><dd><%= p.runnerExperience.physicalRewards %></dd></div>
+                  <div><dt>Waiver</dt><dd><%= p.runnerExperience.waiver %></dd></div>
+                </dl>
+              </article>
             </div>
-          <% } else { %>
-            <p><strong>Gallery:</strong> N/A</p>
-          <% } %>
-        </article>
+          </section>
 
-        <article class="detail-card">
-          <h3>Virtual Rules</h3>
-          <p><strong>Virtual Window Start:</strong> <%= event.virtualWindow?.startAt ? new Date(event.virtualWindow.startAt).toLocaleString('en-US') : 'N/A' %></p>
-          <p><strong>Virtual Window End:</strong> <%= event.virtualWindow?.endAt ? new Date(event.virtualWindow.endAt).toLocaleString('en-US') : 'N/A' %></p>
-          <p><strong>Proof Types:</strong> <%= (event.proofTypesAllowed || []).join(', ') || 'N/A' %></p>
-        </article>
+          <section class="organizer-event-detail-disclosures" aria-label="Detailed event configuration">
+            <details class="organizer-event-detail-disclosure">
+              <summary><span><i data-lucide="file-text" aria-hidden="true"></i><strong>Public content</strong><small>Description and full event details</small></span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+              <div class="organizer-event-detail-disclosure-body"><h3>Description</h3><p><%= event.description || 'No description configured.' %></p><% if (eventDetailsHtml) { %><h3>Full event details</h3><div class="event-rich-details"><%- eventDetailsHtml %></div><% } %></div>
+            </details>
 
-        <article class="detail-card">
-          <h3>Waiver</h3>
-          <p><strong>Waiver Version:</strong> <%= event.waiverVersion || 1 %></p>
-          <p><strong>Template:</strong> <%= event.waiverTemplate ? 'Configured' : 'Missing' %></p>
-        </article>
+            <details class="organizer-event-detail-disclosure">
+              <summary><span><i data-lucide="images" aria-hidden="true"></i><strong>Media</strong><small>Banner, logo, poster, and gallery</small></span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+              <div class="organizer-event-detail-disclosure-body">
+                <% if (p.mediaItems.length || p.galleryItems.length) { %>
+                  <div class="organizer-event-media-grid">
+                    <% p.mediaItems.forEach((item) => { %>
+                      <% if (item.kind === 'poster') { %><button type="button" class="detail-poster-thumb-btn" data-poster-src="<%= item.url %>" aria-label="Open promotional poster"><img src="<%= item.url %>" alt="<%= item.label %> for <%= event.title %>" loading="lazy"><span><%= item.label %></span></button>
+                      <% } else { %><figure><img src="<%= item.url %>" alt="<%= item.label %> for <%= event.title %>" loading="lazy"><figcaption><%= item.label %></figcaption></figure><% } %>
+                    <% }); %>
+                    <% p.galleryItems.forEach((item, index) => { %><button type="button" class="detail-gallery-thumb-btn" data-gallery-index="<%= index %>" data-gallery-src="<%= item.url %>" aria-label="Open <%= item.label %>"><img src="<%= item.url %>" alt="<%= item.label %> for <%= event.title %>" loading="lazy"><span><%= item.label %></span></button><% }); %>
+                  </div>
+                <% } else { %><p>No event media uploaded.</p><% } %>
+              </div>
+            </details>
 
-        <article class="detail-card">
-          <h3>Payment Acceptance</h3>
-          <p><strong>Mode:</strong> <%= event.feeMode === 'paid' ? 'Paid' : 'Free' %></p>
-          <p><strong>Suggested Setup Total:</strong> <%= event.feeCurrency || 'PHP' %> <%= Number(event.suggestedEventFee || 0).toFixed(2) %></p>
-          <p><strong>Organizer Final Fee:</strong> <%= event.finalEventFee !== null && event.finalEventFee !== undefined ? `${event.feeCurrency || 'PHP'} ${Number(event.finalEventFee || 0).toFixed(2)}` : 'N/A' %></p>
-          <% if (event.feeMode === 'paid') { %>
-            <p><strong>Amount:</strong> <%= event.feeCurrency || 'PHP' %> <%= Number(event.feeAmount || 0).toFixed(2) %></p>
-            <p><strong>Account:</strong> <%= event.paymentAccountName || 'N/A' %></p>
-            <% if (event.paymentQrImageUrl) { %>
-              <img class="detail-logo-image" src="<%= event.paymentQrImageUrl %>" alt="Payment QR">
-            <% } else { %>
-              <p><strong>Payment QR:</strong> Missing</p>
-            <% } %>
-          <% } %>
-        </article>
+            <details class="organizer-event-detail-disclosure">
+              <summary><span><i data-lucide="shield-check" aria-hidden="true"></i><strong>Payment and waiver details</strong><small>Receipt instructions, QR, and accepted waiver version</small></span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+              <div class="organizer-event-detail-disclosure-body organizer-event-detail-two-col">
+                <article><h3>Payment acceptance</h3><dl><div><dt>Mode</dt><dd><%= event.feeMode === 'paid' ? 'Paid' : 'Free' %></dd></div><% if (event.feeMode === 'paid') { %><div><dt>Account</dt><dd><%= event.paymentAccountName || 'Not configured' %></dd></div><div><dt>Instructions</dt><dd><%= event.paymentInstructions || 'Not configured' %></dd></div><div><dt>Payment QR</dt><dd><%= event.paymentQrImageUrl ? 'Configured' : 'Missing' %></dd></div><% } %></dl></article>
+                <article><h3>Waiver</h3><dl><div><dt>Version</dt><dd><%= event.waiverVersion || 1 %></dd></div><div><dt>Template</dt><dd><%= event.waiverTemplate ? 'Configured' : 'Missing' %></dd></div></dl></article>
+              </div>
+            </details>
 
-        <article class="detail-card">
-          <h3>Rewards and Packages</h3>
-          <% const organizerPhysicalRewardItems = [
-            event.physicalRewardMedalEnabled ? `Medal (${event.feeCurrency || 'PHP'} ${Number(event.physicalRewardMedalAmount || 0).toFixed(2)})` : '',
-            event.physicalRewardShirtEnabled ? `Shirt (${event.feeCurrency || 'PHP'} ${Number(event.physicalRewardShirtAmount || 0).toFixed(2)})` : '',
-            event.physicalRewardPatchEnabled ? `Patch (${event.feeCurrency || 'PHP'} ${Number(event.physicalRewardPatchAmount || 0).toFixed(2)})` : '',
-            event.physicalRewardTowelEnabled ? `Towel (${event.feeCurrency || 'PHP'} ${Number(event.physicalRewardTowelAmount || 0).toFixed(2)})` : '',
-            event.physicalRewardFinisherKitEnabled ? `Finisher Kit (${event.feeCurrency || 'PHP'} ${Number(event.physicalRewardFinisherKitAmount || 0).toFixed(2)})` : ''
-          ].filter(Boolean); %>
-          <p><strong>Digital Badge:</strong> <%= event.digitalBadgeEnabled ? 'Enabled' : 'Disabled' %></p>
-          <p><strong>Digital Certificate:</strong> <%= event.digitalCertificateEnabled === false ? 'Disabled' : 'Enabled' %></p>
-          <p><strong>Leaderboard Recognition:</strong> <%= event.leaderboardRecognitionEnabled === false ? 'Disabled' : 'Enabled' %></p>
-          <p><strong>Physical Rewards:</strong> <%= event.physicalRewardsEnabled ? 'Enabled' : 'Disabled' %></p>
-          <% if (event.physicalRewardsEnabled && organizerPhysicalRewardItems.length) { %>
-            <p><strong>Included Items:</strong> <%= organizerPhysicalRewardItems.join(', ') %></p>
-          <% } %>
-          <% if (event.physicalRewardsDescription) { %><p><%= event.physicalRewardsDescription %></p><% } %>
-          <% if ((event.physicalRewardOtherItems || []).length) { %>
-            <p><strong>Custom Merchandise:</strong> <%= event.physicalRewardOtherItems.map((item) => `${item.name || 'Unnamed'} (${event.feeCurrency || 'PHP'} ${Number(item.amount || 0).toFixed(2)})`).join(', ') %></p>
-          <% } %>
-          <% if ((event.registrationPackages || []).length) { %>
-            <p><strong>Packages:</strong> <%= event.registrationPackages.map((packageOption) => packageOption.name || 'Unnamed package').join(', ') %></p>
-          <% } %>
-          <% if (event.deliveryFeeEnabled) { %>
-            <p><strong>Delivery/Claiming:</strong> <%= event.claimingMethod || 'delivery' %>, <%= event.feeCurrency || 'PHP' %> <%= Number(event.deliveryFeeAmount || 0).toFixed(2) %></p>
-          <% } %>
-          <% if ((event.specialRewardBenefits || []).length) { %>
-            <p><strong>Special Benefits:</strong> <%= event.specialRewardBenefits.map((benefit) => benefit.title || 'Untitled benefit').join(', ') %></p>
-          <% } %>
-        </article>
+            <details class="organizer-event-detail-disclosure">
+              <summary><span><i data-lucide="database" aria-hidden="true"></i><strong>Event record</strong><small>Reference, public path, and technical identifiers</small></span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+              <div class="organizer-event-detail-disclosure-body">
+                <dl class="organizer-event-record-list"><div><dt>Reference code</dt><dd><code><%= p.referenceCode %></code></dd></div><div><dt>Organiser</dt><dd><%= event.organiserName || 'HelloRun Organiser' %></dd></div><div><dt>Public path</dt><dd><code><%= p.publicHref %></code></dd></div></dl>
+                <div class="organizer-event-record-actions"><button type="button" class="nav-login-btn copy-btn" data-copy-text="<%= p.referenceCode %>">Copy reference</button><button type="button" class="nav-login-btn copy-btn" data-copy-path="<%= p.publicHref %>">Copy event link</button></div>
+                <details class="organizer-event-technical-details"><summary>Technical identifiers</summary><p><strong>Event ID:</strong> <code><%= event._id %></code></p><p><strong>Organiser ID:</strong> <code><%= event.organizerId %></code></p></details>
+              </div>
+            </details>
+          </section>
 
-        <article class="detail-card detail-card-full">
-          <h3>Description</h3>
-          <p><%= event.description %></p>
-        </article>
-
-        <% if (eventDetailsHtml) { %>
-          <article class="detail-card detail-card-full">
-            <h3>Event Details</h3>
-            <div class="event-rich-details"><%- eventDetailsHtml %></div>
-          </article>
-        <% } %>
-
-        <article class="detail-card detail-card-full">
-          <h3>Event Record</h3>
-          <p><strong>Reference Code:</strong> <code><%= eventReferenceCode %></code></p>
-          <p><strong>Organizer:</strong> <%= event.organiserName || 'HelloRun Organizer' %></p>
-          <p><strong>Public Event Page:</strong> <code><%= publicEventPath %></code></p>
-          <div class="record-actions">
-            <button type="button" class="nav-login-btn detail-copy-btn copy-btn" data-copy-text="<%= eventReferenceCode %>">Copy Reference Code</button>
-            <button type="button" class="nav-login-btn detail-copy-btn copy-btn" data-copy-path="<%= publicEventPath %>">Copy Event Link</button>
-          </div>
-          <details class="technical-details">
-            <summary>Technical details</summary>
-            <p><strong>Event ID:</strong> <code><%= event._id %></code></p>
-            <p><strong>Organizer ID:</strong> <code><%= event.organizerId %></code></p>
+          <details class="organizer-event-tools">
+            <summary><span><i data-lucide="wrench" aria-hidden="true"></i><strong>Management Tools</strong><small>Recognition, commerce, publishing, and records</small></span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+            <div class="organizer-event-tools-grid">
+              <% p.tools.forEach((group) => { %><section><h3><%= group.group %></h3><div><% group.items.forEach((item) => { %>
+                <% if (item.label === 'Audit trail') { %><a href="/organizer/events/<%= event._id %>/audit"><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><span><%= item.label %></span><i data-lucide="arrow-right" aria-hidden="true"></i></a>
+                <% } else { %><a href="<%= item.href %>"><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><span><%= item.label %></span><i data-lucide="arrow-right" aria-hidden="true"></i></a><% } %>
+              <% }); %></div></section><% }); %>
+            </div>
           </details>
-        </article>
+        </div>
+
+        <aside class="organizer-event-lifecycle" aria-labelledby="eventLifecycleTitle">
+          <section class="organizer-event-lifecycle-card">
+            <span><%= p.lifecycle.eyebrow %></span><h2 id="eventLifecycleTitle"><%= p.lifecycle.title %></h2><p><%= p.lifecycle.description %></p>
+            <% if (p.lifecycle.action) { %>
+              <% if (p.lifecycle.action.method === 'post') { %>
+                <form method="POST" action="<%= p.lifecycle.action.href %>" data-high-risk-confirm data-confirm-title="Submit event for review" data-confirm-target="<%= event.title %>" data-confirm-impact="Moves this event into the administrator review queue." data-confirm-reversibility="The event cannot be edited normally while review is pending." data-confirm-privilege="Event organiser" data-confirm-button="Submit for Review">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="nextStatus" value="<%= p.lifecycle.action.nextStatus %>"><button type="submit" class="nav-signup-btn"><%= p.lifecycle.action.label %></button>
+                </form>
+              <% } else { %><a href="<%= p.lifecycle.action.href %>" class="nav-signup-btn"><%= p.lifecycle.action.label %></a><% } %>
+            <% } %>
+            <div class="organizer-event-lifecycle-flow"><strong>Lifecycle</strong><p><%= 'Draft -> Pending Review -> Published -> Closed' %></p></div>
+            <% if (event.status === 'published') { %>
+              <form method="POST" action="/organizer/events/<%= event._id %>/status" class="organizer-event-close-form" data-high-risk-confirm data-confirm-title="Close event" data-confirm-target="<%= event.title %>" data-confirm-impact="Closes the event and stops its active lifecycle." data-confirm-reversibility="This action is final in the current organiser workflow." data-confirm-privilege="Event organiser" data-confirm-button="Close Event">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="nextStatus" value="closed"><button type="submit" class="nav-login-btn">Close Event</button>
+              </form>
+            <% } %>
+          </section>
+        </aside>
       </div>
-
-      <section class="status-panel">
-        <h3>Status Actions</h3>
-        <p>Allowed flow: <strong>Draft -> Pending Review -> Published -> Closed</strong>.</p>
-
-        <div class="status-actions">
-          <% if (event.status === 'draft') { %>
-            <form method="POST" action="/organizer/events/<%= event._id %>/status" onsubmit="return confirm('Submit this event for admin review?');">
-              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-              <input type="hidden" name="nextStatus" value="pending_review">
-              <button type="submit" class="nav-signup-btn detail-status-btn">Submit for Review</button>
-            </form>
-          <% } %>
-
-          <% if (event.status === 'pending_review') { %>
-            <p class="status-locked">This event is waiting for admin approval.</p>
-          <% } %>
-
-          <% if (event.status === 'published') { %>
-            <form method="POST" action="/organizer/events/<%= event._id %>/status" onsubmit="return confirm('Close this event? This action is final in current flow.');">
-              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-              <input type="hidden" name="nextStatus" value="closed">
-              <button type="submit" class="nav-login-btn detail-status-btn">Close Event</button>
-            </form>
-          <% } %>
-
-          <% if (event.status === 'closed' || event.status === 'archived') { %>
-            <p class="status-locked">This event is <%= event.status %> and can no longer transition status here.</p>
-          <% } %>
-        </div>
-      </section>
-
-      <% if (event.galleryImageUrls && event.galleryImageUrls.length) { %>
-        <div id="organizerGalleryLightbox" class="gallery-lightbox hidden" aria-hidden="true">
-          <div class="gallery-lightbox-backdrop" data-close-lightbox="1"></div>
-          <div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Gallery viewer">
-            <button type="button" class="gallery-lightbox-close" id="organizerGalleryCloseBtn" aria-label="Close gallery">&times;</button>
-            <button type="button" class="gallery-lightbox-nav gallery-lightbox-prev" id="organizerGalleryPrevBtn" aria-label="Previous image">&#10094;</button>
-            <img id="organizerGalleryLightboxImage" class="gallery-lightbox-image" src="" alt="">
-            <button type="button" class="gallery-lightbox-nav gallery-lightbox-next" id="organizerGalleryNextBtn" aria-label="Next image">&#10095;</button>
-            <p id="organizerGalleryLightboxCounter" class="gallery-lightbox-counter"></p>
-          </div>
-        </div>
-      <% } %>
-
-      <% if (event.posterImageUrl) { %>
-        <div id="organizerPosterLightbox" class="gallery-lightbox hidden" aria-hidden="true">
-          <div class="gallery-lightbox-backdrop" data-close-poster-lightbox="1"></div>
-          <div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Promotional poster viewer">
-            <button type="button" class="gallery-lightbox-close" id="organizerPosterCloseBtn" aria-label="Close poster">&times;</button>
-            <div class="poster-zoom-controls">
-              <button type="button" class="poster-zoom-btn" id="organizerPosterZoomOutBtn" aria-label="Zoom out">-</button>
-              <button type="button" class="poster-zoom-btn" id="organizerPosterZoomInBtn" aria-label="Zoom in">+</button>
-              <button type="button" class="poster-zoom-btn" id="organizerPosterResetBtn" aria-label="Reset zoom">Reset</button>
-            </div>
-            <img id="organizerPosterLightboxImage" class="gallery-lightbox-image" src="" alt="">
-          </div>
-        </div>
-      <% } %>
-    </section>
+    </div>
   </main>
+
+  <% if (p.galleryItems.length) { %>
+    <div id="organizerGalleryLightbox" class="gallery-lightbox hidden organizer-event-media-dialog" aria-hidden="true">
+      <div class="gallery-lightbox-backdrop" data-close-lightbox="1"></div><div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Gallery viewer" tabindex="-1"><button type="button" class="gallery-lightbox-close" id="organizerGalleryCloseBtn" aria-label="Close gallery">&times;</button><button type="button" class="gallery-lightbox-nav gallery-lightbox-prev" id="organizerGalleryPrevBtn" aria-label="Previous image">&#10094;</button><img id="organizerGalleryLightboxImage" class="gallery-lightbox-image" src="" alt=""><button type="button" class="gallery-lightbox-nav gallery-lightbox-next" id="organizerGalleryNextBtn" aria-label="Next image">&#10095;</button><p id="organizerGalleryLightboxCounter" class="gallery-lightbox-counter"></p></div>
+    </div>
+  <% } %>
+  <% if (event.posterImageUrl) { %>
+    <div id="organizerPosterLightbox" class="gallery-lightbox hidden organizer-event-media-dialog" aria-hidden="true">
+      <div class="gallery-lightbox-backdrop" data-close-poster-lightbox="1"></div><div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Promotional poster viewer" tabindex="-1"><button type="button" class="gallery-lightbox-close" id="organizerPosterCloseBtn" aria-label="Close poster">&times;</button><div class="poster-zoom-controls"><button type="button" class="poster-zoom-btn" id="organizerPosterZoomOutBtn" aria-label="Zoom out">-</button><button type="button" class="poster-zoom-btn" id="organizerPosterZoomInBtn" aria-label="Zoom in">+</button><button type="button" class="poster-zoom-btn" id="organizerPosterResetBtn" aria-label="Reset zoom">Reset</button></div><img id="organizerPosterLightboxImage" class="gallery-lightbox-image" src="" alt=""></div>
+    </div>
+  <% } %>
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>
-    if (window.lucide) lucide.createIcons();
-
-    (function initCopyButtons() {
-      const copyButtons = Array.from(document.querySelectorAll('.copy-btn'));
-      if (!copyButtons.length || !navigator.clipboard) return;
-
-      async function copyText(text, btn) {
-        if (!text) return;
-        const originalText = btn.textContent;
-        try {
-          await navigator.clipboard.writeText(text);
-          btn.textContent = 'Copied';
-          setTimeout(() => {
-            btn.textContent = originalText;
-          }, 1200);
-        } catch (_) {
-          btn.textContent = 'Copy failed';
-          setTimeout(() => {
-            btn.textContent = originalText;
-          }, 1200);
-        }
-      }
-
-      copyButtons.forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const copyTextValue = btn.getAttribute('data-copy-text') || '';
-          const copyPathValue = btn.getAttribute('data-copy-path') || '';
-          if (copyTextValue) {
-            copyText(copyTextValue, btn);
-            return;
-          }
-          if (copyPathValue) {
-            const absoluteUrl = `${window.location.origin}${copyPathValue}`;
-            copyText(absoluteUrl, btn);
-          }
-        });
-      });
-    })();
-
-    (function initOrganizerGalleryLightbox() {
-      const lightbox = document.getElementById('organizerGalleryLightbox');
-      if (!lightbox) return;
-
-      const body = document.body;
-      const thumbButtons = Array.from(document.querySelectorAll('.detail-gallery-thumb-btn'));
-      const imageEl = document.getElementById('organizerGalleryLightboxImage');
-      const counterEl = document.getElementById('organizerGalleryLightboxCounter');
-      const closeBtn = document.getElementById('organizerGalleryCloseBtn');
-      const prevBtn = document.getElementById('organizerGalleryPrevBtn');
-      const nextBtn = document.getElementById('organizerGalleryNextBtn');
-      const closeBackdrop = lightbox.querySelector('[data-close-lightbox="1"]');
-      const gallerySources = thumbButtons.map((btn) => ({
-        src: btn.getAttribute('data-gallery-src') || '',
-        alt: btn.querySelector('img')?.alt || 'Gallery image'
-      }));
-      let currentIndex = 0;
-
-      function updateLightboxImage() {
-        const item = gallerySources[currentIndex];
-        if (!item) return;
-        imageEl.src = item.src;
-        imageEl.alt = item.alt;
-        counterEl.textContent = `${currentIndex + 1} / ${gallerySources.length}`;
-      }
-
-      function openLightbox(index) {
-        currentIndex = Math.max(0, Math.min(index, gallerySources.length - 1));
-        updateLightboxImage();
-        lightbox.classList.remove('hidden');
-        lightbox.setAttribute('aria-hidden', 'false');
-        body.classList.add('no-scroll');
-        closeBtn.focus();
-      }
-
-      function closeLightbox() {
-        lightbox.classList.add('hidden');
-        lightbox.setAttribute('aria-hidden', 'true');
-        body.classList.remove('no-scroll');
-      }
-
-      function showPrev() {
-        currentIndex = (currentIndex - 1 + gallerySources.length) % gallerySources.length;
-        updateLightboxImage();
-      }
-
-      function showNext() {
-        currentIndex = (currentIndex + 1) % gallerySources.length;
-        updateLightboxImage();
-      }
-
-      thumbButtons.forEach((btn, index) => {
-        btn.addEventListener('click', () => openLightbox(index));
-      });
-      closeBtn.addEventListener('click', closeLightbox);
-      prevBtn.addEventListener('click', showPrev);
-      nextBtn.addEventListener('click', showNext);
-      if (closeBackdrop) closeBackdrop.addEventListener('click', closeLightbox);
-
-      document.addEventListener('keydown', (event) => {
-        if (lightbox.classList.contains('hidden')) return;
-        if (event.key === 'Escape') closeLightbox();
-        if (event.key === 'ArrowLeft') showPrev();
-        if (event.key === 'ArrowRight') showNext();
-      });
-    })();
-
-    (function initOrganizerPosterLightbox() {
-      const posterBtn = document.querySelector('.detail-poster-thumb-btn');
-      const lightbox = document.getElementById('organizerPosterLightbox');
-      if (!posterBtn || !lightbox) return;
-
-      const body = document.body;
-      const imageEl = document.getElementById('organizerPosterLightboxImage');
-      const closeBtn = document.getElementById('organizerPosterCloseBtn');
-      const zoomInBtn = document.getElementById('organizerPosterZoomInBtn');
-      const zoomOutBtn = document.getElementById('organizerPosterZoomOutBtn');
-      const resetBtn = document.getElementById('organizerPosterResetBtn');
-      const closeBackdrop = lightbox.querySelector('[data-close-poster-lightbox="1"]');
-      const posterSrc = posterBtn.getAttribute('data-poster-src') || '';
-      const posterAlt = posterBtn.querySelector('img')?.alt || 'Promotional poster';
-      let zoomLevel = 1;
-      let translateX = 0;
-      let translateY = 0;
-      let isDragging = false;
-      let dragStartX = 0;
-      let dragStartY = 0;
-
-      function updatePosterTransform() {
-        imageEl.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
-        imageEl.classList.toggle('is-zoomed', zoomLevel > 1);
-        imageEl.style.cursor = zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in';
-        if (zoomInBtn) zoomInBtn.disabled = zoomLevel >= 3;
-        if (zoomOutBtn) zoomOutBtn.disabled = zoomLevel <= 1;
-      }
-
-      function setZoom(nextZoomLevel) {
-        const clamped = Math.max(1, Math.min(3, Number(nextZoomLevel.toFixed(2))));
-        zoomLevel = clamped;
-        if (zoomLevel === 1) {
-          translateX = 0;
-          translateY = 0;
-        }
-        updatePosterTransform();
-      }
-
-      function resetZoom() {
-        isDragging = false;
-        setZoom(1);
-      }
-
-      function openLightbox() {
-        imageEl.src = posterSrc;
-        imageEl.alt = posterAlt;
-        resetZoom();
-        lightbox.classList.remove('hidden');
-        lightbox.setAttribute('aria-hidden', 'false');
-        body.classList.add('no-scroll');
-        closeBtn.focus();
-      }
-
-      function closeLightbox() {
-        lightbox.classList.add('hidden');
-        lightbox.setAttribute('aria-hidden', 'true');
-        body.classList.remove('no-scroll');
-        resetZoom();
-      }
-
-      posterBtn.addEventListener('click', openLightbox);
-      closeBtn.addEventListener('click', closeLightbox);
-      if (zoomInBtn) zoomInBtn.addEventListener('click', () => setZoom(zoomLevel + 0.25));
-      if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => setZoom(zoomLevel - 0.25));
-      if (resetBtn) resetBtn.addEventListener('click', resetZoom);
-      if (closeBackdrop) closeBackdrop.addEventListener('click', closeLightbox);
-
-      imageEl.addEventListener('pointerdown', (event) => {
-        if (zoomLevel <= 1) return;
-        isDragging = true;
-        dragStartX = event.clientX - translateX;
-        dragStartY = event.clientY - translateY;
-        imageEl.setPointerCapture(event.pointerId);
-        updatePosterTransform();
-      });
-
-      imageEl.addEventListener('pointermove', (event) => {
-        if (!isDragging || zoomLevel <= 1) return;
-        translateX = event.clientX - dragStartX;
-        translateY = event.clientY - dragStartY;
-        updatePosterTransform();
-      });
-
-      function stopDragging() {
-        if (!isDragging) return;
-        isDragging = false;
-        updatePosterTransform();
-      }
-
-      imageEl.addEventListener('pointerup', stopDragging);
-      imageEl.addEventListener('pointercancel', stopDragging);
-      imageEl.addEventListener('pointerleave', stopDragging);
-
-      document.addEventListener('keydown', (event) => {
-        if (lightbox.classList.contains('hidden')) return;
-        if (event.key === 'Escape') closeLightbox();
-      });
-    })();
-  </script>
+  <script src="/js/organizer-event-detail.js"></script>
 </body>
 </html>

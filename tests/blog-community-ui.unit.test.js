@@ -7,8 +7,10 @@ const ejs = require('ejs');
 const ROOT = path.resolve(__dirname, '..');
 const listingPath = path.join(ROOT, 'src/views/pages/blog.ejs');
 const articlePath = path.join(ROOT, 'src/views/pages/blog-post.ejs');
+const sharePartialPath = path.join(ROOT, 'src/views/partials/blog-share-menu.ejs');
 const listing = fs.readFileSync(listingPath, 'utf8');
 const article = fs.readFileSync(articlePath, 'utf8');
+const sharePartial = fs.readFileSync(sharePartialPath, 'utf8');
 const listingCss = fs.readFileSync(path.join(ROOT, 'src/public/css/blog.css'), 'utf8');
 const articleCss = fs.readFileSync(path.join(ROOT, 'src/public/css/blog-pages.css'), 'utf8');
 const commentsClient = fs.readFileSync(path.join(ROOT, 'src/public/js/blog-comments.js'), 'utf8');
@@ -24,6 +26,7 @@ const adminReports = fs.readFileSync(adminReportsPath, 'utf8');
 test('community listing and article templates compile', () => {
   assert.doesNotThrow(() => ejs.compile(listing, { filename: listingPath }));
   assert.doesNotThrow(() => ejs.compile(article, { filename: articlePath }));
+  assert.doesNotThrow(() => ejs.compile(sharePartial, { filename: sharePartialPath }));
 });
 
 test('blog listing leads with community discovery and contribution actions', () => {
@@ -74,25 +77,67 @@ test('article uses contributor metadata, centralized actions, and responsive eng
   assert.match(articleCss, /@media \(max-width: 1024px\)[\s\S]*\.blog-engagement-rail-inner\s*\{[\s\S]*position:\s*static/);
 });
 
-test('desktop article rail uses one contained share trigger and an accessible labelled menu', () => {
-  assert.match(article, /id="shareMobileToggle"[\s\S]*aria-haspopup="menu"[\s\S]*aria-controls="blogShareOptions"/);
-  assert.match(article, /id="blogShareOptions" role="menu"/);
-  const shareMenuMarkup = article.match(/<div class="share-options" id="blogShareOptions"[\s\S]*?<\/div>/)?.[0] || '';
-  assert.equal((shareMenuMarkup.match(/role="menuitem"/g) || []).length, 6);
-  for (const label of ['Copy link', 'Facebook', 'LinkedIn', 'WhatsApp', 'Email']) assert.match(article, new RegExp(`>${label}<`));
+test('article uses two reusable, server-rendered share menus', () => {
+  assert.match(article, /instanceId: 'blog'/);
+  assert.match(article, /instanceId: 'endBlog'/);
+  assert.match(sharePartial, /<details class="blog-share-row/);
+  assert.match(sharePartial, /aria-haspopup="menu" aria-controls=/);
+  assert.match(sharePartial, /role="menu" aria-label="Share this article"/);
+  assert.equal((sharePartial.match(/role="menuitem"/g) || []).length, 6);
+  for (const label of ['Copy link', 'Facebook', 'LinkedIn', 'WhatsApp', 'Email']) assert.match(sharePartial, new RegExp(`>${label}<`));
+  for (const destination of ['facebook.com/sharer', 'twitter.com/intent/tweet', 'linkedin.com/sharing', 'api.whatsapp.com/send', 'mailto:']) {
+    assert.match(sharePartial, new RegExp(destination.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
   assert.match(articleCss, /\.blog-engagement-rail \.share-mobile-toggle\s*\{[\s\S]*display:\s*flex/);
   assert.match(articleCss, /\.blog-engagement-rail \.share-options\s*\{[\s\S]*left:\s*calc\(100% \+ 0\.65rem\)[\s\S]*width:\s*196px/);
   assert.match(articleCss, /\.blog-engagement-rail \.share-options \.btn-icon\s*\{[\s\S]*width:\s*100%/);
   assert.match(articleCss, /\.blog-engagement-rail\s*\{[\s\S]*position:\s*relative[\s\S]*z-index:\s*20[\s\S]*overflow:\s*visible/);
-  assert.match(articleCss, /\.blog-engagement-rail:has\(\.blog-share-row\.is-open\)\s*\{\s*z-index:\s*1000/);
+  assert.match(articleCss, /\.blog-engagement-rail:has\(\.blog-share-row\[open\]\)\s*\{\s*z-index:\s*1000/);
   assert.match(articleCss, /\.blog-engagement-rail \.share-options\s*\{[\s\S]*z-index:\s*1001/);
-  assert.match(article, /closeShareMenu\(true\)/);
+  assert.match(article, /closeShareMenu\(openWidget, true\)/);
+  assert.match(article, /closeOtherShareMenus\(widget\)/);
+  assert.match(article, /navigator\.clipboard\?\.writeText/);
+});
+
+test('share partial renders unique controls and encoded canonical destinations', () => {
+  const html = ejs.render(sharePartial, {
+    instanceId: 'endBlog',
+    canonicalUrl: 'https://hellorun.online/blog/example-guide?ref=share',
+    articleTitle: 'Running pace & effort',
+    triggerLabel: 'Share this guide',
+    containerClass: 'blog-share-end-menu',
+    triggerClass: 'btn btn-secondary blog-end-share-trigger'
+  }, { filename: sharePartialPath });
+
+  assert.match(html, /id="endBlogShareRow"/);
+  assert.match(html, /id="endBlogShareToggle"/);
+  assert.match(html, /id="endBlogShareOptions"/);
+  assert.match(html, /id="endBlogCopyLinkBtn"/);
+  assert.match(html, /https%3A%2F%2Fhellorun\.online%2Fblog%2Fexample-guide%3Fref%3Dshare/);
+  assert.match(html, /Running%20pace%20%26%20effort/);
+  assert.equal((html.match(/role="menuitem"/g) || []).length, 6);
+});
+
+test('end-of-reading share prompt precedes tags and the next-step action', () => {
+  const endShareIndex = article.indexOf('class="blog-end-share-card"');
+  const tagsIndex = article.indexOf('class="blog-tag-list"');
+  const nextStepIndex = article.indexOf('class="post-next-step"');
+  assert.ok(endShareIndex > article.indexOf('class="blog-content"'));
+  assert.ok(endShareIndex > article.indexOf('class="blog-gallery"'));
+  assert.ok(tagsIndex > endShareIndex);
+  assert.ok(nextStepIndex > endShareIndex);
+  assert.match(article, /Found this helpful\?/);
+  assert.match(article, /Share this guide/);
+  assert.match(articleCss, /\.blog-end-share-card\s*\{[\s\S]*display:\s*flex[\s\S]*border:\s*1px solid/);
+  assert.match(articleCss, /@media \(max-width: 680px\)[\s\S]*\.blog-end-share-card\s*\{[\s\S]*flex-direction:\s*column/);
+  assert.match(articleCss, /\.blog-end-share-trigger\s*\{[\s\S]*min-height:\s*44px/);
 });
 
 test('article preserves interaction hooks and adds live and busy feedback', () => {
-  for (const id of ['blogLikeBtn', 'blogLikeCount', 'blogComments', 'blogReportForm', 'copyBlogLinkBtn', 'blogGalleryModal', 'blogPostTocListDesktop']) {
+  for (const id of ['blogLikeBtn', 'blogLikeCount', 'blogComments', 'blogReportForm', 'blogGalleryModal', 'blogPostTocListDesktop']) {
     assert.match(article, new RegExp(`id="${id}"`));
   }
+  assert.match(sharePartial, /data-copy-blog-link/);
   assert.match(article, /<threaded-comments><\/threaded-comments>/);
   assert.match(commentsClient, /threaded-comments-component\.js/);
   assert.match(article, /aria-live="polite"/);

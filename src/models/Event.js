@@ -102,6 +102,44 @@ const eventSchema = new mongoose.Schema(
       type: Date,
       default: null
     },
+    autoEmailPromotionEnabled: {
+      type: Boolean,
+      default: false
+    },
+    autoEmailPromotionStatus: {
+      type: String,
+      enum: ['disabled', 'pending', 'sending', 'completed', 'partial', 'failed'],
+      default: 'disabled',
+      index: true
+    },
+    autoEmailPromotionScheduledAt: {
+      type: Date,
+      default: null
+    },
+    autoEmailPromotionClaimedAt: {
+      type: Date,
+      default: null
+    },
+    autoEmailPromotionCompletedAt: {
+      type: Date,
+      default: null
+    },
+    autoEmailPromotionCampaignId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'EventPromotion',
+      default: null
+    },
+    autoEmailPromotionAttemptCount: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    autoEmailPromotionLastError: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: ''
+    },
     homeFeatured: {
       type: Boolean,
       default: false,
@@ -659,6 +697,7 @@ eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, eventStartAt: 
 eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, registrationCloseAt: 1, eventStartAt: 1 });
 eventSchema.index({ status: 1, isDeleted: 1, eventType: 1, createdAt: -1 });
 eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, publicListingAvailableAt: 1 });
+eventSchema.index({ status: 1, autoEmailPromotionEnabled: 1, autoEmailPromotionStatus: 1, autoEmailPromotionScheduledAt: 1 });
 eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, homeFeatured: 1, homeFeaturedRank: 1, eventStartAt: 1 });
 applySmokeTestSchema(eventSchema);
 

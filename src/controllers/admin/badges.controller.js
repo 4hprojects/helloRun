@@ -1,7 +1,7 @@
 'use strict';
 
 const {
-  User, Blog, BlogComment, BlogReport, Registration, Submission, Event, PrivacyPolicy,
+  User, Blog, BlogComment, BlogReport, Registration, Submission, AccumulatedActivitySubmission, Event, PrivacyPolicy,
   logger, communicationService, getCommunicationRetryHealth, listCommunicationRetryAudit,
   listCommunicationRetries, retryCommunicationNow, homepageCarouselSettingService, adSettingService,
   listBadgeDefinitions, listAdminUserBadges, getAdminBadgeAnalytics, revokeUserBadge,

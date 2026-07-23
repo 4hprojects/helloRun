@@ -601,6 +601,7 @@ function getBlankCreateEventDefaults() {
     leaderboardRecognitionEnabled: '1',
     digitalBadgeEnabled: '1',
     digitalCertificateEnabled: '1',
+    autoEmailPromotionEnabled: '0',
     requiresDeliveryAddress: '1',
     requiresPhilippineDeliveryAddress: '1',
     internationalRunnersAllowed: '0'
@@ -752,6 +753,7 @@ function getCreateEventFormData(body = {}) {
     registrationOpenAt: body.registrationOpenAt || '',
     registrationCloseAt: body.registrationCloseAt || '',
     publicListingAvailableAt: body.publicListingAvailableAt || '',
+    autoEmailPromotionEnabled: normalizeBoolean(body.autoEmailPromotionEnabled),
     hasHomePromotionFields,
     homeFeatured: normalizeBoolean(body.homeFeatured),
     homeFeaturedRank: parseOptionalNonNegativeInteger(body.homeFeaturedRank),
@@ -889,6 +891,8 @@ function getCreateEventFormDataFromEvent(event) {
     registrationOpenAt: formatDateForInput(event.registrationOpenAt),
     registrationCloseAt: formatDateForInput(event.registrationCloseAt),
     publicListingAvailableAt: formatDateForInput(event.publicListingAvailableAt),
+    autoEmailPromotionEnabled: Boolean(event.autoEmailPromotionEnabled),
+    autoEmailPromotionStatus: String(event.autoEmailPromotionStatus || 'disabled'),
     hasHomePromotionFields: false,
     homeFeatured: Boolean(event.homeFeatured),
     homeFeaturedRank: Number.isFinite(event.homeFeaturedRank) ? event.homeFeaturedRank : null,
@@ -1723,6 +1727,7 @@ function applyEventFormData(event, formData, user) {
   event.registrationOpenAt = parseDateSafe(formData.registrationOpenAt);
   event.registrationCloseAt = parseDateSafe(formData.registrationCloseAt);
   event.publicListingAvailableAt = parseDateSafe(formData.publicListingAvailableAt);
+  applyAutoEmailPromotionSettings(event, formData);
   if (formData.hasHomePromotionFields) {
     event.homeFeatured = Boolean(formData.homeFeatured);
     event.homeFeaturedRank = formData.homeFeaturedRank;
@@ -1810,6 +1815,28 @@ function applyEventFormData(event, formData, user) {
   if (previousWaiverTemplate !== normalizedWaiverTemplate) event.waiverVersion = Number(event.waiverVersion || 1) + 1;
   else if (!event.waiverVersion) event.waiverVersion = 1;
   event.waiverTemplate = normalizedWaiverTemplate;
+}
+
+function applyAutoEmailPromotionSettings(event, formData) {
+  const enabled = Boolean(formData.autoEmailPromotionEnabled);
+  const terminalStatuses = new Set(['completed', 'partial']);
+  const currentStatus = String(event.autoEmailPromotionStatus || 'disabled');
+
+  event.autoEmailPromotionEnabled = enabled;
+  event.autoEmailPromotionScheduledAt = enabled
+    ? (parseDateSafe(formData.publicListingAvailableAt) || new Date())
+    : null;
+
+  if (!enabled) {
+    if (!terminalStatuses.has(currentStatus)) event.autoEmailPromotionStatus = 'disabled';
+    return;
+  }
+
+  if (!terminalStatuses.has(currentStatus) && currentStatus !== 'sending') {
+    event.autoEmailPromotionStatus = 'pending';
+    event.autoEmailPromotionClaimedAt = null;
+    event.autoEmailPromotionLastError = '';
+  }
 }
 
 function getPublishReadinessErrors(event) {

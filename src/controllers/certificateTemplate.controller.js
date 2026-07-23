@@ -4,11 +4,13 @@ const uploadService = require('../services/upload.service');
 const {
   getOrCreateDefaultTemplate,
   updateTemplate,
+  normalizeTemplateInput,
   publishTemplate,
   applyUploadedAssets
 } = require('../services/certificateTemplate.service');
 const { buildCertificatePdfBuffer } = require('../services/certificate.service');
 const { buildVerificationUrl } = require('../services/certificateNumber.service');
+const { getCertificateSetupPresentation } = require('../services/certificate-setup-presentation.service');
 
 async function getCertificateSetup(req, res, next) {
   try {
@@ -22,10 +24,12 @@ async function getCertificateSetup(req, res, next) {
     }
 
     const template = await getOrCreateDefaultTemplate(event._id, { event });
+    const presentation = getCertificateSetupPresentation({ event, template });
     return res.render('organizer/certificate-setup', {
       title: 'Certificate Setup - HelloRun',
       event,
       template,
+      presentation,
       errors: {},
       message: getPageMessage(req.query),
       previewUrl: `/organizer/events/${event._id}/certificate/preview`
@@ -86,7 +90,7 @@ async function postCertificatePreview(req, res, next) {
     const event = await getAccessibleEvent(req);
     if (!event) return res.status(404).send('Event not found.');
     const template = await getOrCreateDefaultTemplate(event._id, { event });
-    await updateTemplate(template, req.body);
+    const previewTemplate = normalizeTemplateInput(template, req.body);
 
     const sample = template.previewSampleData || {};
     const certificateNumber = sample.certificateNumber || 'HR-CERT-2026-SAMPLE-000001';
@@ -101,12 +105,12 @@ async function postCertificatePreview(req, res, next) {
       certificateNumber,
       verificationUrl: buildVerificationUrl(certificateNumber),
       template: {
-        layoutKey: template.layoutKey
+        layoutKey: previewTemplate.layoutKey
       },
       assets: template.assets,
-      content: template.content,
-      displayOptions: template.displayOptions,
-      styleOptions: template.styleOptions,
+      content: previewTemplate.content,
+      displayOptions: previewTemplate.displayOptions,
+      styleOptions: previewTemplate.styleOptions,
       approvedAt: new Date()
     });
 

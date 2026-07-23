@@ -362,6 +362,7 @@ const { startSyncRetryWorker, startBlogSchedulerWorker } = require('./workers/pg
 const { startCommunicationRetryWorker } = require('./workers/communication-retry-worker');
 const { startAccumulatedCertificateWorker } = require('./workers/accumulated-certificate-worker');
 const { startPolicyNoticeWorker } = require('./workers/policy-notice-worker');
+const { startEventPromotionWorker } = require('./workers/event-promotion-worker');
 
 async function startServer() {
   await connectToDatabase();
@@ -370,6 +371,7 @@ async function startServer() {
   startCommunicationRetryWorker();
   startAccumulatedCertificateWorker();
   startPolicyNoticeWorker();
+  startEventPromotionWorker();
 
   app.listen(PORT, () => {
     logger.info(`Server running on http://localhost:${PORT}`);

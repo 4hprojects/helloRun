@@ -295,7 +295,7 @@ test('My Events and registrants table link pending results to review workflow', 
   const eventsHtml = await eventsResponse.text();
   assert.match(
     eventsHtml,
-    new RegExp(`/organizer/events/${seed.event._id}/run-proofs/review[^>]*>Submitted Run Proofs<`, 'i')
+    new RegExp(`/organizer/events/${seed.event._id}/run-proofs/review[^>]*>[\\s\\S]*?Result Review`, 'i')
   );
 
   const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/registrants?result=submitted`, {
@@ -305,20 +305,18 @@ test('My Events and registrants table link pending results to review workflow', 
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /data-registrant-filter-form/i);
-  assert.match(html, /<button[^>]*type="submit"[^>]*>\s*Search\s*<\/button>/i);
-  assert.equal((html.match(/<select[^>]*data-auto-submit-filter/g) || []).length, 4);
-  assert.doesNotMatch(html, /<button[^>]*>\s*Apply\s*<\/button>/i);
-  assert.match(html, /aria-label="Export CSV"[^>]*data-tooltip="Export CSV"/i);
-  assert.match(html, /aria-label="Export XLSX"[^>]*data-tooltip="Export XLSX"/i);
-  assert.match(html, /aria-label="Back to Event"[^>]*data-tooltip="Back to Event"/i);
-  assert.match(html, /aria-label="My Events"[^>]*data-tooltip="My Events"/i);
-  assert.match(html, /id="registrantColumnsMenuBtn"[^>]*aria-expanded="false"/i);
-  assert.equal((html.match(/data-registrant-column-toggle="[^"]+" checked/g) || []).length, 11);
-  assert.match(html, /<th data-registrant-column="name">Name<\/th>/i);
-  assert.match(html, /<th data-registrant-column="registeredAt">Registered At<\/th>/i);
-  assert.match(html, /<th data-registrant-column="confirmation" class="is-column-hidden">Confirmation<\/th>/i);
-  assert.match(html, /organizerRegistrantsVisibleColumns/i);
-  assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/run-proofs/review[^>]*>Open Run Proof Review<`, 'i'));
+  assert.match(html, /organizer-roster-search/i);
+  assert.match(html, /Filters &amp; sort/i);
+  assert.match(html, /<button[^>]*type="submit"[^>]*class="nav-signup-btn"[^>]*>[\s\S]*?<span>Search<\/span>/i);
+  assert.match(html, /<button[^>]*type="submit"[^>]*class="nav-signup-btn"[^>]*>Apply<\/button>/i);
+  assert.match(html, /Download CSV/i);
+  assert.match(html, /Download XLSX/i);
+  assert.match(html, /Back to event/i);
+  assert.match(html, /My events/i);
+  assert.doesNotMatch(html, /registrantColumnsMenuBtn/i);
+  assert.doesNotMatch(html, /data-registrant-column-toggle/i);
+  assert.match(html, /organizer-roster-record/i);
+  assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/run-proofs/review`, 'i'));
   assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/review`, 'i'));
   assert.doesNotMatch(html, new RegExp(`action="/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/approve"`, 'i'));
   assert.doesNotMatch(html, new RegExp(`action="/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/reject"`, 'i'));
@@ -393,8 +391,8 @@ test('registrants result filter paginates submitted registrations', async () => 
   });
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Showing <strong>100<\/strong> of <strong>101<\/strong> registrants/i);
-  assert.match(html, /Page 1 of 2/i);
+  assert.match(html, /Showing <strong>1–25<\/strong> of <strong>101<\/strong> matching registrants/i);
+  assert.match(html, /Page\s*<strong>1<\/strong>\s*of\s*<strong>5<\/strong>/i);
   assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/registrants\\?result=submitted&amp;page=2`, 'i'));
 });
 
@@ -465,12 +463,9 @@ test('owner and admin can view accumulated activity review page', async () => {
   });
   assert.equal(registrantsResponse.status, 200);
   const registrantsHtml = await registrantsResponse.text();
-  const runResultCell = registrantsHtml.match(/<td data-registrant-column="runResult">([\s\S]*?)<\/td>/i)?.[1] || '';
-  assert.match(runResultCell, /<strong>Progress:<\/strong>\s*0 km \/ 20 km/i);
-  assert.match(runResultCell, /<strong>Activity counts:<\/strong>\s*0 approved, 1 pending, 0 rejected/i);
-  assert.doesNotMatch(runResultCell, /<strong>Distance:<\/strong>/i);
-  assert.doesNotMatch(runResultCell, /<strong>Elapsed:<\/strong>/i);
-  assert.doesNotMatch(runResultCell, /activity submitted/i);
+  assert.match(registrantsHtml, /<strong>0 km \/ 5 km<\/strong>/i);
+  assert.match(registrantsHtml, /0 approved · 1 pending/i);
+  assert.doesNotMatch(registrantsHtml, /<th[^>]*>Run Result<\/th>/i);
 
   const adminCookie = await login(seed.admin.email, seed.password);
   await waitForSessionReady('/admin/dashboard', adminCookie);
@@ -521,9 +516,8 @@ test('registrants result filter keeps accumulated approved progress totals', asy
   });
   assert.equal(response.status, 200);
   const html = await response.text();
-  const runResultCell = html.match(/<td data-registrant-column="runResult">([\s\S]*?)<\/td>/i)?.[1] || '';
-  assert.match(runResultCell, /<strong>Progress:<\/strong>\s*4 km \/ 20 km/i);
-  assert.match(runResultCell, /<strong>Activity counts:<\/strong>\s*1 approved, 1 pending, 0 rejected/i);
+  assert.match(html, /<strong>4 km \/ 5 km<\/strong>/i);
+  assert.match(html, /1 approved · 1 pending/i);
 });
 
 test('non-owner organizer cannot approve another organizer submission', async () => {

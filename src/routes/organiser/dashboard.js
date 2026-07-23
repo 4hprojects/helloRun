@@ -267,18 +267,6 @@ router.get('/dashboard', requireAuth, async (req, res) => {
             label: 'All Run Submissions',
             href: '/organizer/submissions',
             description: 'Browse run proofs across events'
-          },
-          {
-            icon: 'users',
-            label: 'Participants',
-            href: '/organizer/events',
-            description: 'View registrations'
-          },
-          {
-            icon: 'settings',
-            label: 'Settings',
-            href: '/organizer/application-status',
-            description: 'Application status'
           }
         ]
       : [
@@ -357,6 +345,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       recentEvents,
       organiserBadges,
       isApprovedOrganizer,
+      utilitiesOpen: !isApprovedOrganizer || totalEvents === 0 || totalRegistrations === 0,
       applicationAction,
       quickActions,
       approvedDate: application && application.reviewedAt

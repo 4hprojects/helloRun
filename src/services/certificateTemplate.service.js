@@ -36,45 +36,60 @@ async function updateTemplate(template, input = {}) {
     throw new Error('Certificate template is required.');
   }
 
-  const layoutKey = normalizeLayoutKey(input.layoutKey, template.layoutKey);
-  template.layoutKey = layoutKey;
-  template.name = normalizeText(input.name, template.name, 150);
-
-  template.content = {
-    heading: normalizeText(input.heading, template.content?.heading || 'Certificate of Completion', 120),
-    bodyText: normalizeText(
-      input.bodyText,
-      template.content?.bodyText || 'This certifies that {{runnerName}} successfully completed {{distance}} in {{eventTitle}}.',
-      1000
-    ),
-    footerText: normalizeText(input.footerText, template.content?.footerText || '', 300),
-    signatureName: normalizeText(input.signatureName, template.content?.signatureName || '', 120),
-    signatureRole: normalizeText(input.signatureRole, template.content?.signatureRole || '', 120)
-  };
-
-  template.displayOptions = {
-    showDistance: normalizeBoolean(input.showDistance, template.displayOptions?.showDistance !== false),
-    showFinishTime: normalizeBoolean(input.showFinishTime, template.displayOptions?.showFinishTime !== false),
-    showRank: normalizeBoolean(input.showRank, Boolean(template.displayOptions?.showRank)),
-    showEventDate: normalizeBoolean(input.showEventDate, template.displayOptions?.showEventDate !== false),
-    showCertificateNumber: normalizeBoolean(input.showCertificateNumber, template.displayOptions?.showCertificateNumber !== false),
-    showQrCode: normalizeBoolean(input.showQrCode, template.displayOptions?.showQrCode !== false),
-    showOrganizerLogo: normalizeBoolean(input.showOrganizerLogo, template.displayOptions?.showOrganizerLogo !== false),
-    showEventLogo: normalizeBoolean(input.showEventLogo, template.displayOptions?.showEventLogo !== false),
-    showSponsorLogos: normalizeBoolean(input.showSponsorLogos, template.displayOptions?.showSponsorLogos !== false)
-  };
-
-  template.styleOptions = {
-    primaryColor: normalizeColor(input.primaryColor, template.styleOptions?.primaryColor || '#0F172A'),
-    accentColor: normalizeColor(input.accentColor, template.styleOptions?.accentColor || '#FA9A4B'),
-    secondaryAccentColor: normalizeColor(input.secondaryAccentColor, template.styleOptions?.secondaryAccentColor || '#78C0E9'),
-    fontFamily: normalizeText(input.fontFamily, template.styleOptions?.fontFamily || 'Helvetica', 80),
-    pageSize: String(input.pageSize || template.styleOptions?.pageSize || 'A4').toUpperCase() === 'LETTER' ? 'LETTER' : 'A4',
-    orientation: String(input.orientation || template.styleOptions?.orientation || 'landscape') === 'portrait' ? 'portrait' : 'landscape'
-  };
+  const normalized = normalizeTemplateInput(template, input);
+  template.layoutKey = normalized.layoutKey;
+  template.name = normalized.name;
+  template.content = normalized.content;
+  template.displayOptions = normalized.displayOptions;
+  template.styleOptions = normalized.styleOptions;
 
   await template.save();
   return template;
+}
+
+function normalizeTemplateInput(template, input = {}) {
+  if (!template) {
+    throw new Error('Certificate template is required.');
+  }
+
+  const requestedPageSize = String(input.pageSize || template.styleOptions?.pageSize || 'A4').toUpperCase();
+  const pageSize = ['A4', 'LETTER', 'CUSTOM'].includes(requestedPageSize) ? requestedPageSize : 'A4';
+  return {
+    layoutKey: normalizeLayoutKey(input.layoutKey, template.layoutKey),
+    name: normalizeText(input.name, template.name, 150),
+    content: {
+      heading: normalizeText(input.heading, template.content?.heading || 'Certificate of Completion', 120),
+      bodyText: normalizeText(
+        input.bodyText,
+        template.content?.bodyText || 'This certifies that {{runnerName}} successfully completed {{distance}} in {{eventTitle}}.',
+        1000
+      ),
+      footerText: normalizeText(input.footerText, template.content?.footerText || '', 300),
+      signatureName: normalizeText(input.signatureName, template.content?.signatureName || '', 120),
+      signatureRole: normalizeText(input.signatureRole, template.content?.signatureRole || '', 120)
+    },
+    displayOptions: {
+      showDistance: normalizeBoolean(input.showDistance, template.displayOptions?.showDistance !== false),
+      showFinishTime: normalizeBoolean(input.showFinishTime, template.displayOptions?.showFinishTime !== false),
+      showRank: normalizeBoolean(input.showRank, Boolean(template.displayOptions?.showRank)),
+      showEventDate: normalizeBoolean(input.showEventDate, template.displayOptions?.showEventDate !== false),
+      showCertificateNumber: normalizeBoolean(input.showCertificateNumber, template.displayOptions?.showCertificateNumber !== false),
+      showQrCode: normalizeBoolean(input.showQrCode, template.displayOptions?.showQrCode !== false),
+      showOrganizerLogo: normalizeBoolean(input.showOrganizerLogo, template.displayOptions?.showOrganizerLogo !== false),
+      showEventLogo: normalizeBoolean(input.showEventLogo, template.displayOptions?.showEventLogo !== false),
+      showSponsorLogos: normalizeBoolean(input.showSponsorLogos, template.displayOptions?.showSponsorLogos !== false)
+    },
+    styleOptions: {
+      primaryColor: normalizeColor(input.primaryColor, template.styleOptions?.primaryColor || '#0F172A'),
+      accentColor: normalizeColor(input.accentColor, template.styleOptions?.accentColor || '#FA9A4B'),
+      secondaryAccentColor: normalizeColor(input.secondaryAccentColor, template.styleOptions?.secondaryAccentColor || '#78C0E9'),
+      fontFamily: normalizeText(input.fontFamily, template.styleOptions?.fontFamily || 'Helvetica', 80),
+      pageSize,
+      orientation: String(input.orientation || template.styleOptions?.orientation || 'landscape') === 'portrait' ? 'portrait' : 'landscape',
+      customPageWidthMm: normalizeCustomPageDimension(input.customPageWidthMm, template.styleOptions?.customPageWidthMm, 297),
+      customPageHeightMm: normalizeCustomPageDimension(input.customPageHeightMm, template.styleOptions?.customPageHeightMm, 210)
+    }
+  };
 }
 
 async function publishTemplate(template) {
@@ -214,6 +229,13 @@ function normalizeColor(value, fallback) {
   return /^#[0-9a-fA-F]{6}$/.test(safe) ? safe : fallback;
 }
 
+function normalizeCustomPageDimension(value, currentValue, fallback) {
+  const candidate = value === undefined || value === null || value === '' ? currentValue : value;
+  const numeric = Number(candidate);
+  if (!Number.isFinite(numeric) || numeric < 100 || numeric > 1000) return fallback;
+  return Number(numeric.toFixed(2));
+}
+
 function buildUserName(user) {
   return `${String(user?.firstName || '').trim()} ${String(user?.lastName || '').trim()}`.trim();
 }
@@ -240,6 +262,7 @@ module.exports = {
   getOrCreateDefaultTemplate,
   getActiveOrDefaultTemplate,
   updateTemplate,
+  normalizeTemplateInput,
   publishTemplate,
   applyUploadedAssets,
   buildDefaultTemplatePayload,

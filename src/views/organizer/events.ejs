@@ -1,161 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: 'My Events - HelloRun' }) %>
+  <%- include('../layouts/head', { title: title || 'My Events - HelloRun' }) %>
   <link rel="stylesheet" href="/css/organizer-events.css">
+  <link rel="stylesheet" href="/css/organizer-event-list.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
 
-  <main class="events-page organizer-events-page">
-    <section class="events-shell">
-      <header class="events-header events-hero">
-        <div class="events-hero-copy">
-          <p class="events-hero-eyebrow">Organizer Workspace</p>
+  <main class="organizer-event-list-page" id="main-content" data-organizer-event-list>
+    <div class="organizer-event-list-shell">
+      <header class="organizer-event-list-header">
+        <div>
+          <p class="organizer-event-list-kicker">Organiser workspace</p>
           <h1>My Events</h1>
-          <p>Manage drafts, published runs, and event operations in one place.</p>
+          <p>Review operational work and manage every stage of your events.</p>
         </div>
-        <div class="filter-actions">
-          <a href="/organizer/submissions" class="nav-login-btn events-create-btn">
-            <i data-lucide="clipboard-list"></i>
-            All Run Submissions
-          </a>
-          <a href="/organizer/create-event" class="nav-signup-btn events-create-btn">
-            <i data-lucide="plus"></i>
-            Create New Event
-          </a>
-        </div>
+        <nav class="organizer-event-list-header-actions" aria-label="Event workspace actions">
+          <a href="/organizer/dashboard" class="nav-login-btn"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></a>
+          <a href="/organizer/submissions" class="nav-login-btn"><i data-lucide="clipboard-list" aria-hidden="true"></i><span>All Submissions</span></a>
+          <a href="/organizer/create-event" class="nav-signup-btn"><i data-lucide="plus" aria-hidden="true"></i><span>Create Event</span></a>
+        </nav>
       </header>
 
-      <% if (message) { %>
-        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
-      <% } %>
+      <% if (message) { %><div class="page-message page-message-<%= message.type %>" role="status"><%= message.text %></div><% } %>
 
-      <%
-        const eventList = Array.isArray(events) ? events : [];
-        const totalCount = eventList.length;
-        const draftCount = eventList.filter((item) => item.status === 'draft').length;
-        const pendingReviewCount = eventList.filter((item) => item.status === 'pending_review').length;
-        const publishedCount = eventList.filter((item) => item.status === 'published').length;
-        const closedCount = eventList.filter((item) => item.status === 'closed').length;
-      %>
+      <nav class="organizer-event-status-strip" aria-label="Filter events by status">
+        <% [
+          { key: 'total', label: 'Total', count: portfolioCounts.total, selected: !filters.status },
+          { key: 'draft', label: 'Draft', count: portfolioCounts.draft, selected: filters.status === 'draft' },
+          { key: 'pending_review', label: 'Pending', count: portfolioCounts.pending_review, selected: filters.status === 'pending_review' },
+          { key: 'published', label: 'Published', count: portfolioCounts.published, selected: filters.status === 'published' },
+          { key: 'closed', label: 'Closed', count: portfolioCounts.closed, selected: filters.status === 'closed' },
+          { key: 'archived', label: 'Archived', count: portfolioCounts.archived, selected: filters.status === 'archived' }
+        ].forEach((item) => { %>
+          <a href="<%= statusLinks[item.key] %>" class="<%= item.selected ? 'is-selected' : '' %>" <%= item.selected ? 'aria-current="page"' : '' %>>
+            <span><%= item.label %></span><strong><%= item.count %></strong>
+          </a>
+        <% }); %>
+      </nav>
 
-      <section class="events-summary" aria-label="Event summary">
-        <article class="events-summary-card">
-          <p>Total in View</p>
-          <strong><%= totalCount %></strong>
-        </article>
-        <article class="events-summary-card">
-          <p>Draft</p>
-          <strong><%= draftCount %></strong>
-        </article>
-        <article class="events-summary-card">
-          <p>Pending Review</p>
-          <strong><%= pendingReviewCount %></strong>
-        </article>
-        <article class="events-summary-card">
-          <p>Published</p>
-          <strong><%= publishedCount %></strong>
-        </article>
-        <article class="events-summary-card">
-          <p>Closed</p>
-          <strong><%= closedCount %></strong>
-        </article>
+      <section class="organizer-event-discovery" aria-labelledby="event-discovery-heading">
+        <h2 id="event-discovery-heading" class="visually-hidden">Find and filter events</h2>
+        <form method="GET" action="/organizer/events" class="organizer-event-filter-form" data-event-filter-form>
+          <div class="organizer-event-search">
+            <label for="eventListSearch">Search events</label>
+            <div>
+              <input id="eventListSearch" name="q" type="search" placeholder="Title, reference, URL, venue, or location" value="<%= filters.q %>">
+              <button type="submit" class="nav-signup-btn" aria-label="Search events"><i data-lucide="search" aria-hidden="true"></i><span>Search</span></button>
+            </div>
+          </div>
+
+          <details class="organizer-event-filter-details" <%= filtersOpen ? 'open' : '' %>>
+            <summary><span><i data-lucide="sliders-horizontal" aria-hidden="true"></i>Filters &amp; sort</span><i data-lucide="chevron-down" class="organizer-event-filter-chevron" aria-hidden="true"></i></summary>
+            <div class="organizer-event-filter-grid">
+              <div>
+                <label for="eventListStatus">Status</label>
+                <select id="eventListStatus" name="status" data-event-auto-submit>
+                  <option value="" <%= !filters.status ? 'selected' : '' %>>All active statuses</option>
+                  <option value="draft" <%= filters.status === 'draft' ? 'selected' : '' %>>Draft</option>
+                  <option value="pending_review" <%= filters.status === 'pending_review' ? 'selected' : '' %>>Pending Review</option>
+                  <option value="published" <%= filters.status === 'published' ? 'selected' : '' %>>Published</option>
+                  <option value="closed" <%= filters.status === 'closed' ? 'selected' : '' %>>Closed</option>
+                  <option value="archived" <%= filters.status === 'archived' ? 'selected' : '' %>>Archived</option>
+                </select>
+              </div>
+              <div>
+                <label for="eventListSort">Sort</label>
+                <select id="eventListSort" name="sort" data-event-auto-submit>
+                  <option value="attention" <%= filters.sort === 'attention' ? 'selected' : '' %>>Needs attention</option>
+                  <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest created</option>
+                  <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest created</option>
+                  <option value="start_asc" <%= filters.sort === 'start_asc' ? 'selected' : '' %>>Start date: soonest</option>
+                  <option value="start_desc" <%= filters.sort === 'start_desc' ? 'selected' : '' %>>Start date: latest</option>
+                </select>
+              </div>
+              <div>
+                <label for="eventListPerPage">Events per page</label>
+                <select id="eventListPerPage" name="perPage" data-event-auto-submit>
+                  <% [25, 50, 100].forEach((size) => { %><option value="<%= size %>" <%= filters.perPage === size ? 'selected' : '' %>><%= size %></option><% }); %>
+                </select>
+              </div>
+              <div class="organizer-event-filter-actions">
+                <button type="submit" class="nav-signup-btn">Apply</button>
+                <a href="<%= clearHref %>" class="nav-login-btn">Clear</a>
+              </div>
+            </div>
+          </details>
+        </form>
       </section>
 
-      <form method="GET" action="/organizer/events" class="filter-bar">
-        <div class="filter-field filter-field-wide">
-          <label for="q">Search</label>
-          <input id="q" name="q" type="search" placeholder="Title, event URL, city, venue" value="<%= searchQuery || '' %>">
-        </div>
+      <div class="organizer-event-results-heading">
+        <p>Showing <strong><%= pagination.start %>–<%= pagination.end %></strong> of <strong><%= pagination.totalItems %></strong> matching events</p>
+        <% if (filters.q || filters.status || filters.sort !== 'attention' || filters.perPage !== 25) { %>
+          <a href="<%= clearHref %>">Clear current filters</a>
+        <% } %>
+      </div>
 
-        <div class="filter-field">
-          <label for="status">Status</label>
-          <select id="status" name="status">
-            <option value="" <%= !selectedStatus ? 'selected' : '' %>>All</option>
-            <option value="draft" <%= selectedStatus === 'draft' ? 'selected' : '' %>>Draft</option>
-            <option value="pending_review" <%= selectedStatus === 'pending_review' ? 'selected' : '' %>>Pending Review</option>
-            <option value="published" <%= selectedStatus === 'published' ? 'selected' : '' %>>Published</option>
-            <option value="closed" <%= selectedStatus === 'closed' ? 'selected' : '' %>>Closed</option>
-            <option value="archived" <%= selectedStatus === 'archived' ? 'selected' : '' %>>Archived</option>
-          </select>
-        </div>
+      <% if (events.length) { %>
+        <section class="organizer-event-management-list" aria-label="Your events">
+          <% events.forEach((event) => { %>
+            <article class="organizer-event-management-row">
+              <a href="<%= event.manageHref %>" class="organizer-event-list-media" aria-label="Manage <%= event.title %>">
+                <% if (event.bannerImageUrl) { %><img src="<%= event.bannerImageUrl %>" alt="" loading="lazy"><% } else { %><i data-lucide="calendar" aria-hidden="true"></i><% } %>
+              </a>
 
-        <div class="filter-field">
-          <label for="sort">Sort</label>
-          <select id="sort" name="sort">
-            <option value="newest" <%= selectedSort === 'newest' ? 'selected' : '' %>>Newest</option>
-            <option value="oldest" <%= selectedSort === 'oldest' ? 'selected' : '' %>>Oldest</option>
-            <option value="start_asc" <%= selectedSort === 'start_asc' ? 'selected' : '' %>>Event Start (Soonest)</option>
-            <option value="start_desc" <%= selectedSort === 'start_desc' ? 'selected' : '' %>>Event Start (Latest)</option>
-          </select>
-        </div>
-
-        <div class="filter-actions">
-          <button type="submit" class="nav-signup-btn">Apply Filters</button>
-          <a href="/organizer/events" class="nav-login-btn">Reset</a>
-        </div>
-      </form>
-
-      <% if (events && events.length > 0) { %>
-        <div class="events-grid">
-          <% events.forEach(event => { %>
-            <article class="event-card">
-              <div class="event-card-top">
-                <h3><%= event.title %></h3>
-                <span class="status-badge status-<%= event.status %>">
-                  <%= event.status === 'draft' ? 'Draft' : (event.status === 'pending_review' ? 'Pending Review' : (event.status === 'published' ? 'Published' : (event.status === 'archived' ? 'Archived' : 'Closed'))) %>
-                </span>
+              <div class="organizer-event-list-identity">
+                <div class="organizer-event-list-title-row">
+                  <h2><a href="<%= event.manageHref %>"><%= event.title %></a></h2>
+                  <span class="status-badge status-<%= event.status %>"><%= event.statusLabel %></span>
+                </div>
+                <p class="organizer-event-list-reference"><%= event.referenceCode || event.slug %></p>
+                <p class="organizer-event-list-context">
+                  <span><i data-lucide="route" aria-hidden="true"></i><%= event.formatLabel %></span>
+                  <span><i data-lucide="map-pin" aria-hidden="true"></i><%= event.locationLabel %></span>
+                </p>
+                <% if (event.attention.length) { %>
+                  <div class="organizer-event-attention" aria-label="Operational attention">
+                    <% event.attention.forEach((label) => { %><span><i data-lucide="circle-alert" aria-hidden="true"></i><%= label %></span><% }); %>
+                  </div>
+                <% } %>
               </div>
 
-              <p class="event-meta">
-                <i data-lucide="calendar"></i>
-                <span>
-                  <%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleString('en-US') : 'Start date TBA' %>
-                </span>
-              </p>
+              <dl class="organizer-event-list-dates">
+                <div><dt>Starts</dt><dd><%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBA' %></dd></div>
+                <div><dt>Ends</dt><dd><%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBA' %></dd></div>
+                <div><dt>Updated</dt><dd><%= event.updatedAt ? new Date(event.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A' %></dd></div>
+              </dl>
 
-              <p class="event-meta">
-                <i data-lucide="map-pin"></i>
-                <span><%= [event.venueName, event.city, event.country].filter(Boolean).join(', ') || 'Location TBA' %></span>
-              </p>
+              <dl class="organizer-event-list-workload">
+                <div><dt><a href="<%= event.registrantsHref %>">Registrations</a></dt><dd><%= event.registrationCount %></dd></div>
+                <div class="<%= event.pendingPaymentCount ? 'has-work' : '' %>"><dt>Payments</dt><dd><%= event.pendingPaymentCount %></dd></div>
+                <div class="<%= event.pendingResultCount ? 'has-work' : '' %>"><dt>Results</dt><dd><%= event.pendingResultCount %></dd></div>
+              </dl>
 
-              <p class="event-description"><%= event.description || 'No description provided yet.' %></p>
-
-              <div class="event-footer">
-                <small>Event URL: <code><%= event.slug %></code></small>
-                <small>Created: <%= new Date(event.createdAt).toLocaleDateString('en-US') %></small>
-              </div>
-
-              <div class="event-actions">
-                <a href="/organizer/events/<%= event._id %>" class="nav-login-btn event-action-btn">View</a>
-                <a href="/organizer/events/<%= event._id %>/edit" class="nav-login-btn event-action-btn">Edit</a>
-                <a href="/organizer/events/<%= event._id %>/certificate" class="nav-login-btn event-action-btn">Certificate</a>
-                <a href="/organizer/events/<%= event._id %>/registrants" class="nav-login-btn event-action-btn">Registrants</a>
-                <a href="/organizer/events/<%= event._id %>/run-proofs/review" class="nav-login-btn event-action-btn">Submitted Run Proofs</a>
+              <div class="organizer-event-list-actions organizer-event-list-actions-<%= event.actionCount %>">
+                <a href="<%= event.manageHref %>" class="nav-signup-btn">Manage</a>
+                <% if (event.pendingPaymentCount) { %><a href="<%= event.paymentReviewHref %>" class="nav-login-btn"><i data-lucide="receipt" aria-hidden="true"></i><span>Payment Review</span><strong><%= event.pendingPaymentCount %></strong></a><% } %>
+                <% if (event.pendingResultCount) { %><a href="<%= event.resultReviewHref %>" class="nav-login-btn"><i data-lucide="flag" aria-hidden="true"></i><span>Result Review</span><strong><%= event.pendingResultCount %></strong></a><% } %>
               </div>
             </article>
-          <% }) %>
-        </div>
+          <% }); %>
+        </section>
+
+        <% if (pagination.totalPages > 1) { %>
+          <nav class="organizer-event-pagination" aria-label="Event list pagination">
+            <% if (pagination.prevHref) { %><a href="<%= pagination.prevHref %>" class="nav-login-btn"><i data-lucide="chevron-left" aria-hidden="true"></i>Previous</a><% } else { %><span></span><% } %>
+            <p>Page <strong><%= pagination.page %></strong> of <strong><%= pagination.totalPages %></strong></p>
+            <% if (pagination.nextHref) { %><a href="<%= pagination.nextHref %>" class="nav-login-btn">Next<i data-lucide="chevron-right" aria-hidden="true"></i></a><% } else { %><span></span><% } %>
+          </nav>
+        <% } %>
       <% } else { %>
-        <div class="empty-state">
-          <i data-lucide="calendar-plus"></i>
-          <% if (selectedStatus || searchQuery) { %>
-            <h3>No matching events</h3>
-            <p>Try changing your filters or search text.</p>
-            <a href="/organizer/events" class="nav-login-btn">Clear Filters</a>
-          <% } else { %>
-            <h3>No events yet</h3>
-            <p>Create your first event to start accepting runners.</p>
-            <a href="/organizer/create-event" class="nav-signup-btn">Create Event</a>
-          <% } %>
-        </div>
+        <section class="organizer-event-list-empty">
+          <i data-lucide="calendar-plus" aria-hidden="true"></i>
+          <% if (filters.q || filters.status) { %><h2>No matching events</h2><p>Try another search or clear the current filters.</p><a href="<%= clearHref %>" class="nav-login-btn">Clear Filters</a>
+          <% } else { %><h2>No events yet</h2><p>Create your first event to begin accepting runners.</p><a href="/organizer/create-event" class="nav-signup-btn">Create Event</a><% } %>
+        </section>
       <% } %>
-    </section>
+    </div>
   </main>
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script src="/js/organizer-event-list.js"></script>
 </body>
 </html>

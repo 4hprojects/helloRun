@@ -62,6 +62,10 @@ const {
   ARTICLE: DISTANCE_CHOICE_ARTICLE,
   buildArticlePayload: buildDistanceChoiceArticlePayload
 } = require('../content/choose-running-distance-guide');
+const {
+  ARTICLE: BEGINNER_PACE_ARTICLE,
+  buildArticlePayload: buildBeginnerPaceArticlePayload
+} = require('../content/beginner-running-pace-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -94,6 +98,8 @@ const FIRST_VIRTUAL_RUN_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/cove
 const FIRST_VIRTUAL_RUN_PAYLOAD = buildFirstVirtualRunArticlePayload({ coverImageUrl: FIRST_VIRTUAL_RUN_COVER_IMAGE_URL });
 const DISTANCE_CHOICE_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/6994299f568d52730107dc23/1784690449454-621961560-how-to-choose-between-running-distances.webp';
 const DISTANCE_CHOICE_PAYLOAD = buildDistanceChoiceArticlePayload({ coverImageUrl: DISTANCE_CHOICE_COVER_IMAGE_URL });
+const BEGINNER_PACE_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1784709599143-784201834-beginners-guide-running-pace.webp';
+const BEGINNER_PACE_PAYLOAD = buildBeginnerPaceArticlePayload({ coverImageUrl: BEGINNER_PACE_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -413,6 +419,31 @@ const POSTS = [
       '/blog/how-to-submit-run-proof-correctly-hellorun',
       '/blog/running-safety-tips-early-morning-night-runs',
       '/blog/how-leaderboards-work-virtual-running-events'
+    ]
+  },
+  {
+    ...BEGINNER_PACE_ARTICLE,
+    contentHtml: BEGINNER_PACE_PAYLOAD.contentHtml,
+    coverImageUrl: BEGINNER_PACE_COVER_IMAGE_URL,
+    coverImageAlt: BEGINNER_PACE_ARTICLE.coverImageAlt,
+    ogImageUrl: BEGINNER_PACE_COVER_IMAGE_URL,
+    publishedAt: '2026-07-22T08:46:16.136Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/how-it-works',
+      '/faq',
+      '/privacy',
+      '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
+      '/blog/how-to-prepare-for-your-first-virtual-run',
+      '/blog/beginner-5k-training-plan-new-runners',
+      '/blog/virtual-run-vs-traditional-race-which-one-should-you-join',
+      '/blog/best-apps-to-track-your-virtual-run',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/how-leaderboards-work-virtual-running-events',
+      '/blog/running-safety-tips-early-morning-night-runs'
     ]
   }
 ];

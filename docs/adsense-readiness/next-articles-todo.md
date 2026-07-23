@@ -4,7 +4,7 @@ Publish these articles in the following order before the next AdSense review.
 
 1. [x] How to Prepare for Your First Virtual Run
 2. [x] How to Choose Between a 5K, 10K, 21K, or Distance Challenge
-3. [ ] Beginner’s Guide to Running Pace
+3. [x] Beginner’s Guide to Running Pace
 4. [ ] Running During the Rainy Season in the Philippines
 5. [ ] How to Run Safely During Hot and Humid Weather
 6. [ ] How to Complete a 50K Accumulated-Distance Challenge

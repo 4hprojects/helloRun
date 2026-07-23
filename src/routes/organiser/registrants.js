@@ -1,7 +1,6 @@
 // src/routes/organiser/registrants.js
 const express = require('express');
 const router = express.Router();
-const { getRejectionReasonOptions } = require('../../utils/rejection-reasons');
 const {
   logger,
   User,
@@ -23,12 +22,12 @@ const {
   getRegistrationIdsWithSubmissionStatus,
   buildRegistrantListPath,
   buildRegistrantExportQuery,
+  getRegistrantSortSpec,
   getRegistrantExportData,
   mapSubmissionForRegistrant,
   formatExpectedPaymentLabel,
   formatGenderLabel,
   formatAgeFromDateOfBirth,
-  formatDateTime,
   csvEscape,
   canAccessRegistrantReview,
   getRegistrantAccessibleEventOrNull,
@@ -36,6 +35,20 @@ const {
   getRequestIpAddress,
   getRequestUserAgent
 } = require('./_shared');
+const { resolveAccumulatedTargetDistanceKm } = require('../../services/accumulated-target.service');
+
+function formatRegistrantDateTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.toLocaleString('en-US', {
+    timeZone: 'Asia/Manila', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+  })} PHT`;
+}
+
+function humanizeStatus(value) {
+  return String(value || 'N/A').replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
 
 /* ==========================================
    GET: Event Registrants
@@ -76,6 +89,10 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       eventRaceDistances,
       searchQuery,
       selectedResultStatus,
+      selectedRegistrationStatus,
+      selectedSort,
+      pageSize,
+      fieldMode,
       requestedPage
     } = filterContext;
 
@@ -87,15 +104,15 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
     }
 
     const filteredRegistrantsCount = await Registration.countDocuments(registrantQuery);
-    const totalPages = Math.max(1, Math.ceil(filteredRegistrantsCount / REGISTRANTS_PAGE_SIZE));
+    const totalPages = Math.max(1, Math.ceil(filteredRegistrantsCount / pageSize));
     const page = Math.min(requestedPage, totalPages);
-    const pageStart = (page - 1) * REGISTRANTS_PAGE_SIZE;
+    const pageStart = (page - 1) * pageSize;
 
     const registrationsRaw = filteredRegistrantsCount > 0
       ? await Registration.find(registrantQuery)
-        .sort({ registeredAt: -1 })
+        .sort(getRegistrantSortSpec(selectedSort))
         .skip(pageStart)
-        .limit(REGISTRANTS_PAGE_SIZE)
+        .limit(pageSize)
         .lean()
       : [];
 
@@ -154,16 +171,19 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
         genderLabel: formatGenderLabel(item.participant?.gender),
         ageLabel: formatAgeFromDateOfBirth(item.participant?.dateOfBirth)
       },
-      waiverAcceptedAtLabel: formatDateTime(item.waiver?.acceptedAt),
-      paymentProofUploadedAtLabel: formatDateTime(item.paymentProof?.uploadedAt),
-      paymentReviewedAtLabel: formatDateTime(item.paymentReviewedAt),
+      registrationStatusLabel: humanizeStatus(item.status),
+      paymentStatusLabel: humanizeStatus(item.paymentStatus),
+      registeredAtLabel: formatRegistrantDateTime(item.registeredAt),
+      waiverAcceptedAtLabel: formatRegistrantDateTime(item.waiver?.acceptedAt),
+      paymentProofUploadedAtLabel: formatRegistrantDateTime(item.paymentProof?.uploadedAt),
+      paymentReviewedAtLabel: formatRegistrantDateTime(item.paymentReviewedAt),
       expectedPaymentLabel: formatExpectedPaymentLabel(item, event),
       signupOptionLabel: item.pricingSnapshot?.optionDescription || '',
       pricingPeriodLabel: item.pricingSnapshot?.pricingPeriodLabel || '',
       accumulatedProgress: event.virtualCompletionMode === 'accumulated_distance'
         ? buildAccumulatedProgress({
           activities: accumulatedProgressActivitiesByRegistrationId.get(String(item._id)) || [],
-          targetDistanceKm: event.targetDistanceKm
+          targetDistanceKm: resolveAccumulatedTargetDistanceKm(item, event)
         })
         : null,
       submission: mapSubmissionForRegistrant(
@@ -175,6 +195,24 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
         }
       )
     }));
+
+    registrations.forEach((item) => {
+      const categoryName = String(item.pricingSnapshot?.raceCategoryName || '').trim();
+      const distance = String(item.raceDistance || '').trim();
+      item.categoryLabel = categoryName && distance && categoryName.toLowerCase() !== distance.toLowerCase()
+        ? `${categoryName} · ${distance}`
+        : distance || categoryName || 'Unspecified category';
+      if (item.submission) item.submission.submittedAtLabel = formatRegistrantDateTime(item.submission.submittedAt);
+      item.resultStatusLabel = item.accumulatedProgress
+        ? `${item.accumulatedProgress.approvedActivityCount} approved · ${item.accumulatedProgress.pendingActivityCount} pending`
+        : item.submission ? humanizeStatus(item.submission.status) : 'No result';
+      item.resultReviewHref = item.submission?.status === 'submitted'
+        ? `/organizer/events/${event._id}/submissions/${item.submission._id}/review`
+        : '';
+      item.paymentReviewHref = item.paymentStatus === 'proof_submitted'
+        ? `/organizer/events/${event._id}/payment-proofs/review?q=${encodeURIComponent(item.confirmationCode || '')}`
+        : '';
+    });
 
     const [
       registrationSummaryCounts,
@@ -188,17 +226,42 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
         : { submitted: 0, approved: 0, rejected: 0 }
     ]);
 
+    const allowedModes = new Set([event.eventType, ...(event.eventTypesAllowed || [])]);
+    if (allowedModes.has('hybrid')) {
+      allowedModes.add('virtual');
+      allowedModes.add('onsite');
+    }
+    const isPaidEvent = event.feeMode === 'paid';
+    const isAccumulatedEvent = event.virtualCompletionMode === 'accumulated_distance';
+    const supportsOnsite = allowedModes.has('onsite');
+    const supportsVirtual = allowedModes.has('virtual');
+    const hasAdvancedFilters = Boolean(
+      selectedMode || selectedDistance || filterContext.selectedPaymentStatus || selectedResultStatus ||
+      selectedRegistrationStatus || selectedSort !== 'newest' || pageSize !== REGISTRANTS_PAGE_SIZE
+    );
+
     return res.render('organizer/event-registrants', {
       title: `Registrants - ${event.title}`,
       user,
       isAdminViewer: user.role === 'admin',
       event,
       registrations,
-      paymentRejectionReasonOptions: getRejectionReasonOptions('payment'),
       selectedMode,
       selectedDistance,
       selectedPaymentStatus: filterContext.selectedPaymentStatus,
       selectedResultStatus,
+      selectedRegistrationStatus,
+      selectedSort,
+      pageSize,
+      fieldMode,
+      capabilities: {
+        isPaidEvent,
+        isAccumulatedEvent,
+        supportsOnsite,
+        supportsVirtual,
+        showModeFilter: supportsOnsite && supportsVirtual,
+        hasAdvancedFilters
+      },
       eventRaceDistances,
       searchQuery,
       exportQuery: buildRegistrantExportQuery(filterContext),
@@ -219,7 +282,7 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
         page,
         totalPages,
         totalItems: filteredRegistrantsCount,
-        pageSize: REGISTRANTS_PAGE_SIZE,
+        pageSize,
         prevHref: page > 1 ? buildRegistrantListPath(event._id, filterContext, { page: page - 1 }) : '',
         nextHref: page < totalPages ? buildRegistrantListPath(event._id, filterContext, { page: page + 1 }) : ''
       }
@@ -266,8 +329,14 @@ router.get('/events/:id/registrants/export', requireAuth, registrantExportLimite
       });
     }
 
-    const { query } = getRegistrantFilterContext(event, req.query);
-    const registrations = await Registration.find(query).sort({ registeredAt: -1 }).lean();
+    const filterContext = getRegistrantFilterContext(event, req.query);
+    const exportFilter = { ...filterContext.query };
+    if (filterContext.selectedResultStatus) {
+      exportFilter._id = { $in: await getRegistrationIdsWithSubmissionStatus(event._id, filterContext.selectedResultStatus) };
+    }
+    const registrations = await Registration.find(exportFilter)
+      .sort(getRegistrantSortSpec(filterContext.selectedSort))
+      .lean();
     const { headers, rows } = getRegistrantExportData(registrations);
 
     const csvContent = [headers, ...rows]
@@ -334,8 +403,14 @@ router.get('/events/:id/registrants/export-xlsx', requireAuth, registrantExportL
       });
     }
 
-    const { query } = getRegistrantFilterContext(event, req.query);
-    const registrations = await Registration.find(query).sort({ registeredAt: -1 }).lean();
+    const filterContext = getRegistrantFilterContext(event, req.query);
+    const exportFilter = { ...filterContext.query };
+    if (filterContext.selectedResultStatus) {
+      exportFilter._id = { $in: await getRegistrationIdsWithSubmissionStatus(event._id, filterContext.selectedResultStatus) };
+    }
+    const registrations = await Registration.find(exportFilter)
+      .sort(getRegistrantSortSpec(filterContext.selectedSort))
+      .lean();
     const { headers, rows } = getRegistrantExportData(registrations);
 
     const workbook = new ExcelJS.Workbook();

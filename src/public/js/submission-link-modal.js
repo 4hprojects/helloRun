@@ -11,7 +11,13 @@
 
   var activeLink = null;
   var currentSubmissionId = null;
+  var lightboxTrigger = null;
   var csrfToken = (document.querySelector('[name="_csrf"]') || {}).value || '';
+
+  function getFocusable(container) {
+    return Array.from(container.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      .filter(function (element) { return !element.hidden && element.offsetParent !== null; });
+  }
 
   // ── Open / Close ────────────────────────────────────────────────────────────
 
@@ -29,6 +35,7 @@
   }
 
   function closeModal() {
+    closeLightbox();
     modal.hidden = true;
     document.body.classList.remove('submission-hub-modal-open');
     if (activeLink) activeLink.focus();
@@ -84,7 +91,7 @@
       if (s.ocrData.dateMismatch) ocrWarnings.push('Date mismatch (extracted: ' + (s.ocrData.extractedRunDate || '?') + ')');
       if (s.ocrData.nameMatchStatus === 'mismatched') ocrWarnings.push('Name mismatch (extracted: ' + (s.ocrData.extractedName || '?') + ')');
     }
-    var hasWarnings = s.suspiciousFlag || s.reviewSignal || ocrWarnings.length > 0;
+    var hasWarnings = s.suspiciousFlag || (s.reviewSignal && s.reviewSignal.label) || ocrWarnings.length > 0;
 
     var html = '<div class="sub-review-panel">';
 
@@ -193,7 +200,7 @@
     var lightboxImg = body.querySelector('.js-lightbox-trigger');
     if (lightboxImg) {
       lightboxImg.addEventListener('click', function () {
-        openLightbox(lightboxImg.dataset.lightboxSrc);
+        openLightbox(lightboxImg.dataset.lightboxSrc, lightboxImg);
       });
     }
 
@@ -289,14 +296,14 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token': csrfToken },
       body: new URLSearchParams(bodyParams),
-      redirect: 'manual'
+      redirect: 'follow'
     })
       .then(function (res) {
-        if (res.ok || res.status === 302 || res.type === 'opaqueredirect') {
-          showDecisionSuccess(decision);
-        } else {
-          throw new Error('Server error ' + res.status);
+        var redirectedUrl = new URL(res.url || window.location.href, window.location.origin);
+        if (!res.ok || redirectedUrl.searchParams.get('type') === 'error') {
+          throw new Error(redirectedUrl.searchParams.get('msg') || ('Server error ' + res.status));
         }
+        showDecisionSuccess(decision);
       })
       .catch(function (err) {
         var panel = body.querySelector('.sub-panel-actions');
@@ -321,7 +328,7 @@
     // Update card in list
     updateListCard(currentSubmissionId, decision);
 
-    // Show next button + auto-advance
+    // Offer the next item without moving the reviewer unexpectedly.
     var footer = body.querySelector('.sub-panel-footer');
     if (footer) {
       var nextBtn = footer.querySelector('.js-panel-next-btn');
@@ -330,8 +337,6 @@
         nextBtn.addEventListener('click', advanceToNextPending);
       }
     }
-
-    setTimeout(advanceToNextPending, 1500);
   }
 
   function updateListCard(submissionId, decision) {
@@ -343,8 +348,11 @@
       badge.textContent = decision === 'approved' ? 'Approved' : 'Rejected';
     }
     card.dataset.status = decision;
-    var quickBtn = card.querySelector('.js-quick-approve');
-    if (quickBtn) quickBtn.remove();
+    var quickForm = card.querySelector('[data-quick-approval-form]');
+    var eligibleCheckbox = card.querySelector('[data-eligible-submission]');
+    if (quickForm) quickForm.remove();
+    if (eligibleCheckbox) eligibleCheckbox.remove();
+    document.dispatchEvent(new CustomEvent('submission:reviewed', { detail: { submissionId: submissionId, decision: decision } }));
   }
 
   function advanceToNextPending() {
@@ -360,18 +368,33 @@
 
   // ── Lightbox ─────────────────────────────────────────────────────────────────
 
-  function openLightbox(src) {
+  function closeLightbox() {
+    var lb = document.getElementById('js-sub-lightbox');
+    if (!lb || lb.hidden) return;
+    lb.hidden = true;
+    if (lightboxTrigger) lightboxTrigger.focus();
+    lightboxTrigger = null;
+  }
+
+  function openLightbox(src, trigger) {
     var lb = document.getElementById('js-sub-lightbox');
     if (!lb) {
       lb = document.createElement('div');
       lb.id = 'js-sub-lightbox';
       lb.className = 'sub-lightbox-overlay';
-      lb.innerHTML = '<img class="sub-lightbox-img" alt="Proof full size">';
-      lb.addEventListener('click', function () { lb.hidden = true; });
+      lb.setAttribute('role', 'dialog');
+      lb.setAttribute('aria-modal', 'true');
+      lb.setAttribute('aria-label', 'Activity proof image');
+      lb.innerHTML = '<button type="button" class="sub-lightbox-close" aria-label="Close proof image">×</button><img class="sub-lightbox-img" alt="Activity proof at full size">';
+      lb.addEventListener('click', function (event) {
+        if (event.target === lb || event.target.closest('.sub-lightbox-close')) closeLightbox();
+      });
       document.body.appendChild(lb);
     }
+    lightboxTrigger = trigger || document.activeElement;
     lb.querySelector('img').src = src;
     lb.hidden = false;
+    lb.querySelector('.sub-lightbox-close').focus();
   }
 
   // ── Event Listeners ──────────────────────────────────────────────────────────
@@ -393,39 +416,46 @@
   });
 
   document.addEventListener('keydown', function (event) {
-    if (!modal.hidden && event.key === 'Escape') closeModal();
+    var lightbox = document.getElementById('js-sub-lightbox');
+    if (lightbox && !lightbox.hidden) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeLightbox();
+      } else if (event.key === 'Tab') {
+        event.preventDefault();
+        lightbox.querySelector('.sub-lightbox-close').focus();
+      }
+      return;
+    }
+    if (modal.hidden) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeModal();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    var focusable = getFocusable(dialog);
+    if (!focusable.length) {
+      event.preventDefault();
+      dialog.focus();
+      return;
+    }
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   });
 
-  // Quick-approve handler
   document.addEventListener('click', function (event) {
-    var btn = event.target.closest('.js-quick-approve');
-    if (!btn) return;
-    event.preventDefault();
-    var url = btn.dataset.approveUrl;
-    var submissionId = btn.dataset.submissionId;
-    if (!url) return;
-    btn.disabled = true;
-    btn.textContent = 'Approving…';
-    var params = new URLSearchParams({ _csrf: csrfToken });
-    fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token': csrfToken },
-      body: params,
-      redirect: 'manual'
-    })
-      .then(function (res) {
-        if (res.ok || res.status === 302 || res.type === 'opaqueredirect') {
-          updateListCard(submissionId, 'approved');
-          btn.closest('.run-proof-card-actions') && (btn.remove());
-        } else {
-          btn.disabled = false;
-          btn.textContent = '✓ Approve';
-        }
-      })
-      .catch(function () {
-        btn.disabled = false;
-        btn.textContent = '✓ Approve';
-      });
+    if (event.target.closest('[data-submission-hub-modal-close]')) {
+      event.preventDefault();
+      closeModal();
+    }
   });
 
   function esc(str) {

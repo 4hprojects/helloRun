@@ -51,14 +51,14 @@ test('organizer dashboard renders range analytics and queue links', async () => 
   const html = await response.text();
   assert.match(html, /Analytics range/i);
   assert.match(html, /Last 7 days/i);
-  assert.match(html, /Queue by Event/i);
-  assert.match(html, /Open Next Pending Payment/i);
-  assert.match(html, /Open Next Pending Result/i);
-  assert.match(html, /data-collapsible-card="getting-started"/i);
-  assert.match(html, /class="checklist-toggle"[\s\S]*aria-expanded="true"[\s\S]*aria-controls="gettingStartedChecklist"/i);
+  assert.match(html, /Analytics overview/i);
+  assert.match(html, /Work requiring attention/i);
+  assert.match(html, /Review Queue/i);
+  assert.doesNotMatch(html, /Open Next Pending Payment|Open Next Pending Result/i);
+  assert.match(html, /class="organizer-dashboard-card organizer-utilities"/i);
+  assert.match(html, /Organizer tools &amp; account/i);
   assert.match(html, /id="gettingStartedChecklist"/i);
-  assert.match(html, /classList\.toggle\('is-hidden', isCollapsed\)/i);
-  assert.match(html, /helloRun\.organizerDashboard\.gettingStartedCollapsed/i);
+  assert.match(html, /src="\/js\/organizer-dashboard\.js"/i);
   assert.match(html, /href="\/contact\?source=organizer-dashboard"/i);
   assert.match(
     html,
@@ -89,37 +89,15 @@ test('organizer dashboard renders range analytics and queue links', async () => 
 
   const paymentLink = `/organizer/events/${seed.eventId}/payment-proofs/review`;
   const resultLink = `/organizer/events/${seed.eventId}/run-proofs/review`;
-  const nextResultLink = `/organizer/events/${seed.eventId}/submissions/${seed.submittedSubmissionId}/review`;
   const approvedLink = `/organizer/events/${seed.eventId}/run-proofs/review?status=approved`;
-  const editEventLink = `/organizer/events/${seed.eventId}/edit`;
+  const manageEventLink = `/organizer/events/${seed.eventId}`;
   assert.match(html, new RegExp(escapeRegex(paymentLink)));
   assert.match(html, new RegExp(escapeRegex(resultLink)));
-  assert.match(html, new RegExp(escapeRegex(nextResultLink)));
   assert.match(html, new RegExp(escapeRegex(approvedLink)));
-  assert.match(
-    html,
-    new RegExp(`${escapeRegex(editEventLink)}" class="btn btn-secondary event-link-btn event-action-icon-btn edit-event-btn" target="_blank" rel="noopener noreferrer" aria-label="Edit Event"`)
-  );
-  assert.match(
-    html,
-    new RegExp(`${escapeRegex(resultLink)}" class="btn btn-secondary event-link-btn event-action-icon-btn submitted-run-proofs-btn" target="_blank" rel="noopener noreferrer" aria-label="Submitted Run Proofs, 1 pending" data-action-label="Submitted Run Proofs">\\s*<i[^>]*><\\/i>\\s*<span class="pending-run-proof-count" aria-hidden="true">1<\\/span>`)
-  );
-  assert.match(
-    html,
-    new RegExp(`${escapeRegex(paymentLink)}" class="queue-review-btn" target="_blank" rel="noopener noreferrer"`)
-  );
-  assert.match(
-    html,
-    new RegExp(`${escapeRegex(resultLink)}" class="queue-review-btn" target="_blank" rel="noopener noreferrer"`)
-  );
-  assert.match(
-    html,
-    /class="btn btn-secondary review-icon-btn" target="_blank" rel="noopener noreferrer" aria-label="Review run results"/i
-  );
-  assert.match(
-    html,
-    new RegExp(`${escapeRegex(nextResultLink)}" class="btn btn-secondary review-icon-btn" target="_blank" rel="noopener noreferrer" aria-label="Review run results"`)
-  );
+  assert.match(html, new RegExp(`${escapeRegex(manageEventLink)}" class="btn btn-secondary">Manage`));
+  assert.match(html, new RegExp(`${escapeRegex(resultLink)}" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">Review Results`));
+  assert.match(html, new RegExp(`${escapeRegex(paymentLink)}" class="btn btn-secondary" target="_blank" rel="noopener noreferrer"`));
+  assert.match(html, new RegExp(`${escapeRegex(resultLink)}" class="btn btn-secondary" target="_blank" rel="noopener noreferrer"`));
 });
 
 test('unapproved organizer lands on dashboard with application link', async () => {
@@ -137,7 +115,7 @@ test('unapproved organizer lands on dashboard with application link', async () =
   assert.match(html, /Start Organizer Application/i);
   assert.match(
     html,
-    /href="\/organizer\/complete-profile" class="(?:btn btn-create btn-create-tile|event-link-btn application-gate-link)" target="_blank" rel="noopener noreferrer"/i
+    /href="\/organizer\/complete-profile" class="btn organizer-primary-action" target="_blank" rel="noopener noreferrer"/i
   );
   assert.doesNotMatch(html, /Queue by Event/i);
   assert.doesNotMatch(html, /href="\/organizer\/create-event"/i);

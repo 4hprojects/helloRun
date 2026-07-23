@@ -51,7 +51,7 @@ test('admin submissions hub lists all real submissions and excludes orphaned sub
   const cookie = await login(seed.admin.email, seed.password);
   await waitForSessionReady('/admin/dashboard', cookie);
 
-  const response = await fetch(`${BASE_URL}/admin/submissions`, {
+  const response = await fetch(`${BASE_URL}/admin/submissions?q=hub.`, {
     headers: { Cookie: cookie },
     redirect: 'manual'
   });
@@ -85,7 +85,20 @@ test('organizer submissions hub is scoped to owned events and supports filters',
   assert.match(html, new RegExp(escapeRegex(seed.ownedEvent.title)));
   assert.doesNotMatch(html, new RegExp(escapeRegex(seed.otherEvent.title)));
   assert.match(html, /Run Result/i);
-  assert.match(html, /Accumulated Activity/i);
+  assert.match(html, new RegExp(escapeRegex(seed.runnerSubmitted.email)));
+  assert.doesNotMatch(html, new RegExp(escapeRegex(seed.runnerApproved.email)));
+  assert.match(html, new RegExp(escapeRegex(seed.runnerAccumulated.email)));
+  assert.match(html, /value="oldest" selected/i);
+  assert.match(html, /value="25" selected/i);
+
+  const history = await fetch(`${BASE_URL}/organizer/submissions?status=all`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(history.status, 200);
+  const historyHtml = await history.text();
+  assert.match(historyHtml, new RegExp(escapeRegex(seed.runnerAccumulated.email)));
+  assert.match(historyHtml, /Accumulated Activity/i);
 
   const approved = await fetch(`${BASE_URL}/organizer/submissions?status=approved&type=standard&q=${encodeURIComponent(seed.runnerApproved.email)}`, {
     headers: { Cookie: cookie },
@@ -96,7 +109,7 @@ test('organizer submissions hub is scoped to owned events and supports filters',
   assert.match(approvedHtml, new RegExp(escapeRegex(seed.runnerApproved.email)));
   assert.match(approvedHtml, /Approved/i);
   assert.doesNotMatch(approvedHtml, new RegExp(escapeRegex(seed.runnerSubmitted.email)));
-  assert.doesNotMatch(approvedHtml, /Accumulated Activity/i);
+  assert.doesNotMatch(approvedHtml, new RegExp(escapeRegex(seed.runnerAccumulated.email)));
 });
 
 test('organizer submissions hub rejects unapproved organizers and admin review queue remains pending only', async () => {
@@ -110,7 +123,7 @@ test('organizer submissions hub rejects unapproved organizers and admin review q
 
   const adminCookie = await login(seed.admin.email, seed.password);
   await waitForSessionReady('/admin/dashboard', adminCookie);
-  const queue = await fetch(`${BASE_URL}/admin/reviews?type=results`, {
+  const queue = await fetch(`${BASE_URL}/admin/reviews?type=results&sort=newest`, {
     headers: { Cookie: adminCookie },
     redirect: 'manual'
   });
@@ -119,6 +132,38 @@ test('organizer submissions hub rejects unapproved organizers and admin review q
   assert.match(html, new RegExp(escapeRegex(seed.runnerSubmitted.email)));
   assert.doesNotMatch(html, new RegExp(escapeRegex(seed.runnerApproved.email)));
   assert.doesNotMatch(html, new RegExp(escapeRegex(seed.runnerRejected.email)));
+});
+
+test('organizer bulk approval handles clean standard and accumulated records but skips flagged work', async () => {
+  const cookie = await login(seed.organizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', cookie);
+  const page = await fetch(`${BASE_URL}/organizer/submissions`, { headers: { Cookie: cookie } });
+  const pageHtml = await page.text();
+  const csrfToken = pageHtml.match(/name="_csrf"\s+value="([^"]+)"/i)?.[1] || '';
+
+  const response = await fetch(`${BASE_URL}/organizer/submissions/bulk-approve`, {
+    method: 'POST',
+    headers: { Cookie: cookie, Accept: 'application/json', 'x-csrf-token': csrfToken },
+    body: new URLSearchParams({
+      _csrf: csrfToken,
+      submissionIds: [seed.standardSubmittedId, seed.accumulatedSubmittedId, seed.flaggedAccumulatedId].join(','),
+      reviewNotes: 'Reviewed in the cross-event clean queue.'
+    })
+  });
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.equal(payload.success, true);
+  assert.equal(payload.succeeded, 2);
+  assert.equal(payload.failed, 1);
+
+  const [standard, accumulated, flagged] = await Promise.all([
+    Submission.findById(seed.standardSubmittedId).select('status').lean(),
+    AccumulatedActivitySubmission.findById(seed.accumulatedSubmittedId).select('status').lean(),
+    AccumulatedActivitySubmission.findById(seed.flaggedAccumulatedId).select('status').lean()
+  ]);
+  assert.equal(standard.status, 'approved');
+  assert.equal(accumulated.status, 'approved');
+  assert.equal(flagged.status, 'submitted');
 });
 
 async function seedSubmissionHubFixture() {
@@ -201,6 +246,26 @@ async function seedSubmissionHubFixture() {
     submittedAt: new Date(Date.now() - 6 * 60 * 1000),
     distanceKm: 21
   }));
+  const accumulatedSubmitted = await AccumulatedActivitySubmission.create(buildSubmission({
+    registration: regAccumulated,
+    event: ownedEvent,
+    runner: runnerAccumulated,
+    status: 'submitted',
+    submittedAt: new Date(Date.now() - 7 * 60 * 1000),
+    distanceKm: 4
+  }));
+  const flaggedAccumulated = await AccumulatedActivitySubmission.create({
+    ...buildSubmission({
+      registration: regAccumulated,
+      event: ownedEvent,
+      runner: runnerAccumulated,
+      status: 'submitted',
+      submittedAt: new Date(Date.now() - 8 * 60 * 1000),
+      distanceKm: 3
+    }),
+    suspiciousFlag: true,
+    suspiciousFlagReason: 'Fixture requires individual review.'
+  });
 
   return {
     password,
@@ -220,8 +285,10 @@ async function seedSubmissionHubFixture() {
     eventIds: [ownedEvent._id, otherEvent._id],
     registrationIds: [regSubmitted, regApproved, regRejected, regAccumulated, regOther, regOrphan].map((registration) => registration._id),
     submissionIds: [standardSubmitted, standardApproved, standardRejected, otherSubmission, orphanSubmission].map((submission) => submission._id),
-    accumulatedSubmissionIds: [accumulatedSubmission._id],
-    standardSubmittedId: String(standardSubmitted._id)
+    accumulatedSubmissionIds: [accumulatedSubmission._id, accumulatedSubmitted._id, flaggedAccumulated._id],
+    standardSubmittedId: String(standardSubmitted._id),
+    accumulatedSubmittedId: String(accumulatedSubmitted._id),
+    flaggedAccumulatedId: String(flaggedAccumulated._id)
   };
 }
 
@@ -276,7 +343,7 @@ function buildEvent(organizerId, slug, title) {
     eventEndAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     registrationOpenAt: new Date(Date.now() - 48 * 60 * 60 * 1000),
     registrationCloseAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
-    virtualCompletionMode: 'single_activity',
+    virtualCompletionMode: 'accumulated_distance',
     feeMode: 'free',
     waiver: {
       required: true,

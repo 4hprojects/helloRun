@@ -81,7 +81,8 @@ const PREVIEW_SESSION_TTL_MS = 30 * 60 * 1000;
 const MAX_PREVIEW_SESSION_ENTRIES = 5;
 const RUN_PROOF_REVIEW_PAGE_SIZE = 50;
 const PAYMENT_PROOF_REVIEW_PAGE_SIZE = 50;
-const REGISTRANTS_PAGE_SIZE = 100;
+const REGISTRANTS_PAGE_SIZE = 25;
+const REGISTRANTS_PAGE_SIZES = new Set([25, 50, 100]);
 const VIRTUAL_COMPLETION_MODES = new Set(['single_activity', 'accumulated_distance']);
 const ACCEPTED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run']);
 const RECOGNITION_MODES = new Set(['completion_only', 'completion_with_optional_ranking']);
@@ -353,6 +354,17 @@ function getRegistrantFilterContext(event, queryParams = {}) {
   const selectedResultStatus = ['submitted', 'approved', 'rejected'].includes(queryParams.result)
     ? queryParams.result
     : '';
+  const selectedRegistrationStatus = ['pending_payment', 'paid', 'confirmed', 'cancelled', 'refunded'].includes(queryParams.registrationStatus)
+    ? queryParams.registrationStatus
+    : '';
+  const selectedSort = ['newest', 'oldest', 'name_asc', 'name_desc', 'category'].includes(queryParams.sort)
+    ? queryParams.sort
+    : 'newest';
+  const requestedPageSizeValue = Number.parseInt(String(queryParams.pageSize || REGISTRANTS_PAGE_SIZE), 10);
+  const pageSize = REGISTRANTS_PAGE_SIZES.has(requestedPageSizeValue)
+    ? requestedPageSizeValue
+    : REGISTRANTS_PAGE_SIZE;
+  const fieldMode = String(queryParams.fieldMode || '') === '1';
   const requestedPageValue = Number.parseInt(String(queryParams.page || '1'), 10);
   const requestedPage = Number.isFinite(requestedPageValue) && requestedPageValue > 0 ? requestedPageValue : 1;
 
@@ -365,6 +377,9 @@ function getRegistrantFilterContext(event, queryParams = {}) {
   }
   if (selectedPaymentStatus) {
     query.paymentStatus = selectedPaymentStatus;
+  }
+  if (selectedRegistrationStatus) {
+    query.status = selectedRegistrationStatus;
   }
   if (searchQuery) {
     const safePattern = new RegExp(escapeRegex(searchQuery), 'i');
@@ -386,6 +401,10 @@ function getRegistrantFilterContext(event, queryParams = {}) {
     selectedDistance,
     selectedPaymentStatus,
     selectedResultStatus,
+    selectedRegistrationStatus,
+    selectedSort,
+    pageSize,
+    fieldMode,
     eventRaceDistances,
     searchQuery,
     requestedPage
@@ -485,6 +504,10 @@ function buildRegistrantListPath(eventId, filterContext = {}, overrides = {}) {
     distance: filterContext.selectedDistance,
     payment: filterContext.selectedPaymentStatus,
     result: filterContext.selectedResultStatus,
+    registrationStatus: filterContext.selectedRegistrationStatus,
+    sort: filterContext.selectedSort,
+    pageSize: filterContext.pageSize,
+    fieldMode: filterContext.fieldMode ? '1' : '',
     q: filterContext.searchQuery,
     page: filterContext.requestedPage,
     ...overrides
@@ -494,6 +517,10 @@ function buildRegistrantListPath(eventId, filterContext = {}, overrides = {}) {
   if (next.distance) params.set('distance', next.distance);
   if (next.payment) params.set('payment', next.payment);
   if (next.result) params.set('result', next.result);
+  if (next.registrationStatus) params.set('registrationStatus', next.registrationStatus);
+  if (next.sort && next.sort !== 'newest') params.set('sort', next.sort);
+  if (Number(next.pageSize || REGISTRANTS_PAGE_SIZE) !== REGISTRANTS_PAGE_SIZE) params.set('pageSize', String(next.pageSize));
+  if (String(next.fieldMode || '') === '1') params.set('fieldMode', '1');
   if (next.q) params.set('q', next.q);
   if (Number(next.page || 1) > 1) params.set('page', String(next.page));
   const query = params.toString();
@@ -808,8 +835,18 @@ function buildRegistrantExportQuery(filterContext) {
   if (filterContext.selectedDistance) params.set('distance', filterContext.selectedDistance);
   if (filterContext.selectedPaymentStatus) params.set('payment', filterContext.selectedPaymentStatus);
   if (filterContext.selectedResultStatus) params.set('result', filterContext.selectedResultStatus);
+  if (filterContext.selectedRegistrationStatus) params.set('registrationStatus', filterContext.selectedRegistrationStatus);
+  if (filterContext.selectedSort && filterContext.selectedSort !== 'newest') params.set('sort', filterContext.selectedSort);
   if (filterContext.searchQuery) params.set('q', filterContext.searchQuery);
   return params.toString();
+}
+
+function getRegistrantSortSpec(sort = 'newest') {
+  if (sort === 'oldest') return { registeredAt: 1, _id: 1 };
+  if (sort === 'name_asc') return { 'participant.lastName': 1, 'participant.firstName': 1, _id: 1 };
+  if (sort === 'name_desc') return { 'participant.lastName': -1, 'participant.firstName': -1, _id: 1 };
+  if (sort === 'category') return { 'pricingSnapshot.raceCategoryName': 1, raceDistance: 1, registeredAt: -1, _id: -1 };
+  return { registeredAt: -1, _id: -1 };
 }
 
 async function getSubmissionReviewContext(event, submissionId, queryParams = {}) {
@@ -1736,6 +1773,7 @@ module.exports = {
   buildRunProofReviewRow,
   formatExpectedPaymentLabel,
   buildRegistrantExportQuery,
+  getRegistrantSortSpec,
   getSubmissionReviewContext,
   mapSubmissionForRegistrant,
   getSubmissionSourceLabel,

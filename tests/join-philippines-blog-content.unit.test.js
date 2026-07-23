@@ -97,7 +97,7 @@ test('Philippine joining guide is registered and stored once as rich canonical s
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 14);
+  assert.equal(listArticleSlugs().length, 15);
   assert.equal(seededPosts.length, 1);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
   assert.equal(htmlToText(seededPost.contentHtml), buildArticlePayload({ coverImageUrl: seededPost.coverImageUrl }).contentText);

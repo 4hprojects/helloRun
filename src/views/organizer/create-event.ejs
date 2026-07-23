@@ -269,6 +269,14 @@
               <small class="field-hint">Keep this checked to post immediately once approved. Uncheck to schedule a specific posting date and time.</small>
               <% if (errors.publicListingAvailableAt) { %><small class="error-text"><%= errors.publicListingAvailableAt %></small><% } %>
             </div>
+            <div class="form-group form-group-full">
+              <div class="toggle-section-label">
+                <input type="hidden" name="autoEmailPromotionEnabled" value="0">
+                <input type="checkbox" id="autoEmailPromotionEnabled" name="autoEmailPromotionEnabled" value="1" <%= formData.autoEmailPromotionEnabled ? 'checked' : '' %>>
+                <label for="autoEmailPromotionEnabled" class="toggle-label-text">Email this event to eligible runners when it becomes public</label>
+              </div>
+              <small class="field-hint">Uses the event-promotion email preference and sends only once, on or after the public posting date. Runners who opted out are excluded.</small>
+            </div>
             <div class="form-group">
               <label for="registrationOpenAt">Registration Opens *</label>
               <div class="input-with-button">

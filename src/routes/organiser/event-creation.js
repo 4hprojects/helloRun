@@ -64,6 +64,7 @@ router.get('/events/:id/clone', requireCanCreateEvents, async (req, res) => {
     formData.registrationOpenAt = '';
     formData.registrationCloseAt = '';
     formData.publicListingAvailableAt = '';
+    formData.autoEmailPromotionEnabled = false;
     formData.virtualWindow = { startAt: '', endAt: '' };
     formData.finalSubmissionDeadlineAt = '';
     formData.actionType = 'draft';

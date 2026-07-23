@@ -67,8 +67,10 @@ const styleOptionsSchema = new mongoose.Schema(
     accentColor: { type: String, trim: true, default: '#FA9A4B' },
     secondaryAccentColor: { type: String, trim: true, default: '#78C0E9' },
     fontFamily: { type: String, trim: true, default: 'Helvetica' },
-    pageSize: { type: String, enum: ['A4', 'LETTER'], default: 'A4' },
-    orientation: { type: String, enum: ['landscape', 'portrait'], default: 'landscape' }
+    pageSize: { type: String, enum: ['A4', 'LETTER', 'CUSTOM'], default: 'A4' },
+    orientation: { type: String, enum: ['landscape', 'portrait'], default: 'landscape' },
+    customPageWidthMm: { type: Number, min: 100, max: 1000, default: 297 },
+    customPageHeightMm: { type: Number, min: 100, max: 1000, default: 210 }
   },
   { _id: false }
 );

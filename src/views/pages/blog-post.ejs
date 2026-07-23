@@ -122,19 +122,14 @@
               <span id="blogLikeLabel"><%= interactionState?.likedByCurrentUser ? 'Unlike' : 'Like' %></span>
               <span class="blog-like-count" id="blogLikeCount"><%= Number(post.likesCount || 0).toLocaleString('en-US') %></span>
             </button>
-            <div class="blog-share-row" id="blogShareRow">
-              <button type="button" class="btn btn-icon share-mobile-toggle" id="shareMobileToggle" aria-label="Share this article" aria-haspopup="menu" aria-controls="blogShareOptions" aria-expanded="false" title="Share">
-                <i data-lucide="share-2" aria-hidden="true"></i><span>Share</span>
-              </button>
-              <div class="share-options" id="blogShareOptions" role="menu" aria-label="Share this article">
-                <button type="button" class="btn btn-icon" id="copyBlogLinkBtn" role="menuitem"><i data-lucide="link" aria-hidden="true"></i><span>Copy link</span></button>
-                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareFacebook" role="menuitem"><span class="blog-share-brand" aria-hidden="true">f</span><span>Facebook</span></a>
-                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareTwitter" role="menuitem"><span class="blog-share-brand" aria-hidden="true">X</span><span>X</span></a>
-                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareLinkedIn" role="menuitem"><span class="blog-share-brand" aria-hidden="true">in</span><span>LinkedIn</span></a>
-                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareWhatsApp" role="menuitem"><i data-lucide="message-circle" aria-hidden="true"></i><span>WhatsApp</span></a>
-                <a class="btn btn-icon" href="#" id="shareEmail" role="menuitem"><i data-lucide="mail" aria-hidden="true"></i><span>Email</span></a>
-              </div>
-            </div>
+            <%- include('../partials/blog-share-menu', {
+              instanceId: 'blog',
+              canonicalUrl: seo?.canonicalUrl || '',
+              articleTitle: post.title || '',
+              triggerLabel: 'Share',
+              containerClass: 'blog-share-rail-menu',
+              triggerClass: 'btn btn-icon share-mobile-toggle'
+            }) %>
             <a href="#blogComments" class="blog-comment-jump"><i data-lucide="message-circle" aria-hidden="true"></i><span>Discuss</span></a>
           </div>
         </aside>
@@ -177,6 +172,22 @@
               </div>
             </section>
           <% } %>
+
+          <section class="blog-end-share-card" aria-labelledby="blogEndShareTitle">
+            <div class="blog-end-share-copy">
+              <span class="blog-end-share-kicker">Pass it on</span>
+              <h2 id="blogEndShareTitle">Found this helpful?</h2>
+              <p>Share this guide with a runner who could use it.</p>
+            </div>
+            <%- include('../partials/blog-share-menu', {
+              instanceId: 'endBlog',
+              canonicalUrl: seo?.canonicalUrl || '',
+              articleTitle: post.title || '',
+              triggerLabel: 'Share this guide',
+              containerClass: 'blog-share-end-menu',
+              triggerClass: 'btn btn-secondary blog-end-share-trigger'
+            }) %>
+          </section>
 
           <% if (post.tags && post.tags.length) { %>
             <div class="blog-tag-list">
@@ -417,7 +428,6 @@
       const tocListDesktop = document.getElementById('blogPostTocListDesktop');
       const tocWrapMobile = document.getElementById('blogPostTocWrap'); // from details
       const tocListMobile = document.getElementById('blogPostTocList');
-      const copyBtn = document.getElementById('copyBlogLinkBtn');
       const copyToast = document.getElementById('copyToast');
       const progressBar = document.getElementById('blogReadProgress');
       const galleryModal = document.getElementById('blogGalleryModal');
@@ -427,14 +437,13 @@
       const galleryPrevBtn = document.getElementById('blogGalleryPrev');
       const galleryNextBtn = document.getElementById('blogGalleryNext');
       const gallerySpinner = document.getElementById('gallerySpinner');
-      const shareRow = document.getElementById('blogShareRow');
+      const shareWidgets = Array.from(document.querySelectorAll('[data-blog-share]'));
       const likeBtn = document.getElementById('blogLikeBtn');
       const likeLabel = document.getElementById('blogLikeLabel');
       const likeCountEl = document.getElementById('blogLikeCount');
       const reportForm = document.getElementById('blogReportForm');
       
       // ---- Data from EJS ----
-      const postTitle = <%- safeJson(post.title || '') %>;
       const canonicalUrl = <%- safeJson(seo?.canonicalUrl || '') %>;
       const postSlug = <%- safeJson(post.slug || '') %>;
       const csrfToken = <%- safeJson(locals.csrfToken || '') %>;
@@ -555,66 +564,56 @@
       buildToc(tocWrapDesktop, tocListDesktop);
       buildToc(tocWrapMobile, tocListMobile);
 
-      // ---- 3. Copy link with toast ----
-      if (copyBtn && navigator.clipboard) {
-        copyBtn.addEventListener('click', async () => {
-          try {
-            await navigator.clipboard.writeText(window.location.href);
-            showToast('Link copied!');
-          } catch {
-            showToast('Copy failed');
-          }
-        });
-      }
-
-      // ---- 4. Share buttons with Web Share API ----
-      const updateShareLinks = () => {
-        const url = encodeURIComponent(window.location.href);
-        const title = encodeURIComponent(postTitle);
-        // Update share links
-        const fbLink = document.getElementById('shareFacebook');
-        if (fbLink) fbLink.href = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
-        const twitterLink = document.getElementById('shareTwitter');
-        if (twitterLink) twitterLink.href = `https://twitter.com/intent/tweet?url=${url}&text=${title}`;
-        const linkedinLink = document.getElementById('shareLinkedIn');
-        if (linkedinLink) linkedinLink.href = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
-        const whatsappLink = document.getElementById('shareWhatsApp');
-        if (whatsappLink) whatsappLink.href = `https://api.whatsapp.com/send?text=${title}%20${url}`;
-        const emailLink = document.getElementById('shareEmail');
-        if (emailLink) emailLink.href = `mailto:?subject=${title}&body=${url}`;
+      // ---- 3. Reusable share disclosures ----
+      const closeShareMenu = (widget, restoreFocus = false) => {
+        if (!widget?.open) return;
+        widget.open = false;
+        if (restoreFocus) widget.querySelector('summary')?.focus();
       };
-      updateShareLinks();
+      const closeOtherShareMenus = (currentWidget) => {
+        shareWidgets.forEach((widget) => {
+          if (widget !== currentWidget) closeShareMenu(widget);
+        });
+      };
+      shareWidgets.forEach((widget) => {
+        const summary = widget.querySelector('summary');
+        const shareItems = Array.from(widget.querySelectorAll('[role="menuitem"]'));
+        widget.addEventListener('toggle', () => {
+          if (!widget.open) return;
+          closeOtherShareMenus(widget);
+          shareItems[0]?.focus();
+        });
+        shareItems.forEach((item) => item.addEventListener('click', () => closeShareMenu(widget)));
+        widget.querySelectorAll('[data-copy-blog-link]').forEach((copyButton) => {
+          copyButton.addEventListener('click', async () => {
+            const url = widget.dataset.shareUrl || canonicalUrl || window.location.href;
+            try {
+              if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+              await navigator.clipboard.writeText(url);
+              showToast('Link copied!');
+            } catch {
+              showToast('Copy failed');
+            }
+          });
+        });
+        summary?.addEventListener('click', () => {
+          if (!widget.open) closeOtherShareMenus(widget);
+        });
+      });
+      document.addEventListener('click', (event) => {
+        shareWidgets.forEach((widget) => {
+          if (!widget.contains(event.target)) closeShareMenu(widget);
+        });
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        const openWidget = shareWidgets.find((widget) => widget.open);
+        if (!openWidget) return;
+        event.preventDefault();
+        closeShareMenu(openWidget, true);
+      });
 
-      // ---- Mobile share dropdown toggle ----
-      const shareMobileToggle = document.getElementById('shareMobileToggle');
-      if (shareMobileToggle && shareRow) {
-        const shareItems = Array.from(shareRow.querySelectorAll('[role="menuitem"]'));
-        const closeShareMenu = (restoreFocus = false) => {
-          shareRow.classList.remove('is-open');
-          shareMobileToggle.setAttribute('aria-expanded', 'false');
-          if (restoreFocus) shareMobileToggle.focus();
-        };
-        shareMobileToggle.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const isOpen = shareRow.classList.toggle('is-open');
-          shareMobileToggle.setAttribute('aria-expanded', String(isOpen));
-          if (isOpen) shareItems[0]?.focus();
-        });
-        shareItems.forEach((item) => item.addEventListener('click', () => closeShareMenu()));
-        document.addEventListener('click', (e) => {
-          if (!shareRow.contains(e.target)) {
-            closeShareMenu();
-          }
-        });
-        document.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape' && shareRow.classList.contains('is-open')) {
-            e.preventDefault();
-            closeShareMenu(true);
-          }
-        });
-      }
-
-      // ---- 5. Gallery with touch, spinner, captions ----
+      // ---- 4. Gallery with touch, spinner, captions ----
       if (galleryModal && galleryImageEl && galleryButtons.length) {
         galleryUrls = galleryButtons.map(btn => btn.getAttribute('data-gallery-url')).filter(Boolean);
         galleryCaptions = galleryButtons.map(btn => btn.getAttribute('data-gallery-caption') || '');

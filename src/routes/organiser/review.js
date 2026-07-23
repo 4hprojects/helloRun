@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { getRejectionReasonOptions, resolveRejectionReason } = require('../../utils/rejection-reasons');
 const { redirectWithFlash } = require('../../utils/session-flash');
+const { normalizeSubmissionHubFilters } = require('../../services/submission-hub.service');
 const {
   logger,
   mongoose,
@@ -59,6 +60,12 @@ const {
    GET: All Submissions Hub
    ========================================== */
 
+const ORGANIZER_SUBMISSION_DEFAULTS = Object.freeze({
+  status: 'submitted',
+  sort: 'oldest',
+  pageSize: 25
+});
+
 router.get('/submissions', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
@@ -83,10 +90,16 @@ router.get('/submissions', requireAuth, async (req, res) => {
       : await Event.find({ organizerId: user._id, isDeleted: { $ne: true } }).select('_id').lean();
     const eventIds = accessibleEvents.map((event) => String(event._id));
     const [hub, events] = await Promise.all([
-      listSubmissionHub({ filters: req.query, eventIds }),
+      listSubmissionHub({ filters: req.query, eventIds, defaults: ORGANIZER_SUBMISSION_DEFAULTS }),
       listSubmissionHubEvents({ eventIds })
     ]);
     const basePath = '/organizer/submissions';
+    const buildHubPath = (overrides) => buildSubmissionHubPath(
+      basePath,
+      hub.filters,
+      overrides,
+      ORGANIZER_SUBMISSION_DEFAULTS
+    );
 
     return res.render('organizer/submissions', {
       title: 'Run Submissions - HelloRun Organizer',
@@ -97,13 +110,20 @@ router.get('/submissions', requireAuth, async (req, res) => {
       counts: hub.counts,
       pagination: hub.pagination,
       events,
+      message: getPageMessage(req.query),
+      hasAdvancedFilters: Boolean(
+        hub.filters.type !== 'all' ||
+        hub.filters.eventId ||
+        hub.filters.sort !== ORGANIZER_SUBMISSION_DEFAULTS.sort ||
+        hub.filters.pageSize !== ORGANIZER_SUBMISSION_DEFAULTS.pageSize
+      ),
       links: {
-        all: buildSubmissionHubPath(basePath, hub.filters, { status: 'all', page: 1 }),
-        submitted: buildSubmissionHubPath(basePath, hub.filters, { status: 'submitted', page: 1 }),
-        approved: buildSubmissionHubPath(basePath, hub.filters, { status: 'approved', page: 1 }),
-        rejected: buildSubmissionHubPath(basePath, hub.filters, { status: 'rejected', page: 1 }),
-        prev: hub.pagination.page > 1 ? buildSubmissionHubPath(basePath, hub.filters, { page: hub.pagination.page - 1 }) : '',
-        next: hub.pagination.page < hub.pagination.totalPages ? buildSubmissionHubPath(basePath, hub.filters, { page: hub.pagination.page + 1 }) : '',
+        all: buildHubPath({ status: 'all', page: 1 }),
+        submitted: buildHubPath({ status: 'submitted', page: 1 }),
+        approved: buildHubPath({ status: 'approved', page: 1 }),
+        rejected: buildHubPath({ status: 'rejected', page: 1 }),
+        prev: hub.pagination.page > 1 ? buildHubPath({ page: hub.pagination.page - 1 }) : '',
+        next: hub.pagination.page < hub.pagination.totalPages ? buildHubPath({ page: hub.pagination.page + 1 }) : '',
         reset: basePath,
         events: '/organizer/events',
         dashboard: user.role === 'admin' ? '/admin/dashboard' : '/organizer/dashboard'
@@ -115,6 +135,49 @@ router.get('/submissions', requireAuth, async (req, res) => {
       title: 'Server Error',
       status: 500,
       message: 'An error occurred while loading run submissions.'
+    });
+  }
+});
+
+/* ==========================================
+   POST: Quick Approve Clean Submission
+   ========================================== */
+
+router.post('/submissions/:submissionId/quick-approve', requireAuth, requireCsrfProtection, submissionReviewActionLimiter, async (req, res) => {
+  const returnPath = buildOrganizerSubmissionReturnPath(req.body);
+  try {
+    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
+    if (!user || user.role === 'admin' || !canAccessRegistrantReview(user)) {
+      return respondToSubmissionHubAction(req, res, {
+        ok: false,
+        status: 403,
+        message: 'Only approved organisers can quick-approve submissions.',
+        returnPath
+      });
+    }
+
+    const accessibleEvents = await Event.find({
+      organizerId: user._id,
+      isDeleted: { $ne: true }
+    }).select('_id').lean();
+    await approveCleanSubmission({
+      submissionId: req.params.submissionId,
+      eventIds: accessibleEvents.map((event) => String(event._id)),
+      user,
+      reviewNotes: req.body.reviewNotes
+    });
+
+    return respondToSubmissionHubAction(req, res, {
+      ok: true,
+      message: 'Submission approved.',
+      returnPath
+    });
+  } catch (error) {
+    return respondToSubmissionHubAction(req, res, {
+      ok: false,
+      status: 409,
+      message: String(error?.message || 'Unable to approve this submission.'),
+      returnPath
     });
   }
 });
@@ -260,28 +323,60 @@ router.get('/submissions/:submissionId/review-panel', requireAuth, async (req, r
    ========================================== */
 
 router.post('/submissions/bulk-approve', requireAuth, requireCsrfProtection, submissionReviewActionLimiter, async (req, res) => {
+  const returnPath = buildOrganizerSubmissionReturnPath(req.body);
   try {
     const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
     if (!user || !canAccessRegistrantReview(user)) {
-      return res.status(403).json({ success: false, message: 'Access denied.' });
+      return respondToSubmissionHubAction(req, res, {
+        ok: false,
+        status: 403,
+        message: 'Access denied.',
+        returnPath
+      });
+    }
+
+    if (user.role === 'admin') {
+      return respondToSubmissionHubAction(req, res, {
+        ok: false,
+        status: 403,
+        message: 'Bulk approval is available to approved organisers on this page.',
+        returnPath
+      });
     }
 
     const rawIds = Array.isArray(req.body.submissionIds)
       ? req.body.submissionIds
       : String(req.body.submissionIds || '').split(',').filter(Boolean);
-    const submissionIds = rawIds.map((id) => String(id).trim()).filter(Boolean).slice(0, 50);
+    const submissionIds = Array.from(new Set(rawIds.map((id) => String(id).trim()).filter(Boolean)));
     if (!submissionIds.length) {
-      return res.redirect('/organizer/submissions?' + new URLSearchParams({ type: 'error', msg: 'No submissions selected.' }).toString());
+      return respondToSubmissionHubAction(req, res, {
+        ok: false,
+        status: 400,
+        message: 'No submissions selected.',
+        returnPath
+      });
+    }
+    if (submissionIds.length > 50) {
+      return respondToSubmissionHubAction(req, res, {
+        ok: false,
+        status: 400,
+        message: 'Select no more than 50 submissions at a time.',
+        returnPath
+      });
     }
 
     const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
+    const accessibleEvents = await Event.find({
+      organizerId: user._id,
+      isDeleted: { $ne: true }
+    }).select('_id').lean();
+    const eventIds = accessibleEvents.map((event) => String(event._id));
     const results = await Promise.allSettled(
       submissionIds.map((id) =>
-        reviewSubmission({
+        approveCleanSubmission({
           submissionId: id,
-          organizerId: user._id,
-          reviewerRole: user.role === 'admin' ? 'admin' : 'organiser',
-          action: 'approve',
+          eventIds,
+          user,
           reviewNotes
         })
       )
@@ -290,15 +385,92 @@ router.post('/submissions/bulk-approve', requireAuth, requireCsrfProtection, sub
     const succeeded = results.filter((r) => r.status === 'fulfilled').length;
     const failed = results.length - succeeded;
     const msg = failed > 0
-      ? `${succeeded} submission${succeeded !== 1 ? 's' : ''} approved. ${failed} skipped (already reviewed or inaccessible).`
+      ? `${succeeded} submission${succeeded !== 1 ? 's' : ''} approved. ${failed} skipped because individual review was required, the result was already reviewed, or it was inaccessible.`
       : `${succeeded} submission${succeeded !== 1 ? 's' : ''} approved.`;
 
-    return res.redirect('/organizer/submissions?' + new URLSearchParams({ type: 'success', msg }).toString());
+    return respondToSubmissionHubAction(req, res, {
+      ok: succeeded > 0,
+      status: succeeded > 0 ? 200 : 409,
+      message: msg,
+      data: { succeeded, failed, requested: submissionIds.length },
+      returnPath
+    });
   } catch (error) {
     logger.error('Bulk submission approve error:', error);
-    return res.redirect('/organizer/submissions?' + new URLSearchParams({ type: 'error', msg: 'An error occurred during bulk approval.' }).toString());
+    return respondToSubmissionHubAction(req, res, {
+      ok: false,
+      status: 500,
+      message: 'An error occurred during bulk approval.',
+      returnPath
+    });
   }
 });
+
+async function approveCleanSubmission({ submissionId, eventIds, user, reviewNotes }) {
+  if (!mongoose.Types.ObjectId.isValid(String(submissionId || ''))) {
+    throw new Error('Submission is no longer available.');
+  }
+  const eventObjectIds = eventIds.map((eventId) => new mongoose.Types.ObjectId(eventId));
+  let submission = await Submission.findOne({
+    _id: submissionId,
+    eventId: { $in: eventObjectIds }
+  });
+  let submissionKind = 'standard';
+  if (!submission) {
+    submission = await AccumulatedActivitySubmission.findOne({
+      _id: submissionId,
+      eventId: { $in: eventObjectIds }
+    });
+    submissionKind = 'accumulated';
+  }
+  if (!submission) throw new Error('Submission is no longer available or accessible.');
+  if (submission.status !== 'submitted') throw new Error('Submission has already been reviewed.');
+  const reviewSignal = buildSubmissionReviewSignal(submission);
+  if (submission.suspiciousFlag || reviewSignal.label) {
+    throw new Error('This submission requires individual review.');
+  }
+
+  const common = {
+    organizerId: user._id,
+    reviewerRole: 'organiser',
+    action: 'approve',
+    reviewNotes: String(reviewNotes || '').trim().slice(0, 1200)
+  };
+  if (submissionKind === 'accumulated') {
+    return reviewAccumulatedActivitySubmission({ activityId: submission._id, ...common });
+  }
+  return reviewSubmission({ submissionId: submission._id, ...common });
+}
+
+function buildOrganizerSubmissionReturnPath(body = {}) {
+  const filters = {
+    status: body.returnStatus,
+    type: body.returnType,
+    eventId: body.returnEventId,
+    sort: body.returnSort,
+    q: body.returnQ,
+    pageSize: body.returnPageSize,
+    page: body.returnPage
+  };
+  const normalized = normalizeSubmissionHubFilters(
+    filters,
+    ORGANIZER_SUBMISSION_DEFAULTS
+  );
+  return buildSubmissionHubPath(
+    '/organizer/submissions',
+    normalized,
+    {},
+    ORGANIZER_SUBMISSION_DEFAULTS
+  );
+}
+
+function respondToSubmissionHubAction(req, res, { ok, status = 200, message, data = {}, returnPath }) {
+  const wantsJson = req.xhr || String(req.get('accept') || '').includes('application/json');
+  if (wantsJson) {
+    return res.status(status).json({ success: ok, message, returnPath, ...data });
+  }
+  return redirectWithFlash(req, res, returnPath, ok ? 'success' : 'error', message);
+}
 
 /* ==========================================
    POST: Bulk Approve Payment Proofs

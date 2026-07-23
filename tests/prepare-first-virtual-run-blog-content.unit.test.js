@@ -76,7 +76,7 @@ test('first virtual run guide is registered and stored once as canonical rich se
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 14);
+  assert.equal(listArticleSlugs().length, 15);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);

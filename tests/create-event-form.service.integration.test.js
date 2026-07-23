@@ -143,6 +143,26 @@ test('applyEventFormData persists public posting date', () => {
   assert.equal(event.publicListingAvailableAt.toISOString(), new Date('2026-06-02T09:15').toISOString());
 });
 
+test('automatic event promotion follows the public posting date and can be disabled before sending', () => {
+  const postingAt = '2026-08-10T00:00';
+  const formData = getCreateEventFormData(buildPublishPayload({
+    publicListingAvailableAt: postingAt,
+    autoEmailPromotionEnabled: ['0', '1']
+  }));
+  const event = {};
+  applyEventFormData(event, formData, { firstName: 'HelloRun', lastName: 'Team' });
+
+  assert.equal(formData.autoEmailPromotionEnabled, true);
+  assert.equal(event.autoEmailPromotionEnabled, true);
+  assert.equal(event.autoEmailPromotionStatus, 'pending');
+  assert.equal(event.autoEmailPromotionScheduledAt.toISOString(), new Date(postingAt).toISOString());
+
+  applyEventFormData(event, { ...formData, autoEmailPromotionEnabled: false }, { firstName: 'HelloRun', lastName: 'Team' });
+  assert.equal(event.autoEmailPromotionEnabled, false);
+  assert.equal(event.autoEmailPromotionStatus, 'disabled');
+  assert.equal(event.autoEmailPromotionScheduledAt, null);
+});
+
 test('customized paid pricing requires runner-selectable option amount and description for publish', () => {
   const missingOption = getCreateEventFormData(buildPublishPayload({
     pricingMode: 'customized_options'

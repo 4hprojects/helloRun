@@ -159,6 +159,19 @@ async function resolveAdminPromotionRecipients({ event, audience }) {
   return [];
 }
 
+async function resolveAutomaticPublishPromotionRecipients() {
+  const recipients = await User.find({
+    role: 'runner',
+    emailVerified: true,
+    accountStatus: 'active',
+    email: { $type: 'string', $ne: '' }
+  })
+    .select('_id email firstName')
+    .sort({ _id: 1 })
+    .lean();
+  return filterEventPromotionOptOutRecipients(recipients);
+}
+
 async function resolveAdminSelectedEmailRecipients(input, options = {}) {
   const parsed = await hydrateSelectedPromotionRecipients(input, options);
   return parsed.recipients;
@@ -298,6 +311,7 @@ module.exports = {
   hydrateSelectedPromotionRecipients,
   resolveOrganizerPromotionRecipients,
   resolveAdminPromotionRecipients,
+  resolveAutomaticPublishPromotionRecipients,
   resolveAdminSelectedEmailRecipients,
   dispatchEventPromotionCampaign,
   dispatchAndFinalizeEventPromotionCampaign,

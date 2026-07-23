@@ -3,748 +3,191 @@
 <head>
   <%- include('../layouts/head', { title: title }) %>
   <link rel="stylesheet" href="/css/organizer-events.css">
+  <link rel="stylesheet" href="/css/organizer-registrants.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
 
-  <main class="events-page organizer-registrants-page">
-    <section class="events-shell">
-      <header class="events-header">
-        <div class="registrants-header-content">
-          <h1>Registrants: <%= event.title %></h1>
-          <div class="registrants-header-meta">
-            <p>View participants registered for this event.</p>
-            <div class="header-actions">
-              <% if (!isAdminViewer) { %><a href="/organizer/events/<%= event._id %>/registrants?fieldMode=1" class="nav-login-btn registrant-header-btn registrant-toolbar-btn registrant-toolbar-btn-primary" aria-label="Open field mode" title="Large controls and explicit network state for onsite work"><i data-lucide="smartphone"></i><span>Field mode</span></a><% } %>
-              <a href="/organizer/events/<%= event._id %>/registrants/export<%= exportQuery ? `?${exportQuery}` : '' %>" class="nav-login-btn registrant-header-btn registrant-toolbar-btn registrant-toolbar-btn-secondary" aria-label="Export CSV" data-tooltip="Export CSV" title="Export CSV">
-                <i data-lucide="file-down" aria-hidden="true"></i>
-              </a>
-              <a href="/organizer/events/<%= event._id %>/registrants/export-xlsx<%= exportQuery ? `?${exportQuery}` : '' %>" class="nav-login-btn registrant-header-btn registrant-toolbar-btn registrant-toolbar-btn-secondary" aria-label="Export XLSX" data-tooltip="Export XLSX" title="Export XLSX">
-                <i data-lucide="sheet" aria-hidden="true"></i>
-              </a>
-              <% if (!isAdminViewer && (summary.unpaidCount || (summary.proofRejectedCount))) { %>
-                <% const unpaidTotal = (summary.unpaidCount || 0) + (summary.proofRejectedCount || 0); %>
-                <button type="button" class="nav-login-btn registrant-header-btn registrant-toolbar-btn registrant-toolbar-btn-secondary" id="js-email-unpaid-btn" data-unpaid-count="<%= unpaidTotal %>" data-event-title="<%= event.title %>" aria-label="Email Unpaid Runners" data-tooltip="Email Unpaid" title="Email <%= unpaidTotal %> unpaid runner<%= unpaidTotal !== 1 ? 's' : ''%>">
-                  <i data-lucide="mail" aria-hidden="true"></i>
-                </button>
-              <% } %>
-              <% if (isAdminViewer) { %>
-                <a href="/admin/dashboard" class="nav-login-btn registrant-header-btn registrant-toolbar-btn registrant-toolbar-btn-primary" aria-label="Admin Dashboard" data-tooltip="Admin Dashboard" title="Admin Dashboard">
-                  <i data-lucide="layout-dashboard" aria-hidden="true"></i>
-                </a>
-              <% } else { %>
-                <a href="/organizer/events/<%= event._id %>" class="nav-login-btn registrant-header-btn registrant-toolbar-btn registrant-toolbar-btn-primary" aria-label="Back to Event" data-tooltip="Back to Event" title="Back to Event">
-                  <i data-lucide="arrow-left" aria-hidden="true"></i>
-                </a>
-                <a href="/organizer/events" class="nav-login-btn registrant-header-btn registrant-toolbar-btn registrant-toolbar-btn-secondary" aria-label="My Events" data-tooltip="My Events" title="My Events">
-                  <i data-lucide="calendar-days" aria-hidden="true"></i>
-                </a>
-              <% } %>
-            </div>
-          </div>
+  <% const basePath = `/organizer/events/${event._id}/registrants`; %>
+  <% const resetPath = fieldMode ? `${basePath}?fieldMode=1` : basePath; %>
+  <main class="organizer-roster-page <%= capabilities.isPaidEvent ? 'is-paid-event' : '' %>" id="main-content" data-organizer-event-id="<%= event._id %>" data-registrant-roster>
+    <div class="organizer-roster-shell">
+      <header class="organizer-roster-header">
+        <div class="organizer-roster-heading">
+          <p class="organizer-roster-kicker">Participant roster</p>
+          <h1><%= event.title %></h1>
+          <p>Find registrations, inspect progress, and contact runners without mixing roster work with evidence moderation.</p>
         </div>
+        <nav class="organizer-roster-header-actions" aria-label="Registrant workspace actions">
+          <% if (!isAdminViewer) { %>
+            <a href="/organizer/events/<%= event._id %>" class="nav-login-btn"><i data-lucide="arrow-left" aria-hidden="true"></i><span>Back to event</span></a>
+            <a href="/organizer/events" class="nav-login-btn"><i data-lucide="calendar-days" aria-hidden="true"></i><span>My events</span></a>
+          <% } else { %>
+            <a href="/admin/dashboard" class="nav-login-btn"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Admin dashboard</span></a>
+          <% } %>
+          <% if (!isAdminViewer && capabilities.supportsOnsite) { %>
+            <a href="<%= basePath %>?fieldMode=1" class="nav-login-btn"><i data-lucide="smartphone" aria-hidden="true"></i><span>Field mode</span></a>
+          <% } %>
+          <details class="organizer-roster-export" data-export-menu>
+            <summary class="nav-login-btn"><i data-lucide="download" aria-hidden="true"></i><span>Export</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+            <div class="organizer-roster-export-menu">
+              <a href="<%= basePath %>/export<%= exportQuery ? `?${exportQuery}` : '' %>"><i data-lucide="file-down" aria-hidden="true"></i><span>Download CSV</span></a>
+              <a href="<%= basePath %>/export-xlsx<%= exportQuery ? `?${exportQuery}` : '' %>"><i data-lucide="sheet" aria-hidden="true"></i><span>Download XLSX</span></a>
+            </div>
+          </details>
+        </nav>
       </header>
 
-      <% if (message) { %>
-        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
-      <% } %>
+      <% if (message) { %><div class="page-message page-message-<%= message.type %>" role="status"><%= message.text %></div><% } %>
 
-      <section class="registrant-summary">
-        <div class="summary-card">
-          <strong>Total Registrants</strong>
-          <span><%= summary.totalRegistrants %></span>
-        </div>
-        <div class="summary-card">
-          <strong>Virtual</strong>
-          <span><%= summary.virtualCount %></span>
-        </div>
-        <div class="summary-card">
-          <strong>On-site</strong>
-          <span><%= summary.onsiteCount %></span>
-        </div>
-        <div class="summary-card">
-          <strong>Payment Receipts Submitted</strong>
-          <span><%= summary.proofSubmittedCount %></span>
-        </div>
-        <div class="summary-card">
-          <strong>Paid</strong>
-          <span><%= summary.paidCount %></span>
-        </div>
-        <div class="summary-card">
-          <strong>Payment Receipts Rejected</strong>
-          <span><%= summary.proofRejectedCount %></span>
-        </div>
-        <div class="summary-card">
-          <strong>Run Results Submitted</strong>
-          <span><%= summary.submissionSubmittedCount %></span>
-        </div>
-        <div class="summary-card">
-          <strong>Run Results Approved</strong>
-          <span><%= summary.submissionApprovedCount %></span>
-        </div>
-        <div class="summary-card">
-          <strong>Run Results Rejected</strong>
-          <span><%= summary.submissionRejectedCount %></span>
-        </div>
+      <section class="organizer-roster-status-strip" aria-label="Event registration summary">
+        <div><span>Total</span><strong><%= summary.totalRegistrants %></strong></div>
+        <% if (capabilities.showModeFilter) { %>
+          <div><span>Virtual</span><strong><%= summary.virtualCount %></strong></div>
+          <div><span>On-site</span><strong><%= summary.onsiteCount %></strong></div>
+        <% } %>
+        <% if (capabilities.isPaidEvent) { %>
+          <a href="/organizer/events/<%= event._id %>/payment-proofs/review"><span>Payment review</span><strong><%= summary.proofSubmittedCount %></strong></a>
+          <div><span>Paid</span><strong><%= summary.paidCount %></strong></div>
+        <% } %>
+        <a href="/organizer/events/<%= event._id %>/run-proofs/review"><span><%= capabilities.isAccumulatedEvent ? 'Pending activities' : 'Result review' %></span><strong><%= summary.submissionSubmittedCount %></strong></a>
+        <div><span><%= capabilities.isAccumulatedEvent ? 'Approved activities' : 'Approved results' %></span><strong><%= summary.submissionApprovedCount %></strong></div>
+        <div><span>Rejected</span><strong><%= summary.submissionRejectedCount %></strong></div>
       </section>
 
-      <form method="GET" action="/organizer/events/<%= event._id %>/registrants" class="filter-bar registrant-filter-bar" data-registrant-filter-form>
-        <div class="registrant-search-field">
-          <label for="q">Search registrants</label>
-          <div class="registrant-search-control">
-            <input id="q" name="q" type="search" placeholder="Code, name, email, group, emergency contact" value="<%= searchQuery || '' %>">
-            <button type="submit" class="nav-signup-btn registrant-search-btn">Search</button>
-          </div>
-        </div>
-
-        <div class="registrant-filter-fields">
-          <div class="registrant-filter-field">
-            <label for="mode">Mode</label>
-            <select id="mode" name="mode" data-auto-submit-filter>
-              <option value="" <%= !selectedMode ? 'selected' : '' %>>All modes</option>
-              <option value="virtual" <%= selectedMode === 'virtual' ? 'selected' : '' %>>Virtual</option>
-              <option value="onsite" <%= selectedMode === 'onsite' ? 'selected' : '' %>>On-site</option>
-            </select>
-          </div>
-
-          <div class="registrant-filter-field">
-            <label for="distance">Distance</label>
-            <select id="distance" name="distance" data-auto-submit-filter>
-              <option value="" <%= !selectedDistance ? 'selected' : '' %>>All distances</option>
-              <% (eventRaceDistances || []).forEach((distance) => { %>
-                <option value="<%= distance %>" <%= selectedDistance === distance ? 'selected' : '' %>><%= distance %></option>
-              <% }) %>
-            </select>
-          </div>
-
-          <div class="registrant-filter-field">
-            <label for="payment">Payment</label>
-            <select id="payment" name="payment" data-auto-submit-filter>
-              <option value="" <%= !selectedPaymentStatus ? 'selected' : '' %>>All payments</option>
-              <option value="unpaid" <%= selectedPaymentStatus === 'unpaid' ? 'selected' : '' %>>Unpaid</option>
-              <option value="proof_submitted" <%= selectedPaymentStatus === 'proof_submitted' ? 'selected' : '' %>>Payment Receipt Submitted</option>
-              <option value="proof_rejected" <%= selectedPaymentStatus === 'proof_rejected' ? 'selected' : '' %>>Payment Receipt Rejected</option>
-              <option value="paid" <%= selectedPaymentStatus === 'paid' ? 'selected' : '' %>>Paid</option>
-              <option value="failed" <%= selectedPaymentStatus === 'failed' ? 'selected' : '' %>>Failed</option>
-              <option value="refunded" <%= selectedPaymentStatus === 'refunded' ? 'selected' : '' %>>Refunded</option>
-            </select>
-          </div>
-
-          <div class="registrant-filter-field">
-            <label for="result">Run Result</label>
-            <select id="result" name="result" data-auto-submit-filter>
-              <option value="" <%= !selectedResultStatus ? 'selected' : '' %>>All results</option>
-              <option value="submitted" <%= selectedResultStatus === 'submitted' ? 'selected' : '' %>>Submitted</option>
-              <option value="approved" <%= selectedResultStatus === 'approved' ? 'selected' : '' %>>Approved</option>
-              <option value="rejected" <%= selectedResultStatus === 'rejected' ? 'selected' : '' %>>Rejected</option>
-            </select>
-          </div>
-
-          <a href="/organizer/events/<%= event._id %>/registrants" class="nav-login-btn registrant-filter-reset registrant-reset-btn">Reset</a>
-        </div>
-      </form>
-
-      <% if (selectedPaymentStatus === 'proof_submitted') { %>
-        <div class="page-message page-message-warning">
-          Review payment receipts only in this queue. If the uploaded file is an activity screenshot or run result, reject it and ask the runner to submit it through Run Result after payment is verified.
-          <a href="/organizer/events/<%= event._id %>/payment-proofs/review">Open focused payment-proof review page</a>
-        </div>
-      <% } %>
-
-      <% if (selectedResultStatus === 'submitted') { %>
-        <div class="page-message page-message-warning">
-          Use the focused Run Proof Review queue to check each submitted proof, activity evidence, and validation signal.
-          <a href="/organizer/events/<%= event._id %>/run-proofs/review">Open Run Proof Review</a>
-        </div>
-      <% } %>
-
-      <% if (registrations && registrations.length) { %>
-        <div class="registrants-table-toolbar">
-          <span>Showing <strong><%= registrations.length %></strong> of <strong><%= pagination.totalItems %></strong> registrant<%= pagination.totalItems === 1 ? '' : 's' %></span>
-          <div class="registrant-column-menu" data-registrant-column-menu>
-            <button type="button" class="nav-login-btn registrant-columns-btn" id="registrantColumnsMenuBtn" aria-expanded="false" aria-controls="registrantColumnsMenu">
-              <i data-lucide="columns-3" aria-hidden="true"></i>
-              Columns
-              <span class="registrant-column-count" id="registrantColumnCount">11</span>
-            </button>
-            <div class="registrant-column-menu-panel" id="registrantColumnsMenu" hidden>
-              <label><input type="checkbox" data-registrant-column-toggle="confirmation"> Confirmation</label>
-              <label><input type="checkbox" data-registrant-column-toggle="name" checked> Name</label>
-              <label><input type="checkbox" data-registrant-column-toggle="email" checked> Email</label>
-              <label><input type="checkbox" data-registrant-column-toggle="mobile"> Mobile</label>
-              <label><input type="checkbox" data-registrant-column-toggle="country" checked> Country</label>
-              <label><input type="checkbox" data-registrant-column-toggle="age" checked> Age</label>
-              <label><input type="checkbox" data-registrant-column-toggle="gender" checked> Gender</label>
-              <label><input type="checkbox" data-registrant-column-toggle="emergencyContact"> Emergency Contact</label>
-              <label><input type="checkbox" data-registrant-column-toggle="runningGroup" checked> Running Group</label>
-              <label><input type="checkbox" data-registrant-column-toggle="waiver"> Waiver</label>
-              <label><input type="checkbox" data-registrant-column-toggle="mode"> Mode</label>
-              <label><input type="checkbox" data-registrant-column-toggle="distance" checked> Distance</label>
-              <label><input type="checkbox" data-registrant-column-toggle="status" checked> Status</label>
-              <label><input type="checkbox" data-registrant-column-toggle="payment" checked> Payment</label>
-              <label><input type="checkbox" data-registrant-column-toggle="expectedPayment"> Expected Payment</label>
-              <label><input type="checkbox" data-registrant-column-toggle="paymentReceipt"> Payment Receipt</label>
-              <label><input type="checkbox" data-registrant-column-toggle="paymentReview"> Payment Review</label>
-              <label><input type="checkbox" data-registrant-column-toggle="runResult" checked> Run Result</label>
-              <label><input type="checkbox" data-registrant-column-toggle="runResultEvidence"> Run Result Evidence</label>
-              <label><input type="checkbox" data-registrant-column-toggle="runResultReview"> Run Result Review</label>
-              <label><input type="checkbox" data-registrant-column-toggle="registeredAt" checked> Registered At</label>
-              <button type="button" class="registrant-column-reset" data-registrant-column-reset>Reset columns</button>
+      <section class="organizer-roster-discovery" aria-labelledby="roster-filter-title">
+        <h2 class="visually-hidden" id="roster-filter-title">Search and filter registrants</h2>
+        <form method="GET" action="<%= basePath %>" class="organizer-roster-filter-form" data-registrant-filter-form>
+          <% if (fieldMode) { %><input type="hidden" name="fieldMode" value="1"><% } %>
+          <div class="organizer-roster-search">
+            <label for="registrantSearch">Search registrants</label>
+            <div>
+              <input id="registrantSearch" name="q" type="search" value="<%= searchQuery || '' %>" placeholder="Name, email, code, group, or contact">
+              <button type="submit" class="nav-signup-btn"><i data-lucide="search" aria-hidden="true"></i><span>Search</span></button>
             </div>
           </div>
-        </div>
-        <div class="registrants-table-wrap">
-          <table class="registrants-table">
-            <thead>
-              <tr>
-                <th data-registrant-column="confirmation" class="is-column-hidden">Confirmation</th>
-                <th data-registrant-column="name">Name</th>
-                <th data-registrant-column="email">Email</th>
-                <th data-registrant-column="mobile" class="is-column-hidden">Mobile</th>
-                <th data-registrant-column="country">Country</th>
-                <th data-registrant-column="age">Age</th>
-                <th data-registrant-column="gender">Gender</th>
-                <th data-registrant-column="emergencyContact" class="is-column-hidden">Emergency Contact</th>
-                <th data-registrant-column="runningGroup">Running Group</th>
-                <th data-registrant-column="waiver" class="is-column-hidden">Waiver</th>
-                <th data-registrant-column="mode" class="is-column-hidden">Mode</th>
-                <th data-registrant-column="distance">Distance</th>
-                <th data-registrant-column="status">Status</th>
-                <th data-registrant-column="payment">Payment</th>
-                <th data-registrant-column="expectedPayment" class="is-column-hidden">Expected Payment</th>
-                <th data-registrant-column="paymentReceipt" class="is-column-hidden">Payment Receipt</th>
-                <th data-registrant-column="paymentReview" class="is-column-hidden">Review</th>
-                <th data-registrant-column="runResult">Run Result</th>
-                <th data-registrant-column="runResultEvidence" class="is-column-hidden">Run Result Evidence</th>
-                <th data-registrant-column="runResultReview" class="is-column-hidden">Run Result Review</th>
-                <th data-registrant-column="registeredAt">Registered At</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% registrations.forEach((registration) => { %>
-                <%
-                  const selectedRaceCategoryName = registration.pricingSnapshot?.raceCategoryName || '';
-                  const selectedRaceCategoryType = registration.pricingSnapshot?.raceCategoryType || '';
-                %>
-                <tr>
-                  <td data-registrant-column="confirmation" class="is-column-hidden"><code><%= registration.confirmationCode %></code></td>
-                  <td data-registrant-column="name"><%= [registration.participant?.firstName, registration.participant?.lastName].filter(Boolean).join(' ') || 'N/A' %></td>
-                  <td data-registrant-column="email"><%= registration.participant?.email || 'N/A' %></td>
-                  <td data-registrant-column="mobile" class="is-column-hidden"><%= registration.participant?.mobile || 'N/A' %></td>
-                  <td data-registrant-column="country"><%= registration.participant?.countryLabel || registration.participant?.country || 'N/A' %></td>
-                  <td data-registrant-column="age"><%= registration.participant?.ageLabel || 'N/A' %></td>
-                  <td data-registrant-column="gender"><%= registration.participant?.genderLabel || 'N/A' %></td>
-                  <td data-registrant-column="emergencyContact" class="is-column-hidden">
-                    <%= registration.participant?.emergencyContactName || 'N/A' %>
-                    <% if (registration.participant?.emergencyContactNumber) { %>
-                      <br>
-                      <small><%= registration.participant.emergencyContactNumber %></small>
-                    <% } %>
-                  </td>
-                  <td data-registrant-column="runningGroup"><%= registration.participant?.runningGroup || 'N/A' %></td>
-                  <td data-registrant-column="waiver" class="is-column-hidden">
-                    v<%= registration.waiver?.version || 'N/A' %>
-                    <br>
-                    <small><%= registration.waiver?.signature || 'No signature' %></small>
-                    <% if (registration.waiverAcceptedAtLabel) { %>
-                      <br>
-                      <small><%= registration.waiverAcceptedAtLabel %></small>
-                    <% } %>
-                  </td>
-                  <td data-registrant-column="mode" class="is-column-hidden"><span class="mode-badge mode-<%= registration.participationMode %>"><%= registration.participationMode %></span></td>
-                  <td data-registrant-column="distance">
-                    <%= selectedRaceCategoryName || registration.raceDistance || 'N/A' %>
-                    <% if (selectedRaceCategoryName && registration.raceDistance && selectedRaceCategoryName !== registration.raceDistance) { %>
-                      <br>
-                      <small><%= registration.raceDistance %></small>
-                    <% } %>
-                    <% if (selectedRaceCategoryType) { %>
-                      <br>
-                      <small><%= selectedRaceCategoryType %></small>
-                    <% } %>
-                  </td>
-                  <td data-registrant-column="status"><%= registration.status %></td>
-                  <td data-registrant-column="payment"><%= registration.paymentStatus || 'N/A' %></td>
-                  <td data-registrant-column="expectedPayment" class="is-column-hidden">
-                    <%= registration.expectedPaymentLabel || 'N/A' %>
-                    <% if (registration.pricingSnapshot?.packageName) { %>
-                      <br>
-                      <small><%= registration.pricingSnapshot.packageName %></small>
-                    <% } %>
-                    <% if (registration.signupOptionLabel) { %>
-                      <br>
-                      <small><%= registration.signupOptionLabel %></small>
-                    <% } %>
-                    <% if (registration.pricingPeriodLabel) { %>
-                      <br>
-                      <small><%= registration.pricingPeriodLabel %></small>
-                    <% } %>
-                  </td>
-                  <td data-registrant-column="paymentReceipt" class="is-column-hidden">
-                    <% if (registration.paymentProof && registration.paymentProof.url) { %>
-                      <a href="<%= registration.paymentProof.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">View payment receipt</a>
-                      <% if (registration.paymentProofUploadedAtLabel) { %>
-                        <br>
-                        <small><%= registration.paymentProofUploadedAtLabel %></small>
-                      <% } %>
-                      <br>
-                      <small><strong>Confirmation:</strong> <%= registration.confirmationCode %></small>
-                      <% if (registration.expectedPaymentLabel) { %>
-                        <br>
-                        <small><strong>Expected payment:</strong> <%= registration.expectedPaymentLabel %></small>
-                      <% } %>
-                      <% if (event.paymentAccountName) { %>
-                        <br>
-                        <small><strong>Payee:</strong> <%= event.paymentAccountName %></small>
-                      <% } %>
-                      <% if (event.paymentInstructions) { %>
-                        <br>
-                        <small><strong>Instructions:</strong> <%= event.paymentInstructions %></small>
-                      <% } %>
-                    <% } else { %>
-                      <span>N/A</span>
-                    <% } %>
-                  </td>
-                  <td data-registrant-column="paymentReview" class="is-column-hidden">
-                    <% if (registration.paymentStatus === 'proof_submitted') { %>
-                      <small class="rejection">Reject activity screenshots here. This queue is only for payment receipts.</small>
-                      <form method="POST" action="/organizer/events/<%= event._id %>/registrants/<%= registration._id %>/payment/approve" class="payment-action-form">
-                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-                        <textarea name="reviewNotes" rows="2" maxlength="1000" placeholder="Optional review notes"></textarea>
-                        <button type="submit" class="nav-signup-btn table-action-btn registrant-row-btn registrant-row-btn-approve">Approve</button>
-                      </form>
-                      <form method="POST" action="/organizer/events/<%= event._id %>/registrants/<%= registration._id %>/payment/reject" class="payment-action-form">
-                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-                        <select name="rejectionCode" required class="form-input" aria-label="Payment rejection reason">
-                          <option value="">Select the issue…</option>
-                          <% paymentRejectionReasonOptions.forEach((reason) => { %>
-                            <option value="<%= reason.code %>"><%= reason.label %></option>
-                          <% }) %>
-                        </select>
-                        <textarea name="rejectionReason" rows="2" maxlength="500" placeholder="Additional correction details (required for another issue)"></textarea>
-                        <textarea name="reviewNotes" rows="2" maxlength="1000" placeholder="Optional review notes"></textarea>
-                        <button type="submit" class="nav-login-btn table-action-btn registrant-row-btn registrant-row-btn-reject">Reject</button>
-                      </form>
-                    <% } else { %>
-                      <% if (registration.paymentReviewedAtLabel) { %>
-                        <small>Reviewed: <%= registration.paymentReviewedAtLabel %></small>
-                      <% } else { %>
-                        <small>No pending action</small>
-                      <% } %>
-                      <% if (registration.paymentRejectionReason) { %>
-                        <br>
-                        <small>Reason: <%= registration.paymentRejectionReason %></small>
-                      <% } %>
-                      <% if (registration.paymentReviewNotes) { %>
-                        <br>
-                        <small>Notes: <%= registration.paymentReviewNotes %></small>
-                      <% } %>
-                    <% } %>
-                  </td>
-                  <td data-registrant-column="runResult">
-                    <% if (registration.accumulatedProgress) { %>
-                      <small><strong>Progress:</strong> <%= registration.accumulatedProgress.progressLabel %></small>
-                      <br>
-                      <small><strong>Activity counts:</strong> <%= registration.accumulatedProgress.approvedActivityCount %> approved, <%= registration.accumulatedProgress.pendingActivityCount %> pending, <%= registration.accumulatedProgress.rejectedActivityCount %> rejected</small>
-                    <% } else if (registration.submission) { %>
-                      <span class="mode-badge mode-<%= registration.submission.status %>"><%= registration.submission.isAccumulatedActivity ? 'activity ' : '' %><%= registration.submission.status %></span>
-                      <% if (registration.submission.suspiciousFlag) { %>
-                        <span class="mode-badge mode-warning" data-tooltip="<%= registration.submission.reviewSignal?.description || registration.submission.suspiciousFlagReason || 'Flagged for manual review.' %>">&#9888; <%= registration.submission.reviewSignal?.label || 'Suspicious' %></span>
-                      <% } else if (registration.submission.reviewSignal && registration.submission.reviewSignal.label) { %>
-                        <span class="mode-badge mode-warning" data-tooltip="<%= registration.submission.reviewSignal.description || 'Validation signal — review the proof carefully.' %>">&#9888; <%= registration.submission.reviewSignal.label %></span>
-                      <% } %>
-                      <% if (registration.submission.ocrData && (registration.submission.ocrData.distanceMismatch || registration.submission.ocrData.timeMismatch)) { %>
-                        <span class="mode-badge mode-warning" data-tooltip="OCR detected a value (distance or time) that differs from what was entered. Review the screenshot carefully.">&#9888; Mismatch</span>
-                      <% } %>
-                      <br>
-                      <small><strong>Distance:</strong> <%= Number(registration.submission.distanceKm || 0).toFixed(2) %> km</small>
-                      <br>
-                      <small><strong>Elapsed:</strong> <%= registration.submission.elapsedLabel || 'N/A' %></small>
-                      <br>
-                      <small><strong>Run date:</strong> <%= registration.submission.runDateLabel || 'N/A' %></small>
-                      <br>
-                      <small><strong>Run location:</strong> <%= registration.submission.runLocation || 'N/A' %></small>
-                      <br>
-                      <small><strong>Run type:</strong> <%= String(registration.submission.runType || 'run').replace('_', ' ') %></small>
-                      <br>
-                      <small><strong>Evidence type:</strong> <%= String(registration.submission.proofType || 'manual').toUpperCase() %></small>
-                      <% if (registration.submission.elevationGain != null) { %>
-                        <br>
-                        <small><strong>Elevation:</strong> <%= registration.submission.elevationGain %> m</small>
-                      <% } %>
-                      <% if (registration.submission.submittedAtLabel) { %>
-                        <br>
-                        <small><strong>Submitted:</strong> <%= registration.submission.submittedAtLabel %></small>
-                      <% } %>
-                      <% if (registration.submission.suspiciousFlag) { %>
-                        <br>
-                        <details class="ocr-analysis-details">
-                          <summary><strong>&#9888; <%= registration.submission.reviewSignal?.label || 'Suspicious activity flag' %></strong></summary>
-                          <div class="ocr-analysis-body">
-                            <% if (registration.submission.reviewSignal?.description) { %>
-                              <small><%= registration.submission.reviewSignal.description %></small><br>
-                            <% } %>
-                            <small><%= registration.submission.suspiciousFlagReason %></small>
-                          </div>
-                        </details>
-                      <% } %>
-                      <% if (registration.submission.ocrData && registration.submission.ocrData.confidence > 0) { %>
-                        <br>
-                        <details class="ocr-analysis-details">
-                          <summary><strong>OCR Analysis</strong> (confidence: <%= Math.round((registration.submission.ocrData.confidence || 0) * 100) %>%)</summary>
-                          <div class="ocr-analysis-body">
-                            <% if (registration.submission.ocrData.extractedDistanceKm != null) { %>
-                              <small><strong>Image distance:</strong> <%= Number(registration.submission.ocrData.extractedDistanceKm).toFixed(2) %> km
-                                <% if (registration.submission.ocrData.distanceMismatch) { %>
-                                  <span class="ocr-mismatch-flag">&#9888; mismatch vs <%= Number(registration.submission.distanceKm || 0).toFixed(2) %> km entered</span>
-                                <% } else { %>
-                                  <span class="ocr-match-flag">&#10003; matches</span>
-                                <% } %>
-                              </small><br>
-                            <% } %>
-                            <% if (registration.submission.ocrData.extractedTimeMs != null) { %>
-                              <small><strong>Image time:</strong> <%= registration.submission.ocrTimeLabel || 'N/A' %>
-                                <% if (registration.submission.ocrData.timeMismatch) { %>
-                                  <span class="ocr-mismatch-flag">&#9888; mismatch vs <%= registration.submission.elapsedLabel || 'N/A' %> entered</span>
-                                <% } else { %>
-                                  <span class="ocr-match-flag">&#10003; matches</span>
-                                <% } %>
-                              </small><br>
-                            <% } %>
-                            <% if (registration.submission.ocrData.extractedElevationGain != null) { %>
-                              <small><strong>Image elevation:</strong> <%= registration.submission.ocrData.extractedElevationGain %> m
-                                <% if (registration.submission.ocrData.elevationMismatch) { %>
-                                  <span class="ocr-mismatch-flag">&#9888; mismatch vs <%= registration.submission.elevationGain != null ? registration.submission.elevationGain + ' m' : 'not entered' %></span>
-                                <% } else { %>
-                                  <span class="ocr-match-flag">&#10003; matches</span>
-                                <% } %>
-                              </small><br>
-                            <% } %>
-                            <% if (registration.submission.ocrData.extractedSteps != null) { %>
-                              <small><strong>Image steps:</strong> <%= Number(registration.submission.ocrData.extractedSteps || 0).toLocaleString() %>
-                                <% if (registration.submission.ocrData.stepsMismatch) { %>
-                                  <span class="ocr-mismatch-flag">&#9888; mismatch vs <%= registration.submission.steps != null ? Number(registration.submission.steps || 0).toLocaleString() : 'not entered' %></span>
-                                <% } else { %>
-                                  <span class="ocr-match-flag">&#10003; matches</span>
-                                <% } %>
-                              </small><br>
-                            <% } %>
-                            <% if (registration.submission.ocrData.extractedRunDate) { %>
-                              <small><strong>Image date:</strong> <%= registration.submission.ocrData.extractedRunDate %>
-                                <% if (registration.submission.ocrData.dateMismatch) { %>
-                                  <span class="ocr-mismatch-flag">&#9888; mismatch vs submitted date</span>
-                                <% } else { %>
-                                  <span class="ocr-match-flag">&#10003; matches</span>
-                                <% } %>
-                              </small><br>
-                            <% } %>
-                            <% if (registration.submission.ocrData.extractedRunType) { %>
-                              <small><strong>Image activity type:</strong> <%= String(registration.submission.ocrData.extractedRunType).replace('_', ' ') %>
-                                <% if (registration.submission.ocrData.runTypeMismatch) { %>
-                                  <span class="ocr-mismatch-flag">&#9888; mismatch vs <%= String(registration.submission.runType || 'run').replace('_', ' ') %></span>
-                                <% } else { %>
-                                  <span class="ocr-match-flag">&#10003; matches</span>
-                                <% } %>
-                              </small><br>
-                            <% } %>
-                            <% if (registration.submission.ocrData.extractedRunLocation) { %>
-                              <small><strong>Image location:</strong> <%= registration.submission.ocrData.extractedRunLocation %>
-                                <% if (registration.submission.ocrData.locationMismatch) { %>
-                                  <span class="ocr-mismatch-flag">&#9888; mismatch vs submitted location</span>
-                                <% } else { %>
-                                  <span class="ocr-match-flag">&#10003; similar</span>
-                                <% } %>
-                              </small><br>
-                            <% } %>
-                            <% if (registration.submission.ocrData.nameMatchStatus && registration.submission.ocrData.nameMatchStatus !== 'not_checked') { %>
-                              <small><strong>Name analysis:</strong>
-                                <% if (registration.submission.ocrData.nameMatchStatus === 'matched') { %>
-                                  <span class="ocr-match-flag">&#10003; matches account</span>
-                                <% } else if (registration.submission.ocrData.nameMatchStatus === 'mismatched') { %>
-                                  <span class="ocr-mismatch-flag">&#9888; different name detected</span>
-                                <% } else if (registration.submission.ocrData.nameMatchStatus === 'not_detected') { %>
-                                  <span class="text-muted">name not detected</span>
-                                <% } %>
-                                <% if (registration.submission.ocrData.extractedName) { %>
-                                  <span class="text-muted">(<%= registration.submission.ocrData.extractedName %>)</span>
-                                <% } %>
-                              </small><br>
-                            <% } %>
-                          </div>
-                        </details>
-                      <% } %>
-                    <% } else { %>
-                      <small>No submission</small>
-                    <% } %>
-                  </td>
-                  <td data-registrant-column="runResultEvidence" class="is-column-hidden">
-                    <% if (registration.submission?.proof?.url) { %>
-                      <a href="<%= registration.submission.proof.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">View run result evidence</a>
-                    <% } else { %>
-                      <small>N/A</small>
-                    <% } %>
-                  </td>
-                  <td data-registrant-column="runResultReview" class="is-column-hidden">
-                    <% if (registration.submission && registration.submission.status === 'submitted') { %>
-                      <a href="/organizer/events/<%= event._id %>/submissions/<%= registration.submission._id %>/review" class="nav-signup-btn table-action-btn registrant-row-btn registrant-row-btn-review">Open Review</a>
-                    <% } else if (registration.submission) { %>
-                      <% if (registration.submission.reviewedAtLabel) { %>
-                        <small>Reviewed: <%= registration.submission.reviewedAtLabel %></small>
-                        <% if (registration.submission.reviewerName) { %>
-                          <br>
-                          <small>By: <%= registration.submission.reviewerName %></small>
-                        <% } %>
-                      <% } else { %>
-                        <small>No pending action</small>
-                      <% } %>
-                      <% if (registration.submission.rejectionReason) { %>
-                        <br>
-                        <small>Reason: <%= registration.submission.rejectionReason %></small>
-                      <% } %>
-                      <% if (registration.submission.reviewNotes) { %>
-                        <br>
-                        <small>Notes: <%= registration.submission.reviewNotes %></small>
-                      <% } %>
-                    <% } else { %>
-                      <small>No submission</small>
-                    <% } %>
-                  </td>
-                  <td data-registrant-column="registeredAt"><%= registration.registeredAt ? new Date(registration.registeredAt).toLocaleString('en-US') : 'N/A' %></td>
-                  <td>
-                    <button type="button"
-                      class="nav-login-btn table-action-btn registrant-row-btn"
-                      data-msg-btn
-                      data-reg-id="<%= registration._id %>"
-                      data-runner-name="<%= (registration.participant?.firstName || '') + ' ' + (registration.participant?.lastName || '') %>"
-                      style="font-size:0.75rem">
-                      Message
-                    </button>
-                  </td>
-                </tr>
-              <% }) %>
-            </tbody>
-          </table>
-        </div>
-        <% if (pagination.totalPages > 1) { %>
-          <nav class="run-proof-pagination" aria-label="Registrants pagination">
-            <% if (pagination.prevHref) { %>
-              <a href="<%= pagination.prevHref %>" class="nav-login-btn">Previous</a>
-            <% } else { %>
-              <span class="nav-login-btn disabled">Previous</span>
-            <% } %>
-            <span>Page <%= pagination.page %> of <%= pagination.totalPages %></span>
-            <% if (pagination.nextHref) { %>
-              <a href="<%= pagination.nextHref %>" class="nav-login-btn">Next</a>
-            <% } else { %>
-              <span class="nav-login-btn disabled">Next</span>
-            <% } %>
-          </nav>
-        <% } %>
-      <% } else { %>
-        <div class="empty-state">
-          <i data-lucide="users"></i>
-          <h3>No registrants found</h3>
-          <p>No registrations match your current filters.</p>
-        </div>
+          <details class="organizer-roster-filters" <%= capabilities.hasAdvancedFilters ? 'open' : '' %>>
+            <summary><span><i data-lucide="sliders-horizontal" aria-hidden="true"></i>Filters &amp; sort</span><i data-lucide="chevron-down" class="organizer-roster-filter-chevron" aria-hidden="true"></i></summary>
+            <div class="organizer-roster-filter-grid">
+              <label>Registration status
+                <select name="registrationStatus">
+                  <option value="">All registrations</option>
+                  <% [['confirmed','Confirmed'],['pending_payment','Pending payment'],['paid','Paid'],['cancelled','Cancelled'],['refunded','Refunded']].forEach(([value,label]) => { %><option value="<%= value %>" <%= selectedRegistrationStatus === value ? 'selected' : '' %>><%= label %></option><% }) %>
+                </select>
+              </label>
+              <% if (capabilities.showModeFilter) { %>
+                <label>Mode
+                  <select name="mode"><option value="">All modes</option><option value="virtual" <%= selectedMode === 'virtual' ? 'selected' : '' %>>Virtual</option><option value="onsite" <%= selectedMode === 'onsite' ? 'selected' : '' %>>On-site</option></select>
+                </label>
+              <% } %>
+              <% if ((eventRaceDistances || []).length > 1) { %>
+                <label>Category or goal
+                  <select name="distance"><option value="">All categories</option><% eventRaceDistances.forEach((distance) => { %><option value="<%= distance %>" <%= selectedDistance === distance ? 'selected' : '' %>><%= distance %></option><% }) %></select>
+                </label>
+              <% } %>
+              <% if (capabilities.isPaidEvent) { %>
+                <label>Payment
+                  <select name="payment"><option value="">All payments</option><% [['unpaid','Unpaid'],['proof_submitted','Receipt submitted'],['proof_rejected','Receipt rejected'],['paid','Paid'],['failed','Failed'],['refunded','Refunded']].forEach(([value,label]) => { %><option value="<%= value %>" <%= selectedPaymentStatus === value ? 'selected' : '' %>><%= label %></option><% }) %></select>
+                </label>
+              <% } %>
+              <label>Result
+                <select name="result"><option value="">All results</option><option value="submitted" <%= selectedResultStatus === 'submitted' ? 'selected' : '' %>>Pending review</option><option value="approved" <%= selectedResultStatus === 'approved' ? 'selected' : '' %>>Approved</option><option value="rejected" <%= selectedResultStatus === 'rejected' ? 'selected' : '' %>>Rejected</option></select>
+              </label>
+              <label>Sort
+                <select name="sort"><option value="newest" <%= selectedSort === 'newest' ? 'selected' : '' %>>Newest registration</option><option value="oldest" <%= selectedSort === 'oldest' ? 'selected' : '' %>>Oldest registration</option><option value="name_asc" <%= selectedSort === 'name_asc' ? 'selected' : '' %>>Name A–Z</option><option value="name_desc" <%= selectedSort === 'name_desc' ? 'selected' : '' %>>Name Z–A</option><option value="category" <%= selectedSort === 'category' ? 'selected' : '' %>>Category</option></select>
+              </label>
+              <label>Per page
+                <select name="pageSize"><% [25,50,100].forEach((size) => { %><option value="<%= size %>" <%= pageSize === size ? 'selected' : '' %>><%= size %></option><% }) %></select>
+              </label>
+              <div class="organizer-roster-filter-actions"><button type="submit" class="nav-signup-btn">Apply</button><a href="<%= resetPath %>" class="nav-login-btn">Clear</a></div>
+            </div>
+          </details>
+        </form>
+        <% const activeFilters = [
+          searchQuery ? `Search: ${searchQuery}` : '',
+          selectedRegistrationStatus ? `Registration: ${selectedRegistrationStatus.replaceAll('_', ' ')}` : '',
+          selectedMode ? `Mode: ${selectedMode}` : '',
+          selectedDistance ? `Category: ${selectedDistance}` : '',
+          capabilities.isPaidEvent && selectedPaymentStatus ? `Payment: ${selectedPaymentStatus.replaceAll('_', ' ')}` : '',
+          selectedResultStatus ? `Result: ${selectedResultStatus}` : '',
+          selectedSort !== 'newest' ? `Sort: ${selectedSort.replaceAll('_', ' ')}` : '',
+          pageSize !== 25 ? `${pageSize} per page` : ''
+        ].filter(Boolean); %>
+        <% if (activeFilters.length) { %><div class="organizer-roster-active-filters" aria-label="Active filters"><% activeFilters.forEach((label) => { %><span><%= label %></span><% }) %><a href="<%= resetPath %>">Clear all</a></div><% } %>
+      </section>
+
+      <% if (capabilities.isPaidEvent && !isAdminViewer && (summary.unpaidCount || summary.proofRejectedCount)) { %>
+        <% const unpaidTotal = Number(summary.unpaidCount || 0) + Number(summary.proofRejectedCount || 0); %>
+        <aside class="organizer-roster-attention">
+          <div><i data-lucide="mail-warning" aria-hidden="true"></i><p><strong><%= unpaidTotal %> runner<%= unpaidTotal === 1 ? '' : 's' %> may need a payment reminder.</strong><span>Reminders are sent only to currently unpaid or receipt-rejected registrations.</span></p></div>
+          <button type="button" class="nav-login-btn" data-open-reminder data-unpaid-count="<%= unpaidTotal %>" data-event-title="<%= event.title %>">Review reminder</button>
+          <noscript><form method="POST" action="<%= basePath %>/email-unpaid"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><button type="submit" class="nav-login-btn">Send reminders</button></form></noscript>
+        </aside>
       <% } %>
-    </section>
+
+      <div class="organizer-roster-result-count">
+        <% const resultStart = pagination.totalItems ? ((pagination.page - 1) * pagination.pageSize) + 1 : 0; %>
+        <% const resultEnd = pagination.totalItems ? resultStart + registrations.length - 1 : 0; %>
+        <span>Showing <strong><%= resultStart %>–<%= resultEnd %></strong> of <strong><%= pagination.totalItems %></strong> matching registrants</span>
+      </div>
+
+      <% if (registrations && registrations.length) { %>
+        <section class="organizer-roster-list" aria-label="Registrant roster">
+          <div class="organizer-roster-column-labels" aria-hidden="true">
+            <span>Runner</span><span>Category</span><span>Registered</span><% if (capabilities.isPaidEvent) { %><span>Payment</span><% } %><span>Result or progress</span><span>Actions</span>
+          </div>
+          <% registrations.forEach((registration) => { %>
+            <% const runnerName = [registration.participant?.firstName, registration.participant?.lastName].filter(Boolean).join(' ') || 'Unnamed runner'; %>
+            <% const detailId = `registrant-details-${registration._id}`; %>
+            <article class="organizer-roster-record" data-registrant-record>
+              <div class="organizer-roster-record-summary">
+                <div class="organizer-roster-runner" data-label="Runner"><strong><%= runnerName %></strong><span><%= registration.participant?.email || 'No email' %></span><code><%= registration.confirmationCode %></code></div>
+                <div data-label="Category"><strong><%= registration.categoryLabel %></strong><span><%= registration.participationMode || 'N/A' %></span></div>
+                <div data-label="Registered"><strong><%= registration.registeredAtLabel || 'N/A' %></strong><span class="organizer-roster-badge status-<%= registration.status %>"><%= registration.registrationStatusLabel %></span></div>
+                <% if (capabilities.isPaidEvent) { %><div data-label="Payment"><strong><%= registration.paymentStatusLabel %></strong><% if (registration.paymentReviewHref) { %><a href="<%= registration.paymentReviewHref %>">Review receipt</a><% } else { %><span><%= registration.expectedPaymentLabel %></span><% } %></div><% } %>
+                <div data-label="Result or progress" class="organizer-roster-progress">
+                  <% if (registration.accumulatedProgress) { %>
+                    <strong><%= registration.accumulatedProgress.progressLabel %></strong>
+                    <progress value="<%= Math.min(100, registration.accumulatedProgress.progressPercent || 0) %>" max="100"><%= Math.round(registration.accumulatedProgress.progressPercent || 0) %>%</progress>
+                    <span><%= registration.resultStatusLabel %></span>
+                  <% } else { %>
+                    <strong><%= registration.resultStatusLabel %></strong>
+                    <% if (registration.submission) { %><span><%= Number(registration.submission.distanceKm || 0).toFixed(2) %> km · <%= registration.submission.elapsedLabel || 'No elapsed time' %></span><% } %>
+                  <% } %>
+                  <% if (registration.resultReviewHref) { %><a href="<%= registration.resultReviewHref %>">Review result</a><% } %>
+                </div>
+                <div class="organizer-roster-record-actions" data-label="Actions">
+                  <button type="button" class="nav-login-btn organizer-roster-icon-action" data-message-runner data-registration-id="<%= registration._id %>" data-runner-name="<%= runnerName %>" aria-label="Message <%= runnerName %>"><i data-lucide="message-square" aria-hidden="true"></i><span>Message</span></button>
+                  <button type="button" class="nav-login-btn organizer-roster-icon-action" data-toggle-registrant-details aria-expanded="false" aria-controls="<%= detailId %>" aria-label="Show details for <%= runnerName %>"><i data-lucide="chevron-down" aria-hidden="true"></i><span>Details</span></button>
+                </div>
+              </div>
+              <div class="organizer-roster-record-details" id="<%= detailId %>">
+                <section><h3>Runner profile</h3><dl><div><dt>Mobile</dt><dd><%= registration.participant?.mobile || 'Not provided' %></dd></div><div><dt>Country</dt><dd><%= registration.participant?.countryLabel || 'Not provided' %></dd></div><div><dt>Age</dt><dd><%= registration.participant?.ageLabel || 'Not provided' %></dd></div><div><dt>Gender</dt><dd><%= registration.participant?.genderLabel || 'Not provided' %></dd></div><div><dt>Running group</dt><dd><%= registration.participant?.runningGroup || 'Not provided' %></dd></div><div><dt>Emergency contact</dt><dd><%= registration.participant?.emergencyContactName || 'Not provided' %><% if (registration.participant?.emergencyContactNumber) { %><br><small><%= registration.participant.emergencyContactNumber %></small><% } %></dd></div></dl><noscript><form method="POST" action="<%= basePath %>/<%= registration._id %>/send-message" class="organizer-roster-noscript-message"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><label>Subject<input name="subject" maxlength="200"></label><label>Message<textarea name="message" maxlength="1000" required></textarea></label><button type="submit" class="nav-login-btn">Send message</button></form></noscript></section>
+                <section><h3>Registration</h3><dl><div><dt>Mode</dt><dd><%= registration.participationMode %></dd></div><div><dt>Distance</dt><dd><%= registration.raceDistance %></dd></div><div><dt>Package</dt><dd><%= registration.pricingSnapshot?.packageName || 'None' %></dd></div><div><dt>Signup option</dt><dd><%= registration.signupOptionLabel || 'None' %></dd></div><div><dt>Pricing period</dt><dd><%= registration.pricingPeriodLabel || 'None' %></dd></div><div><dt>Add-ons</dt><dd><%= (registration.addOns || []).length ? registration.addOns.map((item) => `${item.quantity || 1}× ${item.name}`).join(', ') : 'None' %></dd></div><div><dt>Waiver</dt><dd>Version <%= registration.waiver?.version || 'N/A' %> · <%= registration.waiver?.signature || 'No signature' %><% if (registration.waiverAcceptedAtLabel) { %><br><small>Accepted <%= registration.waiverAcceptedAtLabel %></small><% } %></dd></div></dl></section>
+                <% if (capabilities.isPaidEvent) { %><section><h3>Payment history</h3><dl><div><dt>Expected</dt><dd><%= registration.expectedPaymentLabel %></dd></div><div><dt>Status</dt><dd><%= registration.paymentStatusLabel %></dd></div><div><dt>Receipt</dt><dd><% if (registration.paymentProof?.url) { %><a href="<%= registration.paymentProof.url %>" target="_blank" rel="noopener noreferrer">View payment receipt</a><% if (registration.paymentProofUploadedAtLabel) { %><br><small>Uploaded <%= registration.paymentProofUploadedAtLabel %></small><% } %><% } else { %>Not submitted<% } %></dd></div><div><dt>Reviewed</dt><dd><%= registration.paymentReviewedAtLabel || 'Not reviewed' %></dd></div><% if (registration.paymentRejectionReason) { %><div><dt>Rejection reason</dt><dd><%= registration.paymentRejectionReason %></dd></div><% } %><% if (registration.paymentReviewNotes) { %><div><dt>Review notes</dt><dd><%= registration.paymentReviewNotes %></dd></div><% } %></dl></section><% } %>
+                <section><h3><%= capabilities.isAccumulatedEvent ? 'Accumulated progress' : 'Run result' %></h3>
+                  <% if (registration.accumulatedProgress) { %><dl><div><dt>Goal</dt><dd><%= registration.accumulatedProgress.targetDistanceKm %> km</dd></div><div><dt>Approved</dt><dd><%= registration.accumulatedProgress.approvedDistanceKm.toFixed(2) %> km from <%= registration.accumulatedProgress.approvedActivityCount %> activities</dd></div><div><dt>Pending</dt><dd><%= registration.accumulatedProgress.pendingDistanceKm.toFixed(2) %> km from <%= registration.accumulatedProgress.pendingActivityCount %> activities</dd></div><div><dt>Rejected</dt><dd><%= registration.accumulatedProgress.rejectedDistanceKm.toFixed(2) %> km</dd></div><div><dt>Remaining</dt><dd><%= registration.accumulatedProgress.remainingDistanceKm.toFixed(2) %> km</dd></div><% if (registration.accumulatedProgress.overGoalDistanceKm > 0) { %><div><dt>Beyond goal</dt><dd><%= registration.accumulatedProgress.overGoalDistanceKm.toFixed(2) %> km</dd></div><% } %></dl><a href="/organizer/events/<%= event._id %>/run-proofs/review?q=<%= encodeURIComponent(registration.confirmationCode || '') %>">Open activity history</a>
+                  <% } else if (registration.submission) { %><dl><div><dt>Status</dt><dd><%= registration.resultStatusLabel %></dd></div><div><dt>Distance</dt><dd><%= Number(registration.submission.distanceKm || 0).toFixed(2) %> km</dd></div><div><dt>Elapsed</dt><dd><%= registration.submission.elapsedLabel || 'N/A' %></dd></div><div><dt>Run date</dt><dd><%= registration.submission.runDateLabel || 'N/A' %></dd></div><div><dt>Submitted</dt><dd><%= registration.submission.submittedAtLabel || 'N/A' %></dd></div><div><dt>Location</dt><dd><%= registration.submission.runLocation || 'N/A' %></dd></div><div><dt>Evidence</dt><dd><% if (registration.submission.proof?.url) { %><a href="<%= registration.submission.proof.url %>" target="_blank" rel="noopener noreferrer">View run evidence</a><% } else { %><%= registration.submission.proofType || 'N/A' %><% } %></dd></div><% if (registration.submission.rejectionReason) { %><div><dt>Rejection reason</dt><dd><%= registration.submission.rejectionReason %></dd></div><% } %><% if (registration.submission.reviewNotes) { %><div><dt>Review notes</dt><dd><%= registration.submission.reviewNotes %></dd></div><% } %></dl>
+                  <% } else { %><p>No run result has been submitted.</p><% } %>
+                </section>
+              </div>
+            </article>
+          <% }) %>
+        </section>
+
+        <% if (pagination.totalPages > 1) { %><nav class="organizer-roster-pagination" aria-label="Registrants pagination"><% if (pagination.prevHref) { %><a href="<%= pagination.prevHref %>" class="nav-login-btn"><i data-lucide="chevron-left" aria-hidden="true"></i>Previous</a><% } else { %><span></span><% } %><p>Page <strong><%= pagination.page %></strong> of <strong><%= pagination.totalPages %></strong></p><% if (pagination.nextHref) { %><a href="<%= pagination.nextHref %>" class="nav-login-btn">Next<i data-lucide="chevron-right" aria-hidden="true"></i></a><% } else { %><span></span><% } %></nav><% } %>
+      <% } else { %>
+        <section class="organizer-roster-empty"><i data-lucide="users" aria-hidden="true"></i><h2><%= summary.totalRegistrants ? 'No matching registrants' : 'No registrations yet' %></h2><p><%= summary.totalRegistrants ? 'Try another search or clear the current filters.' : 'Registrations will appear here after runners join this event.' %></p><% if (summary.totalRegistrants) { %><a href="<%= resetPath %>" class="nav-login-btn">Clear filters</a><% } %></section>
+      <% } %>
+    </div>
   </main>
+
+  <div class="organizer-roster-dialog-backdrop" data-message-dialog hidden><section class="organizer-roster-dialog" role="dialog" aria-modal="true" aria-labelledby="messageDialogTitle" tabindex="-1"><h2 id="messageDialogTitle" data-message-title>Message runner</h2><form method="POST" data-message-form><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><label>Subject<input type="text" name="subject" maxlength="200" placeholder="About your registration"></label><label>Message<textarea name="message" rows="5" maxlength="1000" required placeholder="Write a concise message to the runner"></textarea></label><div class="organizer-roster-dialog-actions"><button type="button" class="nav-login-btn" data-dialog-cancel>Cancel</button><button type="submit" class="nav-signup-btn">Send message</button></div></form></section></div>
+
+  <% if (capabilities.isPaidEvent && !isAdminViewer && (summary.unpaidCount || summary.proofRejectedCount)) { %><div class="organizer-roster-dialog-backdrop" data-reminder-dialog hidden><section class="organizer-roster-dialog" role="dialog" aria-modal="true" aria-labelledby="reminderDialogTitle" tabindex="-1"><h2 id="reminderDialogTitle">Send payment reminders?</h2><p data-reminder-description></p><div class="organizer-roster-message-preview">Your payment for <strong data-reminder-event></strong> is pending. Please upload your payment receipt to complete your registration.</div><form method="POST" action="<%= basePath %>/email-unpaid"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><div class="organizer-roster-dialog-actions"><button type="button" class="nav-login-btn" data-dialog-cancel>Cancel</button><button type="submit" class="nav-signup-btn">Send reminders</button></div></form></section></div><% } %>
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>
-    document.querySelectorAll('[data-registrant-filter-form] [data-auto-submit-filter]').forEach((filter) => {
-      filter.addEventListener('change', () => filter.form.requestSubmit());
-    });
-
-    (function initRegistrantColumns() {
-      const menu = document.querySelector('[data-registrant-column-menu]');
-      const menuButton = document.getElementById('registrantColumnsMenuBtn');
-      const menuPanel = document.getElementById('registrantColumnsMenu');
-      const toggles = Array.from(document.querySelectorAll('[data-registrant-column-toggle]'));
-      const columnCount = document.getElementById('registrantColumnCount');
-      const resetButton = document.querySelector('[data-registrant-column-reset]');
-      const defaultColumns = {
-        confirmation: false,
-        name: true,
-        email: true,
-        mobile: false,
-        country: true,
-        age: true,
-        gender: true,
-        emergencyContact: false,
-        runningGroup: true,
-        waiver: false,
-        mode: false,
-        distance: true,
-        status: true,
-        payment: true,
-        expectedPayment: false,
-        paymentReceipt: false,
-        paymentReview: false,
-        runResult: true,
-        runResultEvidence: false,
-        runResultReview: false,
-        registeredAt: true
-      };
-      const storageKey = 'helloRun:organizerRegistrantsVisibleColumns';
-
-      function getStoredState() {
-        try {
-          const stored = window.HelloRunPrivacy?.functional ? JSON.parse(window.localStorage.getItem(storageKey) || '{}') : {};
-          return { ...defaultColumns, ...stored };
-        } catch (_) {
-          return { ...defaultColumns };
-        }
-      }
-
-      function saveState(state) {
-        try {
-          if (window.HelloRunPrivacy?.functional) window.localStorage.setItem(storageKey, JSON.stringify(state));
-        } catch (_) {
-          // Controls still work for this page load when storage is unavailable.
-        }
-      }
-
-      function getCurrentState() {
-        return toggles.reduce((state, toggle) => {
-          state[toggle.dataset.registrantColumnToggle] = toggle.checked;
-          return state;
-        }, { ...defaultColumns });
-      }
-
-      function applyState(state, shouldSave) {
-        toggles.forEach((toggle) => {
-          toggle.checked = Boolean(state[toggle.dataset.registrantColumnToggle]);
-        });
-
-        Object.keys(defaultColumns).forEach((key) => {
-          document.querySelectorAll(`[data-registrant-column="${key}"]`).forEach((element) => {
-            element.classList.toggle('is-column-hidden', !state[key]);
-          });
-        });
-
-        if (columnCount) {
-          columnCount.textContent = String(Object.keys(defaultColumns).filter((key) => Boolean(state[key])).length);
-        }
-
-        if (shouldSave) saveState(state);
-      }
-
-      function setMenuOpen(isOpen) {
-        if (!menuButton || !menuPanel) return;
-        menuPanel.hidden = !isOpen;
-        menuButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-      }
-
-      if (menuButton && menuPanel) {
-        menuButton.addEventListener('click', () => setMenuOpen(menuPanel.hidden));
-      }
-
-      toggles.forEach((toggle) => {
-        toggle.addEventListener('change', () => applyState(getCurrentState(), true));
-      });
-
-      if (resetButton) {
-        resetButton.addEventListener('click', () => applyState({ ...defaultColumns }, true));
-      }
-
-      document.addEventListener('click', (event) => {
-        if (menu && !menu.contains(event.target)) setMenuOpen(false);
-      });
-
-      document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') setMenuOpen(false);
-      });
-
-      applyState(getStoredState(), false);
-    })();
-  </script>
-  <script>if (window.lucide) lucide.createIcons();</script>
-
-  <!-- Email Unpaid Modal -->
-  <div id="js-email-unpaid-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;align-items:center;justify-content:center">
-    <div style="background:#fff;border-radius:10px;padding:2rem;max-width:440px;width:90%;position:relative">
-      <button type="button" id="js-close-email-modal" style="position:absolute;top:0.75rem;right:0.75rem;background:none;border:none;font-size:1.3rem;cursor:pointer;color:#64748b">×</button>
-      <h2 style="margin:0 0 0.5rem;font-size:1.1rem">Send Payment Reminder</h2>
-      <p id="js-email-modal-desc" style="margin:0 0 1rem;color:#475569;font-size:0.875rem"></p>
-      <p style="margin:0 0 1.25rem;font-size:0.875rem;color:#1e293b;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:0.75rem">
-        <strong>Message preview:</strong><br>
-        "Your payment for <em id="js-email-modal-event"></em> is pending. Please upload your payment receipt to complete your registration."
-      </p>
-      <form method="POST" action="/organizer/events/<%= event._id %>/registrants/email-unpaid">
-        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-        <div style="display:flex;gap:0.5rem;justify-content:flex-end">
-          <button type="button" id="js-cancel-email-modal" class="nav-login-btn">Cancel</button>
-          <button type="submit" class="nav-signup-btn" id="js-confirm-email-btn">Send Reminder</button>
-        </div>
-      </form>
-    </div>
-  </div>
-  <script>
-    (function () {
-      var openBtn = document.getElementById('js-email-unpaid-btn');
-      var modal = document.getElementById('js-email-unpaid-modal');
-      var closeBtn = document.getElementById('js-close-email-modal');
-      var cancelBtn = document.getElementById('js-cancel-email-modal');
-      var desc = document.getElementById('js-email-modal-desc');
-      var eventEl = document.getElementById('js-email-modal-event');
-      if (!openBtn || !modal) return;
-
-      openBtn.addEventListener('click', function () {
-        var count = openBtn.dataset.unpaidCount || '0';
-        var title = openBtn.dataset.eventTitle || 'this event';
-        if (desc) desc.textContent = 'This will send a payment reminder email to ' + count + ' runner' + (count !== '1' ? 's' : '') + ' who have not yet paid.';
-        if (eventEl) eventEl.textContent = title;
-        modal.style.display = 'flex';
-      });
-
-      function closeModal() { modal.style.display = 'none'; }
-      if (closeBtn) closeBtn.addEventListener('click', closeModal);
-      if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
-      modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
-    })();
-  </script>
-
-  <!-- Message runner modal -->
-  <div id="msgRunnerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
-    <div style="background:#fff;border-radius:12px;padding:1.5rem;max-width:420px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18)">
-      <h3 style="margin:0 0 1rem;font-size:1rem" id="msgRunnerTitle">Message Runner</h3>
-      <form method="POST" id="msgRunnerForm">
-        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-        <label style="display:block;font-size:.82rem;font-weight:600;margin-bottom:.3rem">Subject</label>
-        <input type="text" name="subject" maxlength="200" placeholder="e.g. About your registration" style="width:100%;padding:.4rem .6rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.85rem;margin-bottom:.75rem">
-        <label style="display:block;font-size:.82rem;font-weight:600;margin-bottom:.3rem">Message</label>
-        <textarea name="message" rows="4" maxlength="1000" placeholder="Your message to the runner..." required style="width:100%;padding:.4rem .6rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.85rem;resize:vertical;margin-bottom:.75rem"></textarea>
-        <div style="display:flex;gap:.5rem;justify-content:flex-end">
-          <button type="button" id="msgRunnerCancel" class="btn btn-outline btn-sm">Cancel</button>
-          <button type="submit" class="btn btn-primary btn-sm">Send Message</button>
-        </div>
-      </form>
-    </div>
-  </div>
-  <script>
-    (function() {
-      const modal = document.getElementById('msgRunnerModal');
-      const form = document.getElementById('msgRunnerForm');
-      const title = document.getElementById('msgRunnerTitle');
-      const cancelBtn = document.getElementById('msgRunnerCancel');
-      if (!modal || !form) return;
-
-      document.querySelectorAll('[data-msg-btn]').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          const regId = btn.dataset.regId;
-          const name = (btn.dataset.runnerName || '').trim() || 'Runner';
-          form.action = '/organizer/events/<%= event._id %>/registrants/' + regId + '/send-message';
-          title.textContent = 'Message ' + name;
-          modal.style.display = 'flex';
-          form.querySelector('textarea').focus();
-        });
-      });
-
-      cancelBtn.addEventListener('click', function() { modal.style.display = 'none'; });
-      modal.addEventListener('click', function(e) { if (e.target === modal) modal.style.display = 'none'; });
-    })();
-  </script>
+  <script src="/js/organizer-registrants.js"></script>
 </body>
 </html>
