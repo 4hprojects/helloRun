@@ -4,6 +4,7 @@ const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const { PLATFORM_TIME_ZONE, formatPlatformDate } = require('../utils/platform-date');
+const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
   timeZone: PLATFORM_TIME_ZONE,
@@ -36,6 +37,15 @@ function normalizeCountRows(rows = []) {
     if (Object.hasOwn(result, key)) result[key] = Number(row?.count || 0);
   }
   return result;
+}
+
+function roundDistance(value) {
+  const number = Number(value || 0);
+  return Number.isFinite(number) ? Number(number.toFixed(2)) : 0;
+}
+
+function formatDistance(value) {
+  return `${roundDistance(value).toLocaleString('en-US', { maximumFractionDigits: 2 })} km`;
 }
 
 async function loadEventOperationalCounts(eventId, dependencies = {}) {
@@ -78,6 +88,209 @@ async function loadEventOperationalCounts(eventId, dependencies = {}) {
     approvedAccumulatedResults: accumulated.approved,
     approvedResults: standard.approved + accumulated.approved
   };
+}
+
+async function loadAccumulatedOperations(event, dependencies = {}) {
+  if (event?.virtualCompletionMode !== 'accumulated_distance') return null;
+  const RegistrationModel = dependencies.RegistrationModel || Registration;
+  const AccumulatedModel = dependencies.AccumulatedModel || AccumulatedActivitySubmission;
+  const [registrations, activityGroups] = await Promise.all([
+    RegistrationModel.aggregate([
+      { $match: { eventId: event._id } },
+      { $project: { raceDistance: 1, pricingSnapshot: 1 } }
+    ]),
+    AccumulatedModel.aggregate([
+      { $match: { eventId: event._id } },
+      {
+        $group: {
+          _id: { registrationId: '$registrationId', status: '$status' },
+          activityCount: { $sum: 1 },
+          distanceKm: { $sum: '$distanceKm' }
+        }
+      }
+    ])
+  ]);
+  const progressByRegistration = new Map();
+  const statusTotals = {
+    approved: { activityCount: 0, distanceKm: 0 },
+    submitted: { activityCount: 0, distanceKm: 0 },
+    rejected: { activityCount: 0, distanceKm: 0 }
+  };
+  for (const row of activityGroups) {
+    const registrationId = String(row?._id?.registrationId || '');
+    const status = String(row?._id?.status || '');
+    if (!registrationId || !Object.hasOwn(statusTotals, status)) continue;
+    const activityCount = Number(row.activityCount || 0);
+    const distanceKm = Number(row.distanceKm || 0);
+    statusTotals[status].activityCount += activityCount;
+    statusTotals[status].distanceKm += distanceKm;
+    const progress = progressByRegistration.get(registrationId) || { approvedDistanceKm: 0, pendingDistanceKm: 0 };
+    if (status === 'approved') progress.approvedDistanceKm += distanceKm;
+    if (status === 'submitted') progress.pendingDistanceKm += distanceKm;
+    progressByRegistration.set(registrationId, progress);
+  }
+
+  let participantsStarted = 0;
+  let goalsReached = 0;
+  let missingGoalCount = 0;
+  for (const registration of registrations) {
+    const progress = progressByRegistration.get(String(registration._id)) || { approvedDistanceKm: 0, pendingDistanceKm: 0 };
+    const targetDistanceKm = resolveAccumulatedTargetDistanceKm(registration, event);
+    if (progress.approvedDistanceKm > 0) participantsStarted += 1;
+    if (targetDistanceKm > 0 && progress.approvedDistanceKm >= targetDistanceKm) goalsReached += 1;
+    if (!(targetDistanceKm > 0)) missingGoalCount += 1;
+  }
+
+  return {
+    registrationCount: registrations.length,
+    participantsStarted,
+    goalsReached,
+    missingGoalCount,
+    approvedActivityCount: statusTotals.approved.activityCount,
+    pendingActivityCount: statusTotals.submitted.activityCount,
+    rejectedActivityCount: statusTotals.rejected.activityCount,
+    approvedDistanceKm: roundDistance(statusTotals.approved.distanceKm),
+    pendingDistanceKm: roundDistance(statusTotals.submitted.distanceKm),
+    rejectedDistanceKm: roundDistance(statusTotals.rejected.distanceKm),
+    approvedDistanceLabel: formatDistance(statusTotals.approved.distanceKm),
+    pendingDistanceLabel: formatDistance(statusTotals.submitted.distanceKm),
+    rejectedDistanceLabel: formatDistance(statusTotals.rejected.distanceKm)
+  };
+}
+
+function toValidDate(value) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function resolveMilestoneState(now, start, end) {
+  if (end && now > end) return 'complete';
+  if (start && now < start) return 'upcoming';
+  if (start || end) return 'current';
+  return 'missing';
+}
+
+function buildOperationalPhase(event, counts = {}, now = new Date()) {
+  const current = toValidDate(now) || new Date();
+  const registrationOpen = toValidDate(event.registrationOpenAt);
+  const registrationClose = toValidDate(event.registrationCloseAt);
+  const activityStart = toValidDate(event.eventStartAt);
+  const activityEnd = toValidDate(event.eventEndAt);
+  const submissionDeadline = toValidDate(event.finalSubmissionDeadlineAt || event.eventEndAt);
+  const milestones = [
+    {
+      key: 'registration',
+      label: 'Registration',
+      value: `${formatPlatformDate(registrationOpen, 'Not configured')} – ${formatPlatformDate(registrationClose, 'Not configured')}`,
+      state: resolveMilestoneState(current, registrationOpen, registrationClose)
+    },
+    {
+      key: 'activity',
+      label: 'Activity',
+      value: `${formatPlatformDate(activityStart, 'Not configured')} – ${formatPlatformDate(activityEnd, 'Not configured')}`,
+      state: resolveMilestoneState(current, activityStart, activityEnd)
+    },
+    {
+      key: 'submission',
+      label: 'Final submission',
+      value: formatPlatformDate(submissionDeadline, 'Not configured'),
+      state: submissionDeadline
+        ? (current > submissionDeadline ? 'complete' : (activityEnd && current > activityEnd ? 'current' : 'upcoming'))
+        : 'missing'
+    },
+    {
+      key: 'closeout',
+      label: 'Closeout',
+      value: submissionDeadline ? `After ${formatPlatformDate(submissionDeadline)}` : 'After final reviews',
+      state: submissionDeadline && current > submissionDeadline
+        ? (Number(counts.pendingResults || 0) > 0 ? 'current' : 'complete')
+        : 'upcoming'
+    }
+  ];
+
+  if (event.status === 'draft') return {
+    key: 'setup', label: 'Event setup', detail: 'Complete required event settings before submitting for review.',
+    tone: 'attention', milestones
+  };
+  if (event.status === 'pending_review') return {
+    key: 'pending_review', label: 'Awaiting admin review', detail: 'The event is waiting for an administrator decision.',
+    tone: 'attention', milestones
+  };
+  if (event.status === 'closed' || event.status === 'archived') return {
+    key: 'completed', label: event.status === 'archived' ? 'Event archived' : 'Event closed',
+    detail: 'Operational records remain available for review.', tone: 'neutral', milestones
+  };
+  if (!activityStart && !activityEnd) return {
+    key: 'scheduled', label: 'Activity dates not configured',
+    detail: 'Set the structured activity period before relying on live operational timing.',
+    tone: 'attention', milestones
+  };
+  if (activityStart && current < activityStart) {
+    if (registrationOpen && current >= registrationOpen && (!registrationClose || current <= registrationClose)) {
+      return {
+        key: 'registration_open', label: 'Registration open',
+        detail: registrationClose ? `Registration closes ${formatPlatformDate(registrationClose)}.` : 'Registration is currently open.',
+        tone: 'active', milestones
+      };
+    }
+    return {
+      key: 'scheduled', label: 'Activity period upcoming',
+      detail: `Activity begins ${formatPlatformDate(activityStart)}.`, tone: 'neutral', milestones
+    };
+  }
+  if ((!activityStart || current >= activityStart) && (!activityEnd || current <= activityEnd)) {
+    const registrationNote = registrationClose && current > registrationClose ? ' Registration is closed.' : '';
+    return {
+      key: 'activity_underway', label: 'Activity underway',
+      detail: `${activityEnd ? `Eligible activity continues through ${formatPlatformDate(activityEnd)}.` : 'The activity period is open.'}${registrationNote}`,
+      tone: 'active', milestones
+    };
+  }
+  if (submissionDeadline && current <= submissionDeadline) return {
+    key: 'final_submissions', label: 'Final submissions open',
+    detail: `The activity period has ended. Eligible proof is due by ${formatPlatformDate(submissionDeadline)}.`,
+    tone: 'attention', milestones
+  };
+  if (Number(counts.pendingResults || 0) > 0) return {
+    key: 'final_review', label: 'Final review in progress',
+    detail: `${Number(counts.pendingResults)} result${Number(counts.pendingResults) === 1 ? '' : 's'} still await review.`,
+    tone: 'attention', milestones
+  };
+  return {
+    key: 'completed', label: 'Operational closeout',
+    detail: 'Submission and review windows are complete. Final results and recognition can be checked.',
+    tone: 'neutral', milestones
+  };
+}
+
+function buildContextualAction({ event, counts, phase, readinessTasks = [] }) {
+  const id = String(event._id);
+  if (event.status === 'draft') {
+    if (readinessTasks.length) {
+      return { label: readinessTasks[0].action, href: readinessTasks[0].href, icon: 'pencil' };
+    }
+    return { label: 'Edit Event', href: `/organizer/events/${id}/edit`, icon: 'pencil' };
+  }
+  if (event.status === 'pending_review') {
+    return { label: 'Preview Event', href: `/organizer/preview-event?eventId=${id}&previewSource=edit`, icon: 'eye' };
+  }
+  if (Number(counts.pendingResults || 0) > 0) {
+    return { label: 'Review Results', href: `/organizer/events/${id}/run-proofs/review`, icon: 'flag' };
+  }
+  if (event.feeMode === 'paid' && Number(counts.pendingPayments || 0) > 0) {
+    return { label: 'Review Payments', href: `/organizer/events/${id}/payment-proofs/review`, icon: 'receipt' };
+  }
+  if (['registration_open', 'activity_underway', 'final_submissions'].includes(phase.key)) {
+    return { label: 'View Registrants', href: `/organizer/events/${id}/registrants`, icon: 'users' };
+  }
+  if (readinessTasks.length) {
+    return { label: readinessTasks[0].action, href: readinessTasks[0].href, icon: 'sparkles' };
+  }
+  if (Number(counts.approvedResults || 0) > 0) {
+    return { label: 'View Final Results', href: `/organizer/events/${id}/run-proofs/review?status=approved`, icon: 'trophy' };
+  }
+  return { label: 'View Registrants', href: `/organizer/events/${id}/registrants`, icon: 'users' };
 }
 
 function resolveEventFormat(event = {}) {
@@ -189,7 +402,10 @@ async function getOrganizerEventDetailPresentation({
   publishReadinessErrors = [],
   now = new Date()
 }, dependencies = {}) {
-  const counts = await loadEventOperationalCounts(event._id, dependencies);
+  const [counts, accumulatedOperations] = await Promise.all([
+    loadEventOperationalCounts(event._id, dependencies),
+    loadAccumulatedOperations(event, dependencies)
+  ]);
   const id = String(event._id);
   const formatLabel = resolveEventFormat(event);
   const listingAt = event.publicListingAvailableAt ? new Date(event.publicListingAvailableAt) : null;
@@ -197,13 +413,64 @@ async function getOrganizerEventDetailPresentation({
   const publicVisibleNow = event.status === 'published' && (!hasListingAt || listingAt <= now);
   const publicListingLabel = hasListingAt ? formatPlatformDateTime(listingAt) : 'immediately after approval';
   const readinessTasks = buildReadinessTasks({ event, hasActiveCertificate, eventBadgeCount, publishReadinessErrors });
+  const recognitionTasks = readinessTasks.filter((item) => ['certificate', 'badge'].includes(item.key));
+  const setupTasks = event.status === 'published'
+    ? readinessTasks.filter((item) => !['certificate', 'badge'].includes(item.key))
+    : readinessTasks;
   const lifecycle = buildLifecycle(event, publishReadinessErrors, publicVisibleNow, publicListingLabel);
+  const operationalPhase = buildOperationalPhase(event, counts, now);
+  const contextualAction = buildContextualAction({
+    event,
+    counts,
+    phase: operationalPhase,
+    readinessTasks: event.status === 'published' && recognitionTasks.length ? recognitionTasks : readinessTasks
+  });
   const canEdit = !['closed', 'archived'].includes(event.status);
   const mediaItems = [
     event.bannerImageUrl ? { kind: 'banner', label: 'Event banner', url: event.bannerImageUrl } : null,
     event.logoUrl ? { kind: 'logo', label: 'Event logo', url: event.logoUrl } : null,
     event.posterImageUrl ? { kind: 'poster', label: 'Promotional poster', url: event.posterImageUrl } : null
   ].filter(Boolean);
+  const standardMetrics = [
+    { key: 'registrations', label: 'Registrations', value: counts.registrations, href: `/organizer/events/${id}/registrants`, actionable: true, helper: 'Open roster', icon: 'users-round', tone: 'neutral' },
+    ...(event.feeMode === 'paid' ? [{
+      key: 'payments',
+      label: 'Payment Reviews',
+      value: counts.pendingPayments,
+      href: counts.pendingPayments ? `/organizer/events/${id}/payment-proofs/review` : '',
+      actionable: counts.pendingPayments > 0,
+      helper: counts.pendingPayments ? 'Needs review' : 'Queue clear',
+      icon: 'receipt-text',
+      tone: counts.pendingPayments ? 'attention' : 'clear'
+    }] : []),
+    {
+      key: 'results',
+      label: 'Result Reviews',
+      value: counts.pendingResults,
+      href: counts.pendingResults ? `/organizer/events/${id}/run-proofs/review` : '',
+      actionable: counts.pendingResults > 0,
+      helper: counts.pendingResults ? 'Needs review' : 'Queue clear',
+      icon: 'clipboard-check',
+      tone: counts.pendingResults ? 'attention' : 'clear'
+    },
+    { key: 'approved', label: 'Approved Results', value: counts.approvedResults, href: `/organizer/events/${id}/run-proofs/review?status=approved`, actionable: true, helper: 'View results', icon: 'badge-check', tone: 'positive' }
+  ];
+  const accumulatedMetrics = accumulatedOperations ? [
+    { key: 'registrations', label: 'Registrations', value: counts.registrations, href: `/organizer/events/${id}/registrants`, actionable: true, helper: 'Open roster', icon: 'users-round', tone: 'neutral' },
+    { key: 'started', label: 'Approved Progress', value: accumulatedOperations.participantsStarted, href: `/organizer/events/${id}/registrants?result=approved`, actionable: accumulatedOperations.participantsStarted > 0, helper: 'View runners', icon: 'activity', tone: 'positive' },
+    { key: 'goals', label: 'Goals Reached', value: accumulatedOperations.goalsReached, href: `/organizer/events/${id}/registrants`, actionable: accumulatedOperations.goalsReached > 0, helper: 'View progress', icon: 'target', tone: 'positive' },
+    { key: 'distance', label: 'Approved Distance', value: accumulatedOperations.approvedDistanceLabel, href: `/events/${event.slug}/leaderboard`, actionable: event.leaderboardRecognitionEnabled !== false, helper: 'View standings', icon: 'route', tone: 'positive' },
+    {
+      key: 'results',
+      label: 'Pending Review',
+      value: accumulatedOperations.pendingActivityCount,
+      href: accumulatedOperations.pendingActivityCount ? `/organizer/events/${id}/run-proofs/review` : '',
+      actionable: accumulatedOperations.pendingActivityCount > 0,
+      helper: accumulatedOperations.pendingActivityCount ? 'Review activities' : 'Queue clear',
+      icon: 'clipboard-clock',
+      tone: accumulatedOperations.pendingActivityCount ? 'attention' : 'clear'
+    }
+  ] : null;
   return {
     eventId: id,
     referenceCode: event.referenceCode || `EVT-${id.slice(0, 8).toUpperCase()}`,
@@ -216,12 +483,7 @@ async function getOrganizerEventDetailPresentation({
     publicHref: `/events/${event.slug}`,
     previewHref: `/organizer/preview-event?eventId=${id}&previewSource=edit`,
     counts,
-    metrics: [
-      { key: 'registrations', label: 'Registrations', value: counts.registrations, href: `/organizer/events/${id}/registrants`, actionable: true },
-      { key: 'payments', label: 'Payment Reviews', value: counts.pendingPayments, href: counts.pendingPayments ? `/organizer/events/${id}/payment-proofs/review` : '', actionable: counts.pendingPayments > 0 },
-      { key: 'results', label: 'Result Reviews', value: counts.pendingResults, href: counts.pendingResults ? `/organizer/events/${id}/run-proofs/review` : '', actionable: counts.pendingResults > 0 },
-      { key: 'approved', label: 'Approved Results', value: counts.approvedResults, href: `/organizer/events/${id}/run-proofs/review?status=approved`, actionable: true }
-    ],
+    metrics: accumulatedMetrics || standardMetrics,
     schedule: [
       { label: 'Public listing', value: publicListingLabel },
       { label: 'Registration', value: `${formatPlatformDate(event.registrationOpenAt, 'Not configured')} – ${formatPlatformDate(event.registrationCloseAt, 'Not configured')}` },
@@ -247,6 +509,11 @@ async function getOrganizerEventDetailPresentation({
       waiver: event.waiverTemplate ? `Version ${event.waiverVersion || 1} configured` : 'Missing'
     },
     readinessTasks,
+    setupTasks,
+    recognitionTasks,
+    accumulatedOperations,
+    operationalPhase,
+    contextualAction,
     lifecycle,
     mediaItems,
     galleryItems: (event.galleryImageUrls || []).map((url, index) => ({ url, label: `Gallery image ${index + 1}` })),
@@ -276,6 +543,9 @@ module.exports = {
   formatPlatformDateTime,
   normalizeCountRows,
   loadEventOperationalCounts,
+  loadAccumulatedOperations,
+  buildOperationalPhase,
+  buildContextualAction,
   resolveEventFormat,
   resolveLocation,
   categorySummary,

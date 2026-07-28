@@ -86,8 +86,17 @@ test('filtered and first-use empty states remain distinct', () => {
 
 test('responsive stylesheet provides compact rows, mobile cards, and accessible controls', () => {
   assert.match(css, /grid-template-columns: 7rem minmax\(210px, 1\.25fr\)/);
+  assert.match(css, /@media \(max-width: 1120px\)[\s\S]*\.organizer-event-management-row[^}]*grid-template-columns: 5\.5rem minmax\(150px, 1fr\)[^}]*minmax\(6\.8rem, 8\.4rem\)/);
+  assert.doesNotMatch(css, /@media \(max-width: 1120px\)[\s\S]*\.organizer-event-list-actions\s*\{ grid-column: 1 \/ -1; \}[\s\S]*@media \(max-width: 768px\)/);
+  assert.match(css, /@media \(max-width: 1120px\)[\s\S]*\.organizer-event-list-actions-1\s*\{ width: 80%; justify-self: center; grid-template-columns: 1fr; \}/);
+  assert.match(css, /@media \(max-width: 1120px\)[\s\S]*\.organizer-event-list-actions-2,[\s\S]*\.organizer-event-list-actions-3\s*\{ grid-template-columns: 1fr; \}/);
+  assert.match(css, /\.organizer-event-list-workload\s*\{[^}]*min-width: 0;[^}]*overflow: hidden; \}/);
+  assert.match(css, /\.organizer-event-list-workload dt\s*\{[^}]*max-width: 100%;[^}]*overflow-wrap: anywhere; \}/);
   assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.organizer-event-management-row[^}]*grid-template-columns: 5\.5rem minmax\(0, 1fr\)/);
-  assert.match(css, /\.organizer-event-list-actions-2 \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}/);
+  assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.organizer-event-list-actions-1\s*\{ width: 100%; justify-self: stretch; \}/);
+  assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.organizer-event-list-actions-2\s*\{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}/);
+  assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.organizer-event-list-actions-3\s*\{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\); \}/);
+  assert.match(css, /\.organizer-event-list-actions a\s*\{[^}]*min-height: 44px !important;[^}]*padding: \.45rem \.6rem !important;[^}]*border-radius: 9px !important;[^}]*font-size: \.7rem !important/);
   assert.match(css, /@media \(max-width: 520px\)[\s\S]*font-size: \.62rem/);
   assert.match(css, /min-height: 44px/);
   assert.match(css, /focus-visible/);

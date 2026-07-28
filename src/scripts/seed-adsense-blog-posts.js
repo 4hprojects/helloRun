@@ -66,6 +66,18 @@ const {
   ARTICLE: BEGINNER_PACE_ARTICLE,
   buildArticlePayload: buildBeginnerPaceArticlePayload
 } = require('../content/beginner-running-pace-guide');
+const {
+  ARTICLE: RAINY_SEASON_RUNNING_ARTICLE,
+  buildArticlePayload: buildRainySeasonRunningArticlePayload
+} = require('../content/running-rainy-season-philippines');
+const {
+  ARTICLE: HOT_HUMID_WEATHER_RUNNING_ARTICLE,
+  buildArticlePayload: buildHotHumidWeatherRunningArticlePayload
+} = require('../content/hot-humid-weather-running');
+const {
+  ARTICLE: COMPLETE_50K_CHALLENGE_ARTICLE,
+  buildArticlePayload: buildComplete50kChallengeArticlePayload
+} = require('../content/complete-50k-accumulated-challenge');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -100,6 +112,12 @@ const DISTANCE_CHOICE_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers
 const DISTANCE_CHOICE_PAYLOAD = buildDistanceChoiceArticlePayload({ coverImageUrl: DISTANCE_CHOICE_COVER_IMAGE_URL });
 const BEGINNER_PACE_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1784709599143-784201834-beginners-guide-running-pace.webp';
 const BEGINNER_PACE_PAYLOAD = buildBeginnerPaceArticlePayload({ coverImageUrl: BEGINNER_PACE_COVER_IMAGE_URL });
+const RAINY_SEASON_RUNNING_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785245902469-81172053-running-during-rainy-season-philippines.webp';
+const RAINY_SEASON_RUNNING_PAYLOAD = buildRainySeasonRunningArticlePayload({ coverImageUrl: RAINY_SEASON_RUNNING_COVER_IMAGE_URL });
+const HOT_HUMID_WEATHER_RUNNING_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785247262143-851271026-how-to-run-safely-hot-humid-weather.webp';
+const HOT_HUMID_WEATHER_RUNNING_PAYLOAD = buildHotHumidWeatherRunningArticlePayload({ coverImageUrl: HOT_HUMID_WEATHER_RUNNING_COVER_IMAGE_URL });
+const COMPLETE_50K_CHALLENGE_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785248410488-243915403-how-to-complete-50k-accumulated-challenge.webp';
+const COMPLETE_50K_CHALLENGE_PAYLOAD = buildComplete50kChallengeArticlePayload({ coverImageUrl: COMPLETE_50K_CHALLENGE_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -443,6 +461,93 @@ const POSTS = [
       '/blog/what-counts-as-valid-run-proof',
       '/blog/how-to-submit-run-proof-correctly-hellorun',
       '/blog/how-leaderboards-work-virtual-running-events',
+      '/blog/running-safety-tips-early-morning-night-runs'
+    ]
+  },
+  {
+    ...RAINY_SEASON_RUNNING_ARTICLE,
+    contentHtml: RAINY_SEASON_RUNNING_PAYLOAD.contentHtml,
+    coverImageUrl: RAINY_SEASON_RUNNING_COVER_IMAGE_URL,
+    coverImageAlt: RAINY_SEASON_RUNNING_ARTICLE.coverImageAlt,
+    ogImageUrl: RAINY_SEASON_RUNNING_COVER_IMAGE_URL,
+    publishedAt: '2026-07-28T13:44:55.589Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/how-it-works',
+      '/faq',
+      '/contact',
+      '/privacy',
+      '/blog/how-to-join-a-virtual-run-philippines',
+      '/blog/how-to-prepare-for-your-first-virtual-run',
+      '/blog/beginner-5k-training-plan-new-runners',
+      '/blog/beginners-guide-to-running-pace',
+      '/blog/running-safety-tips-early-morning-night-runs',
+      '/blog/best-apps-to-track-your-virtual-run',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/virtual-run-vs-traditional-race-which-one-should-you-join',
+      '/blog/how-leaderboards-work-virtual-running-events'
+    ]
+  },
+  {
+    ...HOT_HUMID_WEATHER_RUNNING_ARTICLE,
+    contentHtml: HOT_HUMID_WEATHER_RUNNING_PAYLOAD.contentHtml,
+    coverImageUrl: HOT_HUMID_WEATHER_RUNNING_COVER_IMAGE_URL,
+    coverImageAlt: HOT_HUMID_WEATHER_RUNNING_ARTICLE.coverImageAlt,
+    ogImageUrl: HOT_HUMID_WEATHER_RUNNING_COVER_IMAGE_URL,
+    publishedAt: '2026-07-28T14:09:44.615Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/how-it-works',
+      '/faq',
+      '/contact',
+      '/privacy',
+      '/blog/running-during-rainy-season-philippines',
+      '/blog/running-safety-tips-early-morning-night-runs',
+      '/blog/how-to-prepare-for-your-first-virtual-run',
+      '/blog/beginner-5k-training-plan-new-runners',
+      '/blog/beginners-guide-to-running-pace',
+      '/blog/best-apps-to-track-your-virtual-run',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/how-leaderboards-work-virtual-running-events',
+      '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers'
+    ]
+  },
+  {
+    ...COMPLETE_50K_CHALLENGE_ARTICLE,
+    contentHtml: COMPLETE_50K_CHALLENGE_PAYLOAD.contentHtml,
+    coverImageUrl: COMPLETE_50K_CHALLENGE_COVER_IMAGE_URL,
+    coverImageAlt: COMPLETE_50K_CHALLENGE_ARTICLE.coverImageAlt,
+    ogImageUrl: COMPLETE_50K_CHALLENGE_COVER_IMAGE_URL,
+    publishedAt: '2026-07-28T14:27:08.938Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/how-it-works',
+      '/faq',
+      '/contact',
+      '/privacy',
+      '/blog/what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers',
+      '/blog/how-to-prepare-for-your-first-virtual-run',
+      '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
+      '/blog/beginner-5k-training-plan-new-runners',
+      '/blog/beginners-guide-to-running-pace',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/best-apps-to-track-your-virtual-run',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/how-leaderboards-work-virtual-running-events',
+      '/blog/virtual-run-vs-traditional-race-which-one-should-you-join',
+      '/blog/running-during-rainy-season-philippines',
+      '/blog/how-to-run-safely-during-hot-and-humid-weather',
       '/blog/running-safety-tips-early-morning-night-runs'
     ]
   }

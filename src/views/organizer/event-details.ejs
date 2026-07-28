@@ -35,32 +35,98 @@
 
       <% if (message) { %><div class="page-message page-message-<%= message.type %>" role="status"><%= message.text %></div><% } %>
 
-      <section class="organizer-event-detail-overview" aria-labelledby="eventOverviewTitle">
-        <h2 id="eventOverviewTitle" class="visually-hidden">Event operations overview</h2>
-        <% p.metrics.forEach((metric) => { %>
-          <% if (metric.actionable && metric.href) { %>
-            <a href="<%= metric.href %>" class="organizer-event-detail-metric metric-<%= metric.key %> <%= metric.value && ['payments', 'results'].includes(metric.key) ? 'has-work' : '' %>">
-              <span><%= metric.label %></span><strong><%= metric.value %></strong><small>Open <i data-lucide="arrow-right" aria-hidden="true"></i></small>
-            </a>
-          <% } else { %>
-            <article class="organizer-event-detail-metric metric-<%= metric.key %>"><span><%= metric.label %></span><strong><%= metric.value %></strong><small>No review needed</small></article>
+      <section class="organizer-event-phase organizer-event-phase-<%= p.operationalPhase.tone %>" aria-labelledby="eventPhaseTitle">
+        <div class="organizer-event-phase-heading">
+          <div>
+            <span>Live operations · Asia/Manila</span>
+            <h2 id="eventPhaseTitle"><%= p.operationalPhase.label %></h2>
+            <p><%= p.operationalPhase.detail %></p>
+          </div>
+          <% if (p.contextualAction) { %>
+            <a href="<%= p.contextualAction.href %>" class="nav-signup-btn"><i data-lucide="<%= p.contextualAction.icon %>" aria-hidden="true"></i><span><%= p.contextualAction.label %></span></a>
           <% } %>
-        <% }); %>
+        </div>
+        <ol class="organizer-event-phase-milestones" aria-label="Event operational timeline">
+          <% p.operationalPhase.milestones.forEach((item) => { %>
+            <li class="is-<%= item.state %>"><span aria-hidden="true"><i data-lucide="<%= item.state === 'complete' ? 'check' : item.state === 'current' ? 'activity' : item.state === 'missing' ? 'circle-help' : 'clock-3' %>"></i></span><div><strong><%= item.label %></strong><small><%= item.value %></small></div></li>
+          <% }); %>
+        </ol>
+      </section>
+
+      <% const actionableReviewCount = p.metrics.filter((metric) => metric.tone === 'attention' && Number(metric.value) > 0).reduce((total, metric) => total + Number(metric.value || 0), 0); %>
+      <section class="organizer-event-detail-overview" aria-labelledby="eventOverviewTitle">
+        <div class="organizer-event-detail-overview-heading">
+          <div>
+            <span>Current workload</span>
+            <h2 id="eventOverviewTitle">Event operations overview</h2>
+            <p>Monitor participation, reviewed progress, and work that needs attention.</p>
+          </div>
+          <span class="organizer-event-overview-state <%= actionableReviewCount ? 'has-work' : 'is-clear' %>">
+            <i data-lucide="<%= actionableReviewCount ? 'circle-alert' : 'circle-check' %>" aria-hidden="true"></i>
+            <%= actionableReviewCount ? `${actionableReviewCount} awaiting review` : 'Review queues clear' %>
+          </span>
+        </div>
+        <div class="organizer-event-detail-metrics">
+          <% p.metrics.forEach((metric) => { %>
+            <% if (metric.actionable && metric.href) { %>
+              <a href="<%= metric.href %>" class="organizer-event-detail-metric metric-<%= metric.key %> is-<%= metric.tone || 'neutral' %>">
+                <span class="organizer-event-detail-metric-icon"><i data-lucide="<%= metric.icon || 'chart-no-axes-column' %>" aria-hidden="true"></i></span>
+                <span class="organizer-event-detail-metric-copy"><span><%= metric.label %></span><strong><%= metric.value %></strong><small><%= metric.helper || 'Open' %> <i data-lucide="arrow-up-right" aria-hidden="true"></i></small></span>
+              </a>
+            <% } else { %>
+              <article class="organizer-event-detail-metric metric-<%= metric.key %> is-<%= metric.tone || 'neutral' %>">
+                <span class="organizer-event-detail-metric-icon"><i data-lucide="<%= metric.icon || 'chart-no-axes-column' %>" aria-hidden="true"></i></span>
+                <span class="organizer-event-detail-metric-copy"><span><%= metric.label %></span><strong><%= metric.value %></strong><small><%= metric.helper || 'No review needed' %></small></span>
+              </article>
+            <% } %>
+          <% }); %>
+        </div>
       </section>
 
       <div class="organizer-event-detail-layout">
         <div class="organizer-event-detail-main">
-          <section class="organizer-event-detail-section organizer-event-readiness <%= p.readinessTasks.length ? 'needs-attention' : 'is-ready' %>" aria-labelledby="eventReadinessTitle">
-            <div class="organizer-event-detail-section-heading">
-              <div><span>Operational readiness</span><h2 id="eventReadinessTitle"><%= p.readinessTasks.length ? `${p.readinessTasks.length} task${p.readinessTasks.length === 1 ? '' : 's'} need attention` : 'Core event setup is ready' %></h2></div>
-              <span class="status status-<%= p.readinessTasks.length ? 'pending_review' : 'published' %>"><%= p.readinessTasks.length ? 'Needs attention' : 'Ready' %></span>
-            </div>
-            <% if (p.readinessTasks.length) { %>
-              <div class="organizer-event-readiness-list">
-                <% p.readinessTasks.forEach((item) => { %><article><div><strong><%= item.title %></strong><p><%= item.impact %></p></div><a href="<%= item.href %>" class="nav-login-btn"><%= item.action %></a></article><% }); %>
+          <% if (p.accumulatedOperations) { %>
+            <section class="organizer-event-detail-section organizer-event-accumulated-operations" aria-labelledby="accumulatedOperationsTitle">
+              <div class="organizer-event-detail-section-heading">
+                <div><span>Accumulated challenge</span><h2 id="accumulatedOperationsTitle">Approved and pending progress</h2></div>
+                <a href="/organizer/events/<%= event._id %>/registrants" class="organizer-event-section-link">View participant progress <i data-lucide="arrow-right" aria-hidden="true"></i></a>
               </div>
-            <% } else { %><p class="organizer-event-detail-helper">Current publishing, payment, certificate, and badge requirements are complete.</p><% } %>
-          </section>
+              <div class="organizer-event-accumulated-grid">
+                <article class="is-approved"><span>Approved</span><strong><%= p.accumulatedOperations.approvedDistanceLabel %></strong><small><%= p.accumulatedOperations.approvedActivityCount %> activit<%= p.accumulatedOperations.approvedActivityCount === 1 ? 'y' : 'ies' %></small></article>
+                <article class="is-pending"><span>Pending</span><strong><%= p.accumulatedOperations.pendingDistanceLabel %></strong><small><%= p.accumulatedOperations.pendingActivityCount %> activit<%= p.accumulatedOperations.pendingActivityCount === 1 ? 'y' : 'ies' %></small></article>
+                <article class="is-rejected"><span>Rejected</span><strong><%= p.accumulatedOperations.rejectedDistanceLabel %></strong><small><%= p.accumulatedOperations.rejectedActivityCount %> activit<%= p.accumulatedOperations.rejectedActivityCount === 1 ? 'y' : 'ies' %></small></article>
+              </div>
+              <% if (p.accumulatedOperations.missingGoalCount) { %><p class="organizer-event-detail-helper"><%= p.accumulatedOperations.missingGoalCount %> registration<%= p.accumulatedOperations.missingGoalCount === 1 ? '' : 's' %> cannot be counted as goal reached because no valid selected goal could be resolved.</p><% } %>
+            </section>
+          <% } %>
+
+          <% if (event.status !== 'published' || p.setupTasks.length) { %>
+            <section class="organizer-event-detail-section organizer-event-readiness <%= p.setupTasks.length ? 'needs-attention' : 'is-ready' %>" aria-labelledby="eventReadinessTitle">
+              <div class="organizer-event-detail-section-heading">
+                <div><span>Publishing readiness</span><h2 id="eventReadinessTitle"><%= p.setupTasks.length ? `${p.setupTasks.length} task${p.setupTasks.length === 1 ? '' : 's'} need attention` : 'Core event setup is ready' %></h2></div>
+                <span class="status status-<%= p.setupTasks.length ? 'pending_review' : 'published' %>"><%= p.setupTasks.length ? 'Needs attention' : 'Ready' %></span>
+              </div>
+              <% if (p.setupTasks.length) { %>
+                <div class="organizer-event-readiness-list">
+                  <% p.setupTasks.forEach((item) => { %><article><div><strong><%= item.title %></strong><p><%= item.impact %></p></div><a href="<%= item.href %>" class="nav-login-btn"><%= item.action %></a></article><% }); %>
+                </div>
+              <% } else { %><p class="organizer-event-detail-helper">Current publishing and payment requirements are complete.</p><% } %>
+            </section>
+          <% } %>
+
+          <% if (event.status === 'published' && (event.digitalCertificateEnabled !== false || event.digitalBadgeEnabled)) { %>
+            <section class="organizer-event-detail-section organizer-event-recognition-readiness <%= p.recognitionTasks.length ? 'needs-attention' : 'is-ready' %>" aria-labelledby="recognitionReadinessTitle">
+              <div class="organizer-event-detail-section-heading">
+                <div><span>Recognition readiness</span><h2 id="recognitionReadinessTitle"><%= p.recognitionTasks.length ? 'Complete runner recognition setup' : 'Recognition is ready' %></h2></div>
+                <span class="status status-<%= p.recognitionTasks.length ? 'pending_review' : 'published' %>"><%= p.recognitionTasks.length ? `${p.recognitionTasks.length} to do` : 'Ready' %></span>
+              </div>
+              <% if (p.recognitionTasks.length) { %>
+                <div class="organizer-event-recognition-actions">
+                  <% p.recognitionTasks.forEach((item) => { %><article><div><strong><%= item.title %></strong><p><%= item.impact %></p></div><a href="<%= item.href %>" class="nav-login-btn"><%= item.action %></a></article><% }); %>
+                </div>
+              <% } else { %><p class="organizer-event-detail-helper">Configured certificate and badge recognition is ready for eligible runners.</p><% } %>
+            </section>
+          <% } %>
 
           <section class="organizer-event-detail-section" aria-labelledby="eventSetupTitle">
             <div class="organizer-event-detail-section-heading"><div><span>Essential configuration</span><h2 id="eventSetupTitle">Event setup</h2></div></div>
@@ -163,7 +229,7 @@
 
         <aside class="organizer-event-lifecycle" aria-labelledby="eventLifecycleTitle">
           <section class="organizer-event-lifecycle-card">
-            <span><%= p.lifecycle.eyebrow %></span><h2 id="eventLifecycleTitle"><%= p.lifecycle.title %></h2><p><%= p.lifecycle.description %></p>
+            <span><%= event.status === 'published' ? 'Event controls' : p.lifecycle.eyebrow %></span><h2 id="eventLifecycleTitle"><%= event.status === 'published' ? 'Published event' : p.lifecycle.title %></h2><p><%= event.status === 'published' ? 'Public visibility and lifecycle controls remain available while live operations are managed above.' : p.lifecycle.description %></p>
             <% if (p.lifecycle.action) { %>
               <% if (p.lifecycle.action.method === 'post') { %>
                 <form method="POST" action="<%= p.lifecycle.action.href %>" data-high-risk-confirm data-confirm-title="Submit event for review" data-confirm-target="<%= event.title %>" data-confirm-impact="Moves this event into the administrator review queue." data-confirm-reversibility="The event cannot be edited normally while review is pending." data-confirm-privilege="Event organiser" data-confirm-button="Submit for Review">

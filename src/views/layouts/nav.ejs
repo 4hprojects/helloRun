@@ -7,6 +7,16 @@
     : currentPath === href || currentPath.startsWith(`${href}/`);
   const navClass = (href, extra = '') => `nav-icon-link${extra ? ` ${extra}` : ''}${isCurrent(href) ? ' is-active' : ''}`;
   const ariaCurrent = (href) => isCurrent(href) ? 'page' : undefined;
+  const rawRunnerUnreadNotifications = Number(locals.runnerUnreadNotifications || 0);
+  const runnerUnreadNotifications = Number.isFinite(rawRunnerUnreadNotifications) && rawRunnerUnreadNotifications > 0
+    ? Math.floor(rawRunnerUnreadNotifications)
+    : 0;
+  const runnerUnreadNotificationLabel = runnerUnreadNotifications > 0
+    ? `Notifications, ${runnerUnreadNotifications} unread notification${runnerUnreadNotifications === 1 ? '' : 's'}`
+    : 'Notifications';
+  const runnerUnreadNotificationDisplay = runnerUnreadNotifications > 99
+    ? '99+'
+    : String(runnerUnreadNotifications);
 %>
 <nav class="nav" role="navigation" aria-label="Main navigation">
   <div class="nav-container">
@@ -95,11 +105,11 @@
             <i data-lucide="layout-dashboard"></i>
             <span class="nav-tooltip">Dashboard</span>
           </a>
-          <a href="/runner/notifications" class="<%= navClass('/runner/notifications', 'nav-notifications-link') %>" aria-label="Notifications" title="Notifications" <% if (ariaCurrent('/runner/notifications')) { %>aria-current="page"<% } %>>
+          <a href="/runner/notifications" class="<%= navClass('/runner/notifications', 'nav-notifications-link') %>" aria-label="<%= runnerUnreadNotificationLabel %>" title="Notifications" <% if (ariaCurrent('/runner/notifications')) { %>aria-current="page"<% } %>>
             <i data-lucide="bell"></i>
             <span class="nav-tooltip">Notifications</span>
-            <% if ((locals.runnerUnreadNotifications || 0) > 0) { %>
-              <span class="nav-notification-badge"><%= locals.runnerUnreadNotifications %></span>
+            <% if (runnerUnreadNotifications > 0) { %>
+              <span class="nav-notification-badge" aria-hidden="true"><%= runnerUnreadNotificationDisplay %></span>
             <% } %>
           </a>
         <% } %>

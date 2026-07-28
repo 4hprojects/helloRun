@@ -27,13 +27,22 @@ function render(overrides = {}) {
   const presentation = {
     referenceCode: 'EVT-DETAIL', statusLabel: 'Draft', formatLabel: 'Virtual', locationLabel: 'Virtual event',
     canEdit: true, publicVisibleNow: false, publicHref: '/events/balanced-event', previewHref: '/preview',
+    operationalPhase: {
+      key: 'setup', label: 'Event setup', detail: 'Complete required settings.', tone: 'attention',
+      milestones: [
+        { key: 'registration', label: 'Registration', value: 'Aug 1 – Aug 20', state: 'upcoming' },
+        { key: 'activity', label: 'Activity', value: 'Aug 21 – Aug 31', state: 'upcoming' },
+        { key: 'submission', label: 'Final submission', value: 'Sep 7', state: 'upcoming' },
+        { key: 'closeout', label: 'Closeout', value: 'After Sep 7', state: 'upcoming' }
+      ]
+    },
+    contextualAction: { label: 'View Registrants', href: '/registrants', icon: 'users' },
     metrics: [
-      { key: 'registrations', label: 'Registrations', value: 8, href: '/registrants', actionable: true },
-      { key: 'payments', label: 'Payment Reviews', value: 0, href: '', actionable: false },
-      { key: 'results', label: 'Result Reviews', value: 2, href: '/results', actionable: true },
-      { key: 'approved', label: 'Approved Results', value: 3, href: '/approved', actionable: true }
+      { key: 'registrations', label: 'Registrations', value: 8, href: '/registrants', actionable: true, helper: 'Open roster', icon: 'users-round', tone: 'neutral' },
+      { key: 'results', label: 'Result Reviews', value: 2, href: '/results', actionable: true, helper: 'Needs review', icon: 'clipboard-check', tone: 'attention' },
+      { key: 'approved', label: 'Approved Results', value: 3, href: '/approved', actionable: true, helper: 'View results', icon: 'badge-check', tone: 'positive' }
     ],
-    readinessTasks: [],
+    readinessTasks: [], setupTasks: [], recognitionTasks: [], accumulatedOperations: null,
     schedule: [{ label: 'Registration', value: 'Aug 1 – Aug 20' }],
     categories: [{ name: '5K', summary: '5 km', rewards: '' }],
     pricing: { feeLabel: 'Free', modeLabel: 'free', paymentAccount: 'Not required' },
@@ -48,16 +57,26 @@ function render(overrides = {}) {
     ]
   };
   return ejs.render(renderable, {
-    title: 'Event Details', event, presentation, eventDetailsHtml: '<p>Rich details</p>', message: null, csrfToken: 'csrf',
-    ...overrides
+    title: 'Event Details',
+    eventDetailsHtml: '<p>Rich details</p>',
+    message: null,
+    csrfToken: 'csrf',
+    ...overrides,
+    event: { ...event, ...(overrides.event || {}) },
+    presentation: { ...presentation, ...(overrides.presentation || {}) }
   }, { filename: viewPath });
 }
 
 test('event detail compiles and renders the balanced workspace hierarchy', () => {
   assert.doesNotThrow(() => ejs.compile(view, { filename: viewPath }));
   const html = render();
+  assert.match(html, /Live operations/);
+  assert.match(html, /Event operational timeline/);
   assert.match(html, /organizer-event-detail-overview/);
-  assert.match(html, /Operational readiness/);
+  assert.match(html, /Current workload/);
+  assert.match(html, /2 awaiting review/);
+  assert.match(html, /organizer-event-detail-metrics/);
+  assert.match(html, /Publishing readiness/);
   assert.match(html, /Essential configuration/);
   assert.match(html, /Management Tools/);
   assert.match(html, /Draft -&gt; Pending Review -&gt; Published -&gt; Closed/);
@@ -68,10 +87,46 @@ test('header and queue actions are contextual rather than nine equal controls', 
   const html = render();
   assert.match(html, />Edit Event</);
   assert.match(html, />Preview</);
+  assert.match(html, />View Registrants</);
   assert.match(html, /href="\/results"/);
   assert.doesNotMatch(html, /href=""[^>]*>[^<]*Payment Reviews/);
   const header = html.slice(html.indexOf('organizer-event-detail-header-actions'), html.indexOf('</nav>', html.indexOf('organizer-event-detail-header-actions')));
   assert.equal((header.match(/<a /g) || []).length, 3);
+});
+
+test('published accumulated events foreground progress and recognition follow-up', () => {
+  const html = render({
+    event: { status: 'published', virtualCompletionMode: 'accumulated_distance' },
+    presentation: {
+      operationalPhase: {
+        key: 'activity_underway', label: 'Activity underway', detail: 'Registration is closed.', tone: 'active',
+        milestones: [
+          { key: 'registration', label: 'Registration', value: 'Jul 8 – Jul 22', state: 'complete' },
+          { key: 'activity', label: 'Activity', value: 'Jul 12 – Jul 25', state: 'current' },
+          { key: 'submission', label: 'Final submission', value: 'Aug 8', state: 'upcoming' },
+          { key: 'closeout', label: 'Closeout', value: 'After Aug 8', state: 'upcoming' }
+        ]
+      },
+      setupTasks: [],
+      recognitionTasks: [
+        { key: 'certificate', title: 'Publish a certificate template', impact: 'Template required.', href: '/certificate', action: 'Set up certificate' },
+        { key: 'badge', title: 'Generate event badges', impact: 'Badges required.', href: '/badges', action: 'Manage badges' }
+      ],
+      accumulatedOperations: {
+        approvedDistanceLabel: '60.21 km', pendingDistanceLabel: '0 km', rejectedDistanceLabel: '0 km',
+        approvedActivityCount: 7, pendingActivityCount: 0, rejectedActivityCount: 0, missingGoalCount: 0
+      },
+      lifecycle: { eyebrow: 'Current state', title: 'Event is live', description: 'Live.', action: { label: 'View public page', href: '/events/balanced-event', method: 'get' } }
+    }
+  });
+  assert.match(html, /Activity underway/);
+  assert.match(html, /Approved and pending progress/);
+  assert.match(html, /60\.21 km/);
+  assert.match(html, /7 activities/);
+  assert.match(html, /Recognition readiness/);
+  assert.match(html, /Set up certificate/);
+  assert.match(html, /Manage badges/);
+  assert.doesNotMatch(html, /Publishing readiness/);
 });
 
 test('secondary configuration and management tools are closed native disclosures', () => {
@@ -92,9 +147,10 @@ test('lifecycle forms use shared accessible confirmation without native confirm'
 
 test('responsive CSS provides balanced desktop, tablet, and mobile layouts', () => {
   assert.match(css, /grid-template-columns: minmax\(0, 1fr\) 300px/);
-  assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.organizer-event-detail-metrics[^}]*grid-template-columns: repeat\(auto-fit, minmax\(150px, 1fr\)\)/);
+  assert.match(css, /\.organizer-event-phase-milestones[^}]*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
   assert.match(css, /@media \(max-width: 1024px\)[\s\S]*\.organizer-event-detail-layout \{ grid-template-columns: 1fr; \}/);
-  assert.match(css, /@media \(max-width: 768px\)[\s\S]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.organizer-event-detail-metrics \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}/);
   assert.match(css, /@media \(max-width: 520px\)/);
   assert.match(css, /min-height: 44px/);
   assert.match(css, /focus-visible/);

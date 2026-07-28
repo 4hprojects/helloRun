@@ -15,8 +15,11 @@ const hellorunPlatformGuide = require('./hellorun-platform-guide');
 const firstVirtualRunGuide = require('./prepare-first-virtual-run');
 const distanceChoiceGuide = require('./choose-running-distance-guide');
 const beginnerPaceGuide = require('./beginner-running-pace-guide');
+const rainySeasonRunningGuide = require('./running-rainy-season-philippines');
+const hotHumidWeatherRunningGuide = require('./hot-humid-weather-running');
+const complete50kChallengeGuide = require('./complete-50k-accumulated-challenge');
 
-const ARTICLE_MODULES = Object.freeze([bestApps, runningSafety, organizerGuide, raceComparison, virtualRunGuide, leaderboardGuide, validRunProofGuide, accumulatedDistanceGuide, beginner5kGuide, proofSubmissionGuide, joinPhilippinesGuide, hellorunPlatformGuide, firstVirtualRunGuide, distanceChoiceGuide, beginnerPaceGuide]);
+const ARTICLE_MODULES = Object.freeze([bestApps, runningSafety, organizerGuide, raceComparison, virtualRunGuide, leaderboardGuide, validRunProofGuide, accumulatedDistanceGuide, beginner5kGuide, proofSubmissionGuide, joinPhilippinesGuide, hellorunPlatformGuide, firstVirtualRunGuide, distanceChoiceGuide, beginnerPaceGuide, rainySeasonRunningGuide, hotHumidWeatherRunningGuide, complete50kChallengeGuide]);
 const ARTICLE_REGISTRY = Object.freeze(Object.fromEntries(
   ARTICLE_MODULES.map((articleModule) => [articleModule.ARTICLE.slug, articleModule])
 ));

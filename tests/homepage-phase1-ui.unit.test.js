@@ -68,7 +68,8 @@ test('shared navigation collapses inactive desktop labels and expands active, ho
   assert.match(css, /animation: nav-label-reveal 0\.14s ease-out both/);
   assert.match(css, /@keyframes nav-label-reveal[\s\S]*opacity: 0\.25;[\s\S]*translateX\(-2px\)[\s\S]*opacity: 1/);
   assert.match(css, /\.nav \.nav-icon-link\[aria-current="page"\][\s\S]*background: #fff7ed;[\s\S]*border-color: #fed7aa/);
-  assert.match(css, /\.nav-notification-badge\s*\{[\s\S]*left: 27px/);
+  assert.match(css, /\.nav \.nav-notifications-link\s*\{[\s\S]*overflow: visible;[\s\S]*margin-right: 0\.7rem/);
+  assert.match(css, /\.nav-notification-badge\s*\{[\s\S]*left: 25px/);
   assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.nav-links\.active[\s\S]*display: flex/);
   assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.nav-tooltip\s*\{[\s\S]*opacity: 1;[\s\S]*visibility: visible/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.nav \.nav-icon-link,[\s\S]*transition: none/);
@@ -91,6 +92,44 @@ test('shared navigation collapses inactive desktop labels and expands active, ho
     const selectedPrimaryLinks = html.match(/class="[^"]*nav-primary-link[^"]*"[^>]*aria-current="page"/g) || [];
     assert.equal(selectedPrimaryLinks.length, 1, `${currentPath} should select exactly one primary link`);
   }
+});
+
+test('runner notification badge caps its visual count without losing the exact accessible count', () => {
+  const nav = read('src/views/layouts/nav.ejs');
+  const css = read('src/public/css/style.css');
+  const render = (count) => ejs.render(nav, {
+    locals: {
+      currentPath: '/',
+      renderRunProofModal: false,
+      flash: null,
+      csrfToken: 'test',
+      runnerUnreadNotifications: count,
+      isAuthenticated: true,
+      isAdmin: false,
+      isOrganizer: false,
+      isApprovedOrganizer: false,
+      isFullAdmin: false,
+      user: { firstName: 'Runner', avatarUrl: '' }
+    }
+  });
+
+  for (const count of [1, 9, 10, 99]) {
+    const html = render(count);
+    assert.match(html, new RegExp(`aria-label="Notifications, ${count} unread notification${count === 1 ? '' : 's'}"`));
+    assert.match(html, new RegExp(`nav-notification-badge" aria-hidden="true">${count}<\\/span>`));
+  }
+
+  for (const count of [100, 12345]) {
+    const html = render(count);
+    assert.match(html, new RegExp(`aria-label="Notifications, ${count} unread notifications"`));
+    assert.match(html, /nav-notification-badge" aria-hidden="true">99\+<\/span>/);
+    assert.doesNotMatch(html, new RegExp(`nav-notification-badge"[^>]*>${count}<\\/span>`));
+  }
+
+  assert.doesNotMatch(render(0), /nav-notification-badge/);
+  assert.match(render(0), /href="\/runner\/notifications"[^>]*aria-label="Notifications"/);
+  assert.match(css, /\.nav-notification-badge\s*\{[\s\S]*z-index: 3;[\s\S]*box-sizing: border-box;[\s\S]*white-space: nowrap;[\s\S]*pointer-events: none/);
+  assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.nav-notification-badge\s*\{[\s\S]*top: 50%;[\s\S]*right: 0\.7rem/);
 });
 
 test('runner, organizer, and admin mobile destinations retain accessible names and active-page semantics', () => {
