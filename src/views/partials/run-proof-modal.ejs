@@ -37,7 +37,16 @@
         <div>
           <h2 id="runProofModalTitle"><%= modalTitle %></h2>
           <p class="run-proof-modal-desc" id="runProofModalDesc"><%= modalDescription %></p>
-          <p class="run-proof-step-indicator" id="runProofStepIndicator">Step 1 of 3 &mdash; Choose run date</p>
+          <p
+            class="run-proof-step-indicator"
+            id="runProofStepIndicator"
+            data-current-step="1"
+            aria-label="Step 1 of 3 — Choose run date"
+          >
+            <span id="runProofStepCount">Step 1 of 3</span>
+            <span class="run-proof-step-detail" id="runProofStepDetail">&mdash; Choose run date</span>
+            <span class="run-proof-step-detail-mobile" id="runProofStepDetailMobile" aria-hidden="true">&middot; Review &amp; submit</span>
+          </p>
         </div>
         <div class="run-proof-header-actions">
           <button type="button" class="btn btn-outline run-proof-back-btn" id="runProofBackBtn" aria-label="Close" data-tooltip="Close">
@@ -174,7 +183,7 @@
           </section>
         </div>
 
-        <div id="runProofStep2" hidden>
+        <div id="runProofStep2" class="run-proof-final-step" hidden>
           <p class="run-proof-autofill-banner" id="runProofAutoFillBanner" hidden role="status">Auto-filled from your screenshot. Review and adjust if needed.</p>
           <div class="run-proof-ocr-results" id="runProofOcrResults" hidden aria-live="polite">
             <span class="run-proof-ocr-summary" id="runProofOcrSummary"></span>

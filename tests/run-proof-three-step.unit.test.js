@@ -12,8 +12,8 @@ test('run proof flow exposes the locked three-stage sequence', () => {
   const script = read('src/public/js/run-proof-modal.js');
 
   assert.match(view, /Step 1 of 3[^\n]*Choose run date/i);
-  assert.match(script, /Step 2 of 3[^'\n]*Add and analyze proof/i);
-  assert.match(script, /Step 3 of 3[^'\n]*Select event, review details, and submit/i);
+  assert.match(script, /setStepIndicator\(2, 'Add and analyze proof'\)/);
+  assert.match(script, /setStepIndicator\(3, 'Select event, review details, and submit'\)/);
   assert.ok(view.indexOf('id="runProofStepDate"') < view.indexOf('id="runProofStep1"'));
   assert.ok(view.indexOf('id="runProofStep1"') < view.indexOf('id="runProofStep2"'));
 });
@@ -68,4 +68,25 @@ test('mobile header gives dynamic submit labels a dedicated full-width row', () 
   }
   assert.match(script, /'Submit ' \+ selectedCount \+ ' Entries'/);
   assert.match(script, /setStepOneActionLabel/);
+});
+
+test('mobile step three uses compact event rows and a two-column review action bar', () => {
+  const view = read('src/views/partials/run-proof-modal.ejs');
+  const css = read('src/public/css/run-proof-modal.css');
+  const script = read('src/public/js/run-proof-modal.js');
+
+  assert.match(view, /id="runProofStepIndicator"[\s\S]*data-current-step="1"[\s\S]*aria-label="Step 1 of 3 — Choose run date"/);
+  assert.match(view, /class="run-proof-step-detail-mobile"[\s\S]*Review &amp; submit/);
+  assert.match(view, /id="runProofStep2" class="run-proof-final-step"/);
+  assert.match(script, /stepIndicator\.dataset\.currentStep = String\(step\)/);
+  assert.match(script, /stepIndicator\.setAttribute\('aria-label', fullLabel\)/);
+  assert.match(script, /class="run-proof-event-copy"/);
+  assert.match(script, /class="run-proof-event-schedule"/);
+  assert.match(script, /class="run-proof-event-requirements"/);
+  assert.match(css, /@media \(max-width: 759px\)[\s\S]*\.run-proof-step-indicator\[data-current-step="3"\] \.run-proof-step-detail-mobile \{\s*display: inline;/);
+  assert.match(css, /\.run-proof-final-step \.run-proof-event-card \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) auto;/);
+  assert.match(css, /\.run-proof-submit-review-dialog \{[\s\S]*max-height: calc\(100dvh - 1rem\);[\s\S]*overflow-y: auto;/);
+  assert.match(css, /\.run-proof-submit-review-actions \{[\s\S]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
+  assert.match(css, /\.run-proof-submit-review-actions \.btn \{[\s\S]*min-height: 2\.75rem;[\s\S]*white-space: normal;/);
+  assert.match(script, /dismissSubmitReview\(\{ restoreFocus: true \}\)/);
 });

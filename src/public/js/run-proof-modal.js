@@ -94,6 +94,8 @@
     const draftResume = document.getElementById('runProofDraftResume');
     const draftStartOver = document.getElementById('runProofDraftStartOver');
     const stepIndicator = document.getElementById('runProofStepIndicator');
+    const stepCount = document.getElementById('runProofStepCount');
+    const stepDetail = document.getElementById('runProofStepDetail');
     const stravaSyncBtn = document.getElementById('runProofStravaSyncBtn');
     const stravaPanel = document.getElementById('runProofStravaPanel');
     const stravaStatus = document.getElementById('runProofStravaStatus');
@@ -457,6 +459,9 @@
 
         const targetLabel = getSubmissionTargetLabel(item);
         const targetMeta = getSubmissionTargetMeta(item, dateRange);
+        const targetMetaParts = targetMeta.split(' | ').filter(Boolean);
+        const targetSchedule = targetMetaParts.shift() || 'Schedule TBA';
+        const targetRequirements = targetMetaParts.join(' \u00b7 ');
         let qualificationNote = '';
         if (!aligned && runKey) {
           qualificationNote = '<small class="run-proof-event-misaligned">Run date ' + escapeHtml(runKey) + ' is outside ' + escapeHtml(dateRange) + '</small>';
@@ -467,9 +472,12 @@
         label.innerHTML =
           '<span class="run-proof-event-main">' +
             '<input type="checkbox" id="runProofEventOption-' + registrationId + '" data-registration-id="' + registrationId + '" ' + (checked ? 'checked' : '') + (selectable ? '' : ' disabled aria-disabled="true"') + '>' +
-            '<span>' +
+            '<span class="run-proof-event-copy">' +
               '<strong>' + escapeHtml(String(item.eventTitle || 'Event')) + '</strong>' +
-              '<small>' + escapeHtml(targetMeta) + '</small>' +
+              '<span class="run-proof-event-meta">' +
+                '<small class="run-proof-event-schedule">' + escapeHtml(targetSchedule) + '</small>' +
+                (targetRequirements ? '<small class="run-proof-event-requirements">' + escapeHtml(targetRequirements) + '</small>' : '') +
+              '</span>' +
               qualificationNote +
             '</span>' +
           '</span>' +
@@ -1090,6 +1098,20 @@
       if (window.lucide) window.lucide.createIcons({ nodes: [backBtn] });
     };
 
+    const setStepIndicator = (step, label) => {
+      if (!stepIndicator) return;
+      const count = 'Step ' + step + ' of 3';
+      const fullLabel = count + ' \u2014 ' + label;
+      stepIndicator.dataset.currentStep = String(step);
+      stepIndicator.setAttribute('aria-label', fullLabel);
+      if (stepCount && stepDetail) {
+        stepCount.textContent = count;
+        stepDetail.textContent = '\u2014 ' + label;
+        return;
+      }
+      stepIndicator.textContent = fullLabel;
+    };
+
     // Page 1 of 3 \u2014 pick the run date; this drives which joined events the proof
     // can be submitted to before the user uploads anything.
     const showDateStep = () => {
@@ -1100,7 +1122,7 @@
       state.onDateStep = true;
       state.currentStep = 1;
       setBackButtonMode('close');
-      if (stepIndicator) stepIndicator.textContent = 'Step 1 of 3 \u2014 Choose run date';
+      setStepIndicator(1, 'Choose run date');
       submitBtn.hidden = true;
       validateDate();
       updateDatePreview();
@@ -1121,7 +1143,7 @@
         state.currentStep = 1;
         // The date step now precedes upload, so back returns there.
         setBackButtonMode('back');
-        if (stepIndicator) stepIndicator.textContent = 'Step 2 of 3 \u2014 Add and analyze proof';
+        setStepIndicator(2, 'Add and analyze proof');
         const hasFile = Boolean(fileInput.files && fileInput.files[0]);
         const hasCachedOcr = state.ocrResult !== null;
         const step1Label = hasCachedOcr && hasFile ? STEP_ONE_CONTINUE_LABEL : STEP_ONE_ANALYSE_LABEL;
@@ -1144,7 +1166,7 @@
         state.currentStep = 2;
         setBackButtonMode('back');
         submitBtn.hidden = false;
-        if (stepIndicator) stepIndicator.textContent = 'Step 3 of 3 \u2014 Select event, review details, and submit';
+        setStepIndicator(3, 'Select event, review details, and submit');
         toggleSubmitState();
         focusEventSelectionPanel();
       }
@@ -2618,8 +2640,11 @@
 
     // ── Submit review overlay ──────────────────────────────────────────────
 
-    const dismissSubmitReview = () => {
+    const dismissSubmitReview = ({ restoreFocus = false } = {}) => {
       if (submitReviewOverlay) submitReviewOverlay.hidden = true;
+      if (restoreFocus && submitInlineBtn && typeof submitInlineBtn.focus === 'function') {
+        submitInlineBtn.focus();
+      }
     };
 
     const makeReviewRow = (label, value, modifier) => {
@@ -2971,7 +2996,7 @@
     };
 
     if (submitReviewEdit) {
-      submitReviewEdit.addEventListener('click', dismissSubmitReview);
+      submitReviewEdit.addEventListener('click', () => dismissSubmitReview({ restoreFocus: true }));
     }
 
     if (submitReviewConfirm) {
@@ -2983,7 +3008,7 @@
 
     if (submitReviewOverlay) {
       submitReviewOverlay.addEventListener('click', (event) => {
-        if (event.target === submitReviewOverlay) dismissSubmitReview();
+        if (event.target === submitReviewOverlay) dismissSubmitReview({ restoreFocus: true });
       });
     }
 

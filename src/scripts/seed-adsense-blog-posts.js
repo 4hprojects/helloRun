@@ -78,6 +78,18 @@ const {
   ARTICLE: COMPLETE_50K_CHALLENGE_ARTICLE,
   buildArticlePayload: buildComplete50kChallengeArticlePayload
 } = require('../content/complete-50k-accumulated-challenge');
+const {
+  ARTICLE: MONTH_LONG_CONSISTENCY_ARTICLE,
+  buildArticlePayload: buildMonthLongConsistencyArticlePayload
+} = require('../content/month-long-virtual-run-consistency');
+const {
+  ARTICLE: GPS_TRACKING_STOPS_ARTICLE,
+  buildArticlePayload: buildGpsTrackingStopsArticlePayload
+} = require('../content/gps-tracking-stops-guide');
+const {
+  ARTICLE: TREADMILL_VIRTUAL_EVENT_ARTICLE,
+  buildArticlePayload: buildTreadmillVirtualEventArticlePayload
+} = require('../content/treadmill-virtual-event-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -118,6 +130,12 @@ const HOT_HUMID_WEATHER_RUNNING_COVER_IMAGE_URL = 'https://cdn.hellorun.online/b
 const HOT_HUMID_WEATHER_RUNNING_PAYLOAD = buildHotHumidWeatherRunningArticlePayload({ coverImageUrl: HOT_HUMID_WEATHER_RUNNING_COVER_IMAGE_URL });
 const COMPLETE_50K_CHALLENGE_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785248410488-243915403-how-to-complete-50k-accumulated-challenge.webp';
 const COMPLETE_50K_CHALLENGE_PAYLOAD = buildComplete50kChallengeArticlePayload({ coverImageUrl: COMPLETE_50K_CHALLENGE_COVER_IMAGE_URL });
+const MONTH_LONG_CONSISTENCY_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785283544392-252140112-how-to-stay-consistent-month-long-virtual-run.webp';
+const MONTH_LONG_CONSISTENCY_PAYLOAD = buildMonthLongConsistencyArticlePayload({ coverImageUrl: MONTH_LONG_CONSISTENCY_COVER_IMAGE_URL });
+const GPS_TRACKING_STOPS_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785284470949-66253374-what-to-do-when-gps-tracking-stops-during-a-run.webp';
+const GPS_TRACKING_STOPS_PAYLOAD = buildGpsTrackingStopsArticlePayload({ coverImageUrl: GPS_TRACKING_STOPS_COVER_IMAGE_URL });
+const TREADMILL_VIRTUAL_EVENT_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785285476875-831938576-how-to-record-a-treadmill-run-for-a-virtual-event.webp';
+const TREADMILL_VIRTUAL_EVENT_PAYLOAD = buildTreadmillVirtualEventArticlePayload({ coverImageUrl: TREADMILL_VIRTUAL_EVENT_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -549,6 +567,97 @@ const POSTS = [
       '/blog/running-during-rainy-season-philippines',
       '/blog/how-to-run-safely-during-hot-and-humid-weather',
       '/blog/running-safety-tips-early-morning-night-runs'
+    ]
+  },
+  {
+    ...MONTH_LONG_CONSISTENCY_ARTICLE,
+    contentHtml: MONTH_LONG_CONSISTENCY_PAYLOAD.contentHtml,
+    coverImageUrl: MONTH_LONG_CONSISTENCY_COVER_IMAGE_URL,
+    coverImageAlt: MONTH_LONG_CONSISTENCY_ARTICLE.coverImageAlt,
+    ogImageUrl: MONTH_LONG_CONSISTENCY_COVER_IMAGE_URL,
+    publishedAt: '2026-07-29T00:14:59.688Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/how-it-works',
+      '/faq',
+      '/contact',
+      '/privacy',
+      '/blog/what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers',
+      '/blog/how-to-prepare-for-your-first-virtual-run',
+      '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
+      '/blog/beginner-5k-training-plan-new-runners',
+      '/blog/beginners-guide-to-running-pace',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/how-to-complete-a-50k-accumulated-distance-challenge',
+      '/blog/best-apps-to-track-your-virtual-run',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/how-leaderboards-work-virtual-running-events',
+      '/blog/virtual-run-vs-traditional-race-which-one-should-you-join',
+      '/blog/running-during-rainy-season-philippines',
+      '/blog/how-to-run-safely-during-hot-and-humid-weather',
+      '/blog/running-safety-tips-early-morning-night-runs',
+      '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers'
+    ]
+  },
+  {
+    ...GPS_TRACKING_STOPS_ARTICLE,
+    contentHtml: GPS_TRACKING_STOPS_PAYLOAD.contentHtml,
+    coverImageUrl: GPS_TRACKING_STOPS_COVER_IMAGE_URL,
+    coverImageAlt: GPS_TRACKING_STOPS_ARTICLE.coverImageAlt,
+    ogImageUrl: GPS_TRACKING_STOPS_COVER_IMAGE_URL,
+    publishedAt: '2026-07-29T00:27:29.788Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/how-it-works',
+      '/faq',
+      '/contact',
+      '/privacy',
+      '/blog/what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers',
+      '/blog/how-to-prepare-for-your-first-virtual-run',
+      '/blog/running-safety-tips-early-morning-night-runs',
+      '/blog/running-during-rainy-season-philippines',
+      '/blog/how-to-run-safely-during-hot-and-humid-weather',
+      '/blog/beginners-guide-to-running-pace',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/how-to-complete-a-50k-accumulated-distance-challenge',
+      '/blog/best-apps-to-track-your-virtual-run',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers'
+    ]
+  },
+  {
+    ...TREADMILL_VIRTUAL_EVENT_ARTICLE,
+    contentHtml: TREADMILL_VIRTUAL_EVENT_PAYLOAD.contentHtml,
+    coverImageUrl: TREADMILL_VIRTUAL_EVENT_COVER_IMAGE_URL,
+    coverImageAlt: TREADMILL_VIRTUAL_EVENT_ARTICLE.coverImageAlt,
+    ogImageUrl: TREADMILL_VIRTUAL_EVENT_COVER_IMAGE_URL,
+    publishedAt: '2026-07-29T00:43:25.934Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/how-it-works',
+      '/faq',
+      '/contact',
+      '/privacy',
+      '/blog/what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers',
+      '/blog/how-to-prepare-for-your-first-virtual-run',
+      '/blog/best-apps-to-track-your-virtual-run',
+      '/blog/beginners-guide-to-running-pace',
+      '/blog/what-to-do-when-gps-tracking-stops-during-a-run',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/how-to-complete-a-50k-accumulated-distance-challenge',
+      '/blog/running-during-rainy-season-philippines',
+      '/blog/how-to-run-safely-during-hot-and-humid-weather',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers'
     ]
   }
 ];

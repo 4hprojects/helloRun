@@ -13,7 +13,7 @@ const {
   REQUIRED_LINKS,
   buildArticlePayload,
   validateArticlePayload
-} = require('../src/content/hot-humid-weather-running');
+} = require('../src/content/treadmill-virtual-event-guide');
 const { getArticleModule, listArticleSlugs } = require('../src/content/adsense-blog-article-registry');
 const { parseArguments: parseUpdateArguments } = require('../src/scripts/update-adsense-blog');
 const {
@@ -23,18 +23,18 @@ const {
   parseArguments: parseCreateArguments
 } = require('../src/scripts/create-adsense-blog');
 
-const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785247262143-851271026-how-to-run-safely-hot-humid-weather.webp';
+const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785285476875-831938576-how-to-record-a-treadmill-run-for-a-virtual-event.webp';
 
-test('hot and humid weather guide builds substantive safety-first content', () => {
+test('treadmill virtual-event guide builds a substantive source-aware recording payload', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const wordCount = payload.contentText.split(/\s+/).filter(Boolean).length;
 
   assert.equal(ARTICLE.slug, CANONICAL_SLUG);
-  assert.equal(payload.title, 'How to Run Safely During Hot and Humid Weather');
-  assert.equal(payload.category, 'Training');
+  assert.equal(payload.title, 'How to Record a Treadmill Run for a Virtual Event');
+  assert.equal(payload.category, 'Virtual Run Guide');
   assert.deepEqual(payload.tags, [
-    'hot weather running', 'humid weather', 'heat safety', 'heat index',
-    'runner hydration', 'easy running', 'virtual running', 'philippine runners'
+    'treadmill run', 'indoor running', 'virtual run', 'activity proof',
+    'run tracking', 'treadmill distance', 'fitness watch', 'result submission'
   ]);
   assert.ok(payload.tags.every((tag) => tag.length <= 30));
   assert.ok(payload.excerpt.length <= 220);
@@ -49,15 +49,15 @@ test('hot and humid weather guide builds substantive safety-first content', () =
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.doesNotThrow(() => validateArticlePayload(payload));
 
-  assert.match(payload.contentText, /no single number that makes strenuous outdoor exercise safe/i);
-  assert.match(payload.contentText, /PAGASA's current heat-index information/i);
-  assert.match(payload.contentText, /Heat stroke is a medical emergency/i);
-  assert.match(payload.contentText, /do not produce one exact dose for every runner/i);
-  assert.match(payload.contentText, /Four practical hot-weather scenarios/i);
-  assert.match(payload.contentText, /Pending is not approved progress/i);
-  assert.match(payload.contentText, /does not directly process the external payment transfer/i);
-  assert.doesNotMatch(payload.contentHtml, /<h[12]>How to Run Safely During Hot and Humid Weather<\/h[12]>/i);
-  assert.doesNotMatch(payload.contentText, /every event accepts treadmill|perfect OCR|guaranteed safe temperature/i);
+  assert.match(payload.contentText, /Treadmill recording in one minute/i);
+  assert.match(payload.contentText, /Choose the primary evidence source before starting/i);
+  assert.match(payload.contentText, /Calibration can improve consistency, but it does not prove/i);
+  assert.match(payload.contentText, /Do not average the distances, add the difference, edit the wearable/i);
+  assert.match(payload.contentText, /One mile equals approximately 1\.609344 kilometres/i);
+  assert.match(payload.contentText, /Pending treadmill distance is not approved progress or an official rank/i);
+  assert.match(payload.contentText, /phone app does not currently record indoor-run distance/i);
+  assert.match(payload.contentText, /Correct submission improves reviewability but does not guarantee approval/i);
+  assert.doesNotMatch(payload.contentHtml, /<h[12]>How to Record a Treadmill Run for a Virtual Event<\/h[12]>/i);
 
   for (const heading of REQUIRED_HEADINGS) {
     assert.ok(payload.contentHtml.includes(`<h2>${heading}</h2>`), `missing required heading: ${heading}`);
@@ -67,7 +67,7 @@ test('hot and humid weather guide builds substantive safety-first content', () =
   }
 });
 
-test('hot and humid weather guide is registered and seeded once with its CDN cover', () => {
+test('treadmill guide is registered and seeded once with its architectural CDN cover', () => {
   const articleModule = getArticleModule(CANONICAL_SLUG);
   const seededPosts = POSTS.filter((post) => post.slug === CANONICAL_SLUG);
   const seededPost = seededPosts[0];
@@ -85,9 +85,9 @@ test('hot and humid weather guide is registered and seeded once with its CDN cov
   assert.equal(seededPost.authorEmail, GUIDE_AUTHOR_EMAIL);
 });
 
-test('hot and humid weather guide supports safe creation and ongoing updates', () => {
+test('treadmill guide supports isolated creation and ongoing updates', () => {
   const authorId = new mongoose.Types.ObjectId();
-  const now = new Date('2026-07-28T14:00:00.000Z');
+  const now = new Date('2026-07-29T00:42:00.000Z');
   const payload = buildCreatePayload({ slug: CANONICAL_SLUG, authorId, now });
 
   assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
@@ -104,10 +104,10 @@ test('hot and humid weather guide supports safe creation and ongoing updates', (
   assert.equal(payload.likesCount, 0);
   assert.equal(payload.commentsCount, 0);
   assert.match(packageJson.scripts['blog:create-adsense'], /create-adsense-blog\.js/);
-  assert.match(packageJson.scripts['blog:update-hot-humid-running'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+  assert.match(packageJson.scripts['blog:update-treadmill-run'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
-test('hot and humid weather guide rejects missing cover and unsupported claims', () => {
+test('treadmill guide rejects missing cover and unsupported claims', () => {
   assert.throws(() => buildArticlePayload({}), /existing cover image is required/);
 
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
@@ -116,20 +116,33 @@ test('hot and humid weather guide rejects missing cover and unsupported claims',
     contentText: `${payload.contentText} ${claim}`,
     contentRaw: `${payload.contentText} ${claim}`
   });
+
   assert.throws(
-    () => validateArticlePayload(withClaim('The safe heat index is 35.')),
-    /universal safe threshold/
+    () => validateArticlePayload(withClaim('Every virtual event accepts treadmills.')),
+    /universal treadmill acceptance/
   );
   assert.throws(
-    () => validateArticlePayload(withClaim('Every runner should drink 2 litres every hour.')),
-    /universal hydration dosing/
+    () => validateArticlePayload(withClaim('Treadmill distance is always accurate.')),
+    /guarantee device accuracy/
   );
   assert.throws(
-    () => validateArticlePayload(withClaim('Runners must stop prescribed medicine.')),
-    /unsafe medical instructions/
+    () => validateArticlePayload(withClaim('Choose the largest distance.')),
+    /favorable-value selection/
   );
   assert.throws(
-    () => validateArticlePayload(withClaim('Every event accepts treadmill runs.')),
-    /universal event acceptance/
+    () => validateArticlePayload(withClaim('Every submission will be automatically approved.')),
+    /guarantee approval or OCR accuracy/
+  );
+  assert.throws(
+    () => validateArticlePayload(withClaim('Pending distance counts as official completion.')),
+    /pending evidence officially/
+  );
+  assert.throws(
+    () => validateArticlePayload(withClaim('HelloRun directly tracks your treadmill.')),
+    /platform tracking or certification/
+  );
+  assert.throws(
+    () => validateArticlePayload(withClaim('Runners should jump onto the side rails.')),
+    /unsafe treadmill use/
   );
 });
