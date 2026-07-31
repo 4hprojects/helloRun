@@ -475,13 +475,16 @@
             '<span class="run-proof-event-copy">' +
               '<strong>' + escapeHtml(String(item.eventTitle || 'Event')) + '</strong>' +
               '<span class="run-proof-event-meta">' +
-                '<small class="run-proof-event-schedule">' + escapeHtml(targetSchedule) + '</small>' +
+                '<span class="run-proof-event-summary-row">' +
+                  '<small class="run-proof-event-schedule">' + escapeHtml(targetSchedule) + '</small>' +
+                  '<span class="run-proof-event-pill run-proof-event-pill-mobile">' + escapeHtml(targetLabel) + '</span>' +
+                '</span>' +
                 (targetRequirements ? '<small class="run-proof-event-requirements">' + escapeHtml(targetRequirements) + '</small>' : '') +
               '</span>' +
               qualificationNote +
             '</span>' +
           '</span>' +
-          '<span class="run-proof-event-pill">' + escapeHtml(targetLabel) + '</span>';
+          '<span class="run-proof-event-pill run-proof-event-pill-desktop">' + escapeHtml(targetLabel) + '</span>';
 
         if (checked) label.classList.add('is-selected');
         if (!aligned || (state.hasReachedTargetStep && !qualified)) label.classList.add('is-locked');

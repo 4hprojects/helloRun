@@ -45,13 +45,18 @@ test('policy, banner, dialog, and no-JavaScript form are accessible and responsi
   assert.doesNotThrow(() => ejs.compile(policyView, { filename: policyViewPath }));
   assert.doesNotThrow(() => ejs.compile(partial, { filename: partialPath }));
   for (const marker of ['Manage preferences', 'What HelloRun and configured providers store', 'What happens when optional storage is off', 'cookie-choices', 'Print policy', 'policy-changes']) assert.match(partial, new RegExp(marker));
-  for (const marker of ['Reject optional', 'Accept all', 'Customize', 'Always on', 'aria-live', 'data-open-cookie-preferences']) assert.match(preferencePartial, new RegExp(marker));
+  for (const marker of ['Reject optional', 'Accept all', 'Customize', 'Always on', 'aria-live', 'data-open-cookie-preferences', 'data-cookie-action="accept_all"', 'cookie-dialog-body', 'cookie-dialog-footer']) assert.match(preferencePartial, new RegExp(marker));
   assert.match(partial, /method="POST" action="\/cookie-preferences"/);
   assert.match(css, /max-width:70ch/);
   assert.match(css, /@media print/);
   assert.match(css, /@media\(max-width:480px\)/);
-  assert.match(preferenceCss, /min-height:44px/);
-  assert.match(preferenceCss, /@media\(max-width:360px\)/);
+  assert.match(preferenceCss, /min-height:\s*44px/);
+  assert.match(preferenceCss, /@media\s*\(max-width:\s*360px\)/);
+  assert.match(preferenceCss, /\.cookie-consent-banner\.has-mobile-navigation/);
+  assert.match(preferenceCss, /\.cookie-preferences-dialog\s*\{[\s\S]*position: fixed;[\s\S]*inset: auto 0 0;/);
+  assert.match(preferenceCss, /\.cookie-dialog-actions\s*\{[\s\S]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
+  assert.match(preferenceJs, /pendingCookieAction/);
+  assert.match(preferenceJs, /getActionValue\(event\.submitter\)/);
   assert.doesNotMatch(partial, /ad-unit|run-proof-modal-dialog/i);
 });
 

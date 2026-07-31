@@ -442,6 +442,10 @@
   margin-top: 0.12rem;
 }
 
+.run-proof-event-summary-row {
+  min-width: 0;
+}
+
 .run-proof-event-meta small {
   display: block;
   color: var(--run-proof-muted);
@@ -463,6 +467,10 @@
   font-weight: 700;
   padding: 0.16rem 0.46rem;
   white-space: nowrap;
+}
+
+.run-proof-event-pill-mobile {
+  display: none;
 }
 
 .run-proof-event-card.is-selected {
@@ -1210,7 +1218,7 @@
 
   .run-proof-final-step .run-proof-event-card {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     align-items: center;
     gap: 0.45rem;
     padding: 0.5rem 0.56rem;
@@ -1228,6 +1236,27 @@
 
   .run-proof-final-step .run-proof-event-meta {
     gap: 0.05rem;
+  }
+
+  .run-proof-final-step .run-proof-event-summary-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.42rem;
+  }
+
+  .run-proof-final-step .run-proof-event-schedule {
+    min-width: 0;
+  }
+
+  .run-proof-final-step .run-proof-event-pill-desktop {
+    display: none;
+  }
+
+  .run-proof-final-step .run-proof-event-pill-mobile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .run-proof-final-step .run-proof-event-meta small,

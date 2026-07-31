@@ -21,8 +21,11 @@ const complete50kChallengeGuide = require('./complete-50k-accumulated-challenge'
 const monthLongConsistencyGuide = require('./month-long-virtual-run-consistency');
 const gpsTrackingStopsGuide = require('./gps-tracking-stops-guide');
 const treadmillVirtualEventGuide = require('./treadmill-virtual-event-guide');
+const submissionRejectionGuide = require('./virtual-run-submission-rejection-guide');
+const firstTimeOrganizerChecklist = require('./virtual-run-checklist-first-time-organizers');
+const schoolsOrganizationsGuide = require('./schools-organizations-virtual-runs-guide');
 
-const ARTICLE_MODULES = Object.freeze([bestApps, runningSafety, organizerGuide, raceComparison, virtualRunGuide, leaderboardGuide, validRunProofGuide, accumulatedDistanceGuide, beginner5kGuide, proofSubmissionGuide, joinPhilippinesGuide, hellorunPlatformGuide, firstVirtualRunGuide, distanceChoiceGuide, beginnerPaceGuide, rainySeasonRunningGuide, hotHumidWeatherRunningGuide, complete50kChallengeGuide, monthLongConsistencyGuide, gpsTrackingStopsGuide, treadmillVirtualEventGuide]);
+const ARTICLE_MODULES = Object.freeze([bestApps, runningSafety, organizerGuide, raceComparison, virtualRunGuide, leaderboardGuide, validRunProofGuide, accumulatedDistanceGuide, beginner5kGuide, proofSubmissionGuide, joinPhilippinesGuide, hellorunPlatformGuide, firstVirtualRunGuide, distanceChoiceGuide, beginnerPaceGuide, rainySeasonRunningGuide, hotHumidWeatherRunningGuide, complete50kChallengeGuide, monthLongConsistencyGuide, gpsTrackingStopsGuide, treadmillVirtualEventGuide, submissionRejectionGuide, firstTimeOrganizerChecklist, schoolsOrganizationsGuide]);
 const ARTICLE_REGISTRY = Object.freeze(Object.fromEntries(
   ARTICLE_MODULES.map((articleModule) => [articleModule.ARTICLE.slug, articleModule])
 ));

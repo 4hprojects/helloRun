@@ -7,12 +7,21 @@
   const closeButton = dialog.querySelector('[data-close-cookie-preferences]');
   const rejectButton = dialog.querySelector('[data-reject-cookie-preferences]');
   const customForm = dialog.querySelector('[data-cookie-custom-form]');
-  const status = dialog.querySelector('[data-cookie-preference-status]');
+  const banner = document.querySelector('[data-cookie-banner]');
+  const preferenceForms = Array.from(document.querySelectorAll('[data-cookie-preference-form]'));
   let returnFocus = null;
+  let isSaving = false;
 
   const setBusy = (form, busy) => {
     form.setAttribute('aria-busy', busy ? 'true' : 'false');
     form.querySelectorAll('button, input').forEach((control) => { control.disabled = busy; });
+  };
+
+  const getStatus = (form) => form.querySelector('[data-cookie-preference-status]');
+
+  const getActionValue = (control) => {
+    if (!control) return '';
+    return String(control.dataset?.cookieAction || control.value || '').trim();
   };
 
   const clearHelloRunStorage = () => {
@@ -34,11 +43,19 @@
     });
   };
 
-  const submitPreferences = async (form, submitter) => {
+  const submitPreferences = async (form, action = '') => {
+    if (!form || isSaving) return;
     const before = window.HelloRunPrivacy || {};
     const body = new FormData(form);
-    if (submitter?.name) body.set(submitter.name, submitter.value);
-    setBusy(form, true);
+    const normalizedAction = String(action || '').trim();
+    if (normalizedAction) body.set('action', normalizedAction);
+    else body.delete('action');
+    const status = getStatus(form);
+    isSaving = true;
+    preferenceForms.forEach((preferenceForm) => setBusy(preferenceForm, true));
+    document.querySelectorAll('[data-cookie-preference-status]').forEach((statusElement) => {
+      statusElement.textContent = '';
+    });
     if (status) status.textContent = 'Saving your choices…';
     try {
       const response = await fetch(form.action, {
@@ -53,17 +70,32 @@
       if (status) status.textContent = 'Preferences saved. Reloading with your choices…';
       window.setTimeout(() => window.location.reload(), 150);
     } catch (error) {
-      setBusy(form, false);
+      isSaving = false;
+      preferenceForms.forEach((preferenceForm) => setBusy(preferenceForm, false));
       if (status) status.textContent = error.message || 'Unable to save cookie preferences. Please try again.';
     }
   };
 
-  document.querySelectorAll('[data-cookie-preference-form]').forEach((form) => {
+  preferenceForms.forEach((form) => {
+    form.addEventListener('click', (event) => {
+      const actionControl = event.target.closest?.('[data-cookie-action]');
+      if (!actionControl || !form.contains(actionControl)) return;
+      form.dataset.pendingCookieAction = getActionValue(actionControl);
+    });
     form.addEventListener('submit', (event) => {
       event.preventDefault();
-      submitPreferences(form, event.submitter);
+      const activeControl = document.activeElement?.form === form ? document.activeElement : null;
+      const action = getActionValue(event.submitter) ||
+        getActionValue(activeControl) ||
+        String(form.dataset.pendingCookieAction || '').trim();
+      delete form.dataset.pendingCookieAction;
+      void submitPreferences(form, action);
     });
   });
+
+  if (banner && document.querySelector('.mobile-bottom-nav')) {
+    banner.classList.add('has-mobile-navigation');
+  }
 
   const openDialog = (trigger) => {
     returnFocus = trigger || document.activeElement;
@@ -80,9 +112,7 @@
   openers.forEach((opener) => opener.addEventListener('click', (event) => { event.preventDefault(); openDialog(opener); }));
   closeButton?.addEventListener('click', closeDialog);
   rejectButton?.addEventListener('click', () => {
-    const action = document.createElement('button');
-    action.name = 'action'; action.value = 'reject_optional';
-    submitPreferences(customForm, action);
+    void submitPreferences(customForm, 'reject_optional');
   });
   dialog.addEventListener('click', (event) => { if (event.target === dialog) closeDialog(); });
   dialog.addEventListener('cancel', (event) => { event.preventDefault(); closeDialog(); });

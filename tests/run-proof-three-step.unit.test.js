@@ -81,10 +81,16 @@ test('mobile step three uses compact event rows and a two-column review action b
   assert.match(script, /stepIndicator\.dataset\.currentStep = String\(step\)/);
   assert.match(script, /stepIndicator\.setAttribute\('aria-label', fullLabel\)/);
   assert.match(script, /class="run-proof-event-copy"/);
+  assert.match(script, /class="run-proof-event-summary-row"/);
   assert.match(script, /class="run-proof-event-schedule"/);
   assert.match(script, /class="run-proof-event-requirements"/);
+  assert.match(script, /class="run-proof-event-pill run-proof-event-pill-mobile"/);
+  assert.match(script, /class="run-proof-event-pill run-proof-event-pill-desktop"/);
   assert.match(css, /@media \(max-width: 759px\)[\s\S]*\.run-proof-step-indicator\[data-current-step="3"\] \.run-proof-step-detail-mobile \{\s*display: inline;/);
-  assert.match(css, /\.run-proof-final-step \.run-proof-event-card \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) auto;/);
+  assert.match(css, /\.run-proof-final-step \.run-proof-event-card \{[\s\S]*grid-template-columns: minmax\(0, 1fr\);/);
+  assert.match(css, /\.run-proof-final-step \.run-proof-event-summary-row \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) auto;/);
+  assert.match(css, /\.run-proof-final-step \.run-proof-event-pill-desktop \{\s*display: none;/);
+  assert.match(css, /\.run-proof-final-step \.run-proof-event-pill-mobile \{[\s\S]*display: inline-flex;/);
   assert.match(css, /\.run-proof-submit-review-dialog \{[\s\S]*max-height: calc\(100dvh - 1rem\);[\s\S]*overflow-y: auto;/);
   assert.match(css, /\.run-proof-submit-review-actions \{[\s\S]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
   assert.match(css, /\.run-proof-submit-review-actions \.btn \{[\s\S]*min-height: 2\.75rem;[\s\S]*white-space: normal;/);

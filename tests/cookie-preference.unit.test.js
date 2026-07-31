@@ -27,8 +27,14 @@ test('optional categories default off and normalize independently', () => {
   assert.equal(custom.advertising, true);
   assert.equal(custom.essential, true);
   assert.equal(custom.savedAt, now.toISOString());
-  assert.equal(normalizePreferences({ action: 'accept_all' }, { now }).analytics, true);
-  assert.equal(normalizePreferences({ action: 'reject_optional' }, { now }).functional, false);
+  const accepted = normalizePreferences({ action: 'accept_all' }, { now });
+  assert.equal(accepted.functional, true);
+  assert.equal(accepted.analytics, true);
+  assert.equal(accepted.advertising, true);
+  const rejected = normalizePreferences({ action: 'reject_optional' }, { now });
+  assert.equal(rejected.functional, false);
+  assert.equal(rejected.analytics, false);
+  assert.equal(rejected.advertising, false);
 });
 
 test('signed browser choices round-trip and malformed or expired values fail closed', () => {

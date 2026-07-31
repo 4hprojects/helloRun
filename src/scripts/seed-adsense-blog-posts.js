@@ -90,6 +90,18 @@ const {
   ARTICLE: TREADMILL_VIRTUAL_EVENT_ARTICLE,
   buildArticlePayload: buildTreadmillVirtualEventArticlePayload
 } = require('../content/treadmill-virtual-event-guide');
+const {
+  ARTICLE: SUBMISSION_REJECTION_ARTICLE,
+  buildArticlePayload: buildSubmissionRejectionArticlePayload
+} = require('../content/virtual-run-submission-rejection-guide');
+const {
+  ARTICLE: FIRST_TIME_ORGANIZER_CHECKLIST_ARTICLE,
+  buildArticlePayload: buildFirstTimeOrganizerChecklistPayload
+} = require('../content/virtual-run-checklist-first-time-organizers');
+const {
+  ARTICLE: SCHOOLS_ORGANIZATIONS_GUIDE_ARTICLE,
+  buildArticlePayload: buildSchoolsOrganizationsGuidePayload
+} = require('../content/schools-organizations-virtual-runs-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -136,6 +148,12 @@ const GPS_TRACKING_STOPS_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/cov
 const GPS_TRACKING_STOPS_PAYLOAD = buildGpsTrackingStopsArticlePayload({ coverImageUrl: GPS_TRACKING_STOPS_COVER_IMAGE_URL });
 const TREADMILL_VIRTUAL_EVENT_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785285476875-831938576-how-to-record-a-treadmill-run-for-a-virtual-event.webp';
 const TREADMILL_VIRTUAL_EVENT_PAYLOAD = buildTreadmillVirtualEventArticlePayload({ coverImageUrl: TREADMILL_VIRTUAL_EVENT_COVER_IMAGE_URL });
+const SUBMISSION_REJECTION_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785384120791-554479927-why-a-virtual-run-submission-may-be-rejected.webp';
+const SUBMISSION_REJECTION_PAYLOAD = buildSubmissionRejectionArticlePayload({ coverImageUrl: SUBMISSION_REJECTION_COVER_IMAGE_URL });
+const FIRST_TIME_ORGANIZER_CHECKLIST_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785386059549-983600590-virtual-run-checklist-for-first-time-organizers.webp';
+const FIRST_TIME_ORGANIZER_CHECKLIST_PAYLOAD = buildFirstTimeOrganizerChecklistPayload({ coverImageUrl: FIRST_TIME_ORGANIZER_CHECKLIST_COVER_IMAGE_URL });
+const SCHOOLS_ORGANIZATIONS_GUIDE_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785388535469-101481065-how-schools-and-organizations-can-use-virtual-runs.webp';
+const SCHOOLS_ORGANIZATIONS_GUIDE_PAYLOAD = buildSchoolsOrganizationsGuidePayload({ coverImageUrl: SCHOOLS_ORGANIZATIONS_GUIDE_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -658,6 +676,88 @@ const POSTS = [
       '/blog/what-counts-as-valid-run-proof',
       '/blog/how-to-submit-run-proof-correctly-hellorun',
       '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers'
+    ]
+  },
+  {
+    ...SUBMISSION_REJECTION_ARTICLE,
+    contentHtml: SUBMISSION_REJECTION_PAYLOAD.contentHtml,
+    coverImageUrl: SUBMISSION_REJECTION_COVER_IMAGE_URL,
+    coverImageAlt: SUBMISSION_REJECTION_ARTICLE.coverImageAlt,
+    ogImageUrl: SUBMISSION_REJECTION_COVER_IMAGE_URL,
+    publishedAt: '2026-07-30T04:06:41.345Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/how-it-works',
+      '/faq',
+      '/contact',
+      '/privacy',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/what-to-do-when-gps-tracking-stops-during-a-run',
+      '/blog/how-to-record-a-treadmill-run-for-a-virtual-event',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/how-leaderboards-work-virtual-running-events',
+      '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers'
+    ]
+  },
+  {
+    ...FIRST_TIME_ORGANIZER_CHECKLIST_ARTICLE,
+    contentHtml: FIRST_TIME_ORGANIZER_CHECKLIST_PAYLOAD.contentHtml,
+    coverImageUrl: FIRST_TIME_ORGANIZER_CHECKLIST_COVER_IMAGE_URL,
+    coverImageAlt: FIRST_TIME_ORGANIZER_CHECKLIST_ARTICLE.coverImageAlt,
+    ogImageUrl: FIRST_TIME_ORGANIZER_CHECKLIST_COVER_IMAGE_URL,
+    publishedAt: '2026-07-30T04:39:41.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/organizer/create-event',
+      '/how-it-works',
+      '/faq',
+      '/organiser-terms',
+      '/privacy',
+      '/refund-and-cancellation-policy',
+      '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/why-a-virtual-run-submission-may-be-rejected',
+      '/blog/what-to-do-when-gps-tracking-stops-during-a-run',
+      '/blog/how-to-record-a-treadmill-run-for-a-virtual-event',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/how-leaderboards-work-virtual-running-events',
+      '/blog/running-safety-tips-early-morning-night-runs'
+    ]
+  },
+  {
+    ...SCHOOLS_ORGANIZATIONS_GUIDE_ARTICLE,
+    contentHtml: SCHOOLS_ORGANIZATIONS_GUIDE_PAYLOAD.contentHtml,
+    coverImageUrl: SCHOOLS_ORGANIZATIONS_GUIDE_COVER_IMAGE_URL,
+    coverImageAlt: SCHOOLS_ORGANIZATIONS_GUIDE_ARTICLE.coverImageAlt,
+    ogImageUrl: SCHOOLS_ORGANIZATIONS_GUIDE_COVER_IMAGE_URL,
+    publishedAt: '2026-07-30T05:20:44.385Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/organizer/create-event',
+      '/events',
+      '/how-it-works',
+      '/faq',
+      '/contact',
+      '/privacy',
+      '/organiser-terms',
+      '/refund-and-cancellation-policy',
+      '/blog/virtual-run-checklist-for-first-time-organizers',
+      '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers',
+      '/blog/how-to-choose-between-running-distances',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/why-a-virtual-run-submission-may-be-rejected',
+      '/blog/what-to-do-when-gps-tracking-stops-during-a-run',
+      '/blog/how-to-record-a-treadmill-run-for-a-virtual-event',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/how-leaderboards-work-virtual-running-events',
+      '/blog/running-safety-tips-early-morning-night-runs'
     ]
   }
 ];

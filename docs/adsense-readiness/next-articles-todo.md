@@ -11,9 +11,9 @@ Publish these articles in the following order before the next AdSense review.
 7. [x] How to Stay Consistent During a Month-Long Virtual Run
 8. [x] What to Do When GPS Tracking Stops During a Run
 9. [x] How to Record a Treadmill Run for a Virtual Event
-10. [ ] Why a Virtual Run Submission May Be Rejected
-11. [ ] Virtual Run Checklist for First-Time Organizers
-12. [ ] How Schools and Organizations Can Use Virtual Runs
+10. [x] Why a Virtual Run Submission May Be Rejected
+11. [x] Virtual Run Checklist for First-Time Organizers
+12. [x] How Schools and Organizations Can Use Virtual Runs
 
 ## Implementation checklist for each article
 
