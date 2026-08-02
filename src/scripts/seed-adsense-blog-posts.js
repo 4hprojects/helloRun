@@ -114,6 +114,10 @@ const {
   ARTICLE: RUN_WALK_METHOD_ARTICLE,
   buildArticlePayload: buildRunWalkMethodPayload
 } = require('../content/run-walk-method-beginner-guide');
+const {
+  ARTICLE: PARTICIPANT_COMMUNICATION_TIMELINE_ARTICLE,
+  buildArticlePayload: buildParticipantCommunicationTimelinePayload
+} = require('../content/participant-communication-timeline-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -172,6 +176,8 @@ const CLEAR_VIRTUAL_RUN_RULES_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blo
 const CLEAR_VIRTUAL_RUN_RULES_PAYLOAD = buildClearVirtualRunRulesPayload({ coverImageUrl: CLEAR_VIRTUAL_RUN_RULES_COVER_IMAGE_URL });
 const RUN_WALK_METHOD_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785671459612-580542686-run-walk-method-beginner-friendly-way-build-endurance.webp';
 const RUN_WALK_METHOD_PAYLOAD = buildRunWalkMethodPayload({ coverImageUrl: RUN_WALK_METHOD_COVER_IMAGE_URL });
+const PARTICIPANT_COMMUNICATION_TIMELINE_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785672741077-79846788-participant-communication-timeline-virtual-running-events.webp';
+const PARTICIPANT_COMMUNICATION_TIMELINE_PAYLOAD = buildParticipantCommunicationTimelinePayload({ coverImageUrl: PARTICIPANT_COMMUNICATION_TIMELINE_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -837,6 +843,29 @@ const POSTS = [
       '/blog/running-during-rainy-season-philippines',
       '/blog/how-to-record-a-treadmill-run-for-a-virtual-event',
       '/blog/running-safety-tips-early-morning-night-runs'
+    ]
+  },
+  {
+    ...PARTICIPANT_COMMUNICATION_TIMELINE_ARTICLE,
+    contentHtml: PARTICIPANT_COMMUNICATION_TIMELINE_PAYLOAD.contentHtml,
+    coverImageUrl: PARTICIPANT_COMMUNICATION_TIMELINE_COVER_IMAGE_URL,
+    coverImageAlt: PARTICIPANT_COMMUNICATION_TIMELINE_ARTICLE.coverImageAlt,
+    ogImageUrl: PARTICIPANT_COMMUNICATION_TIMELINE_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-08-08T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/organiser-terms',
+      '/community-guidelines',
+      '/privacy',
+      '/data-usage-policy',
+      '/refund-and-cancellation-policy',
+      '/blog/how-to-write-clear-virtual-run-rules-participants-can-follow',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/why-a-virtual-run-submission-may-be-rejected'
     ]
   }
 ];

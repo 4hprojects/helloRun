@@ -27,9 +27,9 @@ const {
   REQUIRED_LINKS,
   buildArticlePayload,
   validateArticlePayload
-} = require('../src/content/run-walk-method-beginner-guide');
+} = require('../src/content/participant-communication-timeline-guide');
 
-const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785671459612-580542686-run-walk-method-beginner-friendly-way-build-endurance.webp';
+const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785672741077-79846788-participant-communication-timeline-virtual-running-events.webp';
 const COVER_IMAGE_PATH = path.join(
   __dirname,
   '..',
@@ -38,20 +38,20 @@ const COVER_IMAGE_PATH = path.join(
   'images',
   'blog',
   'covers',
-  'run-walk-method-beginner-friendly-way-build-endurance.webp'
+  'participant-communication-timeline-virtual-running-events.webp'
 );
 
-test('run-walk guide builds a substantive beginner-friendly payload', () => {
+test('participant communication timeline builds a substantive organizer payload', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const wordCount = payload.contentText.split(/\s+/).filter(Boolean).length;
 
   assert.equal(ARTICLE.slug, CANONICAL_SLUG);
-  assert.equal(payload.title, 'The Run-Walk Method: A Beginner-Friendly Way to Build Endurance');
-  assert.equal(payload.category, 'Training');
+  assert.equal(payload.title, 'A Participant Communication Timeline for Virtual Running Events');
+  assert.equal(payload.category, 'Organizer Guide');
   assert.ok(BLOG_CATEGORIES.includes(payload.category));
   assert.deepEqual(payload.tags, [
-    'run walk method', 'beginner running', 'running endurance', 'walk breaks',
-    'easy running', 'running intervals', '5K preparation', 'training guide'
+    'event communication', 'virtual run organizer', 'participant updates', 'event timeline',
+    'registration messages', 'submission reminders', 'runner support', 'organizer guide'
   ]);
   assert.ok(payload.tags.every((tag) => tag.length <= 30));
   assert.ok(payload.excerpt.length <= 220);
@@ -67,14 +67,13 @@ test('run-walk guide builds a substantive beginner-friendly payload', () => {
   assert.doesNotThrow(() => validateArticlePayload(payload));
 
   assert.doesNotMatch(payload.contentHtml, /<h1\b/i);
-  assert.doesNotMatch(payload.contentHtml, /<h[12]>The Run-Walk Method:/i);
-  assert.match(payload.contentText, /walk is part of the session from the beginning/i);
-  assert.match(payload.contentText, /not the one with the most running/i);
-  assert.match(payload.contentText, /There is no universal deadline for removing walk breaks/i);
-  assert.match(payload.contentText, /Population recommendations describe activity associated with health benefits; they are not personal training plans/i);
-  assert.match(payload.contentText, /A pending activity is potential progress, not official progress/i);
-  assert.match(payload.contentText, /reviewed in August 2026 using current public guidance/i);
-  assert.match(payload.contentText, /These scenarios illustrate decisions, not predicted outcomes/i);
+  assert.doesNotMatch(payload.contentHtml, /<h[12]>A Participant Communication Timeline/i);
+  assert.match(payload.contentText, /small set of timely, consistent, accessible messages tied to real event states/i);
+  assert.match(payload.contentText, /A sent message is evidence of an attempted communication, not proof of comprehension or acceptance/i);
+  assert.match(payload.contentText, /Pending evidence is not yet official/i);
+  assert.match(payload.contentText, /transactional status message .* is different from promotional communication/i);
+  assert.match(payload.contentText, /reviewed in August 2026 against current HelloRun/i);
+  assert.match(payload.contentText, /Copy each line into the team’s planning document/i);
 
   for (const heading of REQUIRED_HEADINGS) {
     assert.ok(payload.contentHtml.includes(`<h2>${heading}</h2>`), `missing required heading: ${heading}`);
@@ -84,7 +83,7 @@ test('run-walk guide builds a substantive beginner-friendly payload', () => {
   }
 });
 
-test('run-walk guide sanitizes sources and passes publication eligibility', () => {
+test('participant communication timeline sanitizes sources and passes publication eligibility', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const eligibility = evaluateBlogContentEligibility({
     ...payload,
@@ -94,18 +93,19 @@ test('run-walk guide sanitizes sources and passes publication eligibility', () =
   assert.equal(payload.contentHtml.includes('<script'), false);
   assert.equal(payload.contentHtml.includes('javascript:'), false);
   assert.notEqual(payload.contentHtml, RAW_CONTENT_HTML.trim());
-  assert.match(payload.contentHtml, /href="https:\/\/www\.who\.int\/publications\/i\/item\/9789240015128" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.cdc\.gov\/physical-activity-basics\/measuring\/index\.html" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.nhs\.uk\/better-health\/get-active\/get-running-with-couch-to-5k\/couch-to-5k-running-plan\/" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/WAI\/tips\/writing\/" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/WAI\/curricula\/content-author-modules\/clear-content\/" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/WAI\/tutorials\/forms\/notifications\/" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/privacy\.gov\.ph\/wp-content\/uploads\/2022\/01\/DPO18-DPA_PCREL\.pdf" rel="noopener noreferrer" target="_blank"/);
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
   assert.equal(eligibility.healthReviewRequired, true);
   assert.ok(eligibility.wordCount >= 3200);
   assert.ok(eligibility.semanticUnitCount >= 3);
-  assert.equal(eligibility.externalLinkCount, 3);
+  assert.equal(eligibility.externalLinkCount, 4);
 });
 
-test('run-walk guide has a distinct 1600 by 900 repository cover', async () => {
+test('participant communication timeline uses a 1600 by 900 early-series cover', async () => {
   assert.equal(fs.existsSync(COVER_IMAGE_PATH), true);
   const metadata = await sharp(COVER_IMAGE_PATH).metadata();
   assert.equal(metadata.format, 'webp');
@@ -113,7 +113,7 @@ test('run-walk guide has a distinct 1600 by 900 repository cover', async () => {
   assert.equal(metadata.height, 900);
 });
 
-test('run-walk guide is registered and seeded once for August 6', () => {
+test('participant communication timeline is registered and seeded once for August 8', () => {
   const articleModule = getArticleModule(CANONICAL_SLUG);
   const seededPosts = POSTS.filter((post) => post.slug === CANONICAL_SLUG);
   const seededPost = seededPosts[0];
@@ -128,15 +128,15 @@ test('run-walk guide is registered and seeded once for August 6', () => {
   assert.equal(seededPost.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(seededPost.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(seededPost.status, 'scheduled');
-  assert.equal(seededPost.publishedAt, '2026-08-06T11:00:00.000Z');
+  assert.equal(seededPost.publishedAt, '2026-08-08T11:00:00.000Z');
   assert.equal(seededPost.featured, false);
   assert.equal(seededPost.authorEmail, GUIDE_AUTHOR_EMAIL);
 });
 
-test('run-walk guide supports exact future scheduling and updates', () => {
+test('participant communication timeline supports exact future scheduling and updates', () => {
   const authorId = new mongoose.Types.ObjectId();
-  const reviewedAt = new Date('2026-08-02T12:00:00.000Z');
-  const publishAt = '2026-08-06T11:00:00.000Z';
+  const reviewedAt = new Date('2026-08-02T13:00:00.000Z');
+  const publishAt = '2026-08-08T11:00:00.000Z';
   const payload = buildCreatePayload({ slug: CANONICAL_SLUG, authorId, now: reviewedAt, publishAt });
 
   assert.deepEqual(
@@ -152,10 +152,11 @@ test('run-walk guide supports exact future scheduling and updates', () => {
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.contentEligibility.eligible, true);
   assert.equal(payload.publicationReview.policyVersion, 'ugc-adsense-v1');
-  assert.match(packageJson.scripts['blog:update-run-walk-method'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+  assert.equal(payload.publicationReview.originalityConfirmed, true);
+  assert.match(packageJson.scripts['blog:update-participant-communication-timeline'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
-test('run-walk guide rejects unsafe, universal, and unsupported claims', () => {
+test('participant communication timeline rejects unsupported operational claims', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const withClaim = (claim) => ({
     ...payload,
@@ -164,32 +165,28 @@ test('run-walk guide rejects unsafe, universal, and unsupported claims', () => {
   });
 
   assert.throws(
-    () => validateArticlePayload(withClaim('The 10% rule applies to every runner.')),
-    /10% rule/
+    () => validateArticlePayload(withClaim('Every email is delivered.')),
+    /message delivery/
   );
   assert.throws(
-    () => validateArticlePayload(withClaim('You must run every day.')),
-    /daily running/
-  );
-  assert.throws(
-    () => validateArticlePayload(withClaim('This method guarantees endurance.')),
-    /guarantee outcomes/
-  );
-  assert.throws(
-    () => validateArticlePayload(withClaim('Every runner must start with one minute running.')),
-    /universal interval/
-  );
-  assert.throws(
-    () => validateArticlePayload(withClaim('Walking is always accepted.')),
-    /universal interval/
-  );
-  assert.throws(
-    () => validateArticlePayload(withClaim('Pending activity counts as official completion.')),
-    /pending progress/
+    () => validateArticlePayload(withClaim('Every participant has read the message.')),
+    /comprehension/
   );
   assert.throws(
     () => validateArticlePayload(withClaim('Every submission is automatically approved.')),
     /automatic approval/
+  );
+  assert.throws(
+    () => validateArticlePayload(withClaim('Pending evidence counts as official progress.')),
+    /pending evidence/
+  );
+  assert.throws(
+    () => validateArticlePayload(withClaim('Every participant gets a medal.')),
+    /recognition/
+  );
+  assert.throws(
+    () => validateArticlePayload(withClaim('Joining the event automatically means marketing consent.')),
+    /marketing consent/
   );
   assert.throws(
     () => buildArticlePayload(),
