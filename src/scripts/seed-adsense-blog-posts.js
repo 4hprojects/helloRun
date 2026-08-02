@@ -142,6 +142,10 @@ const {
   ARTICLE: DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_ARTICLE,
   buildArticlePayload: buildDataPrivacyChecklistRunningEventOrganizersPayload
 } = require('../content/data-privacy-checklist-running-event-organizers-guide');
+const {
+  ARTICLE: RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_ARTICLE,
+  buildArticlePayload: buildRaceDayPackingOnsiteHybridEventsPayload
+} = require('../content/race-day-packing-onsite-hybrid-events-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -214,6 +218,8 @@ const WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_COVER_IMAGE_URL = 'https://cdn.helloru
 const WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_PAYLOAD = buildWeeklyRunningScheduleWorkSchoolPayload({ coverImageUrl: WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_COVER_IMAGE_URL });
 const DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785687764281-767893634-data-privacy-checklist-running-event-organizers.webp';
 const DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_PAYLOAD = buildDataPrivacyChecklistRunningEventOrganizersPayload({ coverImageUrl: DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_COVER_IMAGE_URL });
+const RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785688505189-897783697-what-to-bring-race-day-onsite-hybrid-events.webp';
+const RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_PAYLOAD = buildRaceDayPackingOnsiteHybridEventsPayload({ coverImageUrl: RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1032,6 +1038,26 @@ const POSTS = [
       '/how-it-works',
       '/blog/how-to-write-clear-virtual-run-rules-participants-can-follow',
       '/blog/fair-and-consistent-run-proof-review-checklist-for-organizers'
+    ]
+  },
+  {
+    ...RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_ARTICLE,
+    contentHtml: RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_PAYLOAD.contentHtml,
+    coverImageUrl: RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_COVER_IMAGE_URL,
+    coverImageAlt: RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_ARTICLE.coverImageAlt,
+    ogImageUrl: RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-08-24T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/how-it-works',
+      '/faq',
+      '/blog/how-to-prepare-for-your-first-virtual-run',
+      '/blog/virtual-run-vs-traditional-race-which-one-should-you-join',
+      '/blog/how-to-run-safely-during-hot-and-humid-weather',
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run'
     ]
   }
 ];

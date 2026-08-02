@@ -38,7 +38,7 @@
 | Mon, Aug 17 | 19:00 Asia/Manila | 2026-08-17 11:00:00Z | Organizer | Virtual Run Guide | A Fair and Consistent Run-Proof Review Checklist for Organizers | Scheduled — production record and CDN cover verified |
 | Thu, Aug 20 | 19:00 Asia/Manila | 2026-08-20 11:00:00Z | Runner | Training | How to Build a Weekly Running Schedule Around Work or School | Scheduled — production record and CDN cover verified |
 | Sat, Aug 22 | 19:00 Asia/Manila | 2026-08-22 11:00:00Z | Organizer | Organizer Guide | Data Privacy Checklist for Running Event Organizers | Scheduled — production record and CDN cover verified |
-| Mon, Aug 24 | 19:00 Asia/Manila | 2026-08-24 11:00:00Z | Runner | Race Tips | What to Bring on Race Day: A Checklist for On-Site and Hybrid Events | Candidate — Search Console validation pending |
+| Mon, Aug 24 | 19:00 Asia/Manila | 2026-08-24 11:00:00Z | Runner | Race Tips | What to Bring on Race Day: A Checklist for On-Site and Hybrid Events | Scheduled — production record and CDN cover verified |
 | Thu, Aug 27 | 19:00 Asia/Manila | 2026-08-27 11:00:00Z | Organizer | Community | How to Make Running Event Instructions More Inclusive and Accessible | Candidate — Search Console validation pending |
 | Sat, Aug 29 | 19:00 Asia/Manila | 2026-08-29 11:00:00Z | Runner | Training | Returning to Running After a Break: A Gradual Restart Plan | Candidate — Search Console validation pending |
 | Mon, Aug 31 | 19:00 Asia/Manila | 2026-08-31 11:00:00Z | Organizer | Organizer Guide | How to Close a Virtual Run: Final Reviews, Results, and Recognition | Candidate — Search Console validation pending |
@@ -185,6 +185,8 @@
 
 ### 11. What to Bring on Race Day: A Checklist for On-Site and Hybrid Events
 
+- **Editorial status:** Scheduled for August 24; Search Console validation
+  remains pending and is not recorded as complete.
 - **Reader problem:** A participant needs a concise preparation list for the
   venue portion of an on-site or hybrid event.
 - **Distinct angle:** Separate universal preparation from event-specific

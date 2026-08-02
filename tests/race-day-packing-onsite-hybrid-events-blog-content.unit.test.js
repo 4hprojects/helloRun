@@ -27,32 +27,23 @@ const {
   REQUIRED_LINKS,
   buildArticlePayload,
   validateArticlePayload
-} = require('../src/content/fair-distance-categories-challenge-goals-guide');
+} = require('../src/content/race-day-packing-onsite-hybrid-events-guide');
 
-const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785680107500-610435147-how-to-design-fair-distance-categories-and-challenge-goals.webp';
+const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785688505189-897783697-what-to-bring-race-day-onsite-hybrid-events.webp';
 const COVER_IMAGE_PATH = path.join(
-  __dirname,
-  '..',
-  'src',
-  'public',
-  'images',
-  'blog',
-  'covers',
-  'how-to-design-fair-distance-categories-and-challenge-goals.webp'
+  __dirname, '..', 'src', 'public', 'images', 'blog', 'covers',
+  'what-to-bring-race-day-onsite-hybrid-events.webp'
 );
 
-test('fair distance categories guide builds a substantive organizer payload', () => {
+test('race-day packing guide builds a substantive flexible checklist', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const wordCount = payload.contentText.split(/\s+/).filter(Boolean).length;
 
   assert.equal(ARTICLE.slug, CANONICAL_SLUG);
-  assert.equal(payload.title, 'How to Design Fair Distance Categories and Challenge Goals');
-  assert.equal(payload.category, 'Organizer Guide');
+  assert.equal(payload.title, 'What to Bring on Race Day: A Checklist for On-Site and Hybrid Events');
+  assert.equal(payload.category, 'Race Tips');
   assert.ok(BLOG_CATEGORIES.includes(payload.category));
-  assert.deepEqual(payload.tags, [
-    'event categories', 'distance goals', 'virtual run organizer', 'accumulated challenge',
-    'race distance design', 'event pricing', 'leaderboard rules', 'organizer guide'
-  ]);
+  assert.equal(payload.tags.length, 8);
   assert.ok(payload.tags.every((tag) => tag.length <= 30));
   assert.ok(payload.excerpt.length <= 220);
   assert.ok(payload.seoTitle.length <= 160);
@@ -65,13 +56,10 @@ test('fair distance categories guide builds a substantive organizer payload', ()
   assert.equal(payload.readingTime, Math.ceil(wordCount / 180));
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.doesNotThrow(() => validateArticlePayload(payload));
-
   assert.doesNotMatch(payload.contentHtml, /<h1\b/i);
-  assert.doesNotMatch(payload.contentHtml, /<h[12]>How to Design Fair Distance Categories/i);
-  assert.match(payload.contentText, /selected race category stored with the registration/i);
-  assert.match(payload.contentText, /Pending activity remains separate and does not enter official ordering/i);
-  assert.match(payload.contentText, /reviewed in August 2026 against current HelloRun/i);
-  assert.match(payload.contentText, /Draft no more than the categories the event genuinely needs/i);
+  assert.match(payload.contentText, /reviewed in August 2026 using current Philippine Atmospheric/i);
+  assert.match(payload.contentText, /general educational information, not individualized medical/i);
+  assert.match(payload.contentText, /hybrid event can offer virtual and onsite participation/i);
 
   for (const heading of REQUIRED_HEADINGS) {
     assert.ok(payload.contentHtml.includes(`<h2>${heading}</h2>`), `missing required heading: ${heading}`);
@@ -81,29 +69,26 @@ test('fair distance categories guide builds a substantive organizer payload', ()
   }
 });
 
-test('fair distance categories guide sanitizes sources and passes eligibility', () => {
+test('race-day packing guide sanitizes official sources and passes health eligibility', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
-  const eligibility = evaluateBlogContentEligibility({
-    ...payload,
-    coverImageUrl: COVER_IMAGE_URL
-  }, { evaluatedAt: new Date('2026-08-02T00:00:00.000Z') });
+  const eligibility = evaluateBlogContentEligibility(payload, {
+    evaluatedAt: new Date('2026-08-03T00:00:00.000Z')
+  });
 
   assert.equal(payload.contentHtml.includes('<script'), false);
   assert.equal(payload.contentHtml.includes('javascript:'), false);
   assert.notEqual(payload.contentHtml, RAW_CONTENT_HTML.trim());
-  assert.match(payload.contentHtml, /href="https:\/\/www\.rrca\.org\/programs\/race-director-certification\/race-director-code-of-ethics\/" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/WAI\/WCAG22\/Understanding\/labels-or-instructions" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/WAI\/curricula\/content-author-modules\/forms\/" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/worldathletics\.org\/about-iaaf\/documents\/book-of-rules" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.pagasa\.dost\.gov\.ph\/products-and-services" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.cdc\.gov\/heat-health\/risk-factors\/heat-and-athletes\.html" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.rrca\.org\/education\/event-directors\/safe-event-guidelines\/" rel="noopener noreferrer" target="_blank"/);
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
   assert.equal(eligibility.healthReviewRequired, true);
   assert.ok(eligibility.wordCount >= 3200);
-  assert.ok(eligibility.semanticUnitCount >= 3);
   assert.equal(eligibility.externalLinkCount, 4);
 });
 
-test('fair distance categories guide uses a 1600 by 900 editorial blueprint cover', async () => {
+test('race-day packing guide uses a distinct 1600 by 900 ceramic mosaic cover', async () => {
   assert.equal(fs.existsSync(COVER_IMAGE_PATH), true);
   const metadata = await sharp(COVER_IMAGE_PATH).metadata();
   assert.equal(metadata.format, 'webp');
@@ -111,7 +96,7 @@ test('fair distance categories guide uses a 1600 by 900 editorial blueprint cove
   assert.equal(metadata.height, 900);
 });
 
-test('fair distance categories guide is registered and seeded once for August 13', () => {
+test('race-day packing guide is registered and seeded once for August 24', () => {
   const articleModule = getArticleModule(CANONICAL_SLUG);
   const seededPosts = POSTS.filter((post) => post.slug === CANONICAL_SLUG);
   const seededPost = seededPosts[0];
@@ -124,37 +109,43 @@ test('fair distance categories guide is registered and seeded once for August 13
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
   assert.equal(htmlToText(seededPost.contentHtml), buildArticlePayload({ coverImageUrl: seededPost.coverImageUrl }).contentText);
   assert.equal(seededPost.coverImageUrl, COVER_IMAGE_URL);
-  assert.equal(seededPost.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(seededPost.status, 'scheduled');
-  assert.equal(seededPost.publishedAt, '2026-08-13T11:00:00.000Z');
+  assert.equal(seededPost.publishedAt, '2026-08-24T11:00:00.000Z');
   assert.equal(seededPost.featured, false);
   assert.equal(seededPost.authorEmail, GUIDE_AUTHOR_EMAIL);
 });
 
-test('fair distance categories guide supports exact future scheduling and updates', () => {
+test('race-day packing guide supports exact eligible scheduling and updates', () => {
   const authorId = new mongoose.Types.ObjectId();
-  const reviewedAt = new Date('2026-08-02T15:00:00.000Z');
-  const publishAt = '2026-08-13T11:00:00.000Z';
-  const payload = buildCreatePayload({ slug: CANONICAL_SLUG, authorId, now: reviewedAt, publishAt });
+  const publishAt = '2026-08-24T11:00:00.000Z';
+  const payload = buildCreatePayload({
+    slug: CANONICAL_SLUG,
+    authorId,
+    now: new Date('2026-08-03T10:00:00.000Z'),
+    publishAt
+  });
 
   assert.deepEqual(
     parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--publish-at', publishAt]),
     { slug: CANONICAL_SLUG, mode: 'apply', publishAt }
   );
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
-  assert.equal(String(payload.authorId), String(authorId));
   assert.equal(payload.status, 'scheduled');
   assert.equal(payload.publishedAt.toISOString(), publishAt);
   assert.equal(payload.approvedAt, null);
-  assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
-  assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
+  assert.equal(payload.featured, false);
   assert.equal(payload.contentEligibility.eligible, true);
-  assert.equal(payload.publicationReview.policyVersion, 'ugc-adsense-v1');
+  assert.equal(payload.contentEligibility.healthReviewRequired, true);
   assert.equal(payload.publicationReview.originalityConfirmed, true);
-  assert.match(packageJson.scripts['blog:update-fair-distance-categories'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+  assert.equal(payload.publicationReview.externalLinksConfirmed, true);
+  assert.equal(payload.publicationReview.healthChecks.healthExperienceConfirmed, true);
+  assert.equal(payload.publicationReview.healthChecks.healthSourcesConfirmed, true);
+  assert.equal(payload.publicationReview.healthChecks.healthSafetyConfirmed, true);
+  assert.equal(payload.publicationReview.healthChecks.healthCredentialsConfirmed, true);
+  assert.match(packageJson.scripts['blog:update-race-day-packing'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
-test('fair distance categories guide rejects unsupported fairness and result claims', () => {
+test('race-day packing guide rejects unsafe and unsupported claims', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const withClaim = (claim) => ({
     ...payload,
@@ -162,12 +153,13 @@ test('fair distance categories guide rejects unsupported fairness and result cla
     contentRaw: `${payload.contentText} ${claim}`
   });
 
-  assert.throws(() => validateArticlePayload(withClaim('Any distance is fair for everyone.')), /universal fairness/);
-  assert.throws(() => validateArticlePayload(withClaim('Standard road distances are mandatory for virtual events.')), /standard road distances/);
-  assert.throws(() => validateArticlePayload(withClaim('Pending distance counts toward official progress.')), /pending results/);
-  assert.throws(() => validateArticlePayload(withClaim('Categories automatically guarantee accessibility.')), /accessibility/);
-  assert.throws(() => validateArticlePayload(withClaim('Every registration is automatically approved.')), /automatic approval/);
-  assert.throws(() => validateArticlePayload(withClaim('Certificates are guaranteed.')), /recognition/);
-  assert.throws(() => validateArticlePayload(withClaim('Leaderboard placement is guaranteed.')), /recognition/);
+  assert.throws(() => validateArticlePayload(withClaim('Every runner must bring a backpack.')), /universal packing list/);
+  assert.throws(() => validateArticlePayload(withClaim('Everyone needs exactly 3 liters.')), /universal hydration/);
+  assert.throws(() => validateArticlePayload(withClaim('This checklist guarantees entry.')), /guarantee outcomes/);
+  assert.throws(() => validateArticlePayload(withClaim('Every onsite event uses QR timing.')), /invent event services/);
+  assert.throws(() => validateArticlePayload(withClaim('Hybrid registration automatically includes both modes.')), /hybrid mode access/);
+  assert.throws(() => validateArticlePayload(withClaim('Continue running through chest pain.')), /unsafe continuation/);
+  assert.throws(() => validateArticlePayload(withClaim('A packed bag means you must finish.')), /preserve withdrawal/);
+  assert.throws(() => validateArticlePayload(withClaim('Approved onsite result certifies physical readiness.')), /overstate approval/);
   assert.throws(() => buildArticlePayload(), /cover artwork/);
 });
