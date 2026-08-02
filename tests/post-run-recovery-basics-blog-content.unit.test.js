@@ -27,9 +27,9 @@ const {
   REQUIRED_LINKS,
   buildArticlePayload,
   validateArticlePayload
-} = require('../src/content/participant-communication-timeline-guide');
+} = require('../src/content/post-run-recovery-basics-guide');
 
-const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785672741077-79846788-participant-communication-timeline-virtual-running-events.webp';
+const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785684194043-524731892-post-run-recovery-basics-rest-hydration-when-to-ease-back.webp';
 const COVER_IMAGE_PATH = path.join(
   __dirname,
   '..',
@@ -38,20 +38,20 @@ const COVER_IMAGE_PATH = path.join(
   'images',
   'blog',
   'covers',
-  'participant-communication-timeline-virtual-running-events.webp'
+  'post-run-recovery-basics-rest-hydration-when-to-ease-back.webp'
 );
 
-test('participant communication timeline builds a substantive organizer payload', () => {
+test('post-run recovery guide builds a substantive health-gated payload', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const wordCount = payload.contentText.split(/\s+/).filter(Boolean).length;
 
   assert.equal(ARTICLE.slug, CANONICAL_SLUG);
-  assert.equal(payload.title, 'A Participant Communication Timeline for Virtual Running Events');
-  assert.equal(payload.category, 'Organizer Guide');
+  assert.equal(payload.title, 'Post-Run Recovery Basics: Rest, Hydration, and When to Ease Back');
+  assert.equal(payload.category, 'Injury Prevention');
   assert.ok(BLOG_CATEGORIES.includes(payload.category));
   assert.deepEqual(payload.tags, [
-    'event communication', 'virtual run organizer', 'participant updates', 'event timeline',
-    'registration messages', 'submission reminders', 'runner support', 'organizer guide'
+    'post-run recovery', 'recovery basics', 'runner hydration', 'rest after running',
+    'muscle soreness', 'injury awareness', 'running safety', 'beginner runners'
   ]);
   assert.ok(payload.tags.every((tag) => tag.length <= 30));
   assert.ok(payload.excerpt.length <= 220);
@@ -67,13 +67,11 @@ test('participant communication timeline builds a substantive organizer payload'
   assert.doesNotThrow(() => validateArticlePayload(payload));
 
   assert.doesNotMatch(payload.contentHtml, /<h1\b/i);
-  assert.doesNotMatch(payload.contentHtml, /<h[12]>A Participant Communication Timeline/i);
-  assert.match(payload.contentText, /small set of timely, consistent, accessible messages tied to real event states/i);
-  assert.match(payload.contentText, /A sent message is evidence of an attempted communication, not proof of comprehension or acceptance/i);
-  assert.match(payload.contentText, /Pending evidence is not yet official/i);
-  assert.match(payload.contentText, /transactional status message .* is different from promotional communication/i);
-  assert.match(payload.contentText, /reviewed in August 2026 against current HelloRun/i);
-  assert.match(payload.contentText, /Copy each line into the team’s planning document/i);
+  assert.doesNotMatch(payload.contentHtml, /<h[12]>Post-Run Recovery Basics:/i);
+  assert.match(payload.contentText, /reviewed in August 2026 using World Health Organization/i);
+  assert.match(payload.contentText, /Approval means the evidence met the applicable platform and event review requirements/i);
+  assert.match(payload.contentText, /Contact local emergency services or obtain immediate medical help/i);
+  assert.match(payload.contentText, /After the next ordinary run, complete the worksheet once/i);
 
   for (const heading of REQUIRED_HEADINGS) {
     assert.ok(payload.contentHtml.includes(`<h2>${heading}</h2>`), `missing required heading: ${heading}`);
@@ -83,7 +81,7 @@ test('participant communication timeline builds a substantive organizer payload'
   }
 });
 
-test('participant communication timeline sanitizes sources and passes publication eligibility', () => {
+test('post-run recovery guide sanitizes official sources and passes health eligibility', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const eligibility = evaluateBlogContentEligibility({
     ...payload,
@@ -93,19 +91,20 @@ test('participant communication timeline sanitizes sources and passes publicatio
   assert.equal(payload.contentHtml.includes('<script'), false);
   assert.equal(payload.contentHtml.includes('javascript:'), false);
   assert.notEqual(payload.contentHtml, RAW_CONTENT_HTML.trim());
-  assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/WAI\/tips\/writing\/" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/WAI\/curricula\/content-author-modules\/clear-content\/" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/WAI\/tutorials\/forms\/notifications\/" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/privacy\.gov\.ph\/wp-content\/uploads\/2022\/01\/DPO18-DPA_PCREL\.pdf" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.who\.int\/publications\/i\/item\/9789240015128" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.acsm\.org\/docs\/default-source\/nyshsi_resources\/resources\/sssi-nyshsi-recovery\.pdf" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.nhs\.uk\/better-health\/get-active\/get-running-with-couch-to-5k\/couch-to-5k-running-plan\/" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.nhs\.uk\/conditions\/sprains-and-strains\/" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.cdc\.gov\/heat-health\/risk-factors\/heat-and-athletes\.html" rel="noopener noreferrer" target="_blank"/);
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
   assert.equal(eligibility.healthReviewRequired, true);
   assert.ok(eligibility.wordCount >= 3200);
   assert.ok(eligibility.semanticUnitCount >= 3);
-  assert.equal(eligibility.externalLinkCount, 4);
+  assert.equal(eligibility.externalLinkCount, 5);
 });
 
-test('participant communication timeline uses a 1600 by 900 early-series cover', async () => {
+test('post-run recovery guide uses a 1600 by 900 quiet documentary cover', async () => {
   assert.equal(fs.existsSync(COVER_IMAGE_PATH), true);
   const metadata = await sharp(COVER_IMAGE_PATH).metadata();
   assert.equal(metadata.format, 'webp');
@@ -113,7 +112,7 @@ test('participant communication timeline uses a 1600 by 900 early-series cover',
   assert.equal(metadata.height, 900);
 });
 
-test('participant communication timeline is registered and seeded once for August 8', () => {
+test('post-run recovery guide is registered and seeded once for August 15', () => {
   const articleModule = getArticleModule(CANONICAL_SLUG);
   const seededPosts = POSTS.filter((post) => post.slug === CANONICAL_SLUG);
   const seededPost = seededPosts[0];
@@ -128,15 +127,15 @@ test('participant communication timeline is registered and seeded once for Augus
   assert.equal(seededPost.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(seededPost.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(seededPost.status, 'scheduled');
-  assert.equal(seededPost.publishedAt, '2026-08-08T11:00:00.000Z');
+  assert.equal(seededPost.publishedAt, '2026-08-15T11:00:00.000Z');
   assert.equal(seededPost.featured, false);
   assert.equal(seededPost.authorEmail, GUIDE_AUTHOR_EMAIL);
 });
 
-test('participant communication timeline supports exact future scheduling and updates', () => {
+test('post-run recovery guide supports exact health-reviewed scheduling and updates', () => {
   const authorId = new mongoose.Types.ObjectId();
-  const reviewedAt = new Date('2026-08-02T13:00:00.000Z');
-  const publishAt = '2026-08-08T11:00:00.000Z';
+  const reviewedAt = new Date('2026-08-02T16:00:00.000Z');
+  const publishAt = '2026-08-15T11:00:00.000Z';
   const payload = buildCreatePayload({ slug: CANONICAL_SLUG, authorId, now: reviewedAt, publishAt });
 
   assert.deepEqual(
@@ -151,12 +150,16 @@ test('participant communication timeline supports exact future scheduling and up
   assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.contentEligibility.eligible, true);
-  assert.equal(payload.publicationReview.policyVersion, 'ugc-adsense-v1');
-  assert.equal(payload.publicationReview.originalityConfirmed, true);
-  assert.match(packageJson.scripts['blog:update-participant-communication-timeline'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+  assert.equal(payload.contentEligibility.healthReviewRequired, true);
+  assert.equal(payload.publicationReview.healthSafetyConfirmed, true);
+  assert.equal(payload.publicationReview.healthChecks.healthExperienceConfirmed, true);
+  assert.equal(payload.publicationReview.healthChecks.healthSourcesConfirmed, true);
+  assert.equal(payload.publicationReview.healthChecks.healthSafetyConfirmed, true);
+  assert.equal(payload.publicationReview.healthChecks.healthCredentialsConfirmed, true);
+  assert.match(packageJson.scripts['blog:update-post-run-recovery'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
-test('participant communication timeline rejects unsupported operational claims', () => {
+test('post-run recovery guide rejects diagnosis, dosing, and unsafe return claims', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const withClaim = (claim) => ({
     ...payload,
@@ -164,32 +167,12 @@ test('participant communication timeline rejects unsupported operational claims'
     contentRaw: `${payload.contentText} ${claim}`
   });
 
-  assert.throws(
-    () => validateArticlePayload(withClaim('Every email is delivered.')),
-    /message delivery/
-  );
-  assert.throws(
-    () => validateArticlePayload(withClaim('Every participant has read the message.')),
-    /comprehension/
-  );
-  assert.throws(
-    () => validateArticlePayload(withClaim('Every submission is automatically approved.')),
-    /automatic approval/
-  );
-  assert.throws(
-    () => validateArticlePayload(withClaim('Pending evidence counts as official progress.')),
-    /pending evidence/
-  );
-  assert.throws(
-    () => validateArticlePayload(withClaim('Every participant gets a medal.')),
-    /recognition/
-  );
-  assert.throws(
-    () => validateArticlePayload(withClaim('Joining the event automatically means marketing consent.')),
-    /marketing consent/
-  );
-  assert.throws(
-    () => buildArticlePayload(),
-    /cover artwork/
-  );
+  assert.throws(() => validateArticlePayload(withClaim('This is definitely a strain.')), /diagnose symptoms/);
+  assert.throws(() => validateArticlePayload(withClaim('Everyone should drink exactly 500 ml.')), /universal hydration/);
+  assert.throws(() => validateArticlePayload(withClaim('Take painkillers after every run.')), /medication/);
+  assert.throws(() => validateArticlePayload(withClaim('Ignore the pain and continue.')), /continuing through pain/);
+  assert.throws(() => validateArticlePayload(withClaim('This guarantees injury prevention.')), /guarantee prevention/);
+  assert.throws(() => validateArticlePayload(withClaim('Approved evidence proves you are recovered.')), /health readiness/);
+  assert.throws(() => validateArticlePayload(withClaim('You should make up the run by doubling.')), /catch-up activity/);
+  assert.throws(() => buildArticlePayload(), /cover artwork/);
 });

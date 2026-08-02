@@ -126,6 +126,10 @@ const {
   ARTICLE: FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_ARTICLE,
   buildArticlePayload: buildFairDistanceCategoriesChallengeGoalsPayload
 } = require('../content/fair-distance-categories-challenge-goals-guide');
+const {
+  ARTICLE: POST_RUN_RECOVERY_BASICS_ARTICLE,
+  buildArticlePayload: buildPostRunRecoveryBasicsPayload
+} = require('../content/post-run-recovery-basics-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -190,6 +194,8 @@ const CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_COVER_IMAGE_URL = 'https://cdn.hellorun.onli
 const CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_PAYLOAD = buildChooseSafeVirtualRunRoutePayload({ coverImageUrl: CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_COVER_IMAGE_URL });
 const FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785680107500-610435147-how-to-design-fair-distance-categories-and-challenge-goals.webp';
 const FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_PAYLOAD = buildFairDistanceCategoriesChallengeGoalsPayload({ coverImageUrl: FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_COVER_IMAGE_URL });
+const POST_RUN_RECOVERY_BASICS_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785684194043-524731892-post-run-recovery-basics-rest-hydration-when-to-ease-back.webp';
+const POST_RUN_RECOVERY_BASICS_PAYLOAD = buildPostRunRecoveryBasicsPayload({ coverImageUrl: POST_RUN_RECOVERY_BASICS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -921,6 +927,26 @@ const POSTS = [
       '/blog/how-accumulated-distance-challenges-work',
       '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
       '/blog/how-leaderboards-work-virtual-running-events'
+    ]
+  },
+  {
+    ...POST_RUN_RECOVERY_BASICS_ARTICLE,
+    contentHtml: POST_RUN_RECOVERY_BASICS_PAYLOAD.contentHtml,
+    coverImageUrl: POST_RUN_RECOVERY_BASICS_COVER_IMAGE_URL,
+    coverImageAlt: POST_RUN_RECOVERY_BASICS_ARTICLE.coverImageAlt,
+    ogImageUrl: POST_RUN_RECOVERY_BASICS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-08-15T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/faq',
+      '/blog/how-to-run-safely-during-hot-and-humid-weather',
+      '/blog/beginner-5k-training-plan-new-runners',
+      '/blog/run-walk-method-beginner-friendly-way-build-endurance',
+      '/blog/how-to-stay-consistent-during-a-month-long-virtual-run',
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run'
     ]
   }
 ];

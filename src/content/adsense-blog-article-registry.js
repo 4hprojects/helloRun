@@ -30,8 +30,9 @@ const runWalkMethodBeginnerGuide = require('./run-walk-method-beginner-guide');
 const participantCommunicationTimelineGuide = require('./participant-communication-timeline-guide');
 const chooseSafeVirtualRunRouteGuide = require('./choose-safe-virtual-run-route-guide');
 const fairDistanceCategoriesChallengeGoalsGuide = require('./fair-distance-categories-challenge-goals-guide');
+const postRunRecoveryBasicsGuide = require('./post-run-recovery-basics-guide');
 
-const ARTICLE_MODULES = Object.freeze([bestApps, runningSafety, organizerGuide, raceComparison, virtualRunGuide, leaderboardGuide, validRunProofGuide, accumulatedDistanceGuide, beginner5kGuide, proofSubmissionGuide, joinPhilippinesGuide, hellorunPlatformGuide, firstVirtualRunGuide, distanceChoiceGuide, beginnerPaceGuide, rainySeasonRunningGuide, hotHumidWeatherRunningGuide, complete50kChallengeGuide, monthLongConsistencyGuide, gpsTrackingStopsGuide, treadmillVirtualEventGuide, submissionRejectionGuide, firstTimeOrganizerChecklist, schoolsOrganizationsGuide, realisticMonthlyRunningGoal, clearVirtualRunRulesGuide, runWalkMethodBeginnerGuide, participantCommunicationTimelineGuide, chooseSafeVirtualRunRouteGuide, fairDistanceCategoriesChallengeGoalsGuide]);
+const ARTICLE_MODULES = Object.freeze([bestApps, runningSafety, organizerGuide, raceComparison, virtualRunGuide, leaderboardGuide, validRunProofGuide, accumulatedDistanceGuide, beginner5kGuide, proofSubmissionGuide, joinPhilippinesGuide, hellorunPlatformGuide, firstVirtualRunGuide, distanceChoiceGuide, beginnerPaceGuide, rainySeasonRunningGuide, hotHumidWeatherRunningGuide, complete50kChallengeGuide, monthLongConsistencyGuide, gpsTrackingStopsGuide, treadmillVirtualEventGuide, submissionRejectionGuide, firstTimeOrganizerChecklist, schoolsOrganizationsGuide, realisticMonthlyRunningGoal, clearVirtualRunRulesGuide, runWalkMethodBeginnerGuide, participantCommunicationTimelineGuide, chooseSafeVirtualRunRouteGuide, fairDistanceCategoriesChallengeGoalsGuide, postRunRecoveryBasicsGuide]);
 const ARTICLE_REGISTRY = Object.freeze(Object.fromEntries(
   ARTICLE_MODULES.map((articleModule) => [articleModule.ARTICLE.slug, articleModule])
 ));
