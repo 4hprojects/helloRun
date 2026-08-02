@@ -3,9 +3,8 @@
     essential: true,
     functional: false,
     analytics: false,
-    advertising: false,
     hasChoice: false,
-    schemaVersion: 1
+    schemaVersion: 2
   };
 %>
 <script>
@@ -13,9 +12,8 @@
     essential: true,
     functional: <%= privacyChoices.functional ? 'true' : 'false' %>,
     analytics: <%= privacyChoices.analytics ? 'true' : 'false' %>,
-    advertising: <%= privacyChoices.advertising ? 'true' : 'false' %>,
     hasChoice: <%= privacyChoices.hasChoice ? 'true' : 'false' %>,
-    schemaVersion: <%= Number(privacyChoices.schemaVersion || 1) %>,
+    schemaVersion: <%= Number(privacyChoices.schemaVersion || 2) %>,
     canUse: function (category) { return category === 'essential' || this[category] === true; }
   });
   window.dataLayer = window.dataLayer || [];
@@ -27,9 +25,6 @@
     ad_personalization: 'denied'
   });
   gtag('consent', 'update', {
-    analytics_storage: window.HelloRunPrivacy.analytics ? 'granted' : 'denied',
-    ad_storage: window.HelloRunPrivacy.advertising ? 'granted' : 'denied',
-    ad_user_data: window.HelloRunPrivacy.advertising ? 'granted' : 'denied',
-    ad_personalization: window.HelloRunPrivacy.advertising ? 'granted' : 'denied'
+    analytics_storage: window.HelloRunPrivacy.analytics ? 'granted' : 'denied'
   });
 </script>

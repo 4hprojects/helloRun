@@ -60,7 +60,7 @@ test('policy, banner, dialog, and no-JavaScript form are accessible and responsi
   assert.doesNotMatch(partial, /ad-unit|run-proof-modal-dialog/i);
 });
 
-test('Google tags and ad placements are gated by independent choices', () => {
+test('HelloRun analytics and Google advertising consent have separate authoritative controls', () => {
   assert.match(headPartial, /analytics_storage: 'denied'/);
   assert.match(headPartial, /ad_storage: 'denied'/);
   assert.match(headPartial, /ad_user_data: 'denied'/);
@@ -68,9 +68,12 @@ test('Google tags and ad placements are gated by independent choices', () => {
   assert.match(head, /locals\.canUseAnalytics && process\.env\.GA_MEASUREMENT_ID/);
   assert.match(mainLayout, /locals\.canUseAnalytics && process\.env\.GA_MEASUREMENT_ID/);
   assert.match(adMiddleware, /loadConsentScript = shouldLoadAdScript/);
-  assert.match(adMiddleware, /advertisingAllowed = req\.cookiePreferences\?\.advertising === true/);
-  assert.match(adMiddleware, /advertisingAllowed && canRenderAdPlacement/);
+  assert.match(adMiddleware, /ADSENSE_MANUAL_PLACEMENTS_ENABLED/);
+  assert.match(adMiddleware, /manualPlacementsEnabled && canRenderAdPlacement/);
+  assert.doesNotMatch(adMiddleware, /cookiePreferences\?\.advertising/);
   assert.match(head, /locals\.ads\.loadConsentScript/);
+  assert.doesNotMatch(preferencePartial, /name="advertising"/);
+  assert.doesNotMatch(headPartial, /HelloRunPrivacy\.advertising/);
   assert.ok(head.indexOf("include('../partials/privacy-head')") < head.indexOf('pagead2.googlesyndication.com'));
 });
 
@@ -83,7 +86,7 @@ test('Functional withdrawal clears only HelloRun-owned keys and browser features
 });
 
 test('corrected draft accurately separates policy agreement, choices, and provider boundaries', () => {
-  for (const phrase of ['Henson M. Sagorsor, operating as 4HProjects', '`hr.sid`', '`hr.cookie_preferences`', 'Functional, Analytics, and Advertising are off', 'Google Consent Mode', 'Google-certified consent management platform', 'previous visits', 'does not enable optional browser storage']) assert.match(source, new RegExp(phrase, 'i'));
+  for (const phrase of ['Henson M. Sagorsor, operating as 4HProjects', '`hr.sid`', '`hr.cookie_preferences`', 'Functional and Analytics are off', 'Advertising is not a HelloRun preference', 'Google Consent Mode', 'Google-certified consent management platform', 'previous visits', 'does not enable optional browser storage']) assert.match(source, new RegExp(phrase, 'i'));
   assert.doesNotMatch(source, /Last Updated:|4HProjects Inc|guarantee.*AdSense approval/i);
   assert.match(legacy, /Last Updated:\*\* May 23, 2026/);
 });

@@ -21,16 +21,16 @@ async function populateAdLocals(req, res, next) {
   try {
     const settings = await getAdSettings();
     const loadConsentScript = shouldLoadAdScript(settings, pageGroup);
-    const advertisingAllowed = req.cookiePreferences?.advertising === true;
-    const renderScript = loadConsentScript && advertisingAllowed;
+    const manualPlacementsEnabled = process.env.ADSENSE_MANUAL_PLACEMENTS_ENABLED === 'true';
     res.locals.ads = {
       settings,
       pageGroup,
       publisherId: settings.publisherId,
       loadConsentScript,
-      renderScript,
+      renderScript: loadConsentScript,
+      manualPlacementsEnabled,
       canRender(groupKey, placementKey) {
-        return advertisingAllowed && canRenderAdPlacement(settings, groupKey, placementKey);
+        return manualPlacementsEnabled && canRenderAdPlacement(settings, groupKey, placementKey);
       },
       getSlot(groupKey, placementKey) {
         return settings.pageGroups?.[groupKey]?.placements?.[placementKey]?.slotId || '';
@@ -58,6 +58,7 @@ function createEmptyAdLocals() {
     publisherId: '',
     loadConsentScript: false,
     renderScript: false,
+    manualPlacementsEnabled: false,
     canRender: () => false,
     getSlot: () => ''
   };

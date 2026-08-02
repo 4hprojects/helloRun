@@ -21,9 +21,9 @@ The inventory shown above this complete policy describes the current implementat
 
 ## 3. Your choice comes first
 
-HelloRun separates browser technology into Essential, Functional, Analytics, and Advertising categories.
+HelloRun separates browser technology by both category and controller. HelloRun controls Essential, Functional, and Analytics technology. Google controls consent for configured Google advertising through its certified consent message where required.
 
-Functional, Analytics, and Advertising are off unless you allow them through the preference center. You can change those choices at any time using the Cookie preferences link in the footer.
+Functional and Analytics are off unless you allow them through the HelloRun preference center. You can change those choices at any time using the Cookie preferences link in the footer. Advertising is not a HelloRun preference and is not enabled by the HelloRun Accept all button.
 
 Your choices apply to the current browser for up to twelve months. A different browser, browser profile, or device requires its own choice.
 
@@ -43,7 +43,7 @@ Clearing or blocking it can sign you out and prevent protected forms, registrati
 
 ### 4.2 Preference record
 
-The `hr.cookie_preferences` cookie remembers whether this browser allowed Functional, Analytics, or Advertising technology. It contains the category choices, preference-schema version, and save time.
+The `hr.cookie_preferences` cookie remembers whether this browser allowed Functional or Analytics technology. It contains those two category choices, the preference-schema version, and save time. Legacy preference records may contain an obsolete advertising value; HelloRun ignores that value because Google’s certified controls are authoritative for Google advertising.
 
 It is `HttpOnly`, `SameSite=Lax`, secure in production, and retained for up to twelve months. It is essential because optional scripts must know whether they are permitted before loading.
 
@@ -75,7 +75,7 @@ Turning Analytics off prevents future Analytics tag loading. HelloRun also attem
 
 ## 7. Advertising and Google AdSense
 
-Some public content pages may contain configured Google AdSense placements. Advertising is not loaded while the Advertising category is declined.
+Some public content pages may contain configured Google AdSense placements after approval and controlled activation. During approval preparation, manual HelloRun ad units remain disabled. Where the AdSense bootstrap is loaded to support Google’s certified consent message, loading that bootstrap does not mean a manual ad unit is active.
 
 When allowed, Google and participating advertising providers may use first-party or third-party cookies, IP addresses, browser or device identifiers, web beacons, ad-request data, and similar technology to:
 
@@ -89,9 +89,9 @@ HelloRun does not intentionally provide passwords, payment proof, activity proof
 
 Third-party vendors, including Google, may use cookies to serve advertisements based on a visitor's previous visits to HelloRun or other websites. Google's use of advertising cookies enables Google and its partners to serve personalized advertisements based on visits to HelloRun and/or other sites on the Internet where consent and applicable law permit. Third parties may also place or read cookies, or use web beacons, pixel tags, IP addresses, browser or device identifiers, and similar identifiers as a result of ad serving.
 
-Visitors can manage or opt out of personalized Google advertising through [Google Ads Settings](https://adssettings.google.com), control optional advertising technology through HelloRun's Cookie Preferences, and learn [how Google uses information from sites or apps that use its services](https://policies.google.com/technologies/partner-sites).
+Visitors can manage Google advertising through Google’s certified consent message where it applies, [Google Ads Settings](https://adssettings.google.com), and browser controls, and can learn [how Google uses information from sites or apps that use its services](https://policies.google.com/technologies/partner-sites). HelloRun’s Cookie Preferences do not provide a competing advertising toggle.
 
-For visitors in the EEA, the United Kingdom, and Switzerland, Google advertising consent is managed through a Google-certified consent management platform integrated with the IAB Transparency and Consent Framework where required. The Google-certified decision remains authoritative for Google advertising; HelloRun's separate preference center continues to control HelloRun-owned optional browser features and whether configured ad placements are requested by the application.
+For visitors in the EEA, the United Kingdom, and Switzerland, Google advertising consent is managed through a Google-certified consent management platform integrated with the IAB Transparency and Consent Framework where required. The Google-certified decision remains authoritative for Google advertising; HelloRun’s separate preference center controls only HelloRun-owned Functional storage and configured Analytics.
 
 ## 8. Security and explicitly requested providers
 

@@ -16,7 +16,7 @@
     </header>
 
     <section class="cookie-category-section" aria-labelledby="cookie-categories-title">
-      <div class="cookie-policy-heading"><p class="cookie-policy-eyebrow">Four clear categories</p><h2 id="cookie-categories-title">Choose what this browser may use</h2><p>Optional categories are off until you allow them. Essential storage supports security and remembers the choice itself.</p></div>
+      <div class="cookie-policy-heading"><p class="cookie-policy-eyebrow">Clear ownership</p><h2 id="cookie-categories-title">Choose what HelloRun may use</h2><p>HelloRun controls Functional and Analytics choices. Google’s certified message controls Google advertising consent where required. Essential storage supports security and remembers the HelloRun choices.</p></div>
       <div class="cookie-category-grid"><% policyPresentation.cookieCategories.forEach((item) => { %><article><span><i data-lucide="<%= item.icon %>" aria-hidden="true"></i></span><div><div class="cookie-category-title"><h3><%= item.title %></h3><small><%= item.state %></small></div><p><%= item.text %></p></div></article><% }) %></div>
     </section>
 
@@ -33,7 +33,8 @@
         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><input type="hidden" name="returnTo" value="/cookie-policy#cookie-choices">
         <div class="cookie-choice-form-grid">
           <div class="cookie-choice-static"><span><strong>Essential</strong><small>Security and preference record</small></span><b>Always on</b></div>
-          <% [['functional','Functional'],['analytics','Analytics'],['advertising','Advertising']].forEach(([key,label]) => { %><label><span><strong><%= label %></strong><small><%= locals.cookiePreferences?.[key] ? 'Currently enabled' : 'Currently disabled' %></small></span><input type="checkbox" name="<%= key %>" value="1" <%= locals.cookiePreferences?.[key] ? 'checked' : '' %>></label><% }) %>
+          <% [['functional','Functional'],['analytics','Analytics']].forEach(([key,label]) => { %><label><span><strong><%= label %></strong><small><%= locals.cookiePreferences?.[key] ? 'Currently enabled' : 'Currently disabled' %></small></span><input type="checkbox" name="<%= key %>" value="1" <%= locals.cookiePreferences?.[key] ? 'checked' : '' %>></label><% }) %>
+          <div class="cookie-choice-static"><span><strong>Google advertising</strong><small>Controlled by Google’s certified consent message and provider settings where applicable</small></span><b>Google managed</b></div>
         </div>
         <div class="cookie-choice-form-actions"><button class="btn btn-secondary" type="submit" name="action" value="reject_optional">Reject optional</button><button class="btn btn-primary" type="submit">Save preferences</button></div>
       </form>

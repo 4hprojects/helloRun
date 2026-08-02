@@ -1,5 +1,5 @@
 <%
-  const cookieChoices = locals.cookiePreferences || { functional: false, analytics: false, advertising: false, hasChoice: false };
+  const cookieChoices = locals.cookiePreferences || { functional: false, analytics: false, hasChoice: false };
   const preferenceReturnTo = locals.currentPath || '/';
 %>
 <% if (!cookieChoices.hasChoice) { %>
@@ -8,7 +8,7 @@
       <span class="cookie-consent-icon"><i data-lucide="cookie" aria-hidden="true"></i></span>
       <div>
         <h2 id="cookie-banner-title">Choose how HelloRun uses this browser</h2>
-        <p>Essential security storage is always active. Functional drafts, Analytics, and Advertising stay off unless you allow them.</p>
+        <p>Essential security storage is always active. Functional drafts and Analytics stay off unless you allow them. Google separately manages advertising consent where required.</p>
       </div>
     </div>
     <form method="POST" action="/cookie-preferences" class="cookie-consent-actions" data-cookie-preference-form>
@@ -39,8 +39,7 @@
         </div>
         <% [
           ['functional', 'Functional', 'Local form drafts and interface preferences on this browser.'],
-          ['analytics', 'Analytics', 'Google Analytics measurement used to understand and improve HelloRun.'],
-          ['advertising', 'Advertising', 'Configured Google AdSense delivery, measurement, and fraud prevention. Google-certified regional consent remains authoritative where it applies.']
+          ['analytics', 'Analytics', 'Google Analytics measurement used to understand and improve HelloRun.']
         ].forEach(([key, label, description]) => { %>
           <label class="cookie-choice-row" for="cookie-choice-<%= key %>">
             <span><strong><%= label %></strong><small><%= description %></small></span>
@@ -48,7 +47,7 @@
           </label>
         <% }) %>
       </div>
-      <p class="cookie-dialog-note">Turning off Functional storage removes HelloRun-owned local drafts and saved interface choices from this browser. Google’s certified consent message separately controls applicable EEA, UK, and Swiss advertising consent; third-party cookies may also require browser or provider controls.</p>
+      <p class="cookie-dialog-note">Turning off Functional storage removes HelloRun-owned local drafts and saved interface choices from this browser. Advertising is not a HelloRun preference: Google’s certified consent message and provider controls govern Google advertising consent where applicable. Manual ad units remain disabled during approval preparation.</p>
     </div>
     <div class="cookie-dialog-footer">
       <div class="cookie-dialog-actions">

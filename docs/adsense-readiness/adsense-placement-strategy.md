@@ -1,7 +1,7 @@
 # HelloRun AdSense Placement Strategy
 
 ## Summary
-HelloRun uses manual Google AdSense placements controlled from `/admin/ads`.
+HelloRun supports manual Google AdSense placements controlled from `/admin/ads`, but manual units remain disabled throughout approval preparation.
 
 Ads are allowed only on public content and discovery pages. Private account pages, admin pages, organizer pages, runner dashboards, registration flows, checkout, cart, order/payment pages, auth pages, error pages, and upload/payment-proof workflows must remain ad-free.
 
@@ -18,6 +18,7 @@ Admins can manage ads from `/admin/ads`:
 - Add AdSense slot IDs per placement.
 
 Blank slot IDs suppress the related placement even when its toggles are enabled.
+The runtime also requires `ADSENSE_MANUAL_PLACEMENTS_ENABLED=true`. Keep this variable unset or false until approval and a separate activation review; admin settings alone cannot activate a manual unit.
 
 ## Public Placement Map
 - Home `/`
@@ -54,4 +55,6 @@ Blank slot IDs suppress the related placement even when its toggles are enabled.
 - Ad settings are stored as a singleton `AdSetting` document keyed by `ads.global`.
 - `populateAdLocals` resolves the current public route to an ad page group and exposes safe render helpers to EJS.
 - `partials/ad-unit.ejs` renders nothing unless global settings, page group, placement toggle, and slot ID all allow rendering.
-- The AdSense script is loaded from shared head/layout templates only when the current route is eligible and script loading is enabled.
+- `populateAdLocals` additionally requires the explicit post-approval `ADSENSE_MANUAL_PLACEMENTS_ENABLED=true` environment gate before any unit can render.
+- The AdSense bootstrap can load from shared head/layout templates on eligible enabled routes so Google’s certified consent message can operate even while every manual unit remains disabled.
+- HelloRun’s preference cookie controls Functional and Analytics only. Google’s certified CMP and provider controls remain authoritative for Google advertising consent.

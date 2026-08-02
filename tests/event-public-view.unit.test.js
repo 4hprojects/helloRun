@@ -14,10 +14,29 @@ const {
 test('renderEventDetailsContent preserves safe Quill HTML', () => {
   const html = renderEventDetailsContent('<h1>Challenge Details</h1><p>Earn a <strong>badge</strong>.</p><script>alert(1)</script>');
 
-  assert.match(html, /<h1>Challenge Details<\/h1>/);
+  assert.match(html, /<h2>Challenge Details<\/h2>/);
+  assert.doesNotMatch(html, /<h1\b/);
   assert.match(html, /<strong>badge<\/strong>/);
   assert.doesNotMatch(html, /script/);
   assert.doesNotMatch(html, /&lt;h1&gt;/);
+});
+
+test('renderEventDetailsContent normalizes every rich-description h1 without losing supported structure', () => {
+  const html = renderEventDetailsContent(`
+    <h1>Overview</h1>
+    <p>Read the <a href="/faq">FAQ</a>.</p>
+    <h1>Rules</h1>
+    <ul><li>Run</li><li>Walk</li></ul>
+    <table><tbody><tr><td>5K</td></tr></tbody></table>
+    <h3>Evidence</h3>
+  `);
+
+  assert.equal((html.match(/<h2>/g) || []).length, 2);
+  assert.doesNotMatch(html, /<h1\b/);
+  assert.match(html, /<a href="\/faq" rel="noopener noreferrer" target="_blank">FAQ<\/a>/);
+  assert.match(html, /<ul><li>Run<\/li><li>Walk<\/li><\/ul>/);
+  assert.match(html, /<table><tbody><tr><td>5K<\/td><\/tr><\/tbody><\/table>/);
+  assert.match(html, /<h3>Evidence<\/h3>/);
 });
 
 test('public event visibility excludes smoke and legacy test events', () => {
@@ -64,9 +83,10 @@ test('public event visibility excludes smoke and legacy test events', () => {
 });
 
 test('renderEventDetailsContent still supports markdown input', () => {
-  const html = renderEventDetailsContent('# Challenge Details\n\n- Run\n- Walk');
+  const html = renderEventDetailsContent('# Challenge Details\n\n## Rules\n\n# Evidence\n\n- Run\n- Walk');
 
-  assert.match(html, /<h1>Challenge Details<\/h1>/);
+  assert.equal((html.match(/<h2>/g) || []).length, 3);
+  assert.doesNotMatch(html, /<h1\b/);
   assert.match(html, /<ul>/);
   assert.match(html, /<li>Run<\/li>/);
 });

@@ -11,7 +11,7 @@ const COOKIE_POLICY_SLUG = 'cookie-policy';
 const COOKIE_POLICY_SOURCE = path.resolve(__dirname, '../../docs/policy-markdown-pack/cookie-policy.md');
 const COOKIE_POLICY_LEGACY_SOURCE = path.resolve(__dirname, '../../docs/contents/Cookie Policy.md');
 const BASELINE_EFFECTIVE_DATE = new Date('2026-05-23T00:00:00+08:00');
-const SUMMARY = 'Adds an accurate storage inventory, browser-specific optional controls, Analytics and Advertising opt-in behavior, functional draft controls, provider boundaries, and current security-cookie details.';
+const SUMMARY = 'Clarifies browser storage, HelloRun Functional and Analytics controls, Google-certified advertising consent ownership, legacy preference compatibility, provider boundaries, and current security-cookie details.';
 const ALLOWED_TAGS = ['h1', 'h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'a', 'code', 'pre', 'hr'];
 
 function normalizeMarkdown(value) { return String(value || '').replace(/\r\n/g, '\n').trim(); }

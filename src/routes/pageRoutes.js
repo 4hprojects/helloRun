@@ -247,7 +247,9 @@ function createPolicyPageRenderer(policyDocument) {
     return res.render('pages/policy', {
       title: `${policyDocument.title} - HelloRun`,
       seo: {
-        description: policyDocument.key === 'terms'
+        description: policyDocument.key === 'privacy'
+          ? 'Read how HelloRun collects, uses, shares, protects, retains, and provides choices for account, event, payment, activity, community, analytics, and advertising data.'
+          : policyDocument.key === 'terms'
           ? 'Read the HelloRun Terms and Conditions covering accounts, event participation, activity review, payments, community conduct, safety, and platform responsibilities.'
           : policyDocument.key === 'dataUsage'
             ? 'Understand how HelloRun uses account, registration, payment, activity, community, security, result, and recognition data across runner and organizer workflows.'

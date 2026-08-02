@@ -35,7 +35,6 @@ function createPage(fetchImpl, { withMobileNavigation = true } = {}) {
         <button type="button" data-close-cookie-preferences>Close</button>
         <input id="functional" type="checkbox" name="functional" value="1">
         <input id="analytics" type="checkbox" name="analytics" value="1">
-        <input id="advertising" type="checkbox" name="advertising" value="1">
         <button id="custom-reject" type="button" data-reject-cookie-preferences>Reject optional</button>
         <button id="save" type="submit">Save preferences</button>
         <p data-cookie-preference-status></p>
@@ -44,8 +43,7 @@ function createPage(fetchImpl, { withMobileNavigation = true } = {}) {
   `;
   window.HelloRunPrivacy = {
     functional: false,
-    analytics: false,
-    advertising: false
+    analytics: false
   };
   window.fetch = fetchImpl;
   window.setTimeout = () => 1;
@@ -55,8 +53,7 @@ function createPage(fetchImpl, { withMobileNavigation = true } = {}) {
 
 function successfulResponse(preferences = {
   functional: true,
-  analytics: true,
-  advertising: true
+  analytics: true
 }) {
   return {
     ok: true,
@@ -109,8 +106,7 @@ test('Reject optional and custom Save send distinct authoritative payloads', asy
     rejectRequests.push(options);
     return successfulResponse({
       functional: false,
-      analytics: false,
-      advertising: false
+      analytics: false
     });
   });
   rejectWindow.document.getElementById('custom-reject').click();
@@ -122,13 +118,11 @@ test('Reject optional and custom Save send distinct authoritative payloads', asy
     saveRequests.push(options);
     return successfulResponse({
       functional: true,
-      analytics: false,
-      advertising: true
+      analytics: false
     });
   });
   const form = saveWindow.document.querySelector('[data-cookie-custom-form]');
   saveWindow.document.getElementById('functional').checked = true;
-  saveWindow.document.getElementById('advertising').checked = true;
   form.dispatchEvent(new saveWindow.SubmitEvent('submit', {
     bubbles: true,
     cancelable: true,
@@ -140,7 +134,7 @@ test('Reject optional and custom Save send distinct authoritative payloads', asy
   assert.equal(saveRequests[0].body.has('action'), false);
   assert.equal(saveRequests[0].body.get('functional'), '1');
   assert.equal(saveRequests[0].body.get('analytics'), null);
-  assert.equal(saveRequests[0].body.get('advertising'), '1');
+  assert.equal(saveRequests[0].body.has('advertising'), false);
 });
 
 test('busy state prevents duplicate requests and failures remain visible on the initiating surface', async () => {

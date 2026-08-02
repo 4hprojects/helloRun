@@ -8,7 +8,6 @@ function populateCookiePreferenceLocals(req, res, next) {
   res.locals.cookiePreferences = preferences;
   res.locals.canUseFunctionalStorage = preferences.functional;
   res.locals.canUseAnalytics = preferences.analytics;
-  res.locals.canUseAdvertising = preferences.advertising;
   next();
 }
 

@@ -213,11 +213,13 @@ exports.getAbout = async (req, res) => {
   try {
     const currentEvents = await listHomepagePromotedEvents({ limit: 3 });
     const aboutActions = buildAboutActions(res.locals);
+    const baseUrl = getAppBaseUrl();
 
     return res.render('pages/about', {
       title: 'About HelloRun | Running Event Platform for Virtual, On-Site, and Hybrid Events',
       seo: {
-        description: 'Learn how HelloRun helps runners join events, submit results, track approvals, and keep achievements in one place while helping organisers manage registrations, proof review, leaderboards, and certificates.'
+        description: 'Learn how HelloRun helps runners join events, submit results, track approvals, and keep achievements in one place while helping organisers manage registrations, proof review, leaderboards, and certificates.',
+        canonicalUrl: baseUrl ? `${baseUrl}/about` : ''
       },
       currentEvents,
       aboutActions
@@ -286,11 +288,13 @@ exports.buildAboutActions = buildAboutActions;
 
 exports.getHowItWorks = (req, res) => {
   const howItWorksActions = buildHowItWorksActions(res.locals);
+  const baseUrl = getAppBaseUrl();
 
   return res.render('pages/how-it-works', {
     title: 'How HelloRun Events Work for Runners and Organizers',
     seo: {
-      description: 'Follow the connected HelloRun journey for virtual, on-site, and hybrid events—from runner registration and proof submission to organizer review, standings, and recognition.'
+      description: 'Follow the connected HelloRun journey for virtual, on-site, and hybrid events—from runner registration and proof submission to organizer review, standings, and recognition.',
+      canonicalUrl: baseUrl ? `${baseUrl}/how-it-works` : ''
     },
     howItWorksActions
   });
@@ -345,11 +349,13 @@ exports.getContact = (req, res) => {
     topic: req.query.topic,
     supportEmail: process.env.ADMIN_EMAIL
   });
+  const baseUrl = getAppBaseUrl();
 
   return res.render('pages/contact', {
     title: 'Contact HelloRun Support | Runner and Organizer Help',
     seo: {
-      description: 'Prepare a complete HelloRun support request for account, registration, payment, activity review, organizer, privacy, safety, or partnership questions.'
+      description: 'Prepare a complete HelloRun support request for account, registration, payment, activity review, organizer, privacy, safety, or partnership questions.',
+      canonicalUrl: baseUrl ? `${baseUrl}/contact` : ''
     },
     contactPresentation
   });

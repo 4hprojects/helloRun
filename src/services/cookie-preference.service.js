@@ -3,16 +3,16 @@
 const crypto = require('crypto');
 
 const COOKIE_NAME = 'hr.cookie_preferences';
-const SCHEMA_VERSION = 1;
+const LEGACY_SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
-const OPTIONAL_CATEGORIES = Object.freeze(['functional', 'analytics', 'advertising']);
+const OPTIONAL_CATEGORIES = Object.freeze(['functional', 'analytics']);
 
 function defaultPreferences() {
   return {
     essential: true,
     functional: false,
     analytics: false,
-    advertising: false,
     schemaVersion: SCHEMA_VERSION,
     savedAt: null,
     hasChoice: false
@@ -49,7 +49,6 @@ function serializePreferences(preferences, secret) {
     v: SCHEMA_VERSION,
     f: normalized.functional ? 1 : 0,
     a: normalized.analytics ? 1 : 0,
-    d: normalized.advertising ? 1 : 0,
     t: normalized.savedAt
   })).toString('base64url');
   return `${payload}.${signPayload(payload, secret)}`;
@@ -81,7 +80,8 @@ function readPreferences(cookieHeader, secret, options = {}) {
 
   try {
     const stored = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-    if (Number(stored.v) !== SCHEMA_VERSION) return fallback;
+    const storedVersion = Number(stored.v);
+    if (![LEGACY_SCHEMA_VERSION, SCHEMA_VERSION].includes(storedVersion)) return fallback;
     const savedAt = new Date(stored.t);
     const now = options.now instanceof Date ? options.now : new Date(options.now || Date.now());
     if (Number.isNaN(savedAt.getTime()) || savedAt > now || now - savedAt > MAX_AGE_MS) return fallback;
@@ -89,7 +89,6 @@ function readPreferences(cookieHeader, secret, options = {}) {
       essential: true,
       functional: stored.f === 1,
       analytics: stored.a === 1,
-      advertising: stored.d === 1,
       schemaVersion: SCHEMA_VERSION,
       savedAt: savedAt.toISOString(),
       hasChoice: true
@@ -111,6 +110,7 @@ function cookieOptions(isProduction) {
 
 module.exports = {
   COOKIE_NAME,
+  LEGACY_SCHEMA_VERSION,
   MAX_AGE_MS,
   OPTIONAL_CATEGORIES,
   SCHEMA_VERSION,

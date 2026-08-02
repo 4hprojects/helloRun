@@ -35,6 +35,9 @@ const EVENT_DETAILS_SANITIZE_OPTIONS = Object.freeze({
     ol: ['class'],
     ul: ['class'],
     span: ['class']
+  },
+  transformTags: {
+    h1: 'h2'
   }
 });
 

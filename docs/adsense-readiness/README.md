@@ -23,7 +23,8 @@ Implementation commit: `7ae1bb78ce1e88df315e9c265c059ad74baca5aa`
 - `approval-roadmap.md` - authoritative current priorities, gates, acceptance criteria, and evidence.
 - `implementation-status.md` - what was implemented, what was verified, and remaining deployment actions.
 - `next-articles-todo.md` - completed article-batch history.
-- `seo-keywords.md` - uncurated research backlog governed by Priority 5.
+- `seo-keywords.md` - repository-backed intent-to-page map awaiting Search Console validation.
+- `google-account-verification.md` - authenticated AdSense, ads.txt, Policy Center, and certified-CMP evidence checklist.
 - `adsense-placement-strategy.md` - post-approval placement boundary and controls.
 - `phases/` - the original phased implementation prompts, kept for traceability and future audits.
 

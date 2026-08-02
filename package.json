@@ -13,6 +13,7 @@
     "seed:policies": "node src/scripts/seed-policies.js",
     "adsense:blocker-cleanup": "node src/scripts/adsense-blocker-cleanup.js",
     "adsense:audit-links": "node src/scripts/audit-public-links.js",
+    "adsense:audit-metadata": "node src/scripts/audit-public-metadata.js",
     "event:reconcile-date-copy": "node src/scripts/reconcile-event-date-copy.js",
     "event:create-bayani-run-2026": "node src/scripts/create-bayani-run-2026.js",
     "seed:adsense-blog": "node src/scripts/seed-adsense-blog-posts.js",

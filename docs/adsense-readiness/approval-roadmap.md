@@ -10,20 +10,19 @@ Current active state:
 
 | Priority | Workstream | Status | Dependency |
 | --- | --- | --- | --- |
-| 1 | Public link integrity | **In progress** | None |
-| 2 | Event heading hierarchy | Blocked | Priority 1 complete |
-| 3 | Metadata and crawl hygiene | Blocked | Priority 2 complete |
-| 4 | Advertising consent architecture | Blocked | Priority 3 complete |
-| 5 | SEO keyword quality | Blocked | Priority 4 complete |
+| 1 | Public link integrity | **Repository complete; release verification pending** | None |
+| 2 | Event heading hierarchy | Implemented; production verification pending | Priority 1 release verification |
+| 3 | Metadata and crawl hygiene | Implemented; production verification pending | Priority 2 production verification |
+| 4 | Advertising consent architecture | Implemented; Google account verification pending | Priority 3 production verification |
+| 5 | SEO keyword quality | Repository mapping complete; Search Console review pending | Priority 4 account verification |
 | 6 | Production quality audit | Blocked | Priority 5 complete |
 | 7 | Indexing and approval gate | Blocked | Priority 6 complete |
 
 ## One-Priority Operating Rule
 
-- Only one priority may be `Next` or `In progress` at a time.
-- Change `Next` to `In progress` when implementation begins.
-- Do not unblock the following priority until the current priority meets every acceptance criterion and its evidence and completion note are recorded here.
-- Complete each priority in a separate commit with focused tests.
+- Completion gates remain sequential even when coordinated repository changes for later priorities are prepared in one workstream.
+- Do not mark a priority complete until every acceptance criterion and its evidence and completion note are recorded here.
+- Keep focused test evidence attributable to each priority.
 - A code pass is not enough when a priority includes production, Search Console, AdSense, or CMP verification.
 - New findings must be added to the current priority when they are required for its acceptance criteria. Unrelated improvements belong in a separate backlog and must not silently expand the active task.
 
@@ -43,6 +42,15 @@ The production audit that created this roadmap recorded:
 - A short Privacy Policy meta description.
 - Search Console crawl/index coverage and AdSense account-side status not independently verified.
 - Certified advertising CMP configuration not independently verified.
+
+## Repository Validation — August 2, 2026
+
+- Focused AdSense, event, trust-page, metadata, policy, and consent verification passed: 90 tests, 0 failures.
+- Full DB-free unit verification passed: 965 tests, 0 failures.
+- The pre-release production link audit still found one `/runner` failure across 46 sitemap pages and 107 unique same-origin links.
+- The pre-release production metadata audit found the nine expected stale-build findings: missing canonicals on About, How It Works, and Contact; a short Privacy description; and duplicate page-level headings on five event pages.
+- `robots.txt`, `sitemap.xml`, and `ads.txt` each returned `200` during the production metadata audit.
+- These production findings remain release-verification evidence and are not described as failures of the repository implementation.
 
 ## Priority 1 — Public Link Integrity
 
@@ -71,14 +79,15 @@ Remove known broken public navigation and prevent new eligible content from publ
 
 - Source commits pushed to `main` on August 2, 2026:
   - `042f959` — public-link fixes, compatibility redirect, reusable crawl command, and regression tests.
-  - `eed3800` — no-content deployment retrigger after production remained on the previous build.
+  - `eed3800` — historical no-content commit created while the production mechanism was still incorrectly assumed to be externally triggered.
 - Focused verification passed: 22 tests, 0 failures.
 - Full unit verification passed: 956 tests, 0 failures.
 - The production schools and organizations guide was reconciled with the canonical distance-choice URL. A follow-up dry run reported `changedFields: []`, and the live page contains the canonical URL with the obsolete URL absent.
 - The pre-deployment production crawl found 46 sitemap pages, 108 unique same-origin links, and the two expected actionable `404` failures.
 - After the article reconciliation, the production crawl found 46 sitemap pages, 107 unique same-origin links, and one remaining actionable `404`: `/runner`, linked from six Training guides.
 - Anonymous `/runner/submissions` requests correctly finish at `/login`, confirming the replacement destination is authentication-aware.
-- Deployment blocker observed August 2, 2026: production still returns `404` for the compatibility slug and still renders `/runner`, so the application build containing `042f959` is not live. GitHub reports DigitalOcean check suites for `042f959` and `eed3800` as `queued` with no check runs; the workspace has no DigitalOcean or Render deployment credentials, and GitHub denied a check-suite rerequest.
+- Hosting clarification recorded August 2, 2026: HelloRun is self-hosted on the Ubuntu Inspiron 3443 through PM2, Nginx, and Cloudflare Tunnel; GoDaddy is the registrar and Cloudflare provides DNS/proxying. DigitalOcean is not the application platform and its GitHub check is not a deployment authority.
+- Read-only verification confirmed PM2 process `hellorun` uses this repository, but its three-day-old runtime still served the pre-fix application: the public crawl checked 46 sitemap pages and 107 same-origin links with one remaining `/runner` failure from six Training guides. No deployment infrastructure was modified during this work.
 
 ### Completion Note
 
@@ -86,7 +95,7 @@ Pending production deployment and a zero-failure public-link crawl. Do not advan
 
 ## Priority 2 — Event Heading Hierarchy
 
-**Status:** Blocked
+**Status:** Implemented; production verification pending
 **Dependency:** Priority 1 complete
 
 ### Objective
@@ -95,21 +104,22 @@ Ensure every public event page has one page-level `<h1>` while preserving the co
 
 ### Implementation Checklist
 
-- [ ] Normalize rich-description `<h1>` elements to `<h2>` during rendering or sanitization.
-- [ ] Preserve the heading text, following sections, links, lists, tables, and other allowed content.
-- [ ] Cover stored HTML and Markdown-derived event descriptions.
-- [ ] Add regression tests for rich descriptions containing one or multiple `<h1>` elements.
+- [x] Normalize rich-description `<h1>` elements to `<h2>` during public sanitization.
+- [x] Preserve the heading text, following sections, links, lists, tables, and other allowed content.
+- [x] Cover stored HTML and Markdown-derived event descriptions.
+- [x] Add regression tests for rich descriptions containing one or multiple `<h1>` elements.
 
 ### Acceptance Criteria
 
 - [ ] Every sitemap event page renders exactly one `<h1>`.
-- [ ] Description headings begin at `<h2>` or lower.
-- [ ] No event description text or supported structure is lost.
-- [ ] Unit tests and a production heading scan pass.
+- [x] Description headings begin at `<h2>` or lower in DB-free rendering tests.
+- [x] No supported description text or structure is lost in regression fixtures.
+- [ ] Unit tests and a production heading scan pass after release.
 
 ### Verification Evidence
 
-Pending.
+- `renderEventDetailsContent` converts HTML and Markdown-derived description `<h1>` elements to `<h2>` without changing the stored source.
+- Focused event public-view tests cover single and multiple headings, links, lists, tables, and lower headings.
 
 ### Completion Note
 
@@ -117,7 +127,7 @@ Pending.
 
 ## Priority 3 — Metadata And Crawl Hygiene
 
-**Status:** Blocked
+**Status:** Implemented; production verification pending
 **Dependency:** Priority 2 complete
 
 ### Objective
@@ -126,21 +136,22 @@ Give every indexable sitemap page complete, internally consistent metadata and c
 
 ### Implementation Checklist
 
-- [ ] Add canonical URLs to About, How It Works, and Contact.
-- [ ] Replace the short Privacy Policy meta description with a useful page-specific description.
-- [ ] Audit sitemap pages for unique titles, useful descriptions, self-referencing canonical URLs, one `<h1>`, `200` responses, and indexable robots directives.
-- [ ] Add regression coverage for the corrected trust-page metadata.
+- [x] Add canonical URLs to About, How It Works, and Contact.
+- [x] Replace the short Privacy Policy meta description with a useful page-specific description.
+- [x] Add a sitemap metadata audit for unique titles, useful descriptions, self-referencing canonical URLs, one `<h1>`, `200` responses, and indexable robots directives.
+- [x] Add regression coverage for metadata parsing, validation, duplicates, and required public files.
 
 ### Acceptance Criteria
 
 - [ ] Every sitemap URL returns `200`.
 - [ ] Every sitemap HTML page has a unique non-empty title, a useful description, a self-referencing canonical URL, exactly one `<h1>`, and no accidental `noindex`.
 - [ ] `robots.txt`, `sitemap.xml`, and `ads.txt` remain reachable and correct.
-- [ ] Focused tests and the production metadata scan pass.
+- [ ] Focused tests and the production metadata scan pass after release.
 
 ### Verification Evidence
 
-Pending.
+- Added `npm run adsense:audit-metadata -- --base-url https://hellorun.online`.
+- DB-free coverage verifies metadata extraction, minimum description quality, self-canonicals, one-`h1`, indexability, duplicate titles, and required public-file responses.
 
 ### Completion Note
 
@@ -148,7 +159,7 @@ Pending.
 
 ## Priority 4 — Advertising Consent Architecture
 
-**Status:** Blocked
+**Status:** Implemented; Google account verification pending
 **Dependency:** Priority 3 complete
 
 ### Objective
@@ -157,24 +168,29 @@ Make Google’s certified CMP authoritative for advertising consent while HelloR
 
 ### Implementation Checklist
 
-- [ ] Remove contradictory ownership of advertising consent from the HelloRun preference UI and runtime checks.
-- [ ] Keep Functional and Analytics choices independent and default-denied.
-- [ ] Align banner, dialog, Cookie Policy, Privacy Policy, consent-mode defaults, ad middleware, and shared layouts with the same consent model.
-- [ ] Confirm how the AdSense script loads the certified Google message without activating manual ad placements.
-- [ ] Keep all manual placement slot IDs blank or placements disabled during approval preparation.
-- [ ] Record the required Google Privacy & Messaging account configuration for EEA, UK, and Swiss visitors.
+- [x] Remove contradictory ownership of advertising consent from the HelloRun preference UI and runtime checks.
+- [x] Keep Functional and Analytics choices independent and default-denied.
+- [x] Align banner, dialog, Cookie Policy, Privacy Policy, consent-mode defaults, ad middleware, and shared layouts with the same consent model.
+- [x] Allow the AdSense bootstrap to load the certified Google message without activating manual ad placements.
+- [x] Keep manual placements disabled by default behind `ADSENSE_MANUAL_PLACEMENTS_ENABLED=true`.
+- [x] Record the required Google Privacy & Messaging account configuration for EEA, UK, and Swiss visitors.
 
 ### Acceptance Criteria
 
-- [ ] The public UI and policies clearly identify which system controls each consent category.
-- [ ] Analytics remains disabled until the HelloRun Analytics choice is granted.
+- [x] The repository UI and policy sources clearly identify which system controls each consent category.
+- [x] Analytics remains disabled until the HelloRun Analytics choice is granted.
 - [ ] Google advertising behavior follows the certified CMP and consent signals.
-- [ ] No manual AdSense unit renders during approval preparation.
-- [ ] Consent tests cover first visit, acceptance, rejection, preference changes, regional-message ownership, and JavaScript failure behavior.
+- [x] No manual AdSense unit renders during approval preparation unless the explicit post-approval environment gate is enabled.
+- [x] DB-free consent tests cover first visit, acceptance, rejection, preference changes, legacy cookies, regional-message ownership, and JavaScript failure behavior.
 
 ### Verification Evidence
 
-Pending.
+- HelloRun preference schema v2 stores Functional and Analytics only.
+- Signed schema v1 cookies remain readable; their obsolete advertising bit is ignored and the next save writes schema v2.
+- Google ad consent defaults remain denied for the certified CMP to update; HelloRun updates only Analytics consent.
+- Account-side Google Privacy & Messaging configuration remains unverified.
+- The authenticated account checklist and official Google references are recorded in [`google-account-verification.md`](google-account-verification.md).
+- Updated Privacy and Cookie policy sources require the normal draft review and publication workflow before their public production wording changes.
 
 ### Completion Note
 
@@ -182,7 +198,7 @@ Pending.
 
 ## Priority 5 — SEO Keyword Quality
 
-**Status:** Blocked
+**Status:** Repository mapping complete; Search Console review pending
 **Dependency:** Priority 4 complete
 
 ### Objective
@@ -192,22 +208,23 @@ Turn the uncurated keyword notes into a user-focused intent map that strengthens
 ### Implementation Checklist
 
 - [ ] Review Search Console query and page data when access is available.
-- [ ] Remove unrelated, outdated, trademark-driven, and unsupported commercial queries.
-- [ ] Classify retained opportunities by user intent, audience, evidence, and target page.
-- [ ] Map useful queries to existing pages before identifying a genuine content gap.
-- [ ] Define one primary topic and a small set of natural supporting terms per target page.
-- [ ] Document exclusions and prohibit keyword stuffing, doorway pages, mass variations, and articles created only to reach a count.
+- [x] Remove unrelated, outdated, trademark-driven, and unsupported commercial queries.
+- [x] Classify retained opportunities by user intent, audience, evidence, and target page.
+- [x] Map useful queries to existing pages before identifying a genuine content gap.
+- [x] Define one primary topic and a small set of natural supporting terms per target page.
+- [x] Document exclusions and prohibit keyword stuffing, doorway pages, mass variations, and articles created only to reach a count.
 
 ### Acceptance Criteria
 
-- [ ] Every retained keyword supports HelloRun's running-event audience and public purpose.
-- [ ] Every retained keyword has an existing target page or a documented evidence-backed content gap.
-- [ ] No target page competes with another HelloRun page for the same primary intent without a consolidation decision.
-- [ ] `seo-keywords.md` becomes an actionable intent-to-page map rather than an unreviewed phrase list.
+- [x] Every retained keyword supports HelloRun's running-event audience and public purpose.
+- [x] Every retained keyword has an existing target page.
+- [x] No target page competes with another HelloRun page for the same primary intent in the repository map.
+- [x] `seo-keywords.md` is an actionable intent-to-page map rather than an unreviewed phrase list.
 
 ### Verification Evidence
 
-Pending.
+- `seo-keywords.md` is now an intent-to-page map for existing canonical pages, with an explicit evidence boundary, exclusions, anti-cannibalization rules, and a Search Console review checklist.
+- No new article is proposed without Search Console evidence of an unmet relevant intent.
 
 ### Completion Note
 

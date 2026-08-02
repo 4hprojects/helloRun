@@ -124,10 +124,7 @@ function canRenderAdPlacement(settings, groupKey, placementKey) {
 function shouldLoadAdScript(settings, groupKey) {
   if (!settings || settings.enabled === false || settings.scriptEnabled === false) return false;
   const group = settings.pageGroups?.[groupKey];
-  if (!groupKey || !group?.enabled) return false;
-  return Object.keys(group.placements || {}).some((placementKey) => (
-    canRenderAdPlacement(settings, groupKey, placementKey)
-  ));
+  return Boolean(groupKey && group?.enabled);
 }
 
 function resolveAdPageGroup(pathname = '') {

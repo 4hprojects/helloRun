@@ -64,7 +64,7 @@ This may include in-app notifications, archive and read state, organizer message
 
 HelloRun may process IP address, browser and device information, operating system, requested pages, timestamps, referring page, session activity, authentication events, rate-limit state, errors, audit records, administrative actions, cookie choices, security incidents, and related diagnostic records.
 
-The [Cookie Policy](/cookie-policy) explains essential storage and optional Functional, Analytics, and Advertising choices. Runtime browser choices are separate from signup policy agreement.
+The [Cookie Policy](/cookie-policy) explains essential storage, HelloRun’s optional Functional and Analytics choices, and Google’s separate advertising-consent controls. Runtime browser choices are separate from signup policy agreement.
 
 ## 3. Why personal data is processed
 
@@ -75,7 +75,7 @@ Depending on the workflow and applicable law, processing may be necessary to:
 - comply with accounting, legal, regulatory, audit, or safety obligations;
 - protect legitimate interests in platform security, event integrity, abuse prevention, dispute handling, reliable communication, and accurate public records, where those interests are not overridden by applicable rights;
 - respond to emergencies or protect a person’s vital interests where appropriate; or
-- act on consent where consent is the appropriate processing criterion, including optional browser Analytics or Advertising choices.
+- act on consent where consent is the appropriate processing criterion, including HelloRun Analytics choices and Google advertising consent managed through Google’s certified controls where applicable.
 
 Not every workflow depends on consent. Withdrawing consent does not require deletion of information that remains necessary under another lawful criterion. Where a requested feature cannot operate without required information, withdrawing or withholding that information may make the feature unavailable.
 
@@ -114,15 +114,15 @@ Providers process information under their own terms, locations, and security pra
 
 ## 8. Cookies, Analytics, and Advertising
 
-Essential session and security storage supports authentication and protected forms. Functional browser storage, Google Analytics, and Google AdSense remain off until the visitor enables the corresponding optional category through Cookie Preferences.
+Essential session and security storage supports authentication and protected forms. Functional browser storage and Google Analytics remain off until the visitor enables the corresponding HelloRun preference. Google advertising consent is controlled separately through Google’s certified consent message and provider settings where applicable; HelloRun does not provide a competing advertising toggle.
 
 Third-party vendors, including Google, may use first- or third-party cookies to serve advertisements based on a visitor's previous visits to HelloRun or other websites. Google's use of advertising cookies enables Google and its partners to serve personalized advertisements based on visits to HelloRun and/or other sites on the Internet where consent and applicable law permit.
 
-Google and other configured advertising providers may also place or read cookies, or use web beacons, pixel tags, IP addresses, browser or device identifiers, ad-request data, and similar technologies as a result of ad serving. Visitors can manage or opt out of personalized Google advertising through [Google Ads Settings](https://adssettings.google.com), control optional advertising technology through HelloRun's Cookie Preferences, and learn [how Google uses partner data](https://policies.google.com/technologies/partner-sites).
+Google and other configured advertising providers may also place or read cookies, or use web beacons, pixel tags, IP addresses, browser or device identifiers, ad-request data, and similar technologies as a result of ad serving. Visitors can manage Google advertising through Google’s certified consent message where it applies, [Google Ads Settings](https://adssettings.google.com), and browser controls, and can learn [how Google uses partner data](https://policies.google.com/technologies/partner-sites).
 
-For visitors in the EEA, the United Kingdom, and Switzerland, Google advertising consent is managed through a Google-certified consent management platform integrated with the IAB Transparency and Consent Framework where required. That certified consent decision remains authoritative for Google advertising even if a separate HelloRun browser preference is enabled.
+For visitors in the EEA, the United Kingdom, and Switzerland, Google advertising consent is managed through a Google-certified consent management platform integrated with the IAB Transparency and Consent Framework where required. That certified consent decision remains authoritative for Google advertising. HelloRun’s preference center controls only HelloRun-owned Functional storage and configured Analytics.
 
-HelloRun does not intentionally send passwords, account contact details, payment proof, activity-proof files, emergency details, precise activity routes, or information that Google could recognize as personally identifiable information for advertising. Optional advertising choices do not make private event evidence public.
+HelloRun does not intentionally send passwords, account contact details, payment proof, activity-proof files, emergency details, precise activity routes, or information that Google could recognize as personally identifiable information for advertising. Google advertising consent does not make private event evidence public.
 
 ## 9. Retention, restriction, and deletion
 
