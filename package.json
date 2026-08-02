@@ -58,6 +58,7 @@
     "blog:update-organizer-data-privacy": "node src/scripts/update-adsense-blog.js --slug data-privacy-checklist-running-event-organizers",
     "blog:update-race-day-packing": "node src/scripts/update-adsense-blog.js --slug what-to-bring-race-day-onsite-hybrid-events",
     "blog:update-accessible-event-instructions": "node src/scripts/update-adsense-blog.js --slug how-to-make-running-event-instructions-inclusive-accessible",
+    "blog:update-returning-to-running": "node src/scripts/update-adsense-blog.js --slug returning-to-running-after-a-break-gradual-restart-plan",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",

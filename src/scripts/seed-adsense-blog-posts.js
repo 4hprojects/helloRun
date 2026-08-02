@@ -150,6 +150,10 @@ const {
   ARTICLE: INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_ARTICLE,
   buildArticlePayload: buildInclusiveAccessibleRunningEventInstructionsPayload
 } = require('../content/inclusive-accessible-running-event-instructions-guide');
+const {
+  ARTICLE: RETURNING_TO_RUNNING_AFTER_BREAK_ARTICLE,
+  buildArticlePayload: buildReturningToRunningAfterBreakPayload
+} = require('../content/returning-to-running-after-break-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -226,6 +230,8 @@ const RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_COVER_IMAGE_URL = 'https://cdn.hello
 const RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_PAYLOAD = buildRaceDayPackingOnsiteHybridEventsPayload({ coverImageUrl: RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_COVER_IMAGE_URL });
 const INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785689137471-354610662-inclusive-accessible-running-event-instructions.webp';
 const INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_PAYLOAD = buildInclusiveAccessibleRunningEventInstructionsPayload({ coverImageUrl: INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_COVER_IMAGE_URL });
+const RETURNING_TO_RUNNING_AFTER_BREAK_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785689975436-85185858-returning-to-running-after-a-break-gradual-restart.webp';
+const RETURNING_TO_RUNNING_AFTER_BREAK_PAYLOAD = buildReturningToRunningAfterBreakPayload({ coverImageUrl: RETURNING_TO_RUNNING_AFTER_BREAK_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1084,6 +1090,26 @@ const POSTS = [
       '/blog/how-to-write-clear-virtual-run-rules-participants-can-follow',
       '/blog/participant-communication-timeline-virtual-running-events',
       '/blog/why-a-virtual-run-submission-may-be-rejected'
+    ]
+  },
+  {
+    ...RETURNING_TO_RUNNING_AFTER_BREAK_ARTICLE,
+    contentHtml: RETURNING_TO_RUNNING_AFTER_BREAK_PAYLOAD.contentHtml,
+    coverImageUrl: RETURNING_TO_RUNNING_AFTER_BREAK_COVER_IMAGE_URL,
+    coverImageAlt: RETURNING_TO_RUNNING_AFTER_BREAK_ARTICLE.coverImageAlt,
+    ogImageUrl: RETURNING_TO_RUNNING_AFTER_BREAK_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-08-29T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/faq',
+      '/blog/how-to-build-a-weekly-running-schedule-around-work-or-school',
+      '/blog/run-walk-method-beginner-friendly-way-build-endurance',
+      '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
+      '/blog/how-to-run-safely-during-hot-and-humid-weather',
+      '/blog/beginner-5k-training-plan-new-runners'
     ]
   }
 ];

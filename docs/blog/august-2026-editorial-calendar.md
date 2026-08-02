@@ -40,7 +40,7 @@
 | Sat, Aug 22 | 19:00 Asia/Manila | 2026-08-22 11:00:00Z | Organizer | Organizer Guide | Data Privacy Checklist for Running Event Organizers | Scheduled — production record and CDN cover verified |
 | Mon, Aug 24 | 19:00 Asia/Manila | 2026-08-24 11:00:00Z | Runner | Race Tips | What to Bring on Race Day: A Checklist for On-Site and Hybrid Events | Scheduled — production record and CDN cover verified |
 | Thu, Aug 27 | 19:00 Asia/Manila | 2026-08-27 11:00:00Z | Organizer | Community | How to Make Running Event Instructions More Inclusive and Accessible | Scheduled — production record and CDN cover verified |
-| Sat, Aug 29 | 19:00 Asia/Manila | 2026-08-29 11:00:00Z | Runner | Training | Returning to Running After a Break: A Gradual Restart Plan | Candidate — Search Console validation pending |
+| Sat, Aug 29 | 19:00 Asia/Manila | 2026-08-29 11:00:00Z | Runner | Training | Returning to Running After a Break: A Gradual Restart Plan | Scheduled — production record and CDN cover verified |
 | Mon, Aug 31 | 19:00 Asia/Manila | 2026-08-31 11:00:00Z | Organizer | Organizer Guide | How to Close a Virtual Run: Final Reviews, Results, and Recognition | Candidate — Search Console validation pending |
 
 ## Topic Briefs
@@ -216,6 +216,8 @@
 
 ### 13. Returning to Running After a Break: A Gradual Restart Plan
 
+- **Editorial status:** Scheduled for August 29; Search Console validation
+  remains pending and is not recorded as complete.
 - **Reader problem:** A runner wants to resume activity after time away but
   should not simply repeat a previous workload.
 - **Distinct angle:** Use a flexible restart framework based on present
