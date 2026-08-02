@@ -118,6 +118,10 @@ const {
   ARTICLE: PARTICIPANT_COMMUNICATION_TIMELINE_ARTICLE,
   buildArticlePayload: buildParticipantCommunicationTimelinePayload
 } = require('../content/participant-communication-timeline-guide');
+const {
+  ARTICLE: CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_ARTICLE,
+  buildArticlePayload: buildChooseSafeVirtualRunRoutePayload
+} = require('../content/choose-safe-virtual-run-route-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -178,6 +182,8 @@ const RUN_WALK_METHOD_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers
 const RUN_WALK_METHOD_PAYLOAD = buildRunWalkMethodPayload({ coverImageUrl: RUN_WALK_METHOD_COVER_IMAGE_URL });
 const PARTICIPANT_COMMUNICATION_TIMELINE_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785672741077-79846788-participant-communication-timeline-virtual-running-events.webp';
 const PARTICIPANT_COMMUNICATION_TIMELINE_PAYLOAD = buildParticipantCommunicationTimelinePayload({ coverImageUrl: PARTICIPANT_COMMUNICATION_TIMELINE_COVER_IMAGE_URL });
+const CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785678117646-898427735-how-to-choose-a-safe-route-for-your-virtual-run.webp';
+const CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_PAYLOAD = buildChooseSafeVirtualRunRoutePayload({ coverImageUrl: CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -866,6 +872,28 @@ const POSTS = [
       '/blog/what-counts-as-valid-run-proof',
       '/blog/how-to-submit-run-proof-correctly-hellorun',
       '/blog/why-a-virtual-run-submission-may-be-rejected'
+    ]
+  },
+  {
+    ...CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_ARTICLE,
+    contentHtml: CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_PAYLOAD.contentHtml,
+    coverImageUrl: CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_COVER_IMAGE_URL,
+    coverImageAlt: CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_ARTICLE.coverImageAlt,
+    ogImageUrl: CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-08-10T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/privacy',
+      '/data-usage-policy',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/how-to-run-safely-during-hot-and-humid-weather',
+      '/blog/running-safety-tips-early-morning-night-runs',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/what-to-do-when-gps-tracking-stops-during-a-run',
+      '/blog/how-to-record-a-treadmill-run-for-a-virtual-event'
     ]
   }
 ];

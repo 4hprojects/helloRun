@@ -50,6 +50,7 @@
     "blog:update-clear-virtual-run-rules": "node src/scripts/update-adsense-blog.js --slug how-to-write-clear-virtual-run-rules-participants-can-follow",
     "blog:update-run-walk-method": "node src/scripts/update-adsense-blog.js --slug run-walk-method-beginner-friendly-way-build-endurance",
     "blog:update-participant-communication-timeline": "node src/scripts/update-adsense-blog.js --slug participant-communication-timeline-virtual-running-events",
+    "blog:update-safe-virtual-run-route": "node src/scripts/update-adsense-blog.js --slug how-to-choose-a-safe-route-for-your-virtual-run",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",

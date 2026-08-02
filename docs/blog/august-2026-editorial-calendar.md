@@ -32,7 +32,7 @@
 | Mon, Aug 3 | 19:00 Asia/Manila | 2026-08-03 11:00:00Z | Organizer | Organizer Guide | How to Write Clear Virtual Run Rules Participants Can Follow | Scheduled — production record and CDN cover verified |
 | Thu, Aug 6 | 19:00 Asia/Manila | 2026-08-06 11:00:00Z | Runner | Training | The Run-Walk Method: A Beginner-Friendly Way to Build Endurance | Scheduled — production record and CDN cover verified |
 | Sat, Aug 8 | 19:00 Asia/Manila | 2026-08-08 11:00:00Z | Organizer | Organizer Guide | A Participant Communication Timeline for Virtual Running Events | Scheduled — production record and CDN cover verified |
-| Mon, Aug 10 | 19:00 Asia/Manila | 2026-08-10 11:00:00Z | Runner | Race Tips | How to Choose a Safe Route for Your Virtual Run | Candidate — Search Console validation pending |
+| Mon, Aug 10 | 19:00 Asia/Manila | 2026-08-10 11:00:00Z | Runner | Race Tips | How to Choose a Safe Route for Your Virtual Run | Scheduled — production record and CDN cover verified |
 | Thu, Aug 13 | 19:00 Asia/Manila | 2026-08-13 11:00:00Z | Organizer | Organizer Guide | How to Design Fair Distance Categories and Challenge Goals | Candidate — Search Console validation pending |
 | Sat, Aug 15 | 19:00 Asia/Manila | 2026-08-15 11:00:00Z | Runner | Injury Prevention | Post-Run Recovery Basics: Rest, Hydration, and When to Ease Back | Candidate — Search Console validation pending |
 | Mon, Aug 17 | 19:00 Asia/Manila | 2026-08-17 11:00:00Z | Organizer | Virtual Run Guide | A Fair and Consistent Run-Proof Review Checklist for Organizers | Candidate — Search Console validation pending |
