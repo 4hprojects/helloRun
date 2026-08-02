@@ -10,12 +10,12 @@ Current active state:
 
 | Priority | Workstream | Status | Dependency |
 | --- | --- | --- | --- |
-| 1 | Public link integrity | **Repository complete; release verification pending** | None |
-| 2 | Event heading hierarchy | Implemented; production verification pending | Priority 1 release verification |
-| 3 | Metadata and crawl hygiene | Implemented; production verification pending | Priority 2 production verification |
-| 4 | Advertising consent architecture | Implemented; Google account verification pending | Priority 3 production verification |
+| 1 | Public link integrity | **Complete** | None |
+| 2 | Event heading hierarchy | **Complete** | Priority 1 complete |
+| 3 | Metadata and crawl hygiene | **Complete** | Priority 2 complete |
+| 4 | Advertising consent architecture | Production implementation verified; policy publication and Google account verification pending | Priority 3 complete |
 | 5 | SEO keyword quality | Repository mapping complete; Search Console review pending | Priority 4 account verification |
-| 6 | Production quality audit | Blocked | Priority 5 complete |
+| 6 | Production quality audit | Release audit passed; post-policy spot check pending | Priority 5 complete |
 | 7 | Indexing and approval gate | Blocked | Priority 6 complete |
 
 ## One-Priority Operating Rule
@@ -52,9 +52,23 @@ The production audit that created this roadmap recorded:
 - `robots.txt`, `sitemap.xml`, and `ads.txt` each returned `200` during the production metadata audit.
 - These production findings remain release-verification evidence and are not described as failures of the repository implementation.
 
+## Production Release Verification — August 2, 2026
+
+- Released commit `42d96ac` to `main`; the previous release point was `5b59b83`.
+- Restarted only the existing PM2 `hellorun` process. Nginx, Cloudflare Tunnel, Cloudflare DNS, and GoDaddy configuration were unchanged.
+- PM2 remained online with zero unstable restarts. Direct and public `/healthz` and `/readyz` checks and the public homepage returned `200`.
+- The post-release link audit checked 46 sitemap pages and 106 unique same-origin links with zero actionable failures.
+- The post-release image audit checked 82 unique images referenced by 46 sitemap pages with zero failures.
+- The post-release metadata audit checked 46 sitemap HTML pages with zero findings; `robots.txt`, `sitemap.xml`, and `ads.txt` returned `200`.
+- All five registered historical guide URLs returned `301` to their intended canonical articles. Anonymous `/runner/submissions` returned `302` to `/login`.
+- Production HTML contained the Google AdSense bootstrap and zero manual ad units while `ADSENSE_MANUAL_PLACEMENTS_ENABLED` remained unset.
+- Responsive screenshots covered the homepage, event discovery, a representative event, a representative guide, About, How It Works, Contact, Privacy, and Cookie Policy. Core pages were checked at 320px, 768px, and 1440px without a visible broken layout or horizontal-overflow defect.
+- The release-focused suite passed 49/49, the complete DB-free unit suite passed 965/965, and the repository Markdown audit checked 210 files with zero findings.
+- Existing non-blocking operational limitation: the Supabase shadow-sync worker continued to report DNS resolution failures for its configured database host. The Mongo-backed application, public traffic, and readiness probes remained healthy; this warning predates and is separate from the AdSense release.
+
 ## Priority 1 — Public Link Integrity
 
-**Status:** In progress
+**Status:** Complete
 **Dependency:** None
 
 ### Objective
@@ -70,10 +84,10 @@ Remove known broken public navigation and prevent new eligible content from publ
 
 ### Acceptance Criteria
 
-- [ ] Both known broken links resolve without an actionable `4xx` response for an anonymous visitor.
+- [x] Both known broken links resolve without an actionable `4xx` response for an anonymous visitor.
 - [x] The canonical distance-choice URL is used consistently in article content, seed links, and tests.
-- [ ] Every same-origin link discovered from sitemap pages returns `2xx`, an intentional `3xx`, or is explicitly documented as a non-navigational provider route.
-- [ ] Focused tests and the public-link crawl pass.
+- [x] Every same-origin link discovered from sitemap pages returns `2xx`, an intentional `3xx`, or is explicitly documented as a non-navigational provider route.
+- [x] Focused tests and the public-link crawl pass.
 
 ### Verification Evidence
 
@@ -88,14 +102,16 @@ Remove known broken public navigation and prevent new eligible content from publ
 - Anonymous `/runner/submissions` requests correctly finish at `/login`, confirming the replacement destination is authentication-aware.
 - Hosting clarification recorded August 2, 2026: HelloRun is self-hosted on the Ubuntu Inspiron 3443 through PM2, Nginx, and Cloudflare Tunnel; GoDaddy is the registrar and Cloudflare provides DNS/proxying. DigitalOcean is not the application platform and its GitHub check is not a deployment authority.
 - Read-only verification confirmed PM2 process `hellorun` uses this repository, but its three-day-old runtime still served the pre-fix application: the public crawl checked 46 sitemap pages and 107 same-origin links with one remaining `/runner` failure from six Training guides. No deployment infrastructure was modified during this work.
+- Commit `42d96ac` was released through the existing PM2 process. The post-release crawl checked 46 sitemap pages and 106 unique same-origin links with zero actionable failures.
+- Anonymous `/runner/submissions` returned `302` to `/login`, and all five registered legacy guide routes returned the intended canonical `301`.
 
 ### Completion Note
 
-Pending production deployment and a zero-failure public-link crawl. Do not advance Priority 2 until both are recorded.
+Completed August 2, 2026 after the production release and zero-failure public-link crawl.
 
 ## Priority 2 — Event Heading Hierarchy
 
-**Status:** Implemented; production verification pending
+**Status:** Complete
 **Dependency:** Priority 1 complete
 
 ### Objective
@@ -111,23 +127,24 @@ Ensure every public event page has one page-level `<h1>` while preserving the co
 
 ### Acceptance Criteria
 
-- [ ] Every sitemap event page renders exactly one `<h1>`.
+- [x] Every sitemap event page renders exactly one `<h1>`.
 - [x] Description headings begin at `<h2>` or lower in DB-free rendering tests.
 - [x] No supported description text or structure is lost in regression fixtures.
-- [ ] Unit tests and a production heading scan pass after release.
+- [x] Unit tests and a production heading scan pass after release.
 
 ### Verification Evidence
 
 - `renderEventDetailsContent` converts HTML and Markdown-derived description `<h1>` elements to `<h2>` without changing the stored source.
 - Focused event public-view tests cover single and multiple headings, links, lists, tables, and lower headings.
+- The production metadata audit found zero heading issues across all 46 sitemap pages, including the five event pages that previously rendered two `<h1>` elements.
 
 ### Completion Note
 
-Pending.
+Completed August 2, 2026 after DB-free rendering tests and the production heading scan passed.
 
 ## Priority 3 — Metadata And Crawl Hygiene
 
-**Status:** Implemented; production verification pending
+**Status:** Complete
 **Dependency:** Priority 2 complete
 
 ### Objective
@@ -143,23 +160,25 @@ Give every indexable sitemap page complete, internally consistent metadata and c
 
 ### Acceptance Criteria
 
-- [ ] Every sitemap URL returns `200`.
-- [ ] Every sitemap HTML page has a unique non-empty title, a useful description, a self-referencing canonical URL, exactly one `<h1>`, and no accidental `noindex`.
-- [ ] `robots.txt`, `sitemap.xml`, and `ads.txt` remain reachable and correct.
-- [ ] Focused tests and the production metadata scan pass after release.
+- [x] Every sitemap URL returns `200`.
+- [x] Every sitemap HTML page has a unique non-empty title, a useful description, a self-referencing canonical URL, exactly one `<h1>`, and no accidental `noindex`.
+- [x] `robots.txt`, `sitemap.xml`, and `ads.txt` remain reachable and correct.
+- [x] Focused tests and the production metadata scan pass after release.
 
 ### Verification Evidence
 
 - Added `npm run adsense:audit-metadata -- --base-url https://hellorun.online`.
 - DB-free coverage verifies metadata extraction, minimum description quality, self-canonicals, one-`h1`, indexability, duplicate titles, and required public-file responses.
+- The production metadata audit checked 46 sitemap HTML pages with zero findings. About, How It Works, and Contact served self-referencing canonicals; Privacy served the expanded description.
+- `robots.txt`, `sitemap.xml`, and `ads.txt` each returned `200`.
 
 ### Completion Note
 
-Pending.
+Completed August 2, 2026 after the production metadata and crawl-signal audit passed.
 
 ## Priority 4 — Advertising Consent Architecture
 
-**Status:** Implemented; Google account verification pending
+**Status:** Production implementation verified; policy publication and Google account verification pending
 **Dependency:** Priority 3 complete
 
 ### Objective
@@ -191,6 +210,8 @@ Make Google’s certified CMP authoritative for advertising consent while HelloR
 - Account-side Google Privacy & Messaging configuration remains unverified.
 - The authenticated account checklist and official Google references are recorded in [`google-account-verification.md`](google-account-verification.md).
 - Updated Privacy and Cookie policy sources require the normal draft review and publication workflow before their public production wording changes.
+- Production rendered the Google AdSense bootstrap and zero manual ad units with the manual-placement environment gate unset.
+- The normal draft workflow retained published Privacy v1.4 and Cookie Policy v1.3 and prepared idempotent Privacy v1.7 and Cookie Policy v1.5 drafts. Full-admin review and publication remain pending.
 
 ### Completion Note
 
@@ -232,7 +253,7 @@ Pending.
 
 ## Priority 6 — Production Quality Audit
 
-**Status:** Blocked
+**Status:** Release audit passed; post-policy spot check pending
 **Dependency:** Priority 5 complete
 
 ### Objective
@@ -241,11 +262,11 @@ Repeat the complete production audit after all repository-controlled approval wo
 
 ### Implementation Checklist
 
-- [ ] Audit sitemap responses, internal links, images, titles, descriptions, canonicals, headings, and robots directives.
-- [ ] Review homepage, events, event details, blog, representative articles, trust pages, and policy pages on desktop and mobile widths.
+- [x] Audit sitemap responses, internal links, images, titles, descriptions, canonicals, headings, and robots directives.
+- [x] Review homepage, events, event details, blog, representative articles, trust pages, and policy pages on desktop and mobile widths.
 - [ ] Check navigation, focus behavior, horizontal overflow, unexpected dialogs, placeholders, duplicate content, and misleading claims.
-- [ ] Run focused AdSense readiness tests and the full unit suite.
-- [ ] Record commands, production URLs, counts, results, screenshots where useful, and accepted limitations.
+- [x] Run focused AdSense readiness tests and the full unit suite.
+- [x] Record commands, production URLs, counts, results, screenshots where useful, and accepted limitations.
 
 ### Acceptance Criteria
 
@@ -257,7 +278,13 @@ Repeat the complete production audit after all repository-controlled approval wo
 
 ### Verification Evidence
 
-Pending.
+- Link audit: 46 sitemap pages, 106 unique same-origin links, zero actionable failures.
+- Image audit: 82 unique images referenced by 46 sitemap pages, zero failures.
+- Metadata audit: 46 sitemap HTML pages and three required public files, zero findings.
+- Responsive browser screenshots covered core public and policy surfaces at 320px, 768px, and 1440px.
+- Release-focused tests passed 49/49; full DB-free unit tests passed 965/965.
+- The known Supabase shadow-sync DNS warning is recorded as a non-blocking operational limitation because the application and readiness checks remained healthy.
+- A final Privacy and Cookie Policy spot check remains required after their reviewed drafts are published.
 
 ### Completion Note
 

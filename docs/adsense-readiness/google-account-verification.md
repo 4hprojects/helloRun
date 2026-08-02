@@ -53,3 +53,19 @@ Complete this section during the authenticated account review:
 | Certified CMP and TCF coverage | Pending | — | — |
 
 Do not record screenshots containing account identifiers, payment details, addresses, or other sensitive account data in the repository. Record only the minimum status evidence needed for the approval gate.
+
+## Production Evidence — August 2, 2026
+
+The repository-controlled release gate passed without changing deployment infrastructure:
+
+- Release commit: `42d96ac`; previous release point: `5b59b83`.
+- Existing PM2 process `hellorun` restarted successfully and remained stable with zero unstable restarts.
+- Public homepage, `/healthz`, and `/readyz` returned `200`.
+- Link audit: 46 sitemap pages, 106 unique same-origin links, zero actionable failures.
+- Image audit: 82 unique images referenced by 46 sitemap pages, zero failures.
+- Metadata audit: 46 sitemap HTML pages, zero findings; `robots.txt`, `sitemap.xml`, and `ads.txt` returned `200`.
+- Public HTML loaded the Google AdSense bootstrap and rendered zero manual ad units.
+- `ADSENSE_MANUAL_PLACEMENTS_ENABLED` was unset in the PM2 process.
+- Privacy v1.7 and Cookie Policy v1.5 drafts were prepared idempotently for full-admin review. Published versions remain Privacy v1.4 and Cookie Policy v1.3 until that review is completed.
+
+This production evidence does not verify Google’s account-side ownership, `ads.txt` authorization result, Policy Center, account tasks, CMP publication, Search Console indexing, or site-review status. Those rows remain pending until checked in the authenticated Google interfaces.
