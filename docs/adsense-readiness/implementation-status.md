@@ -6,6 +6,8 @@ The AdSense readiness plan has been implemented and merged into `main` through P
 
 The work focused on public content depth, crawl hygiene, event page quality, trust pages, blog structure, and final smoke checks.
 
+Current approval work is controlled by [`approval-roadmap.md`](approval-roadmap.md). This file remains the historical implementation and verification record.
+
 ## Implemented Phases
 
 | Phase | Status | Notes |
@@ -103,7 +105,9 @@ The two smoke suites still print existing Supabase shadow-sync `ENOTFOUND` warni
 - The in-app Browser visual QA could not run because the Browser plugin failed during runtime setup with `failed to write kernel assets`.
 - Shop smoke tests could not complete locally because the configured Postgres/Supabase endpoint returned `ENOTFOUND`. The public HTML shop noindex fallback was verified directly.
 
-## Production Follow-Up
+## Historical Production Follow-Up
+
+These original follow-up steps are retained for traceability and are superseded by the active approval roadmap.
 
 1. Deploy `main`.
 2. Run `npm run seed:adsense-blog` in the production environment if the 15 guide posts are not already published.
@@ -111,3 +115,30 @@ The two smoke suites still print existing Supabase shadow-sync `ENOTFOUND` warni
 4. Confirm important public pages are reachable without login.
 5. Submit or refresh the sitemap in Google Search Console.
 6. Request AdSense review only after the deployed pages have been crawled.
+
+## July 31, 2026 Production Approval Audit
+
+### Confirmed
+
+- 46 sitemap URLs responded successfully.
+- 24 AdSense-eligible guides were published.
+- 54 audited public images loaded successfully.
+- 84 focused content, trust-page, event, and cookie-preference tests passed.
+- Public `robots.txt`, `sitemap.xml`, and `ads.txt` were reachable.
+- `ads.txt` declared `pub-4537208011192461`.
+- Public pages included the matching AdSense ownership meta tag.
+- About, Contact, FAQ, Privacy, Terms, Cookie Policy, and other trust pages were publicly accessible.
+
+### Remaining Findings
+
+- Two actionable public internal links returned `404`: an obsolete distance-guide slug and the guest-facing `/runner` destination.
+- Five event pages rendered a second `<h1>` from rich description content.
+- About, How It Works, and Contact lacked canonical URLs.
+- The Privacy Policy meta description was too short to be useful.
+- The custom preference UI and the planned Google-certified advertising CMP need one authoritative consent model.
+- Search Console crawl/index coverage was not independently verified.
+- AdSense ownership status, `ads.txt: Authorized`, account setup, Policy Center, and certified CMP status were not independently verified.
+
+### Decision
+
+**Hold the AdSense review request until Priorities 1-7 in [`approval-roadmap.md`](approval-roadmap.md) pass.**

@@ -1,6 +1,12 @@
-# AdSense Content: Next Articles TODO
+# AdSense Content Batch History
 
-Publish these articles in the following order before the next AdSense review.
+## Status
+
+The planned content batch is complete. This file is historical evidence and is not an active TODO list.
+
+Current approval work is tracked only in [`approval-roadmap.md`](approval-roadmap.md). SEO keyword work is preserved as Priority 5 rather than remaining as an ambiguous article-level checkbox.
+
+## Completed Articles
 
 1. [x] How to Prepare for Your First Virtual Run
 2. [x] How to Choose Between a 5K, 10K, 21K, or Distance Challenge
@@ -15,12 +21,16 @@ Publish these articles in the following order before the next AdSense review.
 11. [x] Virtual Run Checklist for First-Time Organizers
 12. [x] How Schools and Organizations Can Use Virtual Runs
 
-## Implementation checklist for each article
+## Batch Completion Evidence
 
-- [ ] Add the canonical article to the shared AdSense article registry.
-- [ ] Add or replace its canonical seed entry.
-- [ ] Define schema-safe metadata, cover alt text, and internal links.
-- [ ] Use authoritative sources and clearly state methodology and limitations.
-- [ ] Add content, registry, seed, updater, and canonical/sitemap tests.
-- [ ] Run the updater in dry-run mode, apply it, and verify idempotency.
-- [ ] Verify the public page, metadata, canonical URL, sitemap entry, and preserved record fields.
+- [x] Canonical articles were added to the shared AdSense article registry.
+- [x] Canonical seed entries were added or replaced.
+- [x] Schema-safe metadata, cover alt text, and internal links were defined.
+- [x] Articles use authoritative sources and state methodology and limitations.
+- [x] Content, registry, seed, updater, canonical, and sitemap coverage was added.
+- [x] Updater behavior and idempotent seeding were covered by focused tests.
+- [x] Public pages, metadata, canonical URLs, sitemap entries, and preserved record fields were verified during implementation.
+
+## Follow-Up Boundary
+
+Do not add new article ideas here. Evidence-led SEO opportunities, existing-page improvements, and genuine content gaps belong in Priority 5 of the active roadmap.

@@ -1,5 +1,7 @@
 ﻿# SEO Key Words
 
+> **Status: uncurated research backlog.** Do not use this phrase list to create or optimize public content yet. Priority 5 in [`approval-roadmap.md`](approval-roadmap.md) will remove irrelevant and unsupported queries, incorporate Search Console evidence where available, and replace this list with an intent-to-page map.
+
 ## questions
 - how virtual run works
 - what is virtual run on strava
