@@ -90,3 +90,9 @@ test('future publication queues a non-blocking deduplicated Privacy notice', () 
   assert.equal(buildNotificationPresentation(notice).actionLabel, 'Review privacy policy');
   assert.match(controller, /policyDocument\.key === 'privacy'/);
 });
+
+test('policy version loading and publication import their Mongoose dependency', () => {
+  assert.match(controller, /const mongoose = require\('mongoose'\);/);
+  assert.match(controller, /mongoose\.Types\.ObjectId\.isValid/);
+  assert.match(controller, /mongoose\.startSession\(\)/);
+});

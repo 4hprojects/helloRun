@@ -1,5 +1,6 @@
 'use strict';
 
+const mongoose = require('mongoose');
 const {
   PrivacyPolicy, getPolicyByAdminPath,
   MAX_PRIVACY_POLICY_CONTENT_LENGTH,
