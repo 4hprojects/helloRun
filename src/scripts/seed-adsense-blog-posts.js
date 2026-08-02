@@ -130,6 +130,10 @@ const {
   ARTICLE: POST_RUN_RECOVERY_BASICS_ARTICLE,
   buildArticlePayload: buildPostRunRecoveryBasicsPayload
 } = require('../content/post-run-recovery-basics-guide');
+const {
+  ARTICLE: FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_ARTICLE,
+  buildArticlePayload: buildFairConsistentRunProofReviewChecklistPayload
+} = require('../content/fair-consistent-run-proof-review-checklist-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -196,6 +200,8 @@ const FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_COVER_IMAGE_URL = 'https://cdn.he
 const FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_PAYLOAD = buildFairDistanceCategoriesChallengeGoalsPayload({ coverImageUrl: FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_COVER_IMAGE_URL });
 const POST_RUN_RECOVERY_BASICS_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785684194043-524731892-post-run-recovery-basics-rest-hydration-when-to-ease-back.webp';
 const POST_RUN_RECOVERY_BASICS_PAYLOAD = buildPostRunRecoveryBasicsPayload({ coverImageUrl: POST_RUN_RECOVERY_BASICS_COVER_IMAGE_URL });
+const FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785685456907-509035887-fair-and-consistent-run-proof-review-checklist-for-organizers.webp';
+const FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_PAYLOAD = buildFairConsistentRunProofReviewChecklistPayload({ coverImageUrl: FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -947,6 +953,29 @@ const POSTS = [
       '/blog/run-walk-method-beginner-friendly-way-build-endurance',
       '/blog/how-to-stay-consistent-during-a-month-long-virtual-run',
       '/blog/how-to-choose-a-safe-route-for-your-virtual-run'
+    ]
+  },
+  {
+    ...FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_ARTICLE,
+    contentHtml: FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_PAYLOAD.contentHtml,
+    coverImageUrl: FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_COVER_IMAGE_URL,
+    coverImageAlt: FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_ARTICLE.coverImageAlt,
+    ogImageUrl: FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-08-17T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/faq',
+      '/organiser-terms',
+      '/privacy',
+      '/blog/how-to-write-clear-virtual-run-rules-participants-can-follow',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/why-a-virtual-run-submission-may-be-rejected',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers'
     ]
   }
 ];

@@ -27,9 +27,9 @@ const {
   REQUIRED_LINKS,
   buildArticlePayload,
   validateArticlePayload
-} = require('../src/content/post-run-recovery-basics-guide');
+} = require('../src/content/fair-consistent-run-proof-review-checklist-guide');
 
-const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785684194043-524731892-post-run-recovery-basics-rest-hydration-when-to-ease-back.webp';
+const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785685456907-509035887-fair-and-consistent-run-proof-review-checklist-for-organizers.webp';
 const COVER_IMAGE_PATH = path.join(
   __dirname,
   '..',
@@ -38,20 +38,20 @@ const COVER_IMAGE_PATH = path.join(
   'images',
   'blog',
   'covers',
-  'post-run-recovery-basics-rest-hydration-when-to-ease-back.webp'
+  'fair-and-consistent-run-proof-review-checklist-for-organizers.webp'
 );
 
-test('post-run recovery guide builds a substantive health-gated payload', () => {
+test('fair run-proof review checklist builds a substantive organizer payload', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const wordCount = payload.contentText.split(/\s+/).filter(Boolean).length;
 
   assert.equal(ARTICLE.slug, CANONICAL_SLUG);
-  assert.equal(payload.title, 'Post-Run Recovery Basics: Rest, Hydration, and When to Ease Back');
-  assert.equal(payload.category, 'Injury Prevention');
+  assert.equal(payload.title, 'A Fair and Consistent Run-Proof Review Checklist for Organizers');
+  assert.equal(payload.category, 'Virtual Run Guide');
   assert.ok(BLOG_CATEGORIES.includes(payload.category));
   assert.deepEqual(payload.tags, [
-    'post-run recovery', 'recovery basics', 'runner hydration', 'rest after running',
-    'muscle soreness', 'injury awareness', 'running safety', 'beginner runners'
+    'run proof review', 'virtual run organizer', 'submission review', 'activity evidence',
+    'review checklist', 'event integrity', 'runner feedback', 'organizer workflow'
   ]);
   assert.ok(payload.tags.every((tag) => tag.length <= 30));
   assert.ok(payload.excerpt.length <= 220);
@@ -67,11 +67,11 @@ test('post-run recovery guide builds a substantive health-gated payload', () => 
   assert.doesNotThrow(() => validateArticlePayload(payload));
 
   assert.doesNotMatch(payload.contentHtml, /<h1\b/i);
-  assert.doesNotMatch(payload.contentHtml, /<h[12]>Post-Run Recovery Basics:/i);
-  assert.match(payload.contentText, /reviewed in August 2026 using World Health Organization/i);
+  assert.doesNotMatch(payload.contentHtml, /<h[12]>A Fair and Consistent Run-Proof Review Checklist/i);
+  assert.match(payload.contentText, /reviewed in August 2026 against current HelloRun/i);
   assert.match(payload.contentText, /Approval means the evidence met the applicable platform and event review requirements/i);
-  assert.match(payload.contentText, /Contact local emergency services or obtain immediate medical help/i);
-  assert.match(payload.contentText, /After the next ordinary run, complete the worksheet once/i);
+  assert.match(payload.contentText, /eight structured rejection reasons/i);
+  assert.match(payload.contentText, /Before the next review session, choose five comparable pending entries/i);
 
   for (const heading of REQUIRED_HEADINGS) {
     assert.ok(payload.contentHtml.includes(`<h2>${heading}</h2>`), `missing required heading: ${heading}`);
@@ -81,7 +81,7 @@ test('post-run recovery guide builds a substantive health-gated payload', () => 
   }
 });
 
-test('post-run recovery guide sanitizes official sources and passes health eligibility', () => {
+test('fair run-proof review checklist sanitizes official sources and passes eligibility', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const eligibility = evaluateBlogContentEligibility({
     ...payload,
@@ -91,20 +91,18 @@ test('post-run recovery guide sanitizes official sources and passes health eligi
   assert.equal(payload.contentHtml.includes('<script'), false);
   assert.equal(payload.contentHtml.includes('javascript:'), false);
   assert.notEqual(payload.contentHtml, RAW_CONTENT_HTML.trim());
-  assert.match(payload.contentHtml, /href="https:\/\/www\.who\.int\/publications\/i\/item\/9789240015128" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.acsm\.org\/docs\/default-source\/nyshsi_resources\/resources\/sssi-nyshsi-recovery\.pdf" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.nhs\.uk\/better-health\/get-active\/get-running-with-couch-to-5k\/couch-to-5k-running-plan\/" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.nhs\.uk\/conditions\/sprains-and-strains\/" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.cdc\.gov\/heat-health\/risk-factors\/heat-and-athletes\.html" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/privacy\.gov\.ph\/implementing-rules-regulations-data-privacy-act-2012\/" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.rrca\.org\/programs\/race-director-certification\/race-director-code-of-ethics\/" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/WAI\/tutorials\/forms\/notifications\/" rel="noopener noreferrer" target="_blank"/);
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
   assert.equal(eligibility.healthReviewRequired, true);
   assert.ok(eligibility.wordCount >= 3200);
   assert.ok(eligibility.semanticUnitCount >= 3);
-  assert.equal(eligibility.externalLinkCount, 5);
+  assert.equal(eligibility.externalLinkCount, 3);
 });
 
-test('post-run recovery guide uses a 1600 by 900 quiet documentary cover', async () => {
+test('fair run-proof review checklist uses a distinct 1600 by 900 risograph cover', async () => {
   assert.equal(fs.existsSync(COVER_IMAGE_PATH), true);
   const metadata = await sharp(COVER_IMAGE_PATH).metadata();
   assert.equal(metadata.format, 'webp');
@@ -112,7 +110,7 @@ test('post-run recovery guide uses a 1600 by 900 quiet documentary cover', async
   assert.equal(metadata.height, 900);
 });
 
-test('post-run recovery guide is registered and seeded once for August 15', () => {
+test('fair run-proof review checklist is registered and seeded once for August 17', () => {
   const articleModule = getArticleModule(CANONICAL_SLUG);
   const seededPosts = POSTS.filter((post) => post.slug === CANONICAL_SLUG);
   const seededPost = seededPosts[0];
@@ -127,15 +125,15 @@ test('post-run recovery guide is registered and seeded once for August 15', () =
   assert.equal(seededPost.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(seededPost.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(seededPost.status, 'scheduled');
-  assert.equal(seededPost.publishedAt, '2026-08-15T11:00:00.000Z');
+  assert.equal(seededPost.publishedAt, '2026-08-17T11:00:00.000Z');
   assert.equal(seededPost.featured, false);
   assert.equal(seededPost.authorEmail, GUIDE_AUTHOR_EMAIL);
 });
 
-test('post-run recovery guide supports exact health-reviewed scheduling and updates', () => {
+test('fair run-proof review checklist supports exact eligible scheduling and updates', () => {
   const authorId = new mongoose.Types.ObjectId();
   const reviewedAt = new Date('2026-08-02T16:00:00.000Z');
-  const publishAt = '2026-08-15T11:00:00.000Z';
+  const publishAt = '2026-08-17T11:00:00.000Z';
   const payload = buildCreatePayload({ slug: CANONICAL_SLUG, authorId, now: reviewedAt, publishAt });
 
   assert.deepEqual(
@@ -147,19 +145,22 @@ test('post-run recovery guide supports exact health-reviewed scheduling and upda
   assert.equal(payload.status, 'scheduled');
   assert.equal(payload.publishedAt.toISOString(), publishAt);
   assert.equal(payload.approvedAt, null);
+  assert.equal(payload.featured, false);
   assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.contentEligibility.eligible, true);
   assert.equal(payload.contentEligibility.healthReviewRequired, true);
+  assert.equal(payload.publicationReview.originalityConfirmed, true);
+  assert.equal(payload.publicationReview.externalLinksConfirmed, true);
   assert.equal(payload.publicationReview.healthSafetyConfirmed, true);
   assert.equal(payload.publicationReview.healthChecks.healthExperienceConfirmed, true);
   assert.equal(payload.publicationReview.healthChecks.healthSourcesConfirmed, true);
   assert.equal(payload.publicationReview.healthChecks.healthSafetyConfirmed, true);
   assert.equal(payload.publicationReview.healthChecks.healthCredentialsConfirmed, true);
-  assert.match(packageJson.scripts['blog:update-post-run-recovery'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+  assert.match(packageJson.scripts['blog:update-fair-run-proof-review'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
-test('post-run recovery guide rejects diagnosis, dosing, and unsafe return claims', () => {
+test('fair run-proof review checklist rejects unsafe and unsupported review claims', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const withClaim = (claim) => ({
     ...payload,
@@ -167,12 +168,13 @@ test('post-run recovery guide rejects diagnosis, dosing, and unsafe return claim
     contentRaw: `${payload.contentText} ${claim}`
   });
 
-  assert.throws(() => validateArticlePayload(withClaim('This is definitely a strain.')), /diagnose symptoms/);
-  assert.throws(() => validateArticlePayload(withClaim('Everyone should drink exactly 500 ml.')), /universal hydration/);
-  assert.throws(() => validateArticlePayload(withClaim('Take painkillers after every run.')), /medication/);
-  assert.throws(() => validateArticlePayload(withClaim('Ignore the pain and continue.')), /continuing through pain/);
-  assert.throws(() => validateArticlePayload(withClaim('This guarantees injury prevention.')), /guarantee prevention/);
-  assert.throws(() => validateArticlePayload(withClaim('Approved evidence proves you are recovered.')), /health readiness/);
-  assert.throws(() => validateArticlePayload(withClaim('You should make up the run by doubling.')), /catch-up activity/);
+  assert.throws(() => validateArticlePayload(withClaim('OCR proves fraud.')), /review signals as proof/);
+  assert.throws(() => validateArticlePayload(withClaim('Every submitted result qualifies for automatic approval.')), /universal approval/);
+  assert.throws(() => validateArticlePayload(withClaim('Pending distance counts officially.')), /pending evidence officially/);
+  assert.throws(() => validateArticlePayload(withClaim('Every rejection is final.')), /correction outcomes/);
+  assert.throws(() => validateArticlePayload(withClaim('Organizers may introduce undisclosed rules during review.')), /undisclosed review rules/);
+  assert.throws(() => validateArticlePayload(withClaim('Proof files and private review notes are public.')), /private review material/);
+  assert.throws(() => validateArticlePayload(withClaim('Collecting additional personal data automatically improves verification.')), /excessive data collection/);
+  assert.throws(() => validateArticlePayload(withClaim('This checklist guarantees equal outcomes.')), /guarantee review fairness/);
   assert.throws(() => buildArticlePayload(), /cover artwork/);
 });
