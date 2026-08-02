@@ -138,6 +138,10 @@ const {
   ARTICLE: WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_ARTICLE,
   buildArticlePayload: buildWeeklyRunningScheduleWorkSchoolPayload
 } = require('../content/weekly-running-schedule-work-school-guide');
+const {
+  ARTICLE: DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_ARTICLE,
+  buildArticlePayload: buildDataPrivacyChecklistRunningEventOrganizersPayload
+} = require('../content/data-privacy-checklist-running-event-organizers-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -208,6 +212,8 @@ const FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_COVER_IMAGE_URL = 'https://cdn.
 const FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_PAYLOAD = buildFairConsistentRunProofReviewChecklistPayload({ coverImageUrl: FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_COVER_IMAGE_URL });
 const WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785686943864-648488379-how-to-build-a-weekly-running-schedule-around-work-or-school.webp';
 const WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_PAYLOAD = buildWeeklyRunningScheduleWorkSchoolPayload({ coverImageUrl: WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_COVER_IMAGE_URL });
+const DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785687764281-767893634-data-privacy-checklist-running-event-organizers.webp';
+const DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_PAYLOAD = buildDataPrivacyChecklistRunningEventOrganizersPayload({ coverImageUrl: DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1005,6 +1011,27 @@ const POSTS = [
       '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
       '/blog/how-to-run-safely-during-hot-and-humid-weather',
       '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge'
+    ]
+  },
+  {
+    ...DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_ARTICLE,
+    contentHtml: DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_PAYLOAD.contentHtml,
+    coverImageUrl: DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_COVER_IMAGE_URL,
+    coverImageAlt: DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_ARTICLE.coverImageAlt,
+    ogImageUrl: DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-08-22T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/privacy',
+      '/data-usage-policy',
+      '/organiser-terms',
+      '/community-guidelines',
+      '/contact?topic=privacy_data',
+      '/how-it-works',
+      '/blog/how-to-write-clear-virtual-run-rules-participants-can-follow',
+      '/blog/fair-and-consistent-run-proof-review-checklist-for-organizers'
     ]
   }
 ];

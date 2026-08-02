@@ -37,7 +37,7 @@
 | Sat, Aug 15 | 19:00 Asia/Manila | 2026-08-15 11:00:00Z | Runner | Injury Prevention | Post-Run Recovery Basics: Rest, Hydration, and When to Ease Back | Scheduled — production record and CDN cover verified |
 | Mon, Aug 17 | 19:00 Asia/Manila | 2026-08-17 11:00:00Z | Organizer | Virtual Run Guide | A Fair and Consistent Run-Proof Review Checklist for Organizers | Scheduled — production record and CDN cover verified |
 | Thu, Aug 20 | 19:00 Asia/Manila | 2026-08-20 11:00:00Z | Runner | Training | How to Build a Weekly Running Schedule Around Work or School | Scheduled — production record and CDN cover verified |
-| Sat, Aug 22 | 19:00 Asia/Manila | 2026-08-22 11:00:00Z | Organizer | Organizer Guide | Data Privacy Checklist for Running Event Organizers | Candidate — Search Console validation pending |
+| Sat, Aug 22 | 19:00 Asia/Manila | 2026-08-22 11:00:00Z | Organizer | Organizer Guide | Data Privacy Checklist for Running Event Organizers | Scheduled — production record and CDN cover verified |
 | Mon, Aug 24 | 19:00 Asia/Manila | 2026-08-24 11:00:00Z | Runner | Race Tips | What to Bring on Race Day: A Checklist for On-Site and Hybrid Events | Candidate — Search Console validation pending |
 | Thu, Aug 27 | 19:00 Asia/Manila | 2026-08-27 11:00:00Z | Organizer | Community | How to Make Running Event Instructions More Inclusive and Accessible | Candidate — Search Console validation pending |
 | Sat, Aug 29 | 19:00 Asia/Manila | 2026-08-29 11:00:00Z | Runner | Training | Returning to Running After a Break: A Gradual Restart Plan | Candidate — Search Console validation pending |
@@ -170,6 +170,8 @@
 
 ### 10. Data Privacy Checklist for Running Event Organizers
 
+- **Editorial status:** Scheduled for August 22; Search Console validation
+  remains pending and is not recorded as complete.
 - **Reader problem:** An organizer receives participant and proof data but
   needs practical boundaries for access, exports, communications, and
   deletion.

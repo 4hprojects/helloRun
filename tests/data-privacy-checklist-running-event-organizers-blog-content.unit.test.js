@@ -27,32 +27,23 @@ const {
   REQUIRED_LINKS,
   buildArticlePayload,
   validateArticlePayload
-} = require('../src/content/fair-consistent-run-proof-review-checklist-guide');
+} = require('../src/content/data-privacy-checklist-running-event-organizers-guide');
 
-const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785685456907-509035887-fair-and-consistent-run-proof-review-checklist-for-organizers.webp';
+const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785687764281-767893634-data-privacy-checklist-running-event-organizers.webp';
 const COVER_IMAGE_PATH = path.join(
-  __dirname,
-  '..',
-  'src',
-  'public',
-  'images',
-  'blog',
-  'covers',
-  'fair-and-consistent-run-proof-review-checklist-for-organizers.webp'
+  __dirname, '..', 'src', 'public', 'images', 'blog', 'covers',
+  'data-privacy-checklist-running-event-organizers.webp'
 );
 
-test('fair run-proof review checklist builds a substantive organizer payload', () => {
+test('organizer data privacy checklist builds a substantive source-grounded payload', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const wordCount = payload.contentText.split(/\s+/).filter(Boolean).length;
 
   assert.equal(ARTICLE.slug, CANONICAL_SLUG);
-  assert.equal(payload.title, 'A Fair and Consistent Run-Proof Review Checklist for Organizers');
-  assert.equal(payload.category, 'Virtual Run Guide');
+  assert.equal(payload.title, 'Data Privacy Checklist for Running Event Organizers');
+  assert.equal(payload.category, 'Organizer Guide');
   assert.ok(BLOG_CATEGORIES.includes(payload.category));
-  assert.deepEqual(payload.tags, [
-    'run proof review', 'virtual run organizer', 'submission review', 'activity evidence',
-    'review checklist', 'event integrity', 'runner feedback', 'organizer workflow'
-  ]);
+  assert.equal(payload.tags.length, 8);
   assert.ok(payload.tags.every((tag) => tag.length <= 30));
   assert.ok(payload.excerpt.length <= 220);
   assert.ok(payload.seoTitle.length <= 160);
@@ -65,13 +56,10 @@ test('fair run-proof review checklist builds a substantive organizer payload', (
   assert.equal(payload.readingTime, Math.ceil(wordCount / 180));
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.doesNotThrow(() => validateArticlePayload(payload));
-
   assert.doesNotMatch(payload.contentHtml, /<h1\b/i);
-  assert.doesNotMatch(payload.contentHtml, /<h[12]>A Fair and Consistent Run-Proof Review Checklist/i);
-  assert.match(payload.contentText, /reviewed in August 2026 against current HelloRun/i);
-  assert.match(payload.contentText, /Approval means the evidence met the applicable platform and event review requirements/i);
-  assert.match(payload.contentText, /eight structured rejection reasons/i);
-  assert.match(payload.contentText, /Before the next review session, choose five comparable pending entries/i);
+  assert.match(payload.contentText, /reviewed in August 2026 against the Philippine Data Privacy Act/i);
+  assert.match(payload.contentText, /operational education, not legal advice/i);
+  assert.match(payload.contentText, /Treat every export as a controlled new copy/i);
 
   for (const heading of REQUIRED_HEADINGS) {
     assert.ok(payload.contentHtml.includes(`<h2>${heading}</h2>`), `missing required heading: ${heading}`);
@@ -81,28 +69,26 @@ test('fair run-proof review checklist builds a substantive organizer payload', (
   }
 });
 
-test('fair run-proof review checklist sanitizes official sources and passes eligibility', () => {
+test('organizer data privacy checklist sanitizes official sources and passes eligibility', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
-  const eligibility = evaluateBlogContentEligibility({
-    ...payload,
-    coverImageUrl: COVER_IMAGE_URL
-  }, { evaluatedAt: new Date('2026-08-02T00:00:00.000Z') });
+  const eligibility = evaluateBlogContentEligibility(payload, {
+    evaluatedAt: new Date('2026-08-03T00:00:00.000Z')
+  });
 
   assert.equal(payload.contentHtml.includes('<script'), false);
   assert.equal(payload.contentHtml.includes('javascript:'), false);
   assert.notEqual(payload.contentHtml, RAW_CONTENT_HTML.trim());
+  assert.match(payload.contentHtml, /href="https:\/\/privacy\.gov\.ph\/data-privacy-act\/" rel="noopener noreferrer" target="_blank"/);
   assert.match(payload.contentHtml, /href="https:\/\/privacy\.gov\.ph\/implementing-rules-regulations-data-privacy-act-2012\/" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.rrca\.org\/programs\/race-director-certification\/race-director-code-of-ethics\/" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/WAI\/tutorials\/forms\/notifications\/" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/privacy\.gov\.ph\/data-subject-rights\/" rel="noopener noreferrer" target="_blank"/);
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
   assert.equal(eligibility.healthReviewRequired, true);
   assert.ok(eligibility.wordCount >= 3200);
-  assert.ok(eligibility.semanticUnitCount >= 3);
-  assert.equal(eligibility.externalLinkCount, 3);
+  assert.equal(eligibility.externalLinkCount, 4);
 });
 
-test('fair run-proof review checklist uses a distinct 1600 by 900 risograph cover', async () => {
+test('organizer data privacy checklist uses a distinct 1600 by 900 paper-theatre cover', async () => {
   assert.equal(fs.existsSync(COVER_IMAGE_PATH), true);
   const metadata = await sharp(COVER_IMAGE_PATH).metadata();
   assert.equal(metadata.format, 'webp');
@@ -110,7 +96,7 @@ test('fair run-proof review checklist uses a distinct 1600 by 900 risograph cove
   assert.equal(metadata.height, 900);
 });
 
-test('fair run-proof review checklist is registered and seeded once for August 17', () => {
+test('organizer data privacy checklist is registered and seeded once for August 22', () => {
   const articleModule = getArticleModule(CANONICAL_SLUG);
   const seededPosts = POSTS.filter((post) => post.slug === CANONICAL_SLUG);
   const seededPost = seededPosts[0];
@@ -125,42 +111,42 @@ test('fair run-proof review checklist is registered and seeded once for August 1
   assert.equal(seededPost.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(seededPost.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(seededPost.status, 'scheduled');
-  assert.equal(seededPost.publishedAt, '2026-08-17T11:00:00.000Z');
+  assert.equal(seededPost.publishedAt, '2026-08-22T11:00:00.000Z');
   assert.equal(seededPost.featured, false);
   assert.equal(seededPost.authorEmail, GUIDE_AUTHOR_EMAIL);
 });
 
-test('fair run-proof review checklist supports exact eligible scheduling and updates', () => {
+test('organizer data privacy checklist supports exact eligible scheduling and updates', () => {
   const authorId = new mongoose.Types.ObjectId();
-  const reviewedAt = new Date('2026-08-02T16:00:00.000Z');
-  const publishAt = '2026-08-17T11:00:00.000Z';
-  const payload = buildCreatePayload({ slug: CANONICAL_SLUG, authorId, now: reviewedAt, publishAt });
+  const publishAt = '2026-08-22T11:00:00.000Z';
+  const payload = buildCreatePayload({
+    slug: CANONICAL_SLUG,
+    authorId,
+    now: new Date('2026-08-03T10:00:00.000Z'),
+    publishAt
+  });
 
   assert.deepEqual(
     parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--publish-at', publishAt]),
     { slug: CANONICAL_SLUG, mode: 'apply', publishAt }
   );
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
-  assert.equal(String(payload.authorId), String(authorId));
   assert.equal(payload.status, 'scheduled');
   assert.equal(payload.publishedAt.toISOString(), publishAt);
   assert.equal(payload.approvedAt, null);
   assert.equal(payload.featured, false);
-  assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
-  assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.contentEligibility.eligible, true);
   assert.equal(payload.contentEligibility.healthReviewRequired, true);
   assert.equal(payload.publicationReview.originalityConfirmed, true);
   assert.equal(payload.publicationReview.externalLinksConfirmed, true);
-  assert.equal(payload.publicationReview.healthSafetyConfirmed, true);
   assert.equal(payload.publicationReview.healthChecks.healthExperienceConfirmed, true);
   assert.equal(payload.publicationReview.healthChecks.healthSourcesConfirmed, true);
   assert.equal(payload.publicationReview.healthChecks.healthSafetyConfirmed, true);
   assert.equal(payload.publicationReview.healthChecks.healthCredentialsConfirmed, true);
-  assert.match(packageJson.scripts['blog:update-fair-run-proof-review'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+  assert.match(packageJson.scripts['blog:update-organizer-data-privacy'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
-test('fair run-proof review checklist rejects unsafe and unsupported review claims', () => {
+test('organizer data privacy checklist rejects unsafe or unsupported privacy claims', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const withClaim = (claim) => ({
     ...payload,
@@ -168,13 +154,13 @@ test('fair run-proof review checklist rejects unsafe and unsupported review clai
     contentRaw: `${payload.contentText} ${claim}`
   });
 
-  assert.throws(() => validateArticlePayload(withClaim('OCR proves fraud.')), /review signals as proof/);
-  assert.throws(() => validateArticlePayload(withClaim('Every submitted result qualifies for automatic approval.')), /universal approval/);
-  assert.throws(() => validateArticlePayload(withClaim('Pending distance counts officially.')), /pending evidence officially/);
-  assert.throws(() => validateArticlePayload(withClaim('Every rejection is final.')), /correction outcomes/);
-  assert.throws(() => validateArticlePayload(withClaim('Organizers may introduce undisclosed rules during review.')), /undisclosed review rules/);
-  assert.throws(() => validateArticlePayload(withClaim('Proof files and private review notes are public.')), /private review material/);
-  assert.throws(() => validateArticlePayload(withClaim('Collecting additional personal data automatically improves verification.')), /excessive data collection/);
-  assert.throws(() => validateArticlePayload(withClaim('This checklist guarantees equal outcomes.')), /guarantee review fairness/);
+  assert.throws(() => validateArticlePayload(withClaim('This checklist guarantees compliance.')), /certify compliance/);
+  assert.throws(() => validateArticlePayload(withClaim('Consent is always the lawful basis.')), /oversimplify lawful basis/);
+  assert.throws(() => validateArticlePayload(withClaim('All personal data must be deleted immediately.')), /universal retention/);
+  assert.throws(() => validateArticlePayload(withClaim('Every incident must trigger notification.')), /predetermine notification/);
+  assert.throws(() => validateArticlePayload(withClaim('Proof images are public.')), /private review material/);
+  assert.throws(() => validateArticlePayload(withClaim('Organizers may collect any data.')), /excessive collection/);
+  assert.throws(() => validateArticlePayload(withClaim('Approved results prove identity.')), /overstate approval/);
+  assert.throws(() => validateArticlePayload(withClaim('Downloaded exports remain protected automatically.')), /export protection/);
   assert.throws(() => buildArticlePayload(), /cover artwork/);
 });

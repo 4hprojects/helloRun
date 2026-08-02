@@ -83,7 +83,7 @@ test('first-time organizer checklist is registered, canonical, and seeded once',
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 33);
+  assert.equal(listArticleSlugs().length, 34);
   assert.equal(getCanonicalBlogSlug(CANONICAL_SLUG), '');
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
