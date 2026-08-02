@@ -48,6 +48,7 @@
     "blog:update-schools-organizations-guide": "node src/scripts/update-adsense-blog.js --slug how-schools-and-organizations-can-use-virtual-runs",
     "blog:update-realistic-monthly-running-goal": "node src/scripts/update-adsense-blog.js --slug how-to-set-a-realistic-monthly-running-goal",
     "blog:update-clear-virtual-run-rules": "node src/scripts/update-adsense-blog.js --slug how-to-write-clear-virtual-run-rules-participants-can-follow",
+    "blog:update-run-walk-method": "node src/scripts/update-adsense-blog.js --slug run-walk-method-beginner-friendly-way-build-endurance",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",

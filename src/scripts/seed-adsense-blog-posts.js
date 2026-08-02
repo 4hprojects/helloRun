@@ -110,6 +110,10 @@ const {
   ARTICLE: CLEAR_VIRTUAL_RUN_RULES_ARTICLE,
   buildArticlePayload: buildClearVirtualRunRulesPayload
 } = require('../content/clear-virtual-run-rules-guide');
+const {
+  ARTICLE: RUN_WALK_METHOD_ARTICLE,
+  buildArticlePayload: buildRunWalkMethodPayload
+} = require('../content/run-walk-method-beginner-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -166,6 +170,8 @@ const REALISTIC_MONTHLY_RUNNING_GOAL_COVER_IMAGE_URL = 'https://cdn.hellorun.onl
 const REALISTIC_MONTHLY_RUNNING_GOAL_PAYLOAD = buildRealisticMonthlyRunningGoalPayload({ coverImageUrl: REALISTIC_MONTHLY_RUNNING_GOAL_COVER_IMAGE_URL });
 const CLEAR_VIRTUAL_RUN_RULES_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785670404268-504104721-how-to-write-clear-virtual-run-rules-participants-can-follow.webp';
 const CLEAR_VIRTUAL_RUN_RULES_PAYLOAD = buildClearVirtualRunRulesPayload({ coverImageUrl: CLEAR_VIRTUAL_RUN_RULES_COVER_IMAGE_URL });
+const RUN_WALK_METHOD_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785671459612-580542686-run-walk-method-beginner-friendly-way-build-endurance.webp';
+const RUN_WALK_METHOD_PAYLOAD = buildRunWalkMethodPayload({ coverImageUrl: RUN_WALK_METHOD_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -808,6 +814,29 @@ const POSTS = [
       '/refund-and-cancellation-policy',
       '/blog/what-counts-as-valid-run-proof',
       '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers'
+    ]
+  },
+  {
+    ...RUN_WALK_METHOD_ARTICLE,
+    contentHtml: RUN_WALK_METHOD_PAYLOAD.contentHtml,
+    coverImageUrl: RUN_WALK_METHOD_COVER_IMAGE_URL,
+    coverImageAlt: RUN_WALK_METHOD_ARTICLE.coverImageAlt,
+    ogImageUrl: RUN_WALK_METHOD_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-08-06T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/blog/beginner-5k-training-plan-new-runners',
+      '/blog/beginners-guide-to-running-pace',
+      '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/how-to-train-safely-for-virtual-runs-in-hot-and-humid-weather',
+      '/blog/running-during-rainy-season-philippines',
+      '/blog/how-to-record-a-treadmill-run-for-a-virtual-event',
+      '/blog/running-safety-tips-early-morning-night-runs'
     ]
   }
 ];

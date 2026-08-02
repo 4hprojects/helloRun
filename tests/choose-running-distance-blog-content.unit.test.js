@@ -79,7 +79,7 @@ test('distance choice guide replaces the obsolete seed and has a canonical redir
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 26);
+  assert.equal(listArticleSlugs().length, 27);
   assert.equal(seededPosts.length, 1);
   assert.equal(POSTS.some((post) => post.slug === LEGACY_SLUG), false);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);

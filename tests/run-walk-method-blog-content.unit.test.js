@@ -2,7 +2,10 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const mongoose = require('mongoose');
+const sharp = require('sharp');
 const packageJson = require('../package.json');
 
 const { POSTS, buildContentHtml, htmlToText } = require('../src/scripts/seed-adsense-blog-posts');
@@ -24,21 +27,31 @@ const {
   REQUIRED_LINKS,
   buildArticlePayload,
   validateArticlePayload
-} = require('../src/content/realistic-monthly-running-goal');
+} = require('../src/content/run-walk-method-beginner-guide');
 
-const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785668498609-628989328-how-to-set-a-realistic-monthly-running-goal.webp';
+const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785671459612-580542686-run-walk-method-beginner-friendly-way-build-endurance.webp';
+const COVER_IMAGE_PATH = path.join(
+  __dirname,
+  '..',
+  'src',
+  'public',
+  'images',
+  'blog',
+  'covers',
+  'run-walk-method-beginner-friendly-way-build-endurance.webp'
+);
 
-test('monthly running goal draft builds a substantive goal-calibration payload', () => {
+test('run-walk guide builds a substantive beginner-friendly payload', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const wordCount = payload.contentText.split(/\s+/).filter(Boolean).length;
 
   assert.equal(ARTICLE.slug, CANONICAL_SLUG);
-  assert.equal(payload.title, 'How to Set a Realistic Monthly Running Goal');
-  assert.equal(payload.category, 'Motivation');
+  assert.equal(payload.title, 'The Run-Walk Method: A Beginner-Friendly Way to Build Endurance');
+  assert.equal(payload.category, 'Training');
   assert.ok(BLOG_CATEGORIES.includes(payload.category));
   assert.deepEqual(payload.tags, [
-    'monthly running goal', 'running motivation', 'goal setting', 'virtual run',
-    'distance challenge', 'running routine', 'progress tracking', 'runner planning'
+    'run walk method', 'beginner running', 'running endurance', 'walk breaks',
+    'easy running', 'running intervals', '5K preparation', 'training guide'
   ]);
   assert.ok(payload.tags.every((tag) => tag.length <= 30));
   assert.ok(payload.excerpt.length <= 220);
@@ -54,16 +67,14 @@ test('monthly running goal draft builds a substantive goal-calibration payload',
   assert.doesNotThrow(() => validateArticlePayload(payload));
 
   assert.doesNotMatch(payload.contentHtml, /<h1\b/i);
-  assert.doesNotMatch(payload.contentHtml, /<h[12]>How to Set a Realistic Monthly Running Goal<\/h[12]>/i);
-  assert.match(payload.contentText, /minimum success, a working range, and an optional stretch goal/i);
-  assert.match(payload.contentText, /ordinary recent weeks/i);
-  assert.match(payload.contentText, /Pending distance is potential progress, not official progress/i);
-  for (const evidenceState of ['Recorded:', 'Submitted:', 'Pending:', 'Approved:', 'Rejected:']) {
-    assert.match(payload.contentText, new RegExp(evidenceState, 'i'));
-  }
+  assert.doesNotMatch(payload.contentHtml, /<h[12]>The Run-Walk Method:/i);
+  assert.match(payload.contentText, /walk is part of the session from the beginning/i);
+  assert.match(payload.contentText, /not the one with the most running/i);
+  assert.match(payload.contentText, /There is no universal deadline for removing walk breaks/i);
+  assert.match(payload.contentText, /Population recommendations describe activity associated with health benefits; they are not personal training plans/i);
+  assert.match(payload.contentText, /A pending activity is potential progress, not official progress/i);
   assert.match(payload.contentText, /reviewed in August 2026 using current public guidance/i);
-  assert.match(payload.contentText, /population recommendations describe activity associated with health benefits; they are not race-readiness tests/i);
-  assert.match(payload.contentText, /These examples demonstrate the decision process/i);
+  assert.match(payload.contentText, /These scenarios illustrate decisions, not predicted outcomes/i);
 
   for (const heading of REQUIRED_HEADINGS) {
     assert.ok(payload.contentHtml.includes(`<h2>${heading}</h2>`), `missing required heading: ${heading}`);
@@ -73,7 +84,7 @@ test('monthly running goal draft builds a substantive goal-calibration payload',
   }
 });
 
-test('monthly running goal draft sanitizes content and passes publication eligibility', () => {
+test('run-walk guide sanitizes sources and passes publication eligibility', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const eligibility = evaluateBlogContentEligibility({
     ...payload,
@@ -84,6 +95,8 @@ test('monthly running goal draft sanitizes content and passes publication eligib
   assert.equal(payload.contentHtml.includes('javascript:'), false);
   assert.notEqual(payload.contentHtml, RAW_CONTENT_HTML.trim());
   assert.match(payload.contentHtml, /href="https:\/\/www\.who\.int\/publications\/i\/item\/9789240015128" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.cdc\.gov\/physical-activity-basics\/measuring\/index\.html" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.nhs\.uk\/better-health\/get-active\/get-running-with-couch-to-5k\/couch-to-5k-running-plan\/" rel="noopener noreferrer" target="_blank"/);
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
   assert.equal(eligibility.healthReviewRequired, true);
@@ -92,7 +105,15 @@ test('monthly running goal draft sanitizes content and passes publication eligib
   assert.equal(eligibility.externalLinkCount, 3);
 });
 
-test('monthly running goal is registered and seeded once with its CDN cover', () => {
+test('run-walk guide has a distinct 1600 by 900 repository cover', async () => {
+  assert.equal(fs.existsSync(COVER_IMAGE_PATH), true);
+  const metadata = await sharp(COVER_IMAGE_PATH).metadata();
+  assert.equal(metadata.format, 'webp');
+  assert.equal(metadata.width, 1600);
+  assert.equal(metadata.height, 900);
+});
+
+test('run-walk guide is registered and seeded once for August 6', () => {
   const articleModule = getArticleModule(CANONICAL_SLUG);
   const seededPosts = POSTS.filter((post) => post.slug === CANONICAL_SLUG);
   const seededPost = seededPosts[0];
@@ -106,29 +127,35 @@ test('monthly running goal is registered and seeded once with its CDN cover', ()
   assert.equal(htmlToText(seededPost.contentHtml), buildArticlePayload({ coverImageUrl: seededPost.coverImageUrl }).contentText);
   assert.equal(seededPost.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(seededPost.ogImageUrl, COVER_IMAGE_URL);
+  assert.equal(seededPost.status, 'scheduled');
+  assert.equal(seededPost.publishedAt, '2026-08-06T11:00:00.000Z');
   assert.equal(seededPost.featured, false);
   assert.equal(seededPost.authorEmail, GUIDE_AUTHOR_EMAIL);
-  assert.equal(seededPost.publishedAt, '2026-08-02T11:04:09.434Z');
 });
 
-test('monthly running goal supports isolated publication and ongoing updates', () => {
+test('run-walk guide supports exact future scheduling and updates', () => {
   const authorId = new mongoose.Types.ObjectId();
-  const publishedAt = new Date('2026-08-02T11:04:09.434Z');
-  const payload = buildCreatePayload({ slug: CANONICAL_SLUG, authorId, now: publishedAt });
+  const reviewedAt = new Date('2026-08-02T12:00:00.000Z');
+  const publishAt = '2026-08-06T11:00:00.000Z';
+  const payload = buildCreatePayload({ slug: CANONICAL_SLUG, authorId, now: reviewedAt, publishAt });
 
-  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
-  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply']), { slug: CANONICAL_SLUG, mode: 'apply' });
+  assert.deepEqual(
+    parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--publish-at', publishAt]),
+    { slug: CANONICAL_SLUG, mode: 'apply', publishAt }
+  );
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
   assert.equal(String(payload.authorId), String(authorId));
-  assert.equal(payload.status, 'published');
-  assert.equal(payload.publishedAt.toISOString(), publishedAt.toISOString());
-  assert.equal(payload.approvedAt.toISOString(), publishedAt.toISOString());
+  assert.equal(payload.status, 'scheduled');
+  assert.equal(payload.publishedAt.toISOString(), publishAt);
+  assert.equal(payload.approvedAt, null);
   assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
-  assert.match(packageJson.scripts['blog:update-realistic-monthly-running-goal'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+  assert.equal(payload.contentEligibility.eligible, true);
+  assert.equal(payload.publicationReview.policyVersion, 'ugc-adsense-v1');
+  assert.match(packageJson.scripts['blog:update-run-walk-method'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
-test('monthly running goal draft rejects unsafe or unsupported claims', () => {
+test('run-walk guide rejects unsafe, universal, and unsupported claims', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const withClaim = (claim) => ({
     ...payload,
@@ -145,24 +172,24 @@ test('monthly running goal draft rejects unsafe or unsupported claims', () => {
     /daily running/
   );
   assert.throws(
-    () => validateArticlePayload(withClaim('This framework guarantees completion.')),
+    () => validateArticlePayload(withClaim('This method guarantees endurance.')),
     /guarantee outcomes/
   );
   assert.throws(
-    () => validateArticlePayload(withClaim('Every event accepts treadmill activity.')),
-    /universal event acceptance/
+    () => validateArticlePayload(withClaim('Every runner must start with one minute running.')),
+    /universal interval/
   );
   assert.throws(
-    () => validateArticlePayload(withClaim('Pending distance counts as official completion.')),
+    () => validateArticlePayload(withClaim('Walking is always accepted.')),
+    /universal interval/
+  );
+  assert.throws(
+    () => validateArticlePayload(withClaim('Pending activity counts as official completion.')),
     /pending progress/
   );
   assert.throws(
     () => validateArticlePayload(withClaim('Every submission is automatically approved.')),
     /automatic approval/
-  );
-  assert.throws(
-    () => validateArticlePayload(withClaim('Exactly 100 km per month is realistic for everyone.')),
-    /universal distance/
   );
   assert.throws(
     () => buildArticlePayload(),
