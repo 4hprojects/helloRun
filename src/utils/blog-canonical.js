@@ -3,7 +3,8 @@ const CANONICAL_BLOG_REDIRECTS = Object.freeze({
   'best-running-apps-for-virtual-runs': 'best-apps-to-track-your-virtual-run',
   'how-to-organize-community-virtual-run': 'how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers',
   'what-is-virtual-run-philippines': 'what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers',
-  '5k-vs-10k-vs-21k-which-distance-should-you-choose': 'how-to-choose-between-a-5k-10k-21k-or-distance-challenge'
+  '5k-vs-10k-vs-21k-which-distance-should-you-choose': 'how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
+  'how-to-choose-between-running-distances': 'how-to-choose-between-a-5k-10k-21k-or-distance-challenge'
 });
 
 const DUPLICATE_BLOG_SLUGS = Object.freeze(Object.keys(CANONICAL_BLOG_REDIRECTS));

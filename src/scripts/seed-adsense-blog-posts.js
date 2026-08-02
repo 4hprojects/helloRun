@@ -749,7 +749,7 @@ const POSTS = [
       '/refund-and-cancellation-policy',
       '/blog/virtual-run-checklist-for-first-time-organizers',
       '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers',
-      '/blog/how-to-choose-between-running-distances',
+      '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
       '/blog/what-counts-as-valid-run-proof',
       '/blog/how-to-submit-run-proof-correctly-hellorun',
       '/blog/why-a-virtual-run-submission-may-be-rejected',

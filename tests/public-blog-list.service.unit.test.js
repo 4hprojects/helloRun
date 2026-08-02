@@ -121,6 +121,10 @@ test('article presentation centralizes audience, actions, and next steps', () =>
   assert.match(virtual.actions[0].href, /eventType=virtual/);
   assert.match(virtual.nextStep.label, /virtual/i);
 
+  const training = getBlogArticlePresentation({ category: 'Training' });
+  assert.equal(training.actions.find((action) => action.label === 'View your results')?.href, '/runner/submissions');
+  assert.ok(training.actions.every((action) => action.href !== '/runner'));
+
   const fallback = getBlogArticlePresentation({ category: 'Other', customCategory: 'Race Recap' });
   assert.equal(fallback.categoryLabel, 'Race Recap');
   assert.equal(fallback.actions.length, 3);

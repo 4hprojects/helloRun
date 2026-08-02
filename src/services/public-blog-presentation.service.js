@@ -10,7 +10,7 @@ const CATEGORY_PRESENTATION = {
     actions: [
       { label: 'Browse events', href: '/events', icon: 'calendar' },
       { label: 'How proof works', href: '/how-it-works', icon: 'file-check' },
-      { label: 'View your results', href: '/runner', icon: 'trophy' }
+      { label: 'View your results', href: '/runner/submissions', icon: 'trophy' }
     ],
     nextStep: { label: 'Find your next run', href: '/events' }
   },

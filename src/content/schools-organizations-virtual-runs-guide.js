@@ -63,7 +63,7 @@ const RAW_CONTENT_HTML = `
 <p>Begin with a one-page brief that names the audience, purpose, accountable owner, dates, completion definition, support route, and success measures. Then choose a format that matches it.</p>
 <h3>Single activity or accumulated distance</h3>
 <p>A single-activity event asks a participant to complete the required distance in one eligible record. It creates a simpler story and usually a smaller review queue. An accumulated event allows several approved activities to build toward a target. It can support consistency but produces more submissions, more corrections, and more review work.</p>
-<p>Choose a distance that fits the audience rather than one that looks impressive in promotion. The <a href="/blog/how-to-choose-between-running-distances">distance-choice guide</a> explains how 5K, 10K, half-marathon, and accumulated formats differ. For a mixed school or community audience, several appropriate categories or a completion-based accumulated target may work better than one demanding distance.</p>
+<p>Choose a distance that fits the audience rather than one that looks impressive in promotion. The <a href="/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge">distance-choice guide</a> explains how 5K, 10K, half-marathon, and accumulated formats differ. For a mixed school or community audience, several appropriate categories or a completion-based accumulated target may work better than one demanding distance.</p>
 
 <h3>Completion, collective progress, or ranking</h3>
 <p>Completion recognises participants who satisfy the published rule. Collective progress combines eligible contributions toward a shared narrative. Ranking orders approved results under configured rules. These are different experiences.</p>
@@ -219,7 +219,7 @@ const REQUIRED_LINKS = Object.freeze([
   '/refund-and-cancellation-policy',
   '/blog/virtual-run-checklist-for-first-time-organizers',
   '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers',
-  '/blog/how-to-choose-between-running-distances',
+  '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
   '/blog/what-counts-as-valid-run-proof',
   '/blog/how-to-submit-run-proof-correctly-hellorun',
   '/blog/why-a-virtual-run-submission-may-be-rejected',

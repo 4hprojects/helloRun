@@ -10,7 +10,7 @@ Current active state:
 
 | Priority | Workstream | Status | Dependency |
 | --- | --- | --- | --- |
-| 1 | Public link integrity | **Next** | None |
+| 1 | Public link integrity | **In progress** | None |
 | 2 | Event heading hierarchy | Blocked | Priority 1 complete |
 | 3 | Metadata and crawl hygiene | Blocked | Priority 2 complete |
 | 4 | Advertising consent architecture | Blocked | Priority 3 complete |
@@ -46,7 +46,7 @@ The production audit that created this roadmap recorded:
 
 ## Priority 1 — Public Link Integrity
 
-**Status:** Next
+**Status:** In progress
 **Dependency:** None
 
 ### Objective

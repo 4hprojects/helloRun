@@ -26,6 +26,8 @@ const {
 } = require('../src/scripts/create-adsense-blog');
 
 const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785388535469-101481065-how-schools-and-organizations-can-use-virtual-runs.webp';
+const BROKEN_DISTANCE_GUIDE_SLUG = 'how-to-choose-between-running-distances';
+const DISTANCE_GUIDE_SLUG = 'how-to-choose-between-a-5k-10k-21k-or-distance-challenge';
 
 test('schools and organizations guide builds a substantive, source-aware payload', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
@@ -72,6 +74,8 @@ test('schools and organizations guide builds a substantive, source-aware payload
   for (const link of REQUIRED_LINKS) {
     assert.ok(payload.contentHtml.includes(link), `missing required link: ${link}`);
   }
+  assert.match(payload.contentHtml, new RegExp(`/blog/${DISTANCE_GUIDE_SLUG}`));
+  assert.doesNotMatch(payload.contentHtml, new RegExp(`/blog/${BROKEN_DISTANCE_GUIDE_SLUG}(?:["'#?]|$)`));
 });
 
 test('schools and organizations guide is registered, canonical, and seeded once', () => {
@@ -92,6 +96,9 @@ test('schools and organizations guide is registered, canonical, and seeded once'
   assert.equal(seededPost.publishedAt, '2026-07-30T05:20:44.385Z');
   assert.equal(seededPost.featured, false);
   assert.equal(seededPost.authorEmail, GUIDE_AUTHOR_EMAIL);
+  assert.ok(seededPost.links.includes(`/blog/${DISTANCE_GUIDE_SLUG}`));
+  assert.ok(!seededPost.links.includes(`/blog/${BROKEN_DISTANCE_GUIDE_SLUG}`));
+  assert.equal(getCanonicalBlogSlug(BROKEN_DISTANCE_GUIDE_SLUG), DISTANCE_GUIDE_SLUG);
 });
 
 test('schools and organizations guide supports eligible isolated creation and updates', () => {
