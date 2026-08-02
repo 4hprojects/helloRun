@@ -1,4 +1,11 @@
-# HelloRun Blog Feature — Current State & Recommendations (as of May 28, 2026)
+# HelloRun Blog Feature — Historical May 2026 Summary
+
+> This snapshot is retained for design history. The blog continued evolving
+> through July 2026 with scheduled publishing, the Run Hub redesign, structured
+> composer work, editorial content, threaded comments, reporting, and
+> moderation refinements. See [`../STATUS.md`](../STATUS.md) for current state
+> and [`../changelog/2026-07-july.md`](../changelog/2026-07-july.md) for the
+> later implementation record.
 
 ## 1. Current State Summary
 

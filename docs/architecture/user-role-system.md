@@ -1,4 +1,4 @@
-﻿# User Role System
+# User Role System
 
 ## Primary Role
 - `runner`: Can participate in events.

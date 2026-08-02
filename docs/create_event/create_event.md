@@ -1,10 +1,11 @@
-﻿# Create Event Tracking
+# Create Event Tracking
 
 ## Purpose and Ownership
 
 This document is the dedicated product tracking and roadmap source for the organizer create-event workflow at `/organizer/create-event`.
 
-`docs/PRD.md` remains the master roadmap for the full HelloRun platform.
+`docs/PRD.md` defines stable platform requirements. Current delivery state and
+priorities live in `docs/STATUS.md` and `docs/ROADMAP.md`.
 
 This file focuses on the create-event feature scope, current implementation status, known gaps, product decisions, field inventory, roadmap items, and testing direction.
 
@@ -24,7 +25,9 @@ docs/codex/
 
 | Document | Role |
 |---|---|
-| `docs/PRD.md` | Master roadmap for the full HelloRun platform |
+| `docs/PRD.md` | Stable product requirements |
+| `docs/STATUS.md` | Current delivery and verification state |
+| `docs/ROADMAP.md` | Forward-looking priorities |
 | `docs/create_event/create_event.md` | Product tracker and roadmap for the create-event workflow |
 | `docs/create_event/create_event_wizard_codex_implementation.md` | Developer and Codex implementation guide for the guided event wizard |
 | `docs/public_event_page_template.md` | Public event page display and content reference |
@@ -1713,4 +1716,3 @@ Use `docs/create_event/create_event_wizard_codex_implementation.md` as the imple
 Use focused files under `docs/codex/` for isolated development tasks.
 
 The next implementation priority is race categories, per-distance pricing, and pricing period validation.
-

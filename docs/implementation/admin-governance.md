@@ -3,7 +3,7 @@
 **Created:** June 22, 2026
 **Status:** ✅ Implemented — June 22, 2026
 **Tests:** 10/10 integration + 44/44 auth
-**Spec:** `docs/to-implement/admin-governance.md`
+**Spec:** `docs/archive/implemented-plans/admin-governance-plan.md`
 
 ---
 

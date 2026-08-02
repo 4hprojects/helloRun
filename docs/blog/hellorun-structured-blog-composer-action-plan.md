@@ -1,4 +1,9 @@
-# Hellorun Structured Blog Composer - Action Plan
+# HelloRun Structured Blog Composer — Implementation Record
+
+**Status:** Implemented and repository-verified; production usability
+verification remains part of the deployment checklist.
+
+**Reconciled:** July 31, 2026
 
 ## 1. Feature Overview
 

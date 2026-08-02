@@ -1,4 +1,4 @@
-﻿# HelloRun Create Event Wizard Implementation Guide
+# HelloRun Create Event Wizard Implementation Guide
 
 ## Document Role
 
@@ -2745,4 +2745,3 @@ When using this file for implementation:
 - Prefer additive changes when preserving current production behaviour.
 - Keep create and edit mode aligned.
 - Keep Step 12 readiness checklist aligned with backend validation.
-

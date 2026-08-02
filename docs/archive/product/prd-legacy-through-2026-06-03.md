@@ -1,0 +1,2996 @@
+# Document Role: Historical Product and Implementation Record
+- Archived during the July 31, 2026 documentation reconciliation.
+- This file preserves the former combined PRD, phase tracker, and session history.
+- Current product requirements live in [`../../PRD.md`](../../PRD.md).
+
+- Purpose: Product planning, roadmap, detailed tasks, and phase accomplishments.
+- Update cadence: When priorities change or a milestone is completed.
+- Changelog reference: See CHANGELOG.md for repository-level change history.
+
+## STATUS UPDATE (June 3, 2026 - Auth Abuse Protection)
+
+### Current reality after latest implementation
+- Local signup is protected by layered anti-bot controls: Cloudflare Turnstile, IP and email + IP rate limits, a hidden honeypot, a minimum form-age check, a session-bound form token, disposable email blocking, and email verification.
+- Email/password login retains its existing rate limit and now requires adaptive Turnstile after 3 invalid credential attempts for the same email + IP within 15 minutes.
+- Login failure tracking uses Redis when available and an in-memory fallback otherwise, so rotating browser sessions does not remove the challenge threshold.
+- Turnstile is optional for local environments and becomes active when both `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` are configured.
+
+### COMPLETED in this cycle
+- Added the shared auth-abuse service for signup signals, Turnstile Siteverify calls, and login failure counters.
+- Added Turnstile widgets to signup and challenged login states.
+- Updated Content Security Policy allowances for Cloudflare Turnstile.
+- Added focused signup, Turnstile, login challenge, and cookie-rotation bypass regression coverage.
+
+### Validation signals recorded
+- `npm run test:auth` -> PASS, 44/44.
+
+---
+
+## STATUS UPDATE (May 23, 2026 - Policy Pack Organization)
+
+### Current reality after latest implementation
+- `docs/policy-markdown-pack` is now the canonical source for the HelloRun policy set.
+- Public policy coverage now includes Privacy Policy, Terms and Conditions, Cookie Policy, Data Usage Policy, Refund and Cancellation Policy, Organiser Terms, Community Guidelines, and Acceptable Use Policy.
+- Terms and Conditions keeps the existing `terms-of-service` database slug for compatibility while public/admin UI uses the official document name.
+- Signup consent now includes Data Usage Policy and stores the accepted Data Usage Policy ID/version with the existing policy consent metadata.
+- Supabase policy consent sync now supports `data_usage_policy`.
+
+### COMPLETED in this cycle
+- Normalized the individual policy-pack markdown files with the May 23, 2026 implementation date and synced Privacy, Terms, and Cookie content into `docs/contents`.
+- Added a shared policy registry for public paths, admin paths, source files, and DB slugs.
+- Refactored public policy pages to use one DB-first markdown fallback renderer.
+- Added admin management routes for all new policy documents using the existing policy draft/publish/archive workflow.
+- Added `npm run seed:policies` while keeping the individual seed commands as compatibility wrappers.
+- Updated footer links, sitemap coverage, signup consent copy, Google signup consent messaging, event registration confirmation copy, run proof confirmation copy, and payment proof confirmation copy.
+- Added policy-pack phase tracking to `docs/todo refinement/hellorun_project_refinement_analysis.md`.
+
+### Validation and data hygiene notes
+- Focused static, sitemap, policy consent, and signup consent checks should cover the policy set.
+- Smoke tests and future policy workflow tests must delete any users, events, posts, policy drafts, or other records they create so the database does not accumulate persistent test data.
+
+### Remaining next tasks
+- Run staging admin smoke for at least one existing policy and one newly added policy: draft, preview, publish, clone, archive.
+- Apply the Supabase policy consent constraint migration before relying on `data_usage_policy` live sync in production.
+
+---
+
+## STATUS UPDATE (May 19, 2026 - Achievement Badges Release-Readiness + Shop Validation)
+
+### Current reality after latest implementation
+- HelloRun now has a release-ready achievement badge MVP across event, challenge, global distance, leaderboard, organiser, verification/share, admin, and communication paths.
+- Badge-enabled published events auto-create participant, finisher, distance finisher, mode finisher, challenge milestone, leaderboard, distance winner, and mode winner badges as applicable.
+- Runner badge awards are written only after verified registration/payment, approved result submission, approved accumulated activity, published rankings, or approved onsite result data.
+- Organiser badges now cover verified organiser, first published event, first confirmed registration, five published events, and 100 confirmed registrations.
+- Public badge verification pages, Open Badges-ready JSON, share SVGs, and public runner badge collections are implemented.
+- Admin badge management now includes definition enable/disable, email notification levels, revocation, analytics, audit logs, and capped additive recalculation.
+- Badge earned email is routed through the communication manager and remains globally disabled until admins intentionally enable `badge.earned`.
+- Shop Phase 1A/registration add-on paths remain backend-ready and were included in the latest release-readiness validation.
+
+### COMPLETED in this cycle
+- Added Phase 9 badge migration for `badge_definitions`, `event_badges`, `user_badges`, and `badge_audit_logs`.
+- Added MongoDB badge content/template models.
+- Added badge definition, event badge, achievement, audit, notification, and normalization services.
+- Wired badge generation into admin event approval/publish flow.
+- Wired participant badge evaluation into registration and payment-paid flows.
+- Wired finisher/distance/mode badge evaluation into submission approval flows.
+- Added runner badge JSON routes, featured badge update, and profile badge collection UI.
+- Added public event badge JSON route and event details badge display.
+- Added organiser event badge JSON read/update routes for display fields.
+- Added organiser badge manager UI for event badge names, descriptions, images, visibility, and active state.
+- Added admin badge listing and user badge revocation routes.
+- Added admin badge management UI for definitions, earned awards, revocation, and recent audit logs.
+- Added a runner dashboard recent badges widget.
+- Fixed submission shadow sync so `reviewed_by` resolves to Supabase `app_users.id`.
+- Added badge service, integration, route, and adjacent shadow/payment regression coverage.
+- Added challenge/global distance progress, leaderboard variants, organiser variants, social share previews, Open Badges metadata, badge email rollout controls, and admin recalculation.
+- Hardened onsite race kit creation against current schema requirements.
+- Updated badge and shop handoff notes with migration, rollout, smoke, and validation status.
+
+### Validation signals recorded
+- Latest split release-readiness sweep passed 101/101 across badge, ranking, communication, onsite operations, submission, shadow sync, shop read/payment-review, and validation middleware coverage.
+
+### Remaining next tasks
+- Move back to Phase 11 shop UI: event shop page, product detail page, and runner order detail pages.
+- Keep `badge.earned` email disabled until production sender readiness is confirmed.
+- Run production smoke from `docs/achievement_badges.md` after migrations are applied.
+
+---
+
+## STATUS UPDATE (May 14, 2026 - Payment Receipt and Run Result Split)
+
+### Current reality after latest implementation
+- HelloRun now treats paid-event payment verification and runner activity completion as separate product workflows.
+- Paid event registrations start as `paymentStatus: unpaid` and require a `Payment Receipt` upload/review before run result submission is available.
+- Free event registrations start as `paymentStatus: paid`, so runners can proceed directly to run result submission when the event is otherwise eligible.
+- Payment receipt files continue to live on `Registration.paymentProof`.
+- Run result evidence continues to live on `Submission.proof`.
+- Existing route names remain stable for compatibility, including `/submit-result` and `/resubmit-result`.
+
+### COMPLETED in this cycle
+- Added an initial registration payment-status helper so `Event.feeMode === 'paid'` is the source of truth for requiring payment verification.
+- Updated `/my-registrations` with visually separate `Payment Verification` and `Run Result` sections.
+- Renamed runner actions and helper copy from generic proof wording to payment receipt or run result wording.
+- Updated the run result modal to describe activity screenshot upload, Strava activity sync, event selection, and completion review.
+- Updated organizer/admin review queues to label `Payment Receipts` and `Run Results` separately.
+- Added payment review context so organizers can compare uploaded receipts with event fee/payment instructions and confirmation codes.
+- Added warning copy telling reviewers to reject activity screenshots submitted as payment receipts.
+- Updated static/supporting copy, emails, upload messages, and regression tests.
+
+### Validation signals recorded
+- `npm test` -> PASS, 316/316.
+
+### Remaining next tasks
+- Add payment amount snapshot to `Registration` so payment receipt review can compare against the price shown at registration time.
+- Add runner-facing package/category selection and active price resolution for paid events with variable pricing.
+- Consider adding structured payment reference fields in addition to receipt image upload.
+- Add manual data cleanup guidance for historical activity screenshots that were uploaded as payment receipts.
+
+---
+
+## STATUS UPDATE (May 14, 2026 - Strava Import MVP)
+
+### Current reality after latest implementation
+- HelloRun now supports optional Strava account linking for runners while keeping HelloRun as the primary account system.
+- Runners connect Strava from `/runner/profile#integrations` through OAuth.
+- Strava tokens are encrypted before storage and never exposed to the frontend.
+- The submit run modal includes a `Sync Strava Data` action that fetches recent activities on demand only.
+- Runners manually choose one Strava activity and submit it to the selected eligible HelloRun event.
+- Imported Strava activities become normal HelloRun submissions, so organiser/admin review, progress, leaderboard, and certificate workflows continue using local HelloRun records.
+- Automatic full sync and background polling remain intentionally out of scope for MVP.
+
+### COMPLETED in this cycle
+- Added `docs/hellorun_strava_integration_codex.md` as the Strava implementation reference.
+- Added `StravaConnection` model with encrypted access/refresh token fields.
+- Added AES-256-GCM token encryption helper.
+- Added Strava OAuth connect/callback/disconnect routes.
+- Added Strava activity fetch API and selected-activity submission API.
+- Extended regular and accumulated submission schemas with `source` and `stravaActivity` snapshots.
+- Reused existing submission services so Strava imports enter the same review and reporting path as screenshot/manual submissions.
+- Added runner profile Connect/Disconnect Strava controls.
+- Upgraded the submit run modal Strava placeholder into an on-demand activity picker.
+- Added focused Strava integration and modal contract tests.
+
+### Validation signals recorded
+- `node --test --test-concurrency=1 tests\strava-integration.test.js tests\runner-dashboard-modal.test.js` -> PASS
+- `node --test --test-concurrency=1 tests\submission.service.test.js` -> PASS
+- `node --check` on changed Strava services, route, modal JS, submission service, and server entrypoint -> PASS
+- `git diff --check` -> PASS
+
+### Setup required before live use
+- Configure Strava app credentials in `.env`:
+  - `STRAVA_CLIENT_ID`
+  - `STRAVA_CLIENT_SECRET`
+  - `STRAVA_REDIRECT_URI`
+  - `STRAVA_ENCRYPTION_KEY`
+- Strava OAuth scope must include `read,activity:read`.
+- Any pasted or exposed Strava client secret, access token, or refresh token should be regenerated before production use.
+
+### Remaining next tasks
+- Improve API CSRF failures so JSON endpoints return JSON instead of the generic HTML 403 page.
+- Add browser QA for the complete Strava OAuth callback and selected-activity submission flow.
+- Consider supporting Personal Record Strava imports when no eligible event registration exists.
+- Add organiser/admin review labels that clearly identify Strava-imported submissions.
+
+---
+
+## STATUS UPDATE (May 13, 2026 - Public Event Page Landing Template)
+
+### Current reality after latest implementation
+- The public `/events/:slug` page now follows a reusable landing-page pattern documented in `docs/public_event_page_template.md`.
+- Public event rendering is normalized through `src/utils/event-public-view.js` so registration state, pricing, rewards, virtual rules, timeline, signup count, SEO, and rich event details are handled outside the EJS template.
+- Organizer-authored Event Details content now supports sanitized Quill HTML while preserving markdown fallback behavior for older content.
+- The page includes a visual hero, registration/pricing summary, signup count, event mechanics, challenge goal, rewards, pricing/add-ons, submission rules, timeline, full details, gallery/poster, mobile sticky CTA, and responsive tablet/mobile layouts.
+- The hero short description uses a 50% opacity contrast layer to keep text readable over organizer-uploaded banners.
+- The event logo is not displayed in the hero. The hero now keeps the chips and event description focused on the event message.
+
+### COMPLETED in this cycle
+- Added `docs/public_event_page_template.md` as the maintenance reference for `/events/:slug`.
+- Added `src/utils/event-public-view.js`.
+- Rebuilt `src/views/pages/event-details.ejs` around structured public event sections.
+- Rebuilt `src/public/css/event-details.css` for desktop, tablet, and mobile event landing-page UX.
+- Added `tests/event-public-view.test.js`.
+
+### Validation signals recorded
+- `node --test tests/event-public-view.test.js` -> PASS
+- EJS compile check for `src/views/pages/event-details.ejs` -> PASS
+- Smoke render for `/events/2026k-hellorun-challenge-4` -> PASS, 200
+
+### Remaining next tasks
+- Add runner-facing package/add-on selection during registration.
+- Add payment amount snapshot to `Registration`.
+- Add active price resolver for registration date, selected package, race distance/category, and delivery fee.
+- Add payment proof enforcement against the resolved amount.
+- Improve organizer validation so reward and pricing promises cannot conflict with structured public display.
+- Improve organizer preview parity with the public event page template.
+
+---
+
+## STATUS UPDATE (May 12, 2026 - Create Event Wizard 12-Step Build + UX Refinements)
+
+### Current reality after latest implementation
+- The `/organizer/create-event` page is now a fully structured 12-step guided wizard with sidebar nav, scrollable pill nav bar (tablet), mini-strip with progress bar (mobile), and full-page overlay nav panel.
+- Wizard steps: Event Type → Core Details → Schedule → Event Format → Packages → Rewards → Pricing → Payment Setup → Event Details → Branding & Media → Waiver → Preview & Submit.
+- The Review step (Step 12) has a JS-populated readiness checklist that checks 7 required fields + paid-event QR requirement before submit-for-review.
+- The Payment Setup step (Step 8) is its own step separate from Pricing (Step 7), matching the recommended wizard flow in `docs/create_event/create_event_wizard_codex_implementation.md`.
+- Pricing modes `per_distance` and `per_distance_period` are now supported in the UI and `event-form.service.js`.
+- Payment QR upload uses the full drag-and-drop `upload-area` pattern matching logo/banner/poster uploads.
+- Delivery & Fulfilment fields are wrapped in a collapsible `subsection-toolkit` accordion; defaults for `requiresDeliveryAddress` and `requiresPhilippineDeliveryAddress` are pre-ticked on new forms.
+- Event Details step (Step 9): eraser button is right-aligned inline with the label using `.waiver-label-row` pattern.
+- Review step action buttons are adaptive: full icon+label on desktop (≥1025px), compact 2.5rem icon squares with hover tooltips on tablet/mobile (≤1024px); always grouped in `.action-btn-group` for single-row right-aligned layout at all breakpoints.
+- Textarea fields now use `resize: vertical` globally to prevent horizontal overflow.
+
+### COMPLETED in this cycle
+- Restructured create-event form into 12 ordered wizard steps
+- Added sidebar step list (desktop), pill nav bar (tablet), mini-strip + overlay nav (mobile)
+- Wizard progress syncs across all nav surfaces via `setActiveWizardStep()`
+- Payment Setup split into its own step (Step 8)
+- `per_distance` and `per_distance_period` pricing mode options added
+- JS readiness checklist on Review step with per-field pass/fail indicators
+- Preview button wired: collects form state and opens `/organizer/preview-event` in new tab
+- Payment QR upgraded to full upload-area drag/drop UI
+- Delivery defaults fixed at source in `getBlankCreateEventDefaults()`
+- Late fee column optional tooltip added
+- Payment QR label tooltip added
+- Upload area double file dialog fixed
+- Textarea global `resize: vertical` fix
+- Adaptive action buttons with icon-only compact mode on tablet/mobile
+- `.action-btn-group` grouping for reliable right-aligned single row
+- Event Details toolbar: eraser button inline-right using `.waiver-label-row`
+- `lucide.createIcons()` added to create-event.ejs script block
+
+### Validation signals recorded
+- `CSRF_PROTECTION=0 node --test tests/organizer-waiver-routes.test.js` -> PASS
+- Manual browser QA on desktop and tablet breakpoints -> PASS
+
+### Remaining next tasks
+- Browser QA: verify delivery address accordion opens on saved data
+- Browser QA: verify readiness checklist flags missing QR on paid events before submit
+- Browser QA: verify adaptive buttons collapse to squares at ≤1024px
+- Browser QA: verify Event Details eraser button right-aligned inline with label
+- Implement race categories repeatable cards (Step 5 — currently uses existing distance preset fields)
+- Implement per-distance pricing table UI (Step 7 — currently uses existing fee field)
+
+---
+
+## STATUS UPDATE (May 7, 2026 - Project-Wide Button Standard)
+
+### Current reality after latest implementation
+- The `/login` button treatment is now the project-wide button standard, not an auth-only or landing-only pattern.
+- New project buttons should use the same 12px radius, Poppins 600 typography, non-uppercase text, normal letter spacing, icon+label structure where useful, consistent hover lift, and disabled behavior.
+- `/admin/events` is the first admin management area updated to this standard through `.admin-events-page .admin-event-action-btn`.
+- The standard is enforced through `src/public/css/project-buttons.css`, loaded by the shared head/layout templates and by the standalone error page.
+- The legacy global `.btn` base style in `src/public/css/style.css` now matches the standard instead of using the old gradient, uppercase, letter-spaced, pill-shaped treatment.
+
+### Design guidance carried forward
+- Primary actions use the warm orange treatment (`#c2410c`, hover `#9a3412`).
+- Secondary, success, danger, and utility actions keep the same button structure and interaction model.
+- Legacy pill-shaped uppercase `.btn` treatments should be migrated when related screens are touched.
+
+---
+
+## STATUS UPDATE (May 1, 2026 - Events Mobile Compact View + Image Fallbacks)
+
+### Current reality after latest implementation
+- The public `/events` mobile view is more compact so visitors can reach the most recent event cards sooner.
+- Search remains prominent on mobile as a dedicated full-width row above the dropdown filters.
+- Mode, Distance, and Status filters render as a compact single-row dropdown set on mobile and auto-apply when changed.
+- Public event cards and event detail banners now use the helloRun default image when an event has no banner or the assigned banner fails to load.
+- R2-backed uploads now require `R2_PUBLIC_BASE_URL` for browser-loadable public image URLs instead of saving R2 API endpoint URLs.
+
+### COMPLETED in this cycle
+- Reduced mobile Event Discovery content:
+  - hid the hero summary metrics, active filter chips, filter summary text, and extra toolbar copy on small screens
+  - retained the page title and compact browse controls
+- Reworked mobile event search and filters:
+  - search textbox uses a thicker blue border and sits above filters
+  - search icon appears on the right side of the textbox, including after Lucide swaps icons to SVGs
+  - dropdown labels are hidden on mobile to preserve space
+  - dropdown changes auto-submit the `/events` filter form
+  - Apply button renamed to **Search** and moved into the same row as the search textbox (75:25 width ratio)
+  - on desktop the Search button shows icon only; on mobile it shows text only
+  - Search button uses `btn-secondary` style
+- Added public event image fallbacks:
+  - event cards always render an image
+  - event detail banner always renders an image
+  - broken banner URLs fall back client-side to `/images/helloRun-icon.webp`
+- Hardened upload URL generation by requiring a public R2 base URL for saved object URLs.
+
+### Validation signals recorded
+- `CSRF_PROTECTION=0 node --test tests/public-search-filters.test.js` -> PASS
+- `CSRF_PROTECTION=0 node --test tests/upload-validation.test.js tests/certificate-access.test.js` -> PASS
+- `git diff --check` on changed files -> PASS
+
+### Remaining next tasks
+- Manual browser QA on mobile width:
+  - confirm first event card appears quickly after the compact Event Discovery panel
+  - confirm search row sits above the filter dropdowns and icon appears on the right
+  - confirm changing Mode, Distance, or Status immediately filters
+  - confirm events without banners show the default image
+- Configure production `R2_PUBLIC_BASE_URL` to a public bucket URL or custom domain before relying on new uploaded event images.
+
+---
+
+## STATUS UPDATE (Apr 30, 2026 - Platform Positioning + Runner Entry UX Polish)
+
+### Current reality after latest implementation
+- PRD positioning now describes HelloRun as both a runner-facing and organiser-support platform for virtual, onsite, and hybrid running events.
+- Virtual run monitoring is explicitly scoped to uploaded proof, OCR-assisted extraction, review signals, and organiser/admin review instead of live GPS tracking.
+- Onsite event support is explicitly scoped to registration, payment-proof tracking, participant operations, result import/manual encoding, rankings, certificates, and reports instead of replacing race timing systems.
+- The landing-page `Already registered? Log your latest run.` action is now visible to logged-out visitors and logged-in runners.
+- Logged-out visitors who choose the submit/log-run action are sent to login with a safe return path; after login they land on `/runner/dashboard` and the run-proof modal opens automatically.
+- Mobile/tablet navigation now includes a compact `Log latest run` icon to the left of the hamburger menu for guests and runner accounts.
+- The `/login` submit button is visible below desktop widths again.
+- The `/runner/dashboard` mobile `At a glance` panel now renders KPI content as a list instead of tiles.
+
+### COMPLETED in this cycle
+- Updated PRD roadmap and event-mode definitions:
+  - added hybrid running events as a first-class mode
+  - added draft Phases 13-16 for onsite result import, organiser reports, payment gateway integration, and race kit/bib/check-in support
+  - added cross-cutting terminology, payment wording, onsite timing, review wording, report access, audit, and readiness gate notes
+- Improved runner entry points:
+  - restyled the landing-page log-run CTA for stronger visibility
+  - made that CTA render for guests as well as authenticated users
+  - added a mobile/tablet nav shortcut for log latest run
+  - preserved guest redirect behavior through login and post-login modal auto-open
+- Fixed responsive UI regressions:
+  - restored the `/login` submit button on mobile
+  - changed `/runner/dashboard` mobile KPI cards from tiles to list rows
+
+### Validation signals recorded
+- `node --check src/public/js/run-proof-modal.js` -> PASS
+- `node --check src/routes/authRoutes.js` -> PASS
+- `git diff --check` on changed files -> PASS
+
+### Remaining next tasks
+- Manual browser QA:
+  - logged-out landing CTA -> `/login` -> successful login -> run-proof modal auto-opens
+  - logged-out mobile nav shortcut -> `/login` -> successful login -> run-proof modal auto-opens
+  - logged-in runner landing/nav submit actions open the modal directly
+  - `/login` button remains visible on tablet and mobile widths
+  - `/runner/dashboard` mobile `At a glance` list spacing and wrapping are acceptable
+- Rerun focused modal/login/dashboard regression tests if this UX batch is prepared for release.
+
+---
+
+## STATUS UPDATE (Apr 29, 2026 - Run-Proof Integrity + OCR Accuracy Recovery)
+
+### Current reality after latest implementation
+- The `/runner/dashboard` run-proof modal now stores richer OCR metadata for distance, duration, elevation, steps, date, location, source app, activity type, extracted name, and mismatch flags.
+- Runner-entered values remain editable after OCR, but suspicious edits are treated as flag-only review signals: the submission can still save, but it does not auto-approve.
+- Organizer/admin review surfaces expose detailed suspicious reasons and OCR-vs-submitted values, while runner-facing submitted-entry surfaces keep neutral wording such as `Needs additional review`.
+- OCR parsing has been tuned against the current `docs/image_test` samples so compact Strava durations like `27m 48s`, `31m38s`, and `1h47m` are parsed as duration instead of confusing pace with elapsed time.
+- Replacing, dropping, removing, or resubmitting another image now clears stale visible run detail fields, including `steps`, before new OCR values are applied.
+
+### COMPLETED in this cycle
+- Added organized integrity helpers:
+  - backend: `src/utils/submission-integrity.js`
+  - frontend: `src/public/js/run-proof-integrity.js`
+- Added flag-only suspicious-entry checks for:
+  - extreme distance, pace, and duration
+  - duplicate proof screenshots
+  - OCR distance/name mismatch
+  - OCR-vs-submitted elevation, steps, date, location, and activity type mismatch
+  - implausible elevation density, steps-per-km, and cadence
+- Extended OCR metadata persistence and review display for elevation, steps, date, location, activity type, and mismatch fields.
+- Hardened OCR parser behavior:
+  - compact Strava duration formats are recognized
+  - pace tokens such as `5:33/km` are excluded from elapsed-time parsing
+  - `Strava App` is ignored as a location candidate
+  - Strava layout signals can override Garmin device labels for source detection
+- Hardened modal state cleanup:
+  - stale name-mismatch dialogs and confirmation overlays are hidden on new OCR results
+  - stale mismatch warnings are rebuilt from the current analysis only
+  - visible Step 2 fields are cleared when a new image replaces the previous one
+
+### Validation signals recorded
+- `node --check src/public/js/ocr-proof-reader.js` -> PASS
+- `node --check src/public/js/run-proof-modal.js` -> PASS
+- `node --test --test-concurrency=1 tests/ocr-proof-reader.test.js` with `CSRF_PROTECTION=0` -> PASS
+- `node --test --test-concurrency=1 tests/run-proof-integrity.test.js` with `CSRF_PROTECTION=0` -> PASS
+- `node --test --test-concurrency=1 tests/runner-dashboard-modal.test.js` with `CSRF_PROTECTION=0` -> PASS
+- `node --test --test-concurrency=1 tests/submission-routes.test.js` with `CSRF_PROTECTION=0` -> PASS
+- Earlier focused validation for the integrity pass also covered submission service/routes, runner submissions, admin dashboard, and organizer/admin review surfaces.
+
+### Remaining next tasks
+- Manual browser QA using the current `docs/image_test` screenshots:
+  - upload compact Strava screenshots
+  - replace an image after OCR and confirm stale steps/elevation/location do not remain
+  - confirm mismatched values show non-blocking warnings
+  - confirm suspicious submissions save and move to review
+  - confirm runner pages use neutral wording while organizer/admin pages show detailed reasons
+- Rerun full `npm test` before release tagging.
+
+---
+
+## STATUS UPDATE (Apr 28, 2026 - Runner Run-Proof Modal Process Hardening)
+
+### Current reality after latest implementation
+- The `/runner/dashboard` run-proof modal now opens immediately instead of waiting behind the eligible-event lookup.
+- The first modal step is framed as screenshot analysis, not final submission, which better matches the actual process.
+- Accidental exit paths are guarded:
+  - outside/backdrop click opens the reusable confirmation dialog
+  - header Close on step 1 opens the same confirmation dialog
+  - Escape follows the same close-confirm path
+  - keyboard refresh (`F5`, `Ctrl+R`, `Cmd+R`) opens the reusable confirmation dialog before reloading
+  - browser toolbar refresh/tab close/navigation still uses the native browser `beforeunload` prompt because browsers do not allow custom in-page dialogs for those actions
+
+### COMPLETED in this cycle
+- Improved run-proof modal process flow:
+  - added an in-modal loading state while eligible submissions are fetched
+  - changed step/action language from `Submit Screenshot` to `Analyse Screenshot`
+  - added a manual-entry fallback when OCR is unavailable or fails
+  - preserved OCR results when moving back from details to the screenshot step
+  - supported `data-run-proof-registration-id` for dashboard resubmission triggers
+- Hardened exit/refresh behavior:
+  - unified close/backdrop confirmation copy through the existing reusable confirmation dialog
+  - added refresh-specific confirmation copy for keyboard refresh
+  - kept native browser confirmation as fallback for browser-controlled navigation events
+- Added/updated modal regression coverage for the new process contract.
+
+### Validation signals recorded
+- `node --check src/public/js/run-proof-modal.js` -> PASS
+- `node --test --test-concurrency=1 tests/runner-dashboard-modal.test.js` with `CSRF_PROTECTION=0` -> PASS
+- `node --test --test-concurrency=1 tests/runner-dashboard-profile.test.js` with `CSRF_PROTECTION=0` -> PASS
+- `node --test --test-concurrency=1 tests/ocr-proof-reader.test.js` with `CSRF_PROTECTION=0` -> PASS
+- `npm test` -> TIMEOUT in current command window after roughly 3 minutes
+
+### Remaining next tasks
+- Manual browser QA for `/runner/dashboard` run-proof modal:
+  - open modal with eligible events
+  - no eligible events state
+  - outside click confirmation
+  - Close button confirmation
+  - Escape confirmation
+  - keyboard refresh confirmation
+  - browser toolbar refresh native prompt fallback
+- Consider adding a fuller DOM-level client test harness for the run-proof modal controller instead of source-contract assertions only.
+
+## STATUS UPDATE (Apr 28, 2026 - Events Search Ranking + Responsive Polish)
+
+### Current reality after latest implementation
+- `/events` search is now deterministic for high-value matches before pagination.
+- Exact title/organizer matches and location/country matches rank ahead of lower-signal description-only matches when a search query is present.
+- The `/events` page has a focused tablet/mobile polish pass for filters, chips, event cards, and pagination without changing the overall page structure.
+
+### COMPLETED in this cycle
+- Improved public event search ranking:
+  - retained the existing published/non-personal-record filter behavior
+  - preserved current non-search sort and pagination behavior
+  - added application-level search ranking for searched result sets before pagination
+  - kept country-name matching support, including searches like `Philippines` for stored `PH` country codes
+- Hardened the public search regression fixture:
+  - cleaned stale public-filter artifacts before seeding the test data
+  - made pagination filler records avoid crowding organizer-name search assertions
+  - added coverage that exact organizer matches rank ahead of description-only matches
+- Improved `/events` responsive UI:
+  - tablet filter layout now uses a cleaner two-column grid with search spanning the row
+  - mobile filters and actions are full-width with larger touch targets
+  - event cards have safer wrapping/clamping for long text and full-width mobile CTAs
+  - active filter chips and pagination controls are easier to scan and tap on smaller screens
+
+### Validation signals recorded
+- `node --test --test-concurrency=1 tests/public-search-filters.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/static-pages.test.js` -> PASS
+- `npm test` -> PASS, 200/200 tests
+
+### Remaining next tasks
+- Manual browser QA for `/events` at desktop, tablet, and mobile widths:
+  - `/events?q=Public%20Organizer`
+  - `/events?q=Philippines&eventType=onsite&distance=10K&status=open`
+  - `/events?eventType=virtual&distance=5K&status=upcoming&q=Sunrise&page=2`
+- Continue release-hardening gate work:
+  - production env verification
+  - staging/manual smoke coverage
+  - dependency/security audit review
+  - production ops closeout
+
+## STATUS UPDATE (Apr 25, 2026 - Runner Dashboard Responsive Card Polish)
+
+### Current reality after latest implementation
+- Runner dashboard card sequencing and responsive card actions were tightened without broad layout rewrites.
+- The dashboard now prioritizes `Upcoming Events` before `Account` and keeps key account/stat actions anchored more predictably on narrower widths.
+
+### COMPLETED in this cycle
+- Runner dashboard card-order and responsive interaction polish:
+  - moved `Upcoming Events` before `Account` in `/runner/dashboard`
+  - kept the Account-card `View Profile` control upper-right aligned on less-than-desktop and mobile widths
+  - corrected the Account-card hover label positioning so it stays visible within the card and does not overflow off the right edge
+  - aligned the `View all registrations` CTA in `Progress Statistics` to the lower right
+  - added explicit tablet/mobile CTA alignment rules so smaller breakpoints do not regress later
+
+### Validation signals recorded
+- CSS/markup cascade reviewed for the affected runner dashboard controls:
+  - Account card header alignment
+  - Account tooltip placement and right-edge containment
+  - Progress Statistics CTA alignment on desktop/tablet/mobile/below-mobile breakpoints
+- Live browser verification not yet recorded for this pass
+
+## STATUS UPDATE (Apr 24, 2026 - Current Phase: Release Hardening and Deployment Gate)
+
+### Current reality after latest review
+- Core runner, organizer, admin, blog, leaderboard, legal-policy, and Google OAuth flows are implemented and have meaningful regression coverage.
+- The project is in a release-hardening phase: fix regressions, remove environment bypasses, verify critical flows, and close deployment-readiness gaps.
+- New feature expansion is deferred until the automated suite is green, runtime security is enforced, and production-readiness tasks have explicit pass/fail signoff.
+
+### Completed
+- Security hardening implemented:
+  - added CSRF protection to targeted auth/public mutating flows:
+    - signup / register
+    - forgot-password
+    - reset-password
+    - resend-verification
+    - event registration
+    - quick profile update
+    - payment proof upload
+    - result submission / resubmission
+  - standardized multipart CSRF handling for public runner upload flows
+  - added resend-verification rate limiting
+  - removed debug-heavy and privacy-risk resend-verification logging
+- Broken-route and SEO cleanup implemented:
+  - removed the broken blog newsletter POST target and replaced it with a temporary disabled state
+  - replaced stale `/support` links in email templates with `/contact`
+  - removed stale/dead home-render reference (`pages/index`)
+  - replaced static sitemap file with dynamic `/sitemap.xml` generation based on current public pages and published content
+  - corrected the blog empty-state sign-in link
+- Production-readiness code improvements implemented:
+  - app now fails fast on initial Mongo connection failure
+  - added `/healthz`
+  - added `/readyz`
+  - switched 404 and 500 responses to shared rendered error surfaces
+- Documentation added:
+  - `docs/security_route_matrix.md`
+  - `docs/implementation/production_readiness_checklist.md`
+- Targeted regression coverage added:
+  - CSRF route-guard tests
+  - resend-verification rate-limit tests
+  - sitemap/readiness tests
+
+### Validation signals recorded
+- `tests/privacy-signup-consent.test.js` -> PASS
+- `tests/csrf-route-guards.test.js` -> PASS
+- `tests/sitemap-readiness.test.js` -> PASS
+- `tests/static-pages.test.js` -> PASS
+- `tests/security-hardening.test.js` -> PASS
+- `tests/payment-route-guards.test.js` -> PASS
+- `tests/submission-review-route-guards.test.js` -> PASS
+- `tests/google-oauth-routes.test.js` -> PASS
+
+### Remaining next tasks
+- Environment / enforcement:
+  - verify staging/production env vars for Mongo, session, email, and `APP_URL`
+- Verification:
+  - rerun the full regression suite with `npm test`
+  - run manual smoke coverage for:
+    - signup / login / logout
+    - forgot-password / reset-password
+    - resend-verification
+    - event registration
+    - quick profile update
+    - payment proof upload
+    - result submission / resubmission
+    - `/blog`, `/blog/:slug`
+    - `/sitemap.xml`, `/healthz`, `/readyz`
+    - organizer/admin moderation flows
+- Production ops closeout:
+  - set up monitoring
+  - set up uptime checks for `/healthz` and `/readyz`
+  - set up error tracking
+  - confirm SSL/domain setup
+  - confirm backup and restore runbook
+  - validate fail-fast startup behavior in staging
+- Documentation closeout:
+  - keep `docs/security_route_matrix.md` aligned with any further route changes
+  - convert `docs/implementation/production_readiness_checklist.md` into the release checklist used for deployment
+- Deferred roadmap work after stabilization:
+  - blog SEO/content polish
+  - mobile and cross-browser QA pass
+  - dashboard/list consistency polish
+  - newsletter backend if still wanted
+  - shop implementation phases only after stabilization and production-readiness closeout
+
+### Blog feature audit notes
+- What is already implemented:
+  - core author workflow exists: create draft, edit draft, submit for review, delete own draft/rejected post
+  - admin moderation exists: pending queue, review page, approve/reject/archive, inline autosave
+  - public blog exists: `/blog` list, `/blog/:slug` detail, search, category filter, sort, pagination, canonical/meta/OG support
+  - blog interaction basics exist: comments, likes, admin comment moderation
+  - blog counters/models exist: views, likesCount, commentsCount, SEO fields, tags, featured flag, gallery field
+  - blog revision tracking exists for admin autosave changes
+- What still needs improvement:
+  - gallery image support is only partial; schema/public rendering support gallery images, but author creation/edit routes still primarily center on cover-image flow
+  - author analytics are not surfaced as planned; dashboard currently shows status/date info but not per-post views, likes, and comments summary
+  - featured-post handling is still basic and not a real featured section / ranking strategy
+  - broader SEO/content polish is still pending after the current release-hardening pass
+- Recommended next blog-specific tasks:
+  - expand and polish the existing published-post revision workflow
+  - add gallery upload/manage support end-to-end
+  - expose analytics basics on author dashboard
+  - replace the placeholder featured-card logic with real featured-post behavior
+  - after that, move into Phase B safety/growth work: report flow, anti-spam/plagiarism checks, deeper SEO/content polish
+
+## STATUS UPDATE (Apr 22, 2026 - Admin Review Queue + Nav UX Polish + Shop Draft)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Documentation structure cleanup:
+  - renamed `docs/wireframe.md` to `docs/PRD.md`
+  - renamed `docs/dir.md` to `docs/CHANGELOG.md`
+  - updated internal references to the new document names
+- Added draft shop planning:
+  - added Phase 11 Shop / Merchandise Feature to this PRD
+  - created `docs/implementation/shop_feature.md` for dedicated shop feature planning
+- Completed admin review queue polish:
+  - added `/admin/reviews` cross-event queue for pending payment proofs and submitted run proofs
+  - added payment/result filters, search, sort, counts, and empty state
+  - linked admin dashboard pending payment/result review cards to the new queue
+  - kept approve/reject actions on the existing event registrants review surface
+- Updated navigation UX:
+  - replaced main nav text links with icon buttons and hover/focus labels
+  - improved hamburger menu into an overlay panel on tablet/mobile
+  - made hamburger panel compact, content-width, semi-transparent, right-aligned, and label-visible
+  - final mobile hamburger goal: keep guest actions as full-width rows aligned with other menu items, with a horizontal divider above `Login` / `Sign Up`
+  - do not reintroduce separate guest-action panels or vertical separators in the mobile hamburger
+  - refined mobile logout action sizing and alignment
+- Refreshed `/about` page content:
+  - expanded runner and organizer value messaging
+  - added platform capability list and trust/momentum sections
+  - added clearer calls to browse events and create an account
+- Polished auth UI surfaces:
+  - improved login/signup primary and Google button contrast and icon treatment
+  - compacted the sign-in panel layout while preserving touch-friendly controls
+  - refined `/forgot-password` action buttons into a symmetric three-column layout
+  - aligned the forgot-password heading icon and compacted the tip message
+  - centered the `/signup` Create Account button consistently across desktop, tablet, and mobile layouts
+
+### Validation signals recorded
+- `tests/static-pages.test.js` -> PASS
+- `tests/admin-dashboard.test.js` -> PASS
+- `tests/submission-review-route-guards.test.js` -> PASS
+- `tests/payment-route-guards.test.js` -> PASS
+- `tests/runner-dashboard-modal.test.js` -> PASS
+- `tests/google-oauth-routes.test.js` -> PASS
+- `tests/privacy-signup-consent.test.js` -> PASS
+
+### Still pending from this scope
+  - Optional visual QA:
+  - manual browser check for hamburger overlay on common mobile widths
+  - [DONE] live browser validation confirmed the mobile auth row width issue came from the guest-action wrapper shrinking inside the overlay; fix keeps auth rows full-width and restores the intended horizontal divider
+  - decide whether desktop nav should keep native browser `title` tooltip in addition to custom tooltip
+
+## STATUS UPDATE (Apr 25, 2026 - Landing Page Acquisition Refresh)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Refocused `/` toward acquisition instead of runner-only utility actions:
+  - primary hero CTA is now `View Events`
+  - secondary hero CTA is now `Sign Up Free`
+  - logged-in runners still get a lighter `Log your latest run` action instead of a primary public CTA
+- Replaced generic homepage proof labels with live platform counts:
+  - active published events
+  - approved run finishes
+  - approved organizers
+- Added a recent blog section on the landing page:
+  - latest published posts are pulled dynamically
+  - supports homepage freshness and stronger internal discovery
+- Updated landing-page button treatment to match the stronger auth CTA system, which is now the project-wide button standard:
+  - `12px` radius
+  - richer warm-orange primary action with branded shadow
+  - warm-tinted secondary action instead of a generic gray outline
+- Clarified hero responsive behavior:
+  - desktop keeps split layout with the right visual panel top-aligned
+  - anything below desktop uses a stacked, centered hero layout so the right panel no longer reads as a desktop sidebar
+- Reworked the explanatory landing sections so they feel less like generic template blocks:
+  - `What helloRun does` now uses a tighter editorial two-column layout with three product pillars
+  - `Why helloRun` now uses a matching split layout with compact reason rows instead of the previous quote-box treatment
+  - `Built for everyone in the running community` was kept as two audience cards, but tightened with shorter copy, centered CTAs, and card-heading icons
+- Refined the blog surface CTA and fallback behavior:
+  - `Visit Blog` now uses its own compact section CTA instead of the shared generic outline button
+  - homepage blog cards fall back to `/images/helloRun-icon.webp` when a post image is missing or fails to load
+
+### Notes
+- The previous generic hero eyebrow / extra process panel copy was removed because it duplicated the existing landing-page explanation sections.
+- Home page SEO metadata is now populated through the shared `head` partial instead of title-only rendering.
+
+## STATUS UPDATE (Mar 10, 2026 - Run Proof Submission UX + Review Access Expansion)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Continued run-proof submission rollout (multi-entry modal pattern):
+  - added `Submit Run Proof` CTA in `/runner/dashboard` welcome panel
+  - added logged-in `Submit Run Proof` entry point in `/` home hero area
+  - replaced `/my-registrations` inline result submit form with reusable modal trigger
+- Improved submission detail visibility:
+  - runner-facing cards now show run date and run location in result details
+  - organizer registrant review now shows run date and run location
+- Expanded moderation capability:
+  - admin accounts can use the existing organizer registrant review flow for payment/result moderation
+  - review statuses remain aligned: `submitted`, `approved`, `rejected`
+  - admin dashboard now includes direct link from pending-result metric to live review queue
+
+### Validation signals recorded
+- `tests/submission-routes.test.js` -> PASS
+- `tests/submission.service.test.js` -> PASS
+- `tests/submission-review-route-guards.test.js` -> PASS
+- `tests/admin-dashboard.test.js` -> PASS
+- `tests/static-pages.test.js` -> PASS
+
+### Still pending from this scope
+- Optional polish:
+  - add active eligible-event count badge on modal trigger buttons
+
+## STATUS UPDATE (Mar 9, 2026 - Privacy Page Navigation UX Polish)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Added a second right-side panel on `/privacy`:
+  - `Quick Contents` TOC under the existing `At a Glance` card
+- TOC generation is now more resilient:
+  - primary source: rendered `h1/h2/h3` headings
+  - fallback source: bold-leading section labels when heading tags are not present
+- Improved long-content sidebar behavior:
+  - right-side stack is viewport-bounded
+  - TOC list scrolls internally when long
+  - `At a Glance` title remains fixed while only card body scrolls
+
+### Validation signals recorded
+- `tests/static-pages.test.js` -> PASS
+
+### Still pending from this scope
+- Optional UX follow-up:
+  - add active-section highlight in TOC while scrolling through policy sections
+
+## STATUS UPDATE (Mar 9, 2026 - Cookie Policy Admin + Consent Enforcement Completed)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Cookie Policy now follows the same admin legal-doc workflow as Privacy and Terms:
+  - `/admin/cookie-policy` list/history
+  - draft create/edit
+  - preview + auto-format
+  - publish/clone/archive
+- Added admin dashboard entry points for Cookie Policy management.
+- Public Cookie Policy page is live:
+  - `/cookie-policy` (with `/cookies` alias)
+  - fallback source: `docs/contents/Cookie Policy.md`
+- Signup consent was strengthened:
+  - local signup requires acceptance of Terms + Privacy + Cookie policies
+  - Google signup intent requires policy consent before redirecting to Google OAuth
+  - newly created Google accounts now store accepted policy versions (including cookie policy)
+- Added seed utility:
+  - `npm run seed:cookie-policy`
+
+### Validation signals recorded
+- `tests/admin-dashboard.test.js` -> PASS
+- `tests/static-pages.test.js` -> PASS
+- `tests/google-oauth-routes.test.js` -> PASS
+- `tests/privacy-signup-consent.test.js` -> PASS
+
+### Still pending from this scope
+- Ops/release hardening:
+  - seed and publish initial cookie policy version in target environment
+  - run manual admin smoke on `/admin/cookie-policy` (draft -> preview -> publish path)
+  - confirm legal placeholders/encoding cleanup in source markdown before first final legal publish
+
+## STATUS UPDATE (Mar 9, 2026 - Legal Policy System Expanded to Terms and Conditions)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Terms and Conditions now follows the same admin workflow as Privacy:
+  - list/history
+  - create draft
+  - edit draft
+  - preview and auto-format
+  - publish
+  - archive
+  - clone
+- Public terms page is now dynamic:
+  - `/terms` loads current published DB version (`slug: terms-of-service`)
+  - fallback source is `docs/contents/Terms and Conditions.md`
+- Signup consent capture now records both legal docs:
+  - privacy policy ID/version + timestamp/IP/user-agent
+  - terms policy ID/version + timestamp/IP/user-agent
+- Added one-time terms seed command:
+  - `npm run seed:terms-policy`
+
+### Validation signals recorded
+- `tests/admin-dashboard.test.js` -> PASS
+- `tests/static-pages.test.js` -> PASS
+- `tests/privacy-signup-consent.test.js` -> PASS
+
+### Still pending from this scope
+- Production content hardening:
+  - replace remaining placeholder/legal entity fields in privacy/terms drafts
+  - remove encoding artifacts from imported markdown source before first live publish
+- Operational closeout:
+  - run staging publish smoke for both `/privacy` and `/terms`
+  - backfill consent metadata for legacy users if needed
+
+## STATUS UPDATE (Mar 9, 2026 - Privacy Policy System Phases 1-6 Completed)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Phase 1: Baseline lock completed
+  - canonical initial source set to `docs/contents/Privacy Policy.md`
+  - baseline integrity snapshot documented in `docs/privacy-policy-phase1-baseline.md`
+- Phase 2: Model + seed completed
+  - `PrivacyPolicy` model added with version/status/current/audit fields
+  - one-time idempotent seed command added: `npm run seed:privacy-policy`
+- Phase 3: Admin workflow completed (blog/event-style pattern)
+  - policy version list/history page
+  - draft create/edit flow
+  - clone/publish/archive actions
+  - published version read-only behavior enforced
+- Phase 4: Public rendering switch completed
+  - `/privacy` now renders current published DB version only
+  - fallback to `docs/contents/Privacy Policy.md` when no live DB record exists
+- Phase 5: Security + guardrails completed
+  - CSRF enforcement on mutating admin routes
+  - stricter version format and transition validation
+  - policy action guard checks and publish consistency hardening
+- Phase 6: Consent/version logging completed
+  - signup now captures accepted privacy policy ID + version + timestamp + IP + user-agent
+  - user model extended with `termsAcceptedAt` and `agreedPolicies` fields
+  - organizer signup status fixed to valid enum (`not_applied`)
+
+### Validation signals recorded
+- Added and executed `tests/privacy-signup-consent.test.js`
+- Result: 2/2 passing
+
+### Still pending from this scope
+- Phase 7 operational gate:
+  - run full release QA checklist
+  - execute deployment runbook in staging/production
+  - finalize legal content cleanup (encoding/placeholders)
+
+## STATUS UPDATE (Mar 8, 2026 - Events/My Registrations Follow-up)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Refreshed `/events/:slug` UI layout:
+  - stronger hero + key facts + CTA hierarchy
+  - improved media/gallery presentation
+  - added mobile sticky registration CTA
+- Improved My Registrations privacy:
+  - replaced exact DOB rendering with age display and safe fallback (`N/A`)
+- Fixed My Registrations asset/runtime issues:
+  - added missing `/js/my-reg.js` static file
+  - patched payment-proof update flow to avoid legacy full-document validation failures
+
+### SIDE TASKS (non-blocking)
+- UI/UX refinement backlog (ongoing):
+  - continue polishing `/events/:slug` visual rhythm and CTA conversion flow
+  - improve My Registrations readability density and action grouping
+  - run a compact mobile typography/tap-target pass across event and registration pages
+
+### Still pending from this scope
+- Add CSRF hidden tokens and CSRF-enforced route protection for My Registrations POST forms.
+
+## STATUS UPDATE (Mar 8, 2026 - Runner Groups IA Cleanup + Profile UX Refinement)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Simplified Runner Dashboard `Running Groups` panel:
+  - reduced to concise membership overview only
+  - removed inline search/join/create controls from dashboard
+  - retained single `Manage Groups` entry button
+- Added dedicated Running Groups management page:
+  - `GET /runner/groups`
+  - includes search, join, and create flows in one page
+- Added/kept focused create-group page flow:
+  - `GET /runner/groups/create`
+  - `POST /runner/groups/create`
+- Added runner personal info subpage:
+  - `GET /runner/profile`
+  - left quick-menu panel for section navigation
+- Added profile panel edit improvements:
+  - Contact panel supports mobile editing
+  - Emergency Contact name/number editable
+  - Identity DOB masked by default with eye icon toggle
+  - Save/Cancel actions hidden by default and revealed on Edit
+  - Save/Cancel aligned to the right
+
+### Validation signals recorded
+- `tests/runner-dashboard-profile.test.js` -> PASS
+- `tests/runner-notifications-routes.test.js` -> PASS
+- Route/controller syntax checks for runner routes/controller -> PASS
+
+### Still pending from this scope
+- Optional: align `running-group-smoke` assertions with latest dashboard markup conventions.
+
+## STATUS UPDATE (Mar 8, 2026 - Runner Dashboard High-Impact Batch: Security + UX)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Added authenticated runner password management flow:
+  - `GET /runner/security/password`
+  - `POST /runner/security/password`
+  - Google-only users can set first local password
+  - local-password users must provide current password to change password
+- Updated runner dashboard Account Security actions:
+  - password action now routes directly to authenticated password settings page
+- Added relative time labels for dashboard activity/results:
+  - `just now`, `Xm ago`, `Xh ago`, `Xd ago`
+- Hardened unlink modal accessibility:
+  - focus trap inside modal
+  - Escape key to close
+  - backdrop close
+  - return focus to trigger after close
+- Completed compact mobile readability pass for runner dashboard list rows:
+  - tighter spacing and typography for `item-row` details/actions at small breakpoints
+- Expanded and passed targeted regression checks:
+  - `tests/runner-dashboard-profile.test.js` (including new password/security coverage)
+  - `tests/running-group-smoke.test.js`
+  - `tests/google-oauth-routes.test.js`
+
+### Still pending from this scope
+- Optional follow-up:
+  - include relative-time labels in additional non-dashboard list surfaces for consistency
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 6 Final Closeout: Runner Dashboard Strict Smoke)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Executed strict runner dashboard closeout smoke for latest UX changes.
+- Step-by-step gate results:
+  - Step 1: Dashboard filter bar and query wiring (`eventMode`, `resultStatus`, clear action) -> PASS
+  - Step 2: Collapsible panel state controls (Personal Info, Activity, Certificates, Progress, Running Groups) -> PASS
+  - Step 3: Google linked account panel state (badge + unlink visible, no set-password CTA when local password exists) -> PASS
+  - Step 4: Google-only account panel state (badge + unlink visible, set-password CTA visible with prefilled forgot-password link) -> PASS
+  - Step 5: Mobile/responsive coverage for runner dashboard CSS breakpoints (`max-width: 768px`, `max-width: 480px`) -> PASS
+  - Step 6: Regression safety checks:
+    - `tests/runner-dashboard-profile.test.js` -> PASS
+    - `tests/running-group-smoke.test.js` -> PASS
+    - `tests/google-oauth-routes.test.js` -> PASS
+- Strict closeout outcome: all targeted checks passed (no failures).
+- Phase 6 runner dashboard polish is now marked fully closed.
+
+### Still pending from this scope
+- None for Phase 6 runner dashboard closeout scope.
+
+## STATUS UPDATE (Mar 8, 2026 - Runner Dashboard UX + OAuth Polish Batch)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Consolidated runner dashboard filters into one global filter bar:
+  - shared `eventMode` + `resultStatus` controls
+  - `Apply Filters` and `Clear` actions
+  - removed duplicated per-card filter forms
+- Improved Google-linked account UX on runner dashboard:
+  - added `Set password` guidance for Google-only users (before unlink)
+  - added unlink confirmation prompt on submit
+- Improved timestamp display formatting:
+  - switched from hardcoded `en-US` string to locale-aware `Intl.DateTimeFormat` using request language
+  - applied to dashboard cards, notifications, and running-group detail timestamps
+- Added forgot-password email prefill support:
+  - `/forgot-password?email=...` now prefills input and preserves value on re-render
+- Targeted regression validation passed:
+  - `tests/runner-dashboard-profile.test.js`
+  - `tests/running-group-smoke.test.js`
+  - `tests/google-oauth-routes.test.js`
+
+### Still pending from this scope
+- Optional runner dashboard follow-up:
+  - switch from browser confirm to inline modal for unlink confirmation
+  - compact card-density pass for mobile result/activity rows
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 8 Polish: Runner Google Link Visibility + Safe Unlink)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Added runner dashboard account-link visibility:
+  - sign-in method label in Personal Information panel
+  - `Google linked` badge when a Google identity is attached
+- Added safe unlink workflow:
+  - `POST /runner/auth/google/unlink`
+  - guarded to prevent lockout (unlink blocked if no local password is set)
+- Expanded regression coverage:
+  - unlink succeeds when local password exists
+  - unlink is blocked when local password is missing
+- Targeted validation pass:
+  - `tests/runner-dashboard-profile.test.js` and `tests/running-group-smoke.test.js` passed
+
+### Still pending from this scope
+- Optional OAuth UX follow-up:
+  - dedicated account settings panel for link/unlink messaging and re-link actions
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 8 Production Verification: Google Signup/Login)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Fixed Google new-user signup path by resolving `userId` counter import gap in `User` model.
+- Verified production behavior:
+  - Google login works for existing users.
+  - Google signup works for brand-new users.
+- Phase 8 Google OAuth baseline is now verified in production environment.
+
+### Still pending from this scope
+- Optional Phase 8 polish:
+  - profile-level Google link/unlink controls
+  - linked-provider status badge in account/profile UI
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 8 OAuth Baseline: Google Sign-In)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Implemented Google OAuth route baseline:
+  - `GET /auth/google`
+  - `GET /auth/google/callback`
+- Added account-linking behavior:
+  - existing account with matching email is linked to Google ID
+  - existing Google-linked account signs in directly
+  - first-time Google user creates runner account with verified email
+- Added auth/session integration with existing role-based redirects and safe return-path handling.
+- Added login/signup Google CTA buttons in auth UI.
+- Added route-level OAuth guard tests:
+  - consent redirect
+  - invalid-state callback rejection
+  - canceled-consent callback handling
+- Full regression verification:
+  - `npm test` -> `60/60` passing
+
+### Still pending from this scope
+- Phase 8 optional follow-up:
+  - add profile-level explicit link/unlink controls
+  - add callback success flash copy for linked-vs-new account path
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 9 Cross-Device QA Gate + Closeout)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Executed strict Phase 9 QA gate suite (sequential) for critical public and dashboard workflows:
+  - `tests/public-search-filters.test.js` -> 4/4 pass
+  - `tests/runner-dashboard-profile.test.js` -> 2/2 pass
+  - `tests/organizer-dashboard-analytics.test.js` -> 1/1 pass
+  - `tests/admin-dashboard.test.js` -> 1/1 pass
+  - `tests/submission-routes.test.js` -> 4/4 pass
+  - `tests/runner-notifications-routes.test.js` -> 3/3 pass
+- Strict QA gate outcome:
+  - `15/15` tests passed, `0` failed.
+- Verified mobile/responsive readiness signals in key CSS surfaces:
+  - `style.css` (nav/tap-target minimums)
+  - `events.css`
+  - `leaderboard.css`
+  - `runner-dashboard.css`
+  - `organizer-dashboard.css`
+  - `create-event.css`
+- Phase 9 cross-device/manual QA gate item is now closed for this release pass.
+
+### Still pending from this scope
+- Optional non-blocking follow-up:
+  - true-device browser matrix pass (iOS Safari + Android Chrome) after next feature batch.
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 9 Kickoff: Test Stability Baseline)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Stabilized full-suite execution by switching default test command to sequential mode:
+  - `node --test --test-concurrency=1 tests/*.test.js`
+- Added optional parallel command for local-only ad hoc runs:
+  - `npm run test:parallel`
+- Full suite verification passed with the new default:
+  - `npm test` -> `51/51` passing
+
+### Still pending from this scope
+- Phase 9 next slices:
+  - targeted coverage expansion for remaining high-risk negative paths
+  - security hardening verification pass
+  - performance baseline and index/query tuning
+  - cross-device manual QA gate
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 9 Coverage Expansion: High-Risk Negative Paths)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Added high-risk negative-path coverage for runner result and notification routes:
+  - result submission rejects invalid elapsed time format
+  - result submission rejects out-of-range distance
+  - notification mark-read `returnTo` is sanitized against open redirects
+  - non-runner authenticated user is blocked from runner notifications page
+- Full suite verification after test additions:
+  - `npm test` -> `55/55` passing
+
+### Still pending from this scope
+- Phase 9 remaining slices:
+  - security hardening verification pass
+  - performance baseline and index/query tuning
+  - cross-device manual QA gate
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 9 Security Hardening Verification Pass)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Hardened runtime security defaults in server bootstrap:
+  - disabled `x-powered-by`
+  - added baseline security headers:
+    - `X-Content-Type-Options: nosniff`
+    - `X-Frame-Options: DENY`
+    - `Referrer-Policy: strict-origin-when-cross-origin`
+    - `Permissions-Policy: geolocation=(), microphone=(), camera=()`
+- Hardened session configuration:
+  - cookie name changed to `hr.sid`
+  - `saveUninitialized` disabled
+  - cookie defaults set to:
+    - `HttpOnly`
+    - `SameSite=Lax`
+    - `Secure` in production
+    - 7-day `maxAge`
+- Restricted request-body debug logging:
+  - now opt-in via `DEBUG_HTTP_BODIES=1`
+  - disabled by default and disabled in production
+- Added dedicated security verification tests:
+  - headers presence and `x-powered-by` disabled
+  - session cookie attribute assertions on login
+- Full-suite verification after hardening:
+  - `npm test` -> `57/57` passing
+
+### Still pending from this scope
+- Optional future hardening:
+  - full CSRF token rollout for all state-changing form routes
+  - CSP rollout after inline-script refactor
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 9 Performance Baseline + Query/Index Tuning)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Added index tuning for the highest-traffic query paths:
+  - `Event`:
+    - `{ status: 1, eventStartAt: 1, createdAt: -1 }`
+    - `{ organizerId: 1, status: 1, eventStartAt: -1 }`
+  - `Registration`:
+    - `{ userId: 1, registeredAt: -1 }`
+    - `{ eventId: 1, registeredAt: -1 }`
+    - `{ eventId: 1, paymentStatus: 1, registeredAt: -1 }`
+    - `{ eventId: 1, participationMode: 1 }`
+  - `Submission`:
+    - `{ eventId: 1, status: 1, submittedAt: -1 }`
+    - `{ runnerId: 1, status: 1, submittedAt: -1 }`
+    - `{ runnerId: 1, status: 1, "certificate.issuedAt": -1 }`
+  - `Notification`:
+    - `{ userId: 1, readAt: 1, createdAt: -1 }`
+  - `Blog`:
+    - `{ status: 1, isDeleted: 1, publishedAt: -1 }`
+- Baseline timings captured from sequential integration run (`npm test`, 57/57 pass):
+  - `/events` combined filter query path: ~3.43s (test fixture + server boot context)
+  - `/leaderboard` filtered summary path: ~0.22s
+  - `/runner/dashboard` profile/dashboard path: ~3.80s
+  - `/organizer/dashboard` analytics path: ~4.43s
+  - `/admin/dashboard` snapshot path: ~3.98s
+
+### Still pending from this scope
+- Final Phase 9 gate:
+  - cross-device manual QA pass
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 3/5/6 Closeout Pass)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Executed strict closeout smoke validation for Phases 3, 5, and 6 (sequential run to avoid test-runner port contention):
+  - `tests/organizer-waiver-routes.test.js` (2/2)
+  - `tests/submission-routes.test.js` (2/2)
+  - `tests/submission-review-route-guards.test.js` (3/3)
+  - `tests/submission.service.test.js` (8/8)
+  - `tests/certificate-access.test.js` (3/3)
+  - `tests/leaderboard.service.test.js` (2/2)
+  - `tests/runner-dashboard-profile.test.js` (2/2)
+  - `tests/organizer-dashboard-analytics.test.js` (1/1)
+  - `tests/admin-dashboard.test.js` (1/1)
+- Strict closeout result: `24/24` tests passed for the targeted Phase 3/5/6 suites.
+- Phase status updated to closed for core scope:
+  - Phase 3 core workflows complete
+  - Phase 5 core workflows complete
+  - Phase 6 core workflows complete
+
+### Still pending from this scope
+- Follow-up polish can continue under Phase 9 hardening:
+  - cross-device/manual UX verification refinements
+  - full-suite test harness stability in a single `npm test` pass
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 7 Completion: Notifications Expansion)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Expanded in-app notifications for runner lifecycle events:
+  - registration confirmed
+  - payment proof submitted
+  - payment approved
+  - payment rejected
+  - result approved
+  - result rejected
+  - certificate issued
+- Added runner unread notification badge in the top navigation.
+- Added/updated automated validation:
+  - `tests/payment-route-guards.test.js`
+  - `tests/runner-notifications-routes.test.js`
+  - `tests/submission.service.test.js`
+
+### Still pending from this scope
+- Optional search UX iteration:
+  - quick filter chips
+  - retained “recent search” suggestions
+  - filter state badges in hero/header blocks
+
+## STATUS UPDATE (Mar 7, 2026 - Organizer Create/Edit Waiver UX Hardening)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Replaced raw waiver HTML textarea with a non-technical rich editor (Quill) on organizer create/edit event pages.
+- Added waiver helper controls for placeholder insertion:
+  - `Insert Organizer Name` -> `{{ORGANIZER_NAME}}`
+  - `Insert Event Title` -> `{{EVENT_TITLE}}`
+- Preserved backend compatibility:
+  - editor content syncs to hidden `waiverTemplate` field on change and submit.
+- Added server-side waiver sanitization with a waiver-safe allowlist (including headings/lists/links/div).
+- Hardened waiver validation:
+  - minimum rule now checks plain-text content length from rich HTML.
+- Added waiver route tests:
+  - sanitization persistence on create
+  - rejection of rich HTML shells with insufficient plain text
+- Executed strict waiver smoke script:
+  - 6/6 steps passed (create page render, controls render, draft submit, sanitize persistence, edit page render).
+
+### Still pending from this scope
+- Optional UX refinement:
+  - replace confirm/alert dialogs with inline modal/toast pattern.
+- Optional safety refinement:
+  - sanitize waiver preview rendering on the client side (server sanitization is now active).
+
+## STATUS UPDATE (Mar 7, 2026 - Phase 7 Kickoff: Static Pages + Public Search/Filter UX)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Static page baseline is now implemented and routed:
+  - `/about`
+  - `/how-it-works`
+  - `/contact`
+  - `/faq`
+  - `/privacy`
+  - `/terms`
+- Public events page now supports query-driven filter/search UX:
+  - filters: `q`, `eventType`, `distance`, `status`
+  - results summary with active-filter count
+  - clear-filters action
+  - pagination with preserved query params
+  - direct page-number navigation
+- Public blog listing UX updated with:
+  - results summary
+  - conditional clear-filters action
+  - filter-aware empty-state copy
+- Public leaderboard UX updated with:
+  - results summary with active-filter count
+  - conditional clear-filters action
+  - filter-aware empty-state copy
+- Wording consistency pass completed:
+  - standardized list-page action label to `Clear filters`.
+- Automated validation added:
+  - `tests/static-pages.test.js`
+  - `tests/public-search-filters.test.js`
+
+### Still pending from this scope
+- Optional search UX iteration:
+  - quick filter chips
+  - retained “recent search” suggestions
+  - filter state badges in hero/header blocks
+
+## STATUS UPDATE (Mar 7, 2026 - Phase 4 Payment Proof Workflow)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Runner-side payment proof upload flow is live:
+  - POST /my-registrations/:registrationId/payment-proof
+- Organizer verification flow is live:
+  - approve: POST /organizer/events/:id/registrants/:registrationId/payment/approve
+  - reject: POST /organizer/events/:id/registrants/:registrationId/payment/reject
+- Registration data model extended for payment proof + review metadata:
+  - paymentProof, paymentSubmissionCount, paymentReviewedAt/by, reviewNotes, rejectionReason
+- UI updates completed:
+  - runner my-registrations upload/re-upload + rejection reason visibility
+  - organizer registrants table payment status filter + approve/reject action forms
+- Notification hooks added:
+  - proof submitted (organizer), approved (runner), rejected (runner)
+- Automated regression test baseline added:
+  - node:test suite for payment workflow transition rules
+- Strict end-to-end smoke run completed with seeded runner/organizer accounts:
+  - 13/13 steps passed
+  - includes submit -> approve/reject -> re-submit -> approve final state verification
+
+### Still pending from this scope
+- None within in-app Phase 4 scope.
+- External-only follow-up (optional): inbox/provider-level delivery confirmation once Resend log access or real inbox checks are available.
+
+## STATUS UPDATE (Mar 7, 2026 - Sprint B Running Group Foundation Kickoff)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Running group foundation baseline is now implemented:
+  - RunningGroup model
+  - service layer for create/join/leave/search/top groups
+  - runner routes:
+    - POST /runner/groups/create
+    - POST /runner/groups/join
+    - POST /runner/groups/leave
+  - runner dashboard Running Groups section now supports:
+    - current group visibility
+    - search + join
+    - create + auto-join
+    - leave group
+- Added responsive UI styling for new running-group interactions.
+- Added deeper Sprint B integration:
+  - dedicated running-group detail route/page:
+    - GET /runner/groups/:slug
+  - running-group activity persistence and feed rendering
+  - merged dashboard activity stream (registration + running-group events)
+- Added Sprint B automated validation:
+  - running-group strict smoke script:
+    - tests/running-group-smoke.test.js
+  - runner dashboard/profile coverage:
+    - tests/runner-dashboard-profile.test.js
+  - running-group service coverage expanded with activity assertions
+
+### Still pending from this scope
+- None for Sprint B scope.
+
+### Final validation pass (Mar 7, 2026)
+- Route-level automated guards added and passing:
+  - unauthenticated access guards
+  - runner ownership guard
+  - organizer ownership guard
+  - invalid transition guard
+- Registration + waiver + export smoke completed:
+  - 11/11 checks passed (CSV + XLSX payment/waiver columns validated)
+- UI polish verification completed (state-aware):
+  - runner my-registrations payment states
+  - organizer registrants payment filter/actions/proof links
+  - 7/7 checks passed
+- Inbox/provider-level delivery remained out-of-scope for terminal-only verification due restricted Resend key; app-side send path had no runtime failures.
+
+## STATUS UPDATE (Mar 7, 2026 - Phase 5 Core Workflows)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Result submission workflows are live:
+  - POST /my-registrations/:registrationId/submit-result
+  - POST /my-registrations/:registrationId/resubmit-result
+- Organizer result review workflows are live:
+  - POST /organizer/events/:id/submissions/:submissionId/approve
+  - POST /organizer/events/:id/submissions/:submissionId/reject
+- Certificate issuance is active on approved submissions:
+  - GET /my-submissions/:submissionId/certificate
+- Public leaderboard now renders approved-submission rankings with filters:
+  - event, distance, mode, period
+- Runner dashboard certificate/stat cards now use real Phase 5 submission data.
+- Automated guard and service validation expanded for Phase 5 flows.
+
+### Still pending from this scope
+- End-to-end UX polish pass for edge states (empty/filter combinations and mobile readability).
+- Optional notifications expansion for result review/certificate issuance emails.
+
+## STATUS UPDATE (Mar 7, 2026 - Phase 6 Organizer Dashboard Review Queue)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Organizer dashboard now includes review-queue analytics:
+  - pending payment proof reviews
+  - pending result submission reviews
+- Organizer dashboard now includes direct review links:
+  - `/organizer/events/:id/registrants?payment=proof_submitted`
+  - `/organizer/events/:id/registrants?result=submitted`
+- Organizer quick actions were corrected to active routes:
+  - Participants -> `/organizer/events`
+  - Settings -> `/organizer/application-status`
+- Strict organizer dashboard smoke script executed:
+  - 9/9 steps passed
+- Organizer dashboard analytics v2 added:
+  - dashboard range filter (`7d`, `30d`, `all`)
+  - range-based metrics for registrations, submissions, and approvals
+  - per-event queue breakdown with direct payment/result review links
+  - quick actions to open next pending payment/result review
+- Strict organizer analytics v2 smoke script executed:
+  - 7/7 steps passed
+
+### Still pending from this scope
+- Additional organizer analytics cards (trend/period breakdown) if needed for Phase 6 completion.
+
+## STATUS UPDATE (Mar 3, 2026 - Documentation Structure and Format)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Converted project documentation notes from `.txt` to `.md`.
+- Moved project notes into `docs/` for centralized documentation.
+- Updated cross-document references to point to `.md` files.
+
+### Still pending from this scope
+- Optional cleanup: remove remaining legacy `.txt` duplicates (`blog_feature.txt`, `mongodb_schema.txt`, `organiser_flow.txt`) when no longer needed.
+
+## STATUS UPDATE (Feb 27, 2026 - Blog Admin Edit Hardening)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Admin review page now supports inline editing of blog fields.
+- Debounced admin autosave endpoint is active:
+  - PATCH /admin/blog/posts/:id/autosave
+- Revision/audit tracking added:
+  - BlogRevision model
+  - before/after + changedFields per meaningful autosave
+- Review page now includes Change History panel with revision details.
+- Moderation UI now adapts to selected status while editing.
+
+### Still pending from this scope
+- End-to-end and regression test pass (manual + automated) for autosave + moderation interaction.
+- Optional UX iteration for history readability on very large content diffs.
+
+## STATUS UPDATE (Feb 27, 2026 - Blog Phase A Tasks 1 to 10)
+
+### Current reality after latest implementation
+
+### IN PROGRESS
+- Phase 3: Event Creation & Management (advanced)
+- Phase 4: Registration System (payment proof flow still pending)
+- Phase 7: Blog System (Phase A backend + UI now functional)
+
+### Completed in this cycle
+- Task 1: Blog data foundation
+  - Blog model with statuses, categories, moderation fields, SEO fields, indexes
+- Task 2: Author backend
+  - create/edit draft, submit for review, delete own draft/rejected, list own posts
+- Task 3: Admin moderation backend
+  - pending queue, preview, approve, reject (reason required), archive
+- Task 4: Public read backend
+  - /blog list + /blog/:slug published-only detail
+- Task 5: Cover upload integration
+  - JPG/PNG upload path wired to Cloudflare R2 with replacement cleanup
+- Task 6: Author UI
+  - My Blogs dashboard + create/edit form + submit/delete actions
+- Task 7: Admin UI
+  - Blog queue page + review page + approve/reject/archive forms
+- Task 8: Public UI + SEO
+  - blog list/detail templates + dedicated CSS + canonical/meta/OG/Twitter support
+- Task 9: Security/validation pass
+  - server-side content sanitization
+  - URL validation hardening
+  - rate limits for author/admin write actions
+- Task 10: View policy
+  - implemented 24-hour view dedupe:
+    - logged-in user: 1 view/post/24h
+    - anonymous IP: 1 view/post/24h
+  - excludes admin and author self-views from count
+
+### Still pending from this scope
+- E2E testing pass for all blog flows (author/admin/public)
+- Final UX polish pass (spacing/typography consistency, empty states, badges)
+- Optional: migrate any existing placeholder content to blog model documents
+- Optional: add sitemap integration for published blog posts (if not yet automatic)
+
+### Manual smoke checklist (latest)
+- [ ] Author dashboard and form flows are stable on desktop/mobile
+- [ ] Admin queue/review moderation actions are stable and state-safe
+- [ ] Public /blog and /blog/:slug render correctly with SEO tags
+- [ ] View count policy matches 24-hour dedupe expectations
+- [ ] Cover upload/replacement/deletion behavior is correct in R2 + MongoDB
+
+---
+
+## STATUS UPDATE (Feb 27, 2026 - Organizer Event Record UX + Reference Code)
+
+### Current reality after latest implementation
+
+### IN PROGRESS
+- Phase 3: Event Creation & Management (advanced)
+- Phase 4: Registration System (account flow active; payment-proof still pending)
+- Phase 6: Dashboards (runner data cards active; organizer UX refinements ongoing)
+
+### Completed in this cycle
+- Event creation success flow improved:
+  - organizer is redirected to /organizer/events (My Events) after create/publish
+- User-facing language improved:
+  - organizer UI changed from "slug" wording to "Event URL"
+- Event details audit section redesigned:
+  - "Audit" replaced by "Event Record"
+  - shows friendly Reference Code, organizer name, and public event page path
+  - copy actions added for reference code and event link
+  - raw Event ID / Organizer ID moved under collapsible "Technical details"
+- Persistent reference code implemented:
+  - Event.referenceCode added to schema (unique + immutable)
+  - generated at event creation using:
+    - abbreviation from event title + YYDDMM
+    - collision-safe suffix when needed (-02, -03, ...)
+- Backfill tool added for legacy events:
+  - npm run backfill:event-reference-codes
+
+### Still pending from this scope
+- Run backfill in target environments and verify no duplicate index/data issues
+- Replace fallback reference-code usage after full backfill completion
+- Optional: surface reference code in registrants/export views for support workflows
+
+### Manual smoke checklist (latest)
+- [ ] Create event redirects to My Events with success banner
+- [ ] Newly created event contains referenceCode in MongoDB
+- [ ] Backfill script updates old events without referenceCode
+- [ ] Event Record copy buttons work on desktop and mobile
+- [ ] Technical details collapse/expand behavior is stable
+- [ ] "Event URL" wording appears consistently in organizer screens
+
+---
+
+## STATUS UPDATE (Feb 26, 2026 - Organizer Branding & Media Upgrade)
+
+### Current reality after latest implementation
+
+### IN PROGRESS
+- Phase 3: Event Creation & Management (advanced; branding/media now functional)
+- Phase 4: Registration System (account flow active; payment-proof still pending)
+- Phase 6: Dashboards (runner data cards + organizer media visibility upgraded)
+
+### Completed in this cycle
+- Organizer Branding & Media panel reorganized per media type:
+  - Event Logo
+  - Event Banner
+  - Promotional Poster
+  - Gallery Images
+- Promotional Poster is now fully functional:
+  - URL input + file upload
+  - saved to MongoDB and uploaded to Cloudflare R2
+  - visible in organizer/public event detail views
+- Gallery Images are now fully functional:
+  - URL list + multiple file upload
+  - saved to MongoDB and uploaded to Cloudflare R2
+  - visible in organizer/public event detail views
+- Edit-event media management unified:
+  - preview + contextual remove actions for logo/banner/poster/gallery
+  - gallery supports single-image remove and remove-all
+- Immediate persistence on media remove:
+  - clicking remove now calls backend API immediately
+  - MongoDB updates immediately
+  - Cloudflare delete attempted immediately
+- Banner ratio policy relaxed:
+  - no strict blocking; 3:1 is recommendation only
+- Upload error mapping improved:
+  - 400 errors now show under the correct media field
+
+### Still pending from this scope
+- E2E test pass for all media actions on mobile + desktop
+- Guardrails for partial Cloudflare delete failures (orphan cleanup job)
+
+### Manual smoke checklist (latest)
+- [ ] Create event saves logo/banner/poster/gallery correctly
+- [ ] Edit page remove X works immediately for logo/banner/poster
+- [ ] Gallery single-remove and remove-all work immediately
+- [ ] Removed media no longer appears after page refresh
+- [ ] MongoDB media fields match post-remove state
+- [ ] Public event details render poster/gallery correctly
+- [ ] Mobile form interactions are stable on Chrome Android
+
+---
+
+## STATUS UPDATE (Feb 26, 2026 - Runner Dashboard Data + Refactor)
+
+### Current reality after latest implementation
+
+### IN PROGRESS
+- Phase 3: Event Creation & Management (advanced)
+- Phase 4: Registration System (account flow active; payment-proof still pending)
+- Phase 6: Dashboards (runner dashboard now partially data-driven)
+
+### Completed in this cycle
+- Runner dashboard now uses real registration data cards:
+  - Upcoming events (based on eventStartAt)
+  - Past events
+  - Activity log (recent registrations)
+  - Progress statistics (total/upcoming/past/unpaid/paid)
+- Continue Payment placeholder CTA added:
+  - shown only when paymentStatus is unpaid
+  - links to /my-registrations for now
+- Profile completeness flow added:
+  - percentage progress bar
+  - required-field completion count
+  - missing fields list
+- Runner routes/controller refactor completed:
+  - moved runner dashboard/profile handlers out of authRoutes.js
+  - created dedicated:
+    - src/routes/runner.routes.js
+    - src/controllers/runner.controller.js
+    - src/services/runner-data.service.js
+- Runner data source unified:
+  - shared registration fetch service now reused by:
+    - /runner/dashboard
+    - /my-registrations
+- Running group feature placeholder added on dashboard:
+  - "Running groups (create/join) coming soon."
+
+### Still pending from this scope
+- Payment proof upload + organizer verification workflow (Phase 4)
+- Runner activity expansion beyond registration events (future)
+- Running group backend (create/join/search) implementation (future)
+
+### Manual smoke checklist (latest)
+- [ ] Runner dashboard loads without errors for users with 0 registrations
+- [ ] Upcoming/Past split follows eventStartAt correctly
+- [ ] Continue Payment appears only for unpaid registrations
+- [ ] Profile completeness percentage and missing fields are accurate
+- [ ] /my-registrations and /runner/dashboard show consistent registration data
+- [ ] Runner profile update works via new runner routes/controller
+
+---
+CURRENT ACTIVE BACKLOG (Next 2 Sprints)
+
+### Sprint A (Immediate)
+1. [DONE] Phase 4 payment proof upload flow (runner side)
+2. [DONE] Organizer payment verification flow (approve/reject + notes)
+3. [DONE] Payment status lifecycle polish in runner and organizer views
+4. [DONE] Smoke tests for registration, waiver, and export flows
+
+### Sprint B (After Payment Flow)
+1. [DONE] Runner dashboard iteration 2:
+   - [DONE] richer activity feed (registration + running-group + submission/certificate activity)
+   - [DONE] richer activity feed integration via running-group activity events
+   - [DONE] certificate/stat cards backed by real Phase 5 data where available
+   - [DONE] dashboard UX polish (filters/state retention, KPI strip, status/activity badges)
+2. [DONE] Running group foundation:
+   - [DONE] define data model and create/join/search/leave baseline behavior
+   - [DONE] add running-group specific test coverage + deeper dashboard integration
+   - [DONE] add strict smoke automation for running-group detail/join flow
+3. [DONE] Test coverage:
+   - [DONE] runner profile update
+   - [DONE] runner dashboard data grouping
+   - [DONE] payment workflow regressions
+
+### Next UI/UX Follow-up
+1. `/events` list improvement pass:
+   - [DONE] improve free-text search relevance for visible location labels and organiser names
+   - [DONE] review `closed` filter semantics and use better sort order for past/closed events
+   - [DONE] add clearer event status chips and stronger CTA hierarchy on cards
+   - [DONE] add `/events` SEO metadata and canonical handling
+   - [DONE] add removable active-filter chips and cleaner pagination URLs
+   - [PENDING] visual polish pass for hero/filter hierarchy/mobile scan quality
+   - [OPTIONAL] context-aware distance options if they can be added with low regression risk
+2. `/runner/submissions` UI improvement pass:
+   - [PLANNED] improve page hierarchy for summary, filters, status tabs, and submitted-entry cards
+   - [PLANNED] make event entries and personal-record submissions visually distinguishable without hiding either type
+   - [PLANNED] improve mobile/tablet card wrapping, action-button layout, and badge scan quality
+   - [PLANNED] preserve shared hamburger nav behavior and avoid duplicate run-proof modal markup
+   - [PLANNED] validate with manual mobile/tablet/desktop checks plus `tests/runner-submissions-routes.test.js`
+
+## `/events` Improvement Plan (Pre-Implementation Spec)
+
+### Current implementation status
+- [DONE] Delivery slice 1: search relevance and filter semantics
+  - organiser-name search now works
+  - visible country-name intent now maps to stored country codes
+  - `closed` label now renders as `Closed / Past`
+  - sorting is state-aware for `upcoming`, `open`, and `closed`
+- [DONE] Delivery slice 2: card content and conversion
+  - cards now show status chips
+  - cards now show one helper/urgency line
+  - redundant tag output was reduced
+- [DONE] Delivery slice 3: filter UX and pagination polish
+  - removable active-filter chips were added
+  - single-filter removal preserves remaining query state
+  - pagination URLs now omit empty params and redundant `page=1`
+- [DONE] Delivery slice 4: SEO and metadata
+  - `/events` now emits canonical/meta tags through the shared SEO partial
+  - filtered `/events` views now get stable, filter-aware title/description copy
+  - hero and results-summary copy now align with the active filter state
+- [PENDING] Delivery slice 5: visual polish
+  - hero visual identity
+  - filter-bar hierarchy and scan quality
+  - mobile-first refinement without changing route or flow behavior
+
+### Goal
+- Upgrade `/events` from a functional listing page into a stronger discovery and conversion surface without changing route shape or destabilizing event-detail and registration flows.
+
+### Success criteria
+- search results better match what users visibly see on cards
+- filter labels and sorting feel intuitive
+- cards communicate urgency and registration state clearly
+- `/events` has canonical/meta support comparable to other public surfaces
+- regression coverage remains stable and does not depend on unrelated fixture ordering
+
+### Current issues to address
+- Search currently matches raw DB fields, but not all user-visible labels.
+- `closed` currently behaves as a mixed “registration closed or event ended” state, which is useful but potentially unclear.
+- The same sort order is used for all event states, which weakens closed/past browsing.
+- Cards show core facts but do not emphasize actionability or urgency.
+- `/events` has minimal dedicated SEO metadata.
+- Filter UX works, but still feels mechanical rather than helpful.
+
+### Scope and locked decisions
+- Keep the public route shape unchanged:
+  - `/events?q=&eventType=&distance=&status=&page=`
+- Keep `closed` as the query value for compatibility.
+- Treat `closed` in this pass as:
+  - registration closed OR event ended
+- Do not add database/index migrations in this pass.
+- Do not add direct registration submission from `/events`; keep the page discovery-first.
+- Keep context-aware distance filtering as optional unless it can be added with low risk.
+
+### Delivery slice 1: Search relevance and filter semantics
+- Status: [DONE]
+- Expand free-text search to include `organiserName`.
+- Normalize country matching so visible country names can match stored country codes.
+  - example: `Philippines` should match events stored as `PH`
+- Keep regex-style matching for this pass; do not move to full-text/index work yet.
+- Keep current status filters but make behavior explicit:
+  - `upcoming`: event start is in the future
+  - `open`: registration window is currently open
+  - `closed`: registration closed or event ended
+- Review user-facing label copy so the meaning of `closed` is less ambiguous.
+  - recommended label: `Closed / Past`
+- Make sorting state-aware:
+  - `upcoming`: nearest start date first
+  - `open`: nearest registration close date first, then nearest start date
+  - `closed`: most recently ended/closed first
+  - `all`: keep a sensible discovery-first order, with upcoming surfaced ahead of stale content
+
+### Delivery slice 2: Card content and conversion
+- Status: [DONE]
+- Add an event status chip per card.
+  - candidate states:
+    - `Open Registration`
+    - `Registration Closed`
+    - `Starts Soon`
+    - `Past Event`
+- Add one urgency/helper line to cards.
+  - prefer registration-close messaging when registration is open
+  - fall back to event-start timing when registration is closed but event is upcoming
+- Strengthen CTA hierarchy without changing page role.
+  - keep `View Event` as the primary default CTA in this pass
+  - support it with clearer status/timing context rather than introducing direct registration from the list
+- Reduce low-value duplication in tags.
+  - do not visually repeat `eventType` and `eventTypesAllowed` when they communicate the same thing
+
+### Delivery slice 3: Filter UX and pagination polish
+- Status: [DONE]
+- Add active filter chips above the results list.
+  - chips should reflect `q`, `eventType`, `distance`, and `status`
+  - each chip should be removable while preserving the other active filters
+- Keep the existing `Clear` / `Clear filters` action.
+- Clean generated pagination URLs so empty query params are omitted.
+- If low-risk, make distance options context-aware to active filters; otherwise defer.
+
+### Delivery slice 4: SEO and metadata
+- Status: [DONE]
+- Add dedicated `seo` payload from the controller.
+- Include:
+  - canonical URL for `/events`
+  - canonical URL including active query params when filters are applied
+  - default meta description for the unfiltered page
+  - simple filter-aware description only if wording stays stable and predictable
+- Ensure metadata degrades safely when `APP_URL` is absent.
+
+### Delivery slice 5: Visual polish
+- Status: [PENDING]
+- Improve the hero so it feels more specific to event discovery, not placeholder copy.
+- Refine filter-bar hierarchy so it reads as a discovery tool rather than only a form block.
+- Improve scan quality on mobile:
+  - maintain card readability
+  - keep status chips and CTA visible without making cards noisy
+- Preserve the current site visual language; do not introduce a conflicting design system.
+
+### Files expected to change
+- controller:
+  - `src/controllers/page.controller.js`
+- template:
+  - `src/views/pages/events.ejs`
+- styling:
+  - `src/public/css/events.css`
+- regression coverage:
+  - `tests/public-search-filters.test.js`
+
+### Test plan
+- Automated:
+  - search by title, description, organiser name, city, and rendered country name
+  - state filters for `upcoming`, `open`, and `closed`
+  - ordering expectations for closed/past browsing
+  - pagination preserves only active params
+  - active filter chips render and remove one filter at a time
+- Manual:
+  - mobile filter layout and card scan quality
+  - with-image and without-image card consistency
+  - canonical/meta tags on filtered and unfiltered `/events`
+  - no-results, single-result, and multi-page states
+
+### Acceptance criteria
+- Searching for visible location text works reliably.
+- Closed/past events surface in a sensible order.
+- Users can tell at a glance whether registration is open.
+- Filter state is visible and removable incrementally.
+- `/events` has canonical/meta coverage.
+- `/events` has filter-aware title/hero/results-summary copy that stays aligned with the current query state.
+- active filter chips render and remove one filter at a time without dropping the rest of the query state.
+- pagination URLs stay clean and omit empty params or redundant `page=1`.
+- Event detail and registration flows remain unchanged.
+- Updated tests pass without relying on unrelated seeded data.
+
+### Notes
+- CHANGELOG.md should record file-level implementation history only.
+- PRD.md remains the master planning and task document.
+
+### Sprint B Exit Criteria (Sign-off Gate)
+- [x] Running-group foundation supports create/join/leave/search/top behavior.
+- [x] Dedicated running-group detail page is live (`GET /runner/groups/:slug`).
+- [x] Running-group activity is persisted for create/join/leave actions.
+- [x] Runner dashboard activity feed includes running-group events.
+- [x] Strict running-group smoke automation passes (`tests/running-group-smoke.test.js`).
+- [x] Runner profile update coverage passes (`tests/runner-dashboard-profile.test.js`).
+- [x] Runner dashboard grouping/stats coverage passes (`tests/runner-dashboard-profile.test.js`).
+- [x] Payment workflow regression suite remains green after Sprint B changes.
+- [x] Full automated test suite passes (`npm test`).
+- [x] Phase 5-dependent certificate/stat cards backed by real data.
+
+### Phase 5 Exit Criteria (Sign-off Gate)
+- [x] Runner can submit result proof for paid, active registrations.
+- [x] Runner can resubmit result proof after organizer rejection.
+- [x] Organizer can approve/reject submitted results with ownership and status guards.
+- [x] Approved results trigger certificate issuance metadata on submission records.
+- [x] Runner can download certificate only for own approved submissions.
+- [x] Public leaderboard renders approved submissions only.
+- [x] Leaderboard filters work for event, distance, mode, and period.
+- [x] Runner dashboard certificate/stat cards are backed by real submission data.
+- [x] Automated route/service guard coverage added for submission and certificate flows.
+- [x] Full automated test suite passes (`npm test`).
+- [x] Manual cross-device UX pass completed for submissions/review/leaderboard/certificate download.
+- [x] Optional notification expansion for result review + certificate issuance finalized.
+
+---
+How we will build helloRun step-by-step
+
+PROJECT OVERVIEW & STATUS (Updated Apr 24, 2026)
+
+### COMPLETED PHASES
+[DONE] Phase 0: Project Skeleton (Nov 2024) - 100%
+[DONE] Phase 1: Authentication System (Feb 2025) - 100%
+[DONE] Phase 2A: Organizer Signup Flow - 100%
+[DONE] Phase 2B: Organizer Application Forms & Status - 100%
+[DONE] Phase 3: Event Creation & Management - core scope complete
+[DONE] Phase 4: Registration + payment proof workflow - complete
+[DONE] Phase 5: Submission, Results & Leaderboard - core scope complete
+[DONE] Phase 6: Dashboards & Analytics - core scope complete
+[DONE] Phase 7: Additional Pages & Features - core scope complete
+[DONE] Phase 8: Google OAuth - implemented and regression-covered
+
+### CURRENT PHASE
+[IN_PROGRESS] Phase 9: Release hardening, regression stability, and production-readiness verification
+
+### UPCOMING PHASES
+[PENDING] Phase 10: Production Deployment Launch Gate
+[IN_PROGRESS] Phase 11: Shop / Merchandise Feature (backend foundation complete; UI polish pending)
+[DRAFT/MVP HARDENING] Phase 12: OCR Smart Activity Submission
+[DRAFT] Phase 13: Onsite Event Result Import
+[DRAFT] Phase 14: Organiser Reports and Export Centre
+[DRAFT] Phase 15: Payment Gateway Integration
+[DRAFT] Phase 16: Race Kit, Bib, and Check-in Support
+
+### QUICK STATS
+- Total Users: TBD (after deployment)
+- Total Events: Live development data present; production count TBD after launch
+- Platform Status: Pre-release hardening
+- Last Major Update: Apr 24, 2026 (security, SEO, readiness, and release audit)
+
+---
+
+PRODUCT POSITIONING UPDATE
+
+### Platform Positioning
+
+HelloRun is a centralized running event management platform for virtual and onsite running events.
+
+The platform serves two primary user groups:
+
+1. Runners
+   - Discover events
+   - Register for events
+   - Upload payment proof
+   - Submit virtual run proof
+   - Track submission status
+   - View rankings
+   - Download certificates
+   - Join running groups
+   - Purchase or claim achievement-based merchandise in future phases
+
+2. Organisers
+   - Create and manage events
+   - Collect and monitor registrations
+   - Track payment proofs
+   - Manage participant records
+   - Review virtual run submissions
+   - Publish results and rankings
+   - Generate certificates
+   - Access dashboards and reports
+   - Manage merchandise options in future phases
+
+HelloRun is not only a runner-facing app. It is an organiser-support platform that connects runner participation, event operations, payment-proof workflows, submission review, results, certificates, reports, and future merchandise opportunities.
+
+### Event Mode Definitions
+
+HelloRun supports three major event modes:
+
+1. Virtual run
+2. Onsite event
+3. Hybrid running event
+
+These modes should be used consistently across labels, filters, database fields, documentation, UI copy, and reports. Avoid legacy in-person event wording in the PRD and product copy; use `onsite` instead.
+
+### 3.1 Virtual Runs
+
+Runners complete the activity independently and submit proof through HelloRun.
+
+HelloRun supports the virtual run workflow through event discovery, registration, payment-proof upload, organiser payment verification, run-proof upload, OCR-assisted screenshot analysis, runner review of extracted activity details, suspicious-entry flagging, organiser/admin submission review, approval/rejection, leaderboard updates, certificate generation, and event reports.
+
+Virtual run monitoring focuses on submitted activity proof, not live GPS tracking. The platform monitors virtual runs through uploaded activity screenshots, OCR-extracted values, runner-submitted values, duplicate proof detection, activity consistency checks, review status tracking, and organiser/admin decision logs.
+
+OCR-assisted submission should attempt to extract or assist with distance, duration, pace where available, date, location, elevation, steps, source app, activity type, and extracted runner name where available. Initial OCR support prioritises Strava, Garmin, Nike Run Club, Apple Health, and Google Fit. OCR is not assumed to be perfect; runner confirmation and organiser/admin review remain part of the workflow.
+
+Suspicious entries are review signals, not automatic rejection. Examples include duplicate screenshots, extreme distance/pace/duration, OCR distance or name mismatch, submitted date mismatch, location mismatch, activity type mismatch, implausible elevation density, implausible steps-per-kilometre, and implausible cadence.
+
+Runner-facing copy should remain neutral, using labels such as `Needs additional review`, `Submitted for review`, or `Review pending`. Organiser/admin views may show detailed reasons to support decision-making.
+
+### 3.2 Onsite Running Events
+
+Runners attend the event location. HelloRun supports registration, payment-proof tracking, participant management, result import, rankings, certificates, and reports.
+
+HelloRun should support onsite events through event listing, registration, payment-proof upload, organiser payment verification, participant list management, category and distance management, bib assignment support, race kit tracking, result import, manual result encoding, ranking publication, certificate generation, reports, and analytics.
+
+HelloRun should not initially replace race timing systems. Organisers may continue using RFID timing systems, chip timing systems, barcode or QR scanning, stopwatch-based recording, manual finish-line encoding, third-party timing providers, or spreadsheet-based result encoding.
+
+HelloRun supports onsite events before timing through registration, payment verification, participant management, category setup, bib support, and race kit support; during the event through optional participant lookup, race kit claiming support, and check-in support; and after the event through official result import, manual result encoding, ranking generation, certificate release, and event reports.
+
+Official onsite results should come from the organiser or the organiser's timing provider. HelloRun should support CSV upload, Excel upload, manual encoding, and future API import from timing providers.
+
+### 3.3 Hybrid Running Events
+
+Runners may join either virtually or onsite under one organiser-managed event. HelloRun separates workflows, results, leaderboards, certificates, and reports by participation mode.
+
+Hybrid events should preserve distinct operational paths: virtual participants follow the proof/OCR submission and review workflow, while onsite participants follow the event operations, result import/manual encoding, and onsite certificate workflow. Public event pages, organiser dashboards, exports, leaderboards, and certificates should make the participation mode clear.
+
+### Updated Development Roadmap
+
+The current priority remains release hardening and production-readiness verification. New feature expansion remains gated until the full regression suite passes, production environment variables are verified, security and CSRF enforcement are stable, manual smoke testing is completed, and the deployment checklist is signed off.
+
+```text
+Phase 9:  [NOW] Release hardening, regression stability, and production-readiness verification
+Phase 10: [NEXT] Production deployment launch gate
+Phase 11: [IN_PROGRESS] Shop / Merchandise Feature (backend foundation complete; UI polish pending)
+Phase 12: [DRAFT/MVP HARDENING] OCR Smart Activity Submission
+Phase 13: [DRAFT] Onsite Event Result Import
+Phase 14: [DRAFT] Organiser Reports and Export Centre
+Phase 15: [DRAFT] Payment Gateway Integration
+Phase 16: [DRAFT] Race Kit, Bib, and Check-in Support
+```
+
+---
+
+Phase 0: Project skeleton (MVC baseline) [DONE] COMPLETED (Nov 2024)
+
+Goal: You can run the app locally with pages loading.
+
+### What you built
+[DONE] Express server
+[DONE] EJS views with layouts
+[DONE] MVC folders structure
+[DONE] MongoDB connection
+[DONE] Base layout + navigation + footer components
+[DONE] Mobile-responsive navigation with hamburger menu
+[DONE] Lucide icons integration
+[DONE] Google Analytics integration (GA4)
+
+### What you have after Phase 0
+[DONE] / home page (acquisition-focused landing page with live proof stats, blog surface, and responsive hero behavior)
+[DONE] /events events page (UI ready for dynamic content)
+[DONE] /login and /signup pages (fully functional UI with improved password toggle)
+[DONE] /forgot-password page (compact UI, no scrolling required)
+[DONE] Complete password reset flow (forgot, reset, success, expired)
+[DONE] Complete email verification flow (sent, success, expired, resend)
+[DONE] Error page
+[DONE] Responsive navigation with mobile menu
+[DONE] Footer with links
+[DONE] SEO ready (sitemap.xml, robots.txt)
+[DONE] Google Analytics 4 tracking on all pages
+
+---
+
+Phase 1: Auth (MongoDB) with email verification [DONE] COMPLETED (100%) - Feb 3, 2025
+
+Goal: Users can sign up, verify email, and log in securely.
+
+Feature 1A: Email/password signup [DONE] COMPLETED (Nov 2024)
+[DONE] Create User model with email verification fields
+[DONE] Auto-increment userId (U000001, U000002, etc.)
+[DONE] Counter model for sequential IDs
+[DONE] Hash password with bcrypt
+[DONE] Block duplicate email
+[DONE] Save role: "runner" or "organiser"
+[DONE] Email verification required before login
+[DONE] Migration scripts for existing users
+
+Feature 1B: Email verification [DONE] COMPLETED (Dec 2024)
+[DONE] Generate verification token on signup
+[DONE] Send verification email via Resend
+[DONE] /verify-email/:token endpoint
+[DONE] Token expiry (24 hours)
+[DONE] Resend verification email feature
+[DONE] User cannot login until verified
+[DONE] Professional email templates
+
+Feature 1C: Password reset [DONE] COMPLETED (Feb 3, 2025)
+[DONE] Request password reset
+[DONE] Generate reset token (1 hour expiry)
+[DONE] Send reset email via Resend
+[DONE] Verify reset token
+[DONE] Update password
+[DONE] Handle expired tokens
+[DONE] Rate limiting (3 resets per 24 hours)
+[DONE] Email notifications
+[DONE] Confirmation email after password reset
+[DONE] Professional reset-password UI with strength indicator
+[DONE] Real-time password validation
+[DONE] Password visibility toggle (eye/eye-off icons)
+[DONE] Common password detection
+[DONE] Sequential/repeated character detection
+[DONE] Accessible form with ARIA support
+[DONE] Client-side validation with debouncing
+[DONE] Password match validation
+[DONE] Animated strength indicator (gradient)
+
+Feature 1D: Session management [DONE] COMPLETED (Nov 2024)
+[DONE] express-session with MongoDB store
+[DONE] Session timeout (7 days)
+[DONE] Remember me option
+[DONE] Secure cookies
+[DONE] CSRF protection
+
+Feature 1E: Login [DONE] COMPLETED (Dec 2024)
+[DONE] Email/password validation
+[DONE] Check email verified before login
+[DONE] bcrypt password comparison
+[DONE] Create session
+[DONE] Redirect to dashboard or complete profile
+[DONE] Professional login UI with password toggle
+[DONE] Error handling and validation
+[DONE] Logged-in users redirected away from /login and /signup (Feb 19, 2026)
+
+---
+
+Phase 2: Organiser application + manual approval [DONE] COMPLETED (100%)
+
+Goal: Runner can apply to become organiser. Admin can approve.
+
+Feature 2A: Organiser signup flow [DONE] COMPLETED
+[DONE] User signs up and selects "Event Organizer" role
+[DONE] Email verification sent (same as runner)
+[DONE] After verification, redirect to /organizer/complete-profile
+[DONE] Upload service created (multer configuration)
+[DONE] File validation (PDF, JPEG, PNG only, max 5MB)
+[DONE] Secure file storage in /public/uploads/organizer-docs/
+
+Feature 2B: Document upload & profile completion [DONE] COMPLETED (Feb 14, 2026)
+[DONE] 3-step form wizard (Business Info -> Documents -> Review & Confirm)
+[DONE] Drag-and-drop file upload with preview
+[DONE] File type validation (PDF, JPG, PNG)
+[DONE] File size validation (max 5MB)
+[DONE] AJAX form submission
+[DONE] Application status tracking page with timeline
+[DONE] Auto-refresh status every 5 minutes
+[DONE] Copy application ID to clipboard
+[DONE] Email notification on submission
+[DONE] Mobile responsive design
+[DONE] Accessibility features
+
+Feature 2C: Admin reviews [DONE] COMPLETED (Feb 24, 2026)
+[DONE] Admin dashboard page
+[DONE] List all applications
+[DONE] Filter by status (pending, under_review, approved, rejected)
+[DONE] View application details
+[DONE] View uploaded documents
+[DONE] Approve/reject with email notifications
+[DONE] Admin routes (/admin/applications)
+Delivered: controller + UI + email integration + validation hardening (Feb 24, 2026)
+
+---
+
+Phase 3: Event creation (organiser only) [CORE] COMPLETED (core scope)
+
+Goal: Organizers can create running events.
+
+[DONE] Event.js model created
+[DONE] Registration.js model created
+[DONE] Create event page UI
+[DONE] Event creation controller
+[DONE] Image upload integration
+[DONE] Edit/delete events
+[DONE] Event status management
+
+---
+
+Phase 4: Registration + payment proof [PAYMENT] COMPLETED
+
+Goal: Runner joins event and uploads payment proof for verification.
+[DONE] Registration form
+[DONE] Upload payment proof
+[DONE] Organiser verifies payment
+[DONE] Email notifications
+
+---
+
+Phase 5: Submissions, Results & Leaderboard [RUNNER] COMPLETED (core scope)
+
+Goal: Runner submits run proof, organiser approves, certificate generated, leaderboard populated.
+[DONE] Submit result (distance, time, proof)
+[DONE] Organiser review and approve
+[DONE] Auto-generate certificate PDF
+[DONE] Download certificate
+[DONE] Leaderboard page (top runners, fastest times, event rankings)
+[DONE] Filter leaderboard by event, distance, category
+[DONE] Public leaderboard (visible to all users)
+[DONE] /leaderboard route + placeholder page (Feb 19, 2026)
+[DONE] Nav link added (Feb 19, 2026)
+
+---
+
+Phase 6: Dashboards & Analytics [ANALYTICS] COMPLETED (core scope)
+
+[DONE] Runner Dashboard baseline (upcoming, past, results, certificates, activity, running groups)
+[DONE] Organiser Dashboard baseline (event overview, review queues, analytics ranges/trends, top events)
+[DONE] Admin Dashboard baseline (platform stats + pending organizer applications queue)
+
+---
+
+Phase 7: Additional Pages & Features [FEATURES] COMPLETED (core scope)
+
+[DONE] Static pages (/about, /how-it-works, /contact, /faq, /privacy, /terms)
+[IN_PROGRESS] Blog system:
+  [DONE] Phase A foundation (author/admin/public pages, moderation, SEO, view policy)
+  [DONE] Admin inline edit + autosave + revision history
+  [DONE] comments, likes, reports, and published revision flow baseline
+  [PENDING] analytics, gallery authoring polish, featured ranking, and deeper growth features
+[DONE] Search & filters (public events/blog/leaderboard baseline delivered)
+[DONE] Notifications system
+
+---
+
+Phase 8: Google OAuth (Optional) [SECURITY] COMPLETED
+[DONE] Google OAuth sign-in and callback handling
+[DONE] Link existing email accounts when email matches
+[DONE] Create new Google-authenticated runner accounts
+[DONE] Google link visibility and safe unlink flow for runners
+
+---
+
+Phase 9: Release Hardening and Production-Readiness Verification [TESTING] IN PROGRESS
+[IN_PROGRESS] Unit & integration regression stability
+[IN_PROGRESS] Performance, security, and readiness verification
+[IN_PROGRESS] Production environment, security, CSRF, readiness, and smoke-test verification
+[PENDING] Final cross-browser/mobile polish pass
+[PENDING] Launch gate signoff checklist completion
+
+---
+
+Phase 10: Production Deployment Launch Gate [DEPLOY] PENDING
+[PENDING] Production database, SSL, domain (hellorun.online)
+[PENDING] Monitoring, uptime checks, error tracking, and backup/restore runbook
+[PENDING] Staging smoke signoff and launch
+[PENDING] Production readiness checklist signoff
+
+---
+
+Phase 11: Shop / Merchandise Feature [COMMERCE] IN PROGRESS
+
+Goal: Add a HelloRun shop for running-related and achievement-based merchandise that supports the platform brand, runners, organisers, and event-specific collections.
+
+Product scope:
+[IN_PROGRESS] HelloRun-branded merchandise foundation
+[IN_PROGRESS] Event-specific merchandise foundation
+[DRAFT] Achievement-based products
+[DRAFT] Optional organiser-linked merchandise collections
+[DRAFT] Future bundle offers connected to event registration
+
+Target merchandise:
+[DRAFT] Event shirts, finisher shirts, medals, patches, caps, towels, socks, race belts, bib holders, digital medals, and certificate add-ons
+
+Core workflows:
+[IN_PROGRESS] Backend routes/services for event shop listing/detail, cart, checkout, order history, and manual payment proof
+[PENDING] Public storefront pages and product discovery UI polish
+[IN_PROGRESS] Organizer/admin backend routes for product, order, payment review, and reporting operations
+[PENDING] Organizer/admin dashboard UX polish
+[IN_PROGRESS] Registration add-on to order/payment bridge
+[DRAFT] Optional organiser/event-specific merch collections
+
+Implemented data foundation (PostgreSQL + Mongo hybrid):
+[DONE] Core commerce tables and additive migration hardening (`products_core`, `product_variants`, `orders`, `order_items`, `inventory_movements`, `shop_payments`, `shop_fulfilment_logs`, `shop_platform_fees`)
+[DONE] Mongo support models for flexible content (`ShopProductContent`, `ShopMediaMetadata`, `ShopOrderNotes`, `ShopPolicySnapshot`)
+[DONE] Registration add-on snapshot fields and registration-to-order bridge
+
+Implemented routes:
+[DONE] Public/runner: `GET /events/:eventSlug/shop`, `GET /events/:eventSlug/shop/:productSlug`, `GET /shop/cart`, `POST /shop/cart/add`, `PATCH /shop/cart/items/:itemId`, `DELETE /shop/cart/items/:itemId`, `GET /shop/checkout`, `POST /shop/checkout`, `GET /orders`, `GET /orders/:orderNumber`, `GET /orders/:orderNumber/payment`, `POST /orders/:orderNumber/payment-proof`, `POST /orders/:orderNumber/cancel`
+[DONE] Organizer: `/organizer/events/:eventId/shop/*` product, variant, orders, fulfilment, payment-review, and report routes
+[DONE] Admin: `/admin/shop`, `/admin/shop/products`, `/admin/shop/product-approvals`, `/admin/shop/orders`, `/admin/shop/payments`, `/admin/shop/reports`, `/admin/shop/settings`
+[DRAFT] Optional merch-link routes remain a future enhancement if event merch collections are separated further
+
+Acceptance criteria:
+[DONE] Core shop backend workflows have route and service tests.
+[DONE] Order records preserve product and variant snapshots.
+[DONE] Registration add-ons can bridge into orders and payment-review queue for paid events.
+[PENDING] Public users can browse available products via finalized storefront pages.
+[PENDING] Product detail pages show full production UI with image and variant presentation.
+[PENDING] Logged-in runners can complete end-to-end merchandise orders through polished pages.
+[PENDING] Admin/organizer dashboards for full CRUD and operations are production-polished.
+[PENDING] Event-specific merchandise collection pages are finalized.
+[PENDING] Mobile layout is usable for browsing, checkout, and order tracking.
+
+Deferred scope:
+[DEFERRED] Full payment gateway integration
+[DEFERRED] Automated shipping integration
+[DEFERRED] Discount codes, refund management, supplier portal, and inventory forecasting
+
+Detailed draft: See docs/implementation/shop_feature.md
+
+---
+
+Phase 12: OCR Smart Activity Submission [OCR] DRAFT / MVP HARDENING
+
+Goal: Improve virtual run submission by allowing runners to upload activity screenshots, analyse them on the frontend, review extracted data, and submit structured activity details for organiser/admin review.
+
+[DONE/MVP] Screenshot OCR upload with source app detection (Strava, Nike Run Club, Garmin, Apple Health, Google Fit)
+[DONE/MVP] Auto-fill activity fields from extracted data (distance, duration, date, location, elevation, steps, activity type)
+[DONE/MVP] Support for activity types: run, walk, trail run, hike, steps
+[DONE/MVP] OCR confidence scoring with user-facing match indicators
+[DONE/MVP] Duplicate screenshot detection to prevent repeat submissions
+[DONE/MVP] Flag-only suspicious activity detection for organiser/admin review
+[DONE/MVP] Organiser and admin review compatibility with OCR metadata and OCR-vs-submitted mismatch display
+[DONE/MVP] Runner-facing neutral wording for suspicious or duplicate proof review states
+[DONE/MVP] OCR parser recovery for compact Strava duration formats and Strava location/source detection edge cases
+
+Product scope:
+[DRAFT/MVP] Screenshot upload
+[DRAFT/MVP] Frontend OCR analysis
+[DRAFT/MVP] Source app detection
+[DRAFT/MVP] Auto-filled activity fields
+[DRAFT/MVP] Runner confirmation and manual fallback entry
+[DRAFT/MVP] OCR metadata persistence
+[DRAFT/MVP] Suspicious-entry flagging
+[DRAFT/MVP] Organiser/admin review display
+[DRAFT/MVP] Neutral runner-facing review language
+
+OCR parsing targets:
+[DRAFT/MVP] Distance, duration, pace, date, location, elevation, steps, source app, activity type, and extracted name where available
+
+Frontend direction:
+[DRAFT/MVP] OCR image reading and parsing logic lives in `src/public/js/ocr-proof-reader.js`
+[DRAFT/MVP] Supporting modal/integrity logic lives in `src/public/js/run-proof-modal.js` and `src/public/js/run-proof-integrity.js`
+[DRAFT/MVP] Parser rules should remain modular so OCR behavior can improve without rewriting the run-proof modal.
+
+Integrity rules:
+[DRAFT/MVP] Use flag-only review signals for duplicate proof, extreme distance/pace/duration, OCR-vs-submitted mismatches, implausible elevation density, implausible steps per kilometre, and implausible cadence.
+
+Runner UX requirements:
+[DRAFT/MVP] Modal opens immediately after runner action, eligible event lookup happens inside the modal, Step 1 is labelled as screenshot analysis, manual entry remains available, extracted fields are editable, warnings are non-blocking, suspicious submissions can still save for review, stale OCR values clear when images are replaced, and runner-facing status copy remains neutral.
+
+Organiser/admin review requirements:
+[DRAFT/MVP] Review views show original proof, submitted values, OCR-extracted values, source app, activity type, mismatch flags, suspicious reasons, duplicate proof signal, decision controls, review notes, and rejection reason where applicable.
+
+Acceptance criteria:
+[DONE/MVP] OCR analysis works for priority source apps.
+[DONE/MVP] Compact duration formats such as `27m 48s`, `31m38s`, and `1h47m` are parsed correctly.
+[DONE/MVP] Pace tokens such as `5:33/km` are not mistaken as elapsed duration.
+[DONE/MVP] Runner can manually correct values.
+[DONE/MVP] Suspicious values do not block submission.
+[DONE/MVP] Suspicious submissions require review.
+[DONE/MVP] Organiser/admin views show detailed review signals.
+[DONE/MVP] Runner-facing pages use neutral wording.
+[DONE/MVP] Stale values clear when image is replaced.
+[PENDING] Manual QA remains needed across Strava, Garmin, Apple Health, and Google Fit screenshots before release signoff.
+
+Detailed planning: See docs/implementation/ocr-smart-submission.md
+
+---
+
+Phase 13: Onsite Event Result Import [EVENT OPS] DRAFT
+
+Goal: Allow organisers to upload, encode, review, and publish official results for onsite running events without replacing existing race timing systems.
+
+Product boundary:
+[DRAFT] HelloRun does not initially provide live race timing.
+[DRAFT] Official onsite results should come from the organiser or the organiser's timing provider.
+[DRAFT] HelloRun supports official result handling after the onsite event.
+
+Supported result sources:
+[DRAFT] RFID/chip timing exports, barcode or QR scanning exports, stopwatch/manual timing sheets, third-party timing provider exports, organiser spreadsheets, and manual encoding by authorised organiser/admin users
+
+Initial result import methods:
+[DRAFT] CSV upload
+[DRAFT] Excel upload
+[DRAFT] Manual encoding form
+
+Suggested models:
+[DRAFT] OnsiteResultImport: `eventId`, `uploadedBy`, `sourceType`, `sourceFile`, `status`, row counts, `mappingConfig`, `createdAt`, `validatedAt`, `publishedAt`
+[DRAFT] OnsiteResult: `eventId`, `registrationId`, `runnerId`, `bibNumber`, `runnerNameSnapshot`, `distance`, `category`, optional `genderCategory`, `gunTime`, `chipTime`, `officialTime`, rankings, `status`, `remarks`, `sourceImportId`, timestamps
+
+Suggested routes:
+[DRAFT] Organiser: `GET /organizer/events/:id/results/import`, `POST /organizer/events/:id/results/import`, `GET /organizer/events/:id/results/import/:importId/map`, `POST /organizer/events/:id/results/import/:importId/map`, `GET /organizer/events/:id/results/import/:importId/validate`, `POST /organizer/events/:id/results/import/:importId/publish`, `GET /organizer/events/:id/results`, `POST /organizer/events/:id/results/manual`
+[DRAFT] Admin: `GET /admin/events/:id/results`, `POST /admin/events/:id/results/import/:importId/approve`, `POST /admin/events/:id/results/import/:importId/archive`
+[DRAFT] Public: `GET /leaderboard?event=:eventId`, `GET /events/:slug/results`
+
+Validation rules:
+[DRAFT] Validate missing, unknown, or duplicate bib numbers; invalid time formats; missing categories; distance mismatch; duplicate result for the same runner/event; unpaid or cancelled registrations; and invalid status values.
+
+Ranking and certificate rules:
+[DRAFT] Published results can support overall, distance, category, and optional gender/category rankings.
+[DRAFT] DNS, DNF, and disqualified records are excluded from finisher rankings and finisher certificates.
+[DRAFT] Certificates may be generated for finished onsite participants with published official results in approved categories.
+
+Acceptance criteria:
+[PENDING] Organiser can upload CSV or Excel result files.
+[PENDING] Organiser can map uploaded columns to HelloRun fields.
+[PENDING] System validates missing, duplicate, unknown, and malformed rows.
+[PENDING] Organiser can review errors before publishing.
+[PENDING] Published onsite results can update leaderboards.
+[PENDING] Finished participants can receive certificates.
+[PENDING] Imported results preserve source file and audit metadata.
+[PENDING] Tests cover import validation, mapping, publishing, and leaderboard output.
+
+Deferred scope:
+[DEFERRED] Live timing, RFID hardware integration, timing provider API integration, real-time checkpoint tracking, and mobile race marshal app
+
+---
+
+Phase 14: Organiser Reports and Export Centre [REPORTS] DRAFT
+
+Goal: Create a centralized reports area where organisers can view, filter, export, and use event data for operations, post-event review, finance checking, and fulfilment planning.
+
+Report centre scope:
+[DRAFT] Event-level reports
+[DRAFT] Registration reports
+[DRAFT] Payment reports
+[DRAFT] Participant reports
+[DRAFT] Submission reports
+[DRAFT] Result reports
+[DRAFT] Merchandise reports
+[DRAFT] Certificate reports
+[DRAFT] Revenue summaries
+
+Suggested routes:
+[DRAFT] Organiser: `GET /organizer/events/:id/reports`
+[DRAFT] Admin: `GET /admin/reports`, `GET /admin/events/:id/reports`
+
+Report types:
+[DRAFT] Registration report: registration, runner, event, distance/category, registration/payment status, waiver, and emergency-contact fields
+[DRAFT] Payment report: expected/submitted amount, payment method/reference, status, submitted/reviewed dates, reviewer, and rejection reason
+[DRAFT] Participant category report: totals by distance/category and participant/payment/result status
+[DRAFT] Virtual run submission report: submitted values, OCR metadata, activity type, suspicious flags, status, and review fields
+[DRAFT] Onsite result report: bib, runner, distance/category, gun/chip/official time, rankings, result status, and certificate status
+[DRAFT] Merchandise report: product, event, variant, size, quantity, order/payment status, fulfilment status, and customer
+[DRAFT] Revenue summary: registration totals, paid/unpaid counts, pending payment-proof counts, merchandise total, platform fee estimate, and refund/cancellation counts where applicable
+
+Export and filters:
+[DRAFT] Support CSV and XLSX exports.
+[DRAFT] Future support may add PDF summary and printable report views.
+[DRAFT] Filters include date range, distance, category, payment status, submission status, result status, merchandise status, runner name/email, and registration status.
+
+Acceptance criteria:
+[PENDING] Organiser can open one report centre per event.
+[PENDING] Reports use consistent filters.
+[PENDING] Reports can export to CSV and XLSX.
+[PENDING] Payment reports match registration/payment-proof records.
+[PENDING] Submission reports include OCR metadata where available.
+[PENDING] Onsite result reports include imported or manually encoded official results.
+[PENDING] Report exports preserve user-friendly column names.
+[PENDING] Reports respect organiser ownership and admin permissions.
+[PENDING] Tests cover filters, export structure, and access control.
+
+---
+
+Phase 15: Payment Gateway Integration [PAYMENTS] DRAFT
+
+Goal: Move from manual payment-proof review toward direct payment confirmation through a payment gateway.
+
+Current payment direction:
+[DRAFT] The initial platform flow uses payment-proof upload and organiser verification.
+[DRAFT] Direct payment integration should be added only after registration and organiser workflows are stable.
+[DRAFT] Manual payment-proof upload remains available when enabled by the organiser.
+
+Possible payment providers:
+[DRAFT] PayMongo, Maya, Stripe, PayPal, or bank transfer APIs where available
+[DRAFT] Provider selection should consider Philippine payment support, GCash/wallet support, card support, webhook reliability, fees, settlement process, refund support, documentation, and compliance requirements.
+
+Payment features:
+[DRAFT] Checkout session creation
+[DRAFT] Payment status callback/webhook
+[DRAFT] Transaction records
+[DRAFT] Automatic registration payment update
+[DRAFT] Failed, expired, cancelled, and refunded payment handling
+[DRAFT] Admin transaction audit
+[DRAFT] Event revenue summary
+
+Suggested model:
+[DRAFT] PaymentTransaction: `registrationId`, `eventId`, `userId`, `provider`, `providerTransactionId`, `providerCheckoutId`, `amount`, `currency`, `status`, `paymentMethod`, `metadata`, `paidAt`, `failedAt`, `refundedAt`, timestamps
+
+Acceptance criteria:
+[PENDING] Runner can choose direct payment when available.
+[PENDING] Successful payment automatically updates registration payment status.
+[PENDING] Failed or expired payment does not approve registration.
+[PENDING] Webhook processing is idempotent.
+[PENDING] Manual payment-proof upload remains available when enabled by organiser.
+[PENDING] Admin can view transaction logs.
+[PENDING] Organiser can see direct payment status in registrants table.
+[PENDING] Tests cover checkout creation, webhook handling, idempotency, and payment status transitions.
+
+Deferred scope:
+[DEFERRED] Split payments to organisers, automated refunds, wallet balance system, installment payments, and international tax handling
+
+---
+
+Phase 16: Race Kit, Bib, and Check-in Support [ONSITE OPS] DRAFT
+
+Goal: Support onsite event operations before race day and during claiming/check-in.
+
+Product scope:
+[DRAFT] Bib assignment
+[DRAFT] Race kit claim tracking
+[DRAFT] Shirt size tracking
+[DRAFT] Add-on merchandise tracking
+[DRAFT] Check-in lists
+[DRAFT] Exportable claiming lists
+[DRAFT] Optional QR-based claiming in future versions
+
+Bib assignment:
+[DRAFT] Bib numbers may be manually encoded, auto-generated by event, auto-generated by distance/category, or imported from organiser spreadsheets.
+
+Race kit tracking:
+[DRAFT] Status values include `not_ready`, `ready_for_claiming`, `claimed`, `unclaimed`, `released_to_representative`, and `cancelled`.
+
+Suggested registration fields:
+[DRAFT] `bibNumber`, `raceKitStatus`, `raceKitClaimedAt`, `raceKitClaimedBy`, `shirtSize`, `addOns`, `checkInStatus`, `checkedInAt`
+
+Suggested routes:
+[DRAFT] `GET /organizer/events/:id/race-kits`
+[DRAFT] `POST /organizer/events/:id/registrants/:registrationId/bib`
+[DRAFT] `POST /organizer/events/:id/registrants/:registrationId/race-kit/claim`
+[DRAFT] `POST /organizer/events/:id/registrants/:registrationId/check-in`
+[DRAFT] `GET /organizer/events/:id/race-kits/export`
+
+Acceptance criteria:
+[PENDING] Organiser can assign or import bib numbers.
+[PENDING] Organiser can mark race kits as claimed.
+[PENDING] Organiser can filter claimed and unclaimed race kits.
+[PENDING] Organiser can export race kit lists.
+[PENDING] Organiser can check in participants.
+[PENDING] Race kit and check-in records are auditable.
+[PENDING] Mobile layout works for onsite claiming tables.
+[PENDING] Tests cover bib assignment, race kit status changes, exports, and access control.
+
+Deferred scope:
+[DEFERRED] QR scanner workflow, offline check-in mode, volunteer/marshal role, multiple claiming stations, and hardware scanner integration
+
+---
+
+FILES STRUCTURE (Updated Feb 19, 2026)
+
+src/
+  config/
+    db.js
+    session.js
+  controllers/
+    auth.controller.js
+    page.controller.js
+  middleware/
+    auth.middleware.js             <- REWRITTEN Feb 19 (populateAuthLocals, redirectIfAuth, requireAuth, requireAdmin, requireOrganizer, requireApprovedOrganizer)
+    role.middleware.js
+  models/
+    User.js
+    user.model.js
+    Counter.js
+    counter.model.js
+    Event.js
+    Registration.js
+    OrganiserApplication.js
+    Submission.js
+  routes/
+    authRoutes.js                 <- ALL auth routes (login, signup, register, verify, reset, logout)
+    pageRoutes.js                 <- Public pages (home, events, blog, about, leaderboard)
+    organizer.routes.js           <- Organizer profile & application (Phase 2B)
+    event.routes.js               <- Phase 3 (scaffolded)
+    admin.routes.js               <- Phase 2C completed (Feb 24, 2026)
+  services/
+    upload.service.js
+    email.service.js
+    password.service.js
+    token.service.js
+    counter.service.js
+  scripts/
+    initCounter.js
+    migrateUserIds.js
+    setup-uploads.js
+    clean-users.js
+  views/
+    layouts/
+      head.ejs                     <- Reusable head with GA
+      nav.ejs                      <- Auth-aware nav with Blog + Leaderboard links
+      footer.ejs
+      main.ejs
+    pages/
+      home.ejs                     <- Full landing page (hero, features, how-it-works, CTA)
+      events.ejs                   <- Auth-based content
+      blog.ejs                     <- Placeholder
+      about.ejs                    <- Placeholder
+      leaderboard.ejs              <- Placeholder (Phase 5 data)
+      index.ejs
+    auth/
+      login.ejs
+      signup.ejs
+      forgot-password.ejs
+      reset-password.ejs
+      reset-password-expired.ejs
+      reset-email-sent.ejs
+      reset-success.ejs
+      resend-verification.ejs
+      verify-email-sent.ejs
+      verify-email-success.ejs
+      verify-email-expired.ejs
+      verify-email-result.ejs
+    organizer/
+      complete-profile.ejs         <- 3-step form wizard
+      application-status.ejs       <- Status tracking with timeline
+    admin/
+      applications-list.ejs        <- Phase 2C completed (Feb 24, 2026)
+      application-details.ejs      <- Phase 2C completed (Feb 24, 2026)
+    error.ejs
+  public/
+    css/
+      style.css                    <- Global styles + nav user menu
+      helloRun.css                 <- Landing page styles
+      login.css
+      signup.css
+      forgot-password.css
+      reset-password.css
+      events.css
+      complete-profile.css
+      application-status.css
+      verify-email-sent.css
+    js/
+      main.js
+      auth.js
+      signup.js
+      reset-password.js
+      complete-profile.js
+      application-status.js
+    images/
+      helloRun-icon.webp
+    uploads/
+      .gitkeep
+      organizer-docs/
+      event-images/
+      profile-photos/
+    robots.txt
+    sitemap.xml
+  server.js
+
+.env
+.env.example
+.gitignore
+package.json
+package-lock.json
+README.md
+CHANGELOG.md
+PRD.md
+dns.txt
+sitemap.md
+organiser-flow.md
+user-role-system.md
+sitetheme.md
+seo key words.md
+
+---
+
+TECHNICAL STACK (Updated Feb 19, 2026)
+
+### Backend
+[DONE] Node.js + Express
+[DONE] MongoDB + Mongoose
+[DONE] express-session + connect-mongo
+[DONE] bcrypt for password hashing
+[DONE] Resend for email delivery
+[DONE] UUID for token generation
+[DONE] multer for file uploads
+
+### Frontend
+[DONE] EJS templating
+[DONE] Lucide icons
+[DONE] Vanilla JavaScript
+[DONE] CSS3 with custom properties
+[DONE] Mobile-first responsive design
+
+### Security
+[DONE] Password hashing (bcrypt)
+[DONE] Secure session cookies
+[DONE] Email verification required
+[DONE] Password reset tokens (1 hour expiry)
+[DONE] Rate limiting on password reset (3/24hrs)
+[DONE] CSRF protection
+[DONE] Input validation and sanitization
+[DONE] Common password blocking
+[DONE] Auth middleware (populateAuthLocals, redirectIfAuth, requireAuth, role guards)
+
+---
+
+AUTH MIDDLEWARE (Updated Feb 19, 2026)
+
+File: src/middleware/auth.middleware.js
+
+### Exports
+  populateAuthLocals    - Sets res.locals for all views (isAuthenticated, user, isAdmin, isOrganizer, isApprovedOrganizer, isAuthPage)
+  redirectIfAuth        - Redirects logged-in users away from /login, /signup (to role-based dashboard)
+  requireAuth           - Protects routes requiring login (redirects to /login)
+  requireAdmin          - Protects admin-only routes
+  requireOrganizer      - Protects organiser-only routes
+  requireApprovedOrganizer - Protects approved-organiser-only routes
+
+Usage in server.js:
+  app.use(populateAuthLocals)  <- BEFORE all routes
+
+### Usage in routes
+  router.get('/login', redirectIfAuth, ...)
+  router.get('/dashboard', requireAuth, ...)
+  router.get('/admin/*', requireAdmin, ...)
+
+---
+
+NAVIGATION BEHAVIOR (Updated Feb 19, 2026)
+
+### Logged Out
+  [Logo] [Home] [Events] [Blog] [Leaderboard] [Login] [Sign Up]
+
+### Logged In (Runner)
+  [Logo] [Home] [Events] [Blog] [Leaderboard] [Dashboard] [Hi, Name] [Logout]
+
+### Logged In (Pending Organizer)
+  [Logo] [Home] [Events] [Blog] [Leaderboard] [My Application] [Hi, Name] [Logout]
+
+### Logged In (Approved Organizer)
+  [Logo] [Home] [Events] [Blog] [Leaderboard] [Dashboard] [Hi, Name] [Logout]
+
+### Logged In (Admin)
+  [Logo] [Home] [Events] [Blog] [Leaderboard] [Admin] [Hi, Name] [Logout]
+
+### Auth Page Redirect
+  Logged-in user visits /login or /signup -> redirected to role-based dashboard
+
+---
+
+TIMELINE TRACKING (Updated Apr 30, 2026)
+
+Phase 0:  [DONE] Completed - Nov 2024
+Phase 1:  [DONE] Completed - Feb 2025
+Phase 2A: [DONE] Completed - Dec 2024
+Phase 2B: [DONE] Completed - Feb 14, 2026
+Phase 2C: [DONE] Completed - Feb 24, 2026
+Phase 3:  [DONE] Completed
+Phase 4:  [DONE] Completed
+Phase 5:  [DONE] Completed
+Phase 6:  [DONE] Completed
+Phase 7:  [DONE] Completed
+Phase 8:  [DONE] Completed (optional scope shipped)
+Phase 9:  [NOW] Release hardening, regression stability, and production-readiness verification
+Phase 10: [NEXT] Production deployment launch gate
+Phase 11: [IN_PROGRESS] Shop / Merchandise Feature (backend foundation complete; UI polish pending)
+Phase 12: [DRAFT/MVP HARDENING] OCR Smart Activity Submission
+Phase 13: [DRAFT] Onsite Event Result Import
+Phase 14: [DRAFT] Organiser Reports and Export Centre
+Phase 15: [DRAFT] Payment Gateway Integration
+Phase 16: [DRAFT] Race Kit, Bib, and Check-in Support
+
+Estimated remaining: depends on release-hardening findings and external deployment tasks.
+
+---
+
+TECHNICAL REQUIREMENTS
+
+### Terminology Rules
+Use these terms consistently: `runner`, `organiser`, `admin`, `virtual run`, `onsite event`, `payment receipt`, `run result`, `submission`, `result`, `certificate`, `leaderboard`, and `report`.
+
+Avoid legacy in-person event wording, `physical race` when `onsite event` is clearer, `payment platform` when only payment-proof tracking exists, `automatic verification` unless a specific automated rule exists, and `live tracking` unless GPS or timing integration exists.
+
+### Payment Wording Rule
+Use `payment receipt tracking`, `payment receipt upload`, `organiser payment verification`, `manual payment review`, and `future payment gateway integration`.
+
+Do not say the platform already has a full payment gateway, automated payment processing, or direct online payment confirmation unless Phase 15 is implemented.
+
+### Onsite Timing Rule
+Use `HelloRun supports onsite result import`, `HelloRun does not initially replace race timing systems`, and `organisers may continue using existing timing systems`.
+
+Do not say HelloRun tracks onsite race results live, replaces RFID/chip timing, or provides race timing hardware unless future timing integration is implemented.
+
+### Review Wording Rule
+Runner-facing labels should remain neutral: `Pending review`, `Needs additional review`, `Submitted`, `Approved`, and `Rejected`.
+
+Organiser/admin labels may include technical detail such as `Duplicate proof suspected`, `OCR distance mismatch`, `Name mismatch`, `Implausible pace`, and `Activity type mismatch`.
+
+### Report Access Rules
+Organisers can access reports only for events they own. Admins can access all event reports. Runners can access only their own certificates, registrations, orders, and submissions. Exports should not expose sensitive data beyond the report's operational need.
+
+### Audit Requirements
+Important actions should record the actor, timestamp, status transition, and notes or reason where applicable. Actor fields include `createdBy`, `updatedBy`, `reviewedBy`, `approvedBy`, `rejectedBy`, `uploadedBy`, and `publishedBy`.
+
+Audit coverage should apply to payment receipt review, run result review, result import, result publishing, certificate generation, merchandise order status changes, race kit claiming, and report exports where needed.
+
+### Testing and Quality Assurance
+
+#### Smoke Test Data Cleanup
+HelloRun shall implement a reusable smoke test cleanup mechanism to prevent test-created records and files from remaining in the database or object storage after testing.
+
+All smoke-test-created records must be tagged with test metadata, including `isSmokeTest`, `testRunId`, `createdByTest`, and `expiresAt`. Smoke test files uploaded to object storage must use a dedicated path such as `smoke-tests/{testRunId}/`.
+
+After each smoke test run, the system must execute a cleanup process that removes records and files associated with the current `testRunId`. A fallback expiration mechanism must also remove expired smoke test data that was not cleaned up due to failed or interrupted tests.
+
+The cleanup process must support dry-run mode, audit logging, and safe deletion rules. It must never delete records based only on title, slug, email, filename, or display name.
+
+---
+
+UPDATED ACCEPTANCE GATES
+
+### Release Gate Before New Feature Expansion
+Before starting Phases 13 to 16:
+- [ ] Full `npm test` passes.
+- [ ] Manual smoke tests pass for auth, registration, payment receipt upload, run result submission, review queues, dashboards, leaderboard, and certificates.
+- [ ] Smoke test data cleanup requirements in Technical Requirements > Testing and Quality Assurance > Smoke Test Data Cleanup are verified in staging.
+- [ ] Production env variables are verified.
+- [ ] `/healthz` and `/readyz` are tested.
+- [ ] Error tracking and uptime monitoring are configured.
+- [ ] Backup and restore runbook is ready.
+- [ ] Security route matrix is updated.
+- [ ] Production readiness checklist is signed off.
+
+### Smoke Test Data Hygiene
+Smoke test data hygiene is a release gate verification area. The normative implementation requirements are defined in Technical Requirements > Testing and Quality Assurance > Smoke Test Data Cleanup.
+
+Staging and production-like environments must not retain smoke-test-created records or uploaded smoke-test files after validation runs. Cleanup coverage must include both database records and object/file storage.
+
+### Onsite Event Readiness Gate
+Before publishing onsite event result import:
+- [ ] Onsite event mode is supported in event creation/editing.
+- [ ] Event categories and distances are stable.
+- [ ] Registrant export is stable.
+- [ ] Bib number support exists or import matching rules are final.
+- [ ] Import validation handles malformed rows.
+- [ ] Leaderboard output separates virtual submissions and onsite official results where needed.
+- [ ] Certificate logic distinguishes virtual-approved submissions from onsite-published results.
+
+### Organiser Reports Readiness Gate
+Before launching report centre:
+- [ ] Report filters are defined.
+- [ ] CSV export format is finalized.
+- [ ] XLSX export format is finalized.
+- [ ] Permissions are tested.
+- [ ] Sensitive fields are reviewed.
+- [ ] Large event export performance is tested.
+
+### Payment Gateway Readiness Gate
+Before launching direct payment:
+- [ ] Provider selected.
+- [ ] Webhook security verified.
+- [ ] Idempotency rules tested.
+- [ ] Payment failure states tested.
+- [ ] Manual payment-proof fallback retained.
+- [ ] Transaction audit view ready.
+- [ ] Terms, privacy, and refund wording reviewed.
+
+---
+
+UPDATED DEVELOPMENT NOTES
+
+### Recommended Immediate PRD Direction
+[DONE] Add product positioning after project overview.
+[DONE] Keep virtual run monitoring tied to OCR-assisted proof submission and review.
+[DONE] Add Phase 13 for onsite result import.
+[DONE] Add Phase 14 for organiser reports and export centre.
+[DONE] Add Phase 15 for payment gateway integration.
+[DONE] Add Phase 16 for race kit, bib, and check-in support.
+[DONE] Keep shop and merchandise as Phase 11.
+[DONE] Keep OCR smart activity submission as Phase 12 with current MVP/hardening status.
+[DONE] Keep production deployment as the release gate before larger feature expansion.
+
+### Recommended File Split
+Keep PRD.md as the master planning document.
+
+Existing dedicated detail files:
+- `docs/implementation/shop_feature.md`
+- `docs/implementation/ocr-smart-submission.md`
+- `docs/create_event/create_event.md`
+
+## Guided Organizer Create Event Wizard
+
+HelloRun will improve the organizer create-event experience by converting the current long event form into a guided step-by-step wizard.
+
+The detailed implementation guide is documented in:
+
+`docs/create_event/create_event_wizard_codex_implementation.md`
+
+The guided wizard supports:
+
+- Virtual, onsite, and hybrid event setup
+- Free and paid event flows
+- Custom registration packages
+- Race-category pricing
+- Early bird, regular, and late registration fees
+- Rewards and merchandise configuration
+- Separate pricing and payment setup
+- Draft saving with minimal requirements
+- Submit-for-review validation
+- Final event preview before submission
+
+This improvement is intended to make event creation easier for small to medium organizers by showing only the fields relevant to their selected event type and pricing model.Recommended future dedicated detail files when those phases begin:
+- `docs/onsite_result_import.md`
+- `docs/organizer_reports.md`
+- `docs/payment_gateway_integration.md`
+- `docs/race_kit_bib_checkin.md`
+
+PRD.md should contain summary, status, phase roadmap, acceptance gates, and links to detailed documents. Dedicated files should contain field-level, route-level, UI-level, and testing details.
+
+---
+
+DEPLOYMENT CHECKLIST (Production Ready)
+
+Primary deployment gate source: `docs/implementation/production_readiness_checklist.md`
+
+### PRE-DEPLOYMENT REQUIREMENTS
+- [ ] Environment Variables
+- [ ] NODE_ENV=production
+- [ ] PORT (assigned by hosting)
+- [ ] MONGODB_URI (production database)
+- [ ] SESSION_SECRET (strong, random)
+- [ ] RESEND_API_KEY (production)
+- [ ] EMAIL_FROM (verified domain)
+- [ ] GA_MEASUREMENT_ID
+- [ ] ADMIN_EMAIL
+- [ ] UPLOAD_MAX_SIZE
+- [ ] UPLOAD_ALLOWED_TYPES
+
+- [ ] Database Setup
+- [ ] MongoDB Atlas cluster configured
+- [ ] Production database created
+- [ ] Database user with proper permissions
+- [ ] IP whitelist configured
+- [ ] Indexes created
+- [ ] Counter collection initialized
+
+- [ ] Email Service
+- [ ] Resend account verified
+- [ ] Domain verified (hellorun.online)
+- [ ] DNS records configured (SPF, DKIM)
+- [ ] Email templates tested
+
+- [ ] Security Hardening
+- [ ] Rate limiting (express-rate-limit)
+- [ ] Helmet.js for security headers
+- [ ] CORS configured
+- [ ] Input sanitization
+- [ ] Secure session cookies (secure: true, httpOnly: true)
+
+- [ ] SSL/HTTPS
+- [ ] SSL certificate
+- [ ] HTTPS redirect
+- [ ] Secure cookies enabled
+
+- [ ] Domain & DNS
+- [ ] Domain purchased (hellorun.online)
+- [ ] DNS A record configured
+- [ ] WWW subdomain configured
+
+- [ ] Analytics & Monitoring
+- [ ] Google Analytics 4 verified
+- [ ] Google Search Console configured
+- [ ] Sitemap submitted
+- [ ] Error tracking (Sentry or similar)
+- [ ] Uptime monitoring
+
+---
+
+BLOG SYSTEM PLAN (Phase 7B - Future)
+
+### IMPLEMENTED (current baseline)
+[DONE] Blog model and status workflow
+[DONE] Author dashboard + create/edit/submit flow
+[DONE] Admin queue/review + approve/reject/archive
+[DONE] Public /blog and /blog/:slug
+[DONE] Admin autosave edit endpoint and revision history tracking
+[DONE] Comments, likes, report flow, and admin moderation
+[DONE] Published-post revision workflow while the live post stays public
+[DONE] Author filtering on `/blog`
+[DONE] CSRF protection on public interaction write endpoints
+
+### Still planned after release hardening
+[PENDING] Gallery authoring/upload management polish
+[PENDING] Author analytics summary (views, likes, comments) on dashboard
+[PENDING] Featured-post ranking strategy beyond the current baseline
+[PENDING] Deeper SEO/content polish and growth tooling
+
+---
+
+LEADERBOARD PLAN (Phase 5 - Future)
+
+Data Source: Approved submissions from Phase 5
+
+### Leaderboard and Results Experience
+
+[IN_PROGRESS] HelloRun provides an event-scoped leaderboard and results experience for race results and accumulated virtual challenges first.
+[IN_PROGRESS] The V1 leaderboard prioritizes runner clarity by showing personal standing, nearby runners, verification status, category/distance filters, search, and mobile-friendly result cards.
+[IN_PROGRESS] Only approved submissions affect official rankings by default. Submitted or suspicious entries are excluded unless organiser settings allow safe pending labels.
+[IN_PROGRESS] Public leaderboard endpoints must return only public-safe fields and never expose proof images, OCR raw text, contact details, payment proof, internal notes, or suspicious flag details.
+[PENDING] Later phases may add team leaderboards, awards, manual overrides, result inquiries, live display links, timing-provider imports, and cached leaderboard generation for high-volume events.
+
+### Features
+[PENDING] Top runners by total distance
+[PENDING] Fastest times per event
+[IN_PROGRESS] Event-specific rankings
+[PENDING] Filter by distance category (5K, 10K, 21K, 42K)
+[PENDING] Filter by event
+[PENDING] Filter by time period (weekly, monthly, all-time)
+[PENDING] Public page (visible to all, no login required)
+[DONE] /leaderboard route + placeholder page (Feb 19, 2026)
+[DONE] Nav link added (Feb 19, 2026)
+
+---
+
+SHOP FEATURE PLAN (Phase 11 - In Progress)
+
+Detailed planning source: docs/implementation/shop_feature.md
+
+### Product intent
+[DRAFT] Sell merch related to running, HelloRun events, and runner community identity.
+[IN_PROGRESS] Keep the first version lightweight: backend foundation shipped, storefront/admin UI refinement pending.
+[DRAFT] Avoid making marketplace/vendor complexity part of the MVP unless needed later.
+
+### Example merch categories
+[DRAFT] HelloRun shirts and singlets
+[DRAFT] Finisher shirts and event shirts
+[DRAFT] Caps, socks, towels, race belts, bib holders
+[DRAFT] Digital or printable event add-ons if useful later
+
+### MVP scope
+[DONE] Product model and commerce migrations baseline
+[IN_PROGRESS] Product image and media metadata foundations
+[PENDING] Public `/shop` marketing catalog page
+[PENDING] Public product discovery and detail page polish
+[IN_PROGRESS] Admin/organizer route/controller foundations for product and payment operations
+[DONE] Manual payment-proof MVP selected; gateway deferred to later phase
+[IN_PROGRESS] Order model and customer order history backend flows
+
+### Future scope
+[PENDING] Event-specific merch bundles during registration
+[PENDING] Organizer-created merch after approval
+[PENDING] Discount codes and runner rewards
+[PENDING] Inventory alerts and low-stock dashboard
+[PENDING] Shipping/provider integration
+
+---
+
+DETAILED CHANGELOGS -> See CHANGELOG.md
+All session-by-session changelogs are maintained in CHANGELOG.md.
+This file (PRD.md) focuses on phase plans, architecture, and status tracking.

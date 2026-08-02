@@ -18,13 +18,13 @@ These three ideas came up during research for Phases 1-3 but are each substantia
 (data model changes, security review, UX design) to warrant their own dedicated planning
 pass later. Writing a short problem statement per idea now, in the same
 `docs/to-implement/`-style tone the repo already uses (see
-`docs/to-implement/admin-governance.md` for tone/structure), is enough to make sure they
+`docs/archive/implemented-plans/admin-governance-plan.md` for tone/structure), is enough to make sure they
 surface in the next planning cycle without over-investing effort today.
 
 ## Files To Touch
 
 - New: `docs/todo/admin-improvements/future-considerations.md`.
-- `docs/todo/admin-improvements/00-master-plan.md` — add a link to the new doc (if this
+- `docs/archive/implemented-plans/admin-improvements-master-plan.md` — add a link to the new doc (if this
   phase file hasn't already moved to `docs/done/`).
 
 ## Tasks
@@ -75,7 +75,7 @@ surface in the next planning cycle without over-investing effort today.
 - A single markdown file exists capturing all three ideas with a short problem statement
   and rough shape each (a few sentences to a short paragraph per idea — not a full spec).
 - No code, schema, or route changes are made in this phase.
-- The document is linked from `docs/todo/admin-improvements/00-master-plan.md` (or from
+- The document is linked from `docs/archive/implemented-plans/admin-improvements-master-plan.md` (or from
   `docs/STATUS.md`, if `00-master-plan.md` has already moved to `docs/done/` by the time
   this phase runs).
 
@@ -91,11 +91,11 @@ This is a documentation-only phase. Do not write any code, middleware, routes, o
 changes.
 
 Tasks:
-1. Read docs/to-implement/admin-governance.md to match its tone/structure.
+1. Read docs/archive/implemented-plans/admin-governance-plan.md to match its tone/structure.
 2. Write docs/todo/admin-improvements/future-considerations.md with one short section per
    idea: a 2-3 sentence problem statement and a short "rough shape for later" note, not a
    detailed design.
-3. Link the new doc from docs/todo/admin-improvements/00-master-plan.md (or docs/STATUS.md
+3. Link the new doc from docs/archive/implemented-plans/admin-improvements-master-plan.md (or docs/STATUS.md
    if 00-master-plan.md has already moved to docs/done/).
 
 Acceptance checks:

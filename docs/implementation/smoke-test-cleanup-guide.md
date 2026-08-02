@@ -1,4 +1,4 @@
-okay# HelloRun Smoke Test Data Cleanup Guide
+# HelloRun Smoke Test Data Cleanup Guide
 
 ## Purpose
 
@@ -586,7 +586,7 @@ Expanded legacy backfill execution (May 23, 2026):
 ## Suggested Future Codex Task Prompt
 
 ```txt
-Extend sustainable smoke test data cleanup for HelloRun using docs/smoke-test-cleanup-guide.md as the source of truth.
+Extend sustainable smoke test data cleanup for HelloRun using docs/implementation/smoke-test-cleanup-guide.md as the source of truth.
 
 Requirements:
 1. Apply and verify src/db/migrations/015_smoke_test_cleanup_metadata.sql in the target environment.

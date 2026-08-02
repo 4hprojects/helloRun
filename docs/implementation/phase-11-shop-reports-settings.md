@@ -109,6 +109,6 @@ The migration uses `CREATE TABLE IF NOT EXISTS` and `INSERT ... ON CONFLICT DO N
 ## What's Next (Phase 11 fully closed)
 
 Phase 11 is now ✅ complete. Next priorities per `docs/STATUS.md`:
-1. **Runner Experience UX gaps** — `docs/to-implement/runner-experience.md`
-2. **Organiser Experience UX gaps** — `docs/to-implement/organiser-experience.md`
-3. **Admin Governance** — `docs/to-implement/admin-governance.md`
+1. **Runner Experience UX gaps** — `docs/archive/implemented-plans/runner-experience-plan.md`
+2. **Organiser Experience UX gaps** — `docs/archive/implemented-plans/organiser-experience-plan.md`
+3. **Admin Governance** — `docs/archive/implemented-plans/admin-governance-plan.md`

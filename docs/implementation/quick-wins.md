@@ -3,7 +3,7 @@
 **Completed:** June 22, 2026
 **Status:** ✅ Implemented
 **Tests:** 44/44 auth passing
-**Source:** `docs/UX-IMPROVEMENT-PLAN.md` — Quick Wins section
+**Source:** `docs/ux-improvement-plan.md` — Quick Wins section
 
 ---
 

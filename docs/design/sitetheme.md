@@ -1,4 +1,4 @@
-﻿# HelloRun Theme
+# HelloRun Theme
 
 HelloRun is about movement, momentum, and shared progress.
 The icon shows a runner stepping forward inside a conversation shape.

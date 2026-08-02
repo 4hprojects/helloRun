@@ -1,26 +1,59 @@
-## Changelog
+# HelloRun
 
-### Version 1.1.2 (June 1, 2026) - HelloRun Brand Casing Finalization
-- Standardized user-facing product branding to HelloRun across page titles, public pages, auth screens, dashboards, certificates, badges, SEO metadata, and email copy.
-- Kept lowercase technical identifiers unchanged where required for URLs, domains, package names, asset filenames, JSON keys, and browser storage keys.
+HelloRun is a running-event platform for discovery, registration, payment,
+run-proof submission, organiser review, results, certificates, leaderboards,
+running groups, editorial content, and event operations.
 
-### Version 1.1.1 (May 13, 2026) - Organizer Verification + Admin Account Controls
-- Added editable organizer application flow for pending, under-review, and rejected applications.
-- Organizer dashboard is now the landing surface for organizer accounts while application status and next actions remain accessible from dashboard/status pages.
-- Organizer verification documents now support optional business proof, confidential review copy, WebP conversion for image uploads, uniform R2 filenames, and secure purge after admin verification.
-- Application status now includes upper-right edit affordance with hover label plus dashboard return actions.
-- Admin user deletion now supports deleting other accounts with password confirmation and self-delete protection.
+Production: <https://hellorun.online>
 
-### Version 1.1.0 (January 30, 2026) - Phase 2A
-- ✅ Added organizer application system
-- ✅ Document upload service (multer)
-- ✅ Role-aware email verification
-- ✅ Organizer profile completion flow
-- ✅ Dual-role capability (organizers can be runners)
+## Technology
 
-### Version 1.0.0 (January 2026) - Phase 1
-- ✅ Complete authentication system
-- ✅ Email verification
-- ✅ Password reset
-- ✅ Session management
-- ✅ Route protection
+- Node.js and Express with EJS views
+- MongoDB through Mongoose
+- PostgreSQL through Supabase
+- Redis-backed shared workers and rate limits, with documented fallbacks
+- Cloudflare R2 for uploads
+
+## Local Setup
+
+```bash
+npm install
+npm run dev
+```
+
+The application requires environment configuration. Do not assume a local
+`.env` is safe for testing: this repository has historically used credentials
+that point at production services.
+
+## Safe Validation
+
+Use DB-free tests for routine development:
+
+```bash
+npm run test:unit
+```
+
+Integration tests may connect to MongoDB or PostgreSQL and must only be run in
+an explicitly approved non-production environment. See
+[`CLAUDE.md`](CLAUDE.md) and
+[`docs/improvement-plan/phase-2-environments-and-data-safety.md`](docs/improvement-plan/phase-2-environments-and-data-safety.md).
+
+## Documentation
+
+- [Product brief](PRODUCT.md)
+- [Documentation index](docs/README.md)
+- [Current status](docs/STATUS.md)
+- [Forward roadmap](docs/ROADMAP.md)
+- [Product requirements](docs/PRD.md)
+- [Changelog](docs/CHANGELOG.md)
+- [Documentation conventions](docs/DOCUMENTATION-CONVENTIONS.md)
+
+## Package
+
+The reusable threaded-comment engine is documented separately in
+[`packages/threaded-comments/README.md`](packages/threaded-comments/README.md).
+
+## License
+
+This repository is private and unlicensed for redistribution. See
+[`LICENSE`](LICENSE).

@@ -13,7 +13,7 @@
 
 ## Role-based admin permission tiers — ✅ Implemented July 1, 2026
 
-Promoted from backlog to implemented. See `docs/to-implement/admin-permission-tiers.md`
+Promoted from backlog to implemented. See `docs/implementation/admin-permission-tiers.md`
 for the full spec/implementation record. Summary: `User.adminTier` (`'full'` default, or
 `'support'`) plus a new `requireFullAdmin` middleware gate the highest-blast-radius admin
 routes (user/event deletion, policy publishing, communications settings, site config,

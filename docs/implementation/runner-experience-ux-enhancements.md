@@ -2,7 +2,7 @@
 
 **Created:** June 22, 2026
 **Status:** ✅ Implemented — June 22, 2026
-**Spec source:** `docs/to-implement/runner-experience.md`
+**Spec source:** `docs/archive/implemented-plans/runner-experience-plan.md`
 
 ---
 

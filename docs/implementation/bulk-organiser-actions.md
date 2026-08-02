@@ -3,7 +3,7 @@
 **Created:** June 22, 2026
 **Status:** ✅ Implemented — June 22, 2026
 **Tests:** 44/44 auth passing
-**Spec:** P7 from `docs/ROADMAP.md` and `docs/UX-IMPROVEMENT-PLAN.md`
+**Spec:** P7 from `docs/ROADMAP.md` and `docs/ux-improvement-plan.md`
 
 ---
 

@@ -1,4 +1,4 @@
-﻿# DOCUMENT ROLE (REPOSITORY TRACKER)
+# February 2026 Changelog
 - Purpose: File-level repository tracking and chronological implementation changelog.
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.

@@ -1,159 +1,96 @@
-# HelloRun — Current Status
+# HelloRun Current Status
 
-_Last updated: July 6, 2026_
+**Source of truth for delivery status**
 
----
+**Last reconciled:** July 31, 2026
 
-## ✅ Completed / Ready to Deploy
+**Evidence window:** repository history through July 29, 2026
 
-| Feature | Completed | Tests |
-|---------|-----------|-------|
-| Event creation wizard (12-step) | Feb–Mar 2026 | — |
-| Runner registration & submission flow | Mar 2026 | — |
-| Leaderboard (distance-specific, private/public) | Apr 2026 | — |
-| Certificate generation & email delivery | Apr 2026 | — |
-| Organiser application & approval | Apr 2026 | — |
-| Running groups | Apr 2026 | — |
-| OCR run-proof reader (COROS support) | Apr 2026 | — |
-| Strava OAuth integration | Apr 2026 | — |
-| Phase 7 Extended — onsite operations (bulk bibs, QR check-in, webhooks) | May 17, 2026 | 16/16 |
-| Payment & result split | May 14, 2026 | — |
-| Achievement badges system (event/global/organiser) | May 19, 2026 | 101/101 |
-| Policy pack (Privacy, Terms, Cookie, Refund, 9 canonical docs) | May 23, 2026 | — |
-| Admin user management (search, filter, edit, guarded delete) | May–Jun 2026 | — |
-| About page rebuild | June 3, 2026 | — |
-| Auth abuse protection (Turnstile, rate limits, honeypot, form-age) | June 3, 2026 | 44/44 |
-| Run proof review workflow | June 3, 2026 | — |
-| Shop backend + cart/checkout/platform-merch | June 7, 2026 | 69/69 |
-| Phase 11 — Shop reports, exports & admin settings | June 21, 2026 | 69/69 + 8 new |
-| DB Priority 1 — Postgres pool (25), sync failure logging, `/healthz/sync` | June 22, 2026 | — |
-| Runner Experience UX — payment snapshot, price resolver, certificate CTAs, mobile nav, unpaid CTA | June 22, 2026 | — |
-| Organiser Experience UX — reward/pricing validation, wizard phase bar, time-pending indicators, warnings | June 22, 2026 | 6/6 unit |
-| Badge system — profile imageUrl bug fix, type-specific placeholders, definition-level image, upload, earned count | June 22, 2026 | 44/44 auth |
-| Admin Governance — audit trail, admin notes, resend/override verification, account suspension | June 22, 2026 | 10/10 + 44/44 |
-| Quick Wins — console.error→logger, rate limiting (profile/groups), OG tags (cert verify), profile picture upload + nav avatar | June 22, 2026 | 44/44 |
-| P2 Onboarding — firstLogin detection, welcome banner, profile nudge, welcome email, improved empty states | June 22, 2026 | 44/44 |
-| P7 Bulk Organiser Actions — bulk submission approve, bulk payment approve, email unpaid registrants | June 22, 2026 | 44/44 |
-| P6 Proof Rejection Guidance — contextual fix tips, metadata edit form (no new proof), Strava guard, button rename | June 22, 2026 | 44/44 |
-| P3 DB Architecture Priority 2 — sync retry worker (migration 020), Postgres query timeout (8s), worker wired into server startup | June 22, 2026 | passing |
-| Submission Review Workflow — AJAX panel (no iframe), inline approve/reject, quick-approve, auto-advance, OCR collapsed, lightbox, keyboard shortcuts | June 22, 2026 | passing |
-| P10 Event Wishlist — save/unsave toggle, heart button on cards + detail page, saved events dashboard section | June 22, 2026 | 17/17 auth |
-| P14 Related Events — Similar Events section on event detail page, 3-tier priority (organiser → distance → open), 3-column grid | June 23, 2026 | 17/17 auth |
-| P12 Blog Scheduled Publishing — publishScheduledBlogs() worker, 5-min interval, startBlogSchedulerWorker() wired into server | June 23, 2026 | 17/17 auth |
-| Full Refinement Pass — audit fix, safe JSON errors, ads.txt, public content expansion, 15-post AdSense seed inventory, safer ad loading, docs reconciliation | June 24, 2026 | focused unit/smoke assertions |
-| Run completion workflow hardening — SQL injection fix (ranking.service), missing DB indexes (proof.hash, certificate.url, Strava PR), approval latency decoupled (cert+notify fire-and-forget), parallel notifications, atomic cert race-condition lock, Redis leaderboard cache (60s TTL), parallel multi-reg submissions, auto-sync Supabase rankings after approval | June 24, 2026 | `ranking.service.unit.test.js` passes |
-| P4 Personal Leaderboard Rank — "Ranked #N of M verified runners" shown in My Standing card on event leaderboard page | June 24, 2026 | — |
-| Organizer Workflow Phase 1A — CSRF protection added to organizer payment/run-proof review actions plus event status/media removal mutations; security route matrix updated | June 24, 2026 | `tests/csrf-route-guards.integration.test.js` |
-| Organizer Workflow Phase 1B — payment approve/reject now use atomic status transitions and preserve registration shadow sync after non-save updates | June 24, 2026 | `tests/payment-route-guards.integration.test.js` |
-| Organizer Workflow Phase 1C — standard and accumulated run-proof approve/reject writes now use exact-status stale-action guards | June 24, 2026 | `tests/submission-review-route-guards.integration.test.js` |
-| Organizer Workflow Phase 2A — run-proof review queue now resolves search/counts in MongoDB and fetches bounded sorted windows before merging standard + accumulated proofs | June 24, 2026 | `tests/submission-review-route-guards.integration.test.js` |
-| Organizer Workflow Phase 2B — payment-proof review queue now paginates exact filtered matches and fetches one bounded registration page at a time | June 24, 2026 | `tests/payment-route-guards.integration.test.js` |
-| Organizer Workflow Phase 2C — registrants page now paginates filtered rows and narrows result-status filters before fetching registration details | June 24, 2026 | `tests/submission-review-route-guards.integration.test.js` |
-| Organizer Workflow Phase 3A — organizer dashboard queue, range, and top-event metrics now use aggregate facets instead of many independent count queries | June 24, 2026 | `tests/organizer-dashboard-analytics.integration.test.js` |
-| Organizer Workflow Phase 3B — registrants summary cards now use grouped aggregation counts instead of separate count queries per card | June 24, 2026 | `tests/submission-review-route-guards.integration.test.js` |
-| Organizer Workflow Phase 3C — unpaid-payment reminder action now batches runner lookup before dispatching emails | June 24, 2026 | `tests/csrf-route-guards.integration.test.js` |
-| Organizer Workflow Phase 4A — eligible run-result options now expose upload deadline and modal cards show it before submission | June 24, 2026 | `tests/submission.service.integration.test.js`, `tests/runner-dashboard-modal.integration.test.js` |
-| Organizer Workflow Phase 4B — expired event upload windows now return context so the modal explains why only Personal Record is available | June 24, 2026 | `tests/submission.service.integration.test.js`, `tests/runner-dashboard-modal.integration.test.js` |
-| Organizer Workflow Phase 5A — runner submission eligibility checks now have a shared Redis/in-memory rate limit for submission-rush protection | June 24, 2026 | `tests/runner-dashboard-modal.integration.test.js` |
-| Organizer Workflow Phase 5B — Strava activity refresh and Strava result submission endpoints now have shared rate limits for external API and submission-rush protection | June 24, 2026 | `tests/strava-integration.integration.test.js` |
-| Organizer Workflow Phase 5C — organizer registrant CSV/XLSX exports now have a shared rate limit for large-event download protection | June 24, 2026 | `tests/organizer-route-source.unit.test.js` |
-| Organizer Workflow Phase 5D — organizer shop report CSV/XLSX exports now have a shared rate limit for large-order download protection | June 24, 2026 | `tests/organizer-route-source.unit.test.js` |
-| Organizer Workflow Phase 5E — run-proof single and bulk review mutations now have a dedicated shared rate limit separate from payment review actions | June 24, 2026 | `tests/organizer-route-source.unit.test.js` |
-| Runtime Stabilization Phase 6A — accumulated activity submissions no longer trigger submission-service circular dependency warnings or missing-helper failures | June 24, 2026 | `tests/submission.service.integration.test.js --test-name-pattern accumulated` |
-| Runtime Stabilization Phase 6B — submission service integration tests now run certificate/notification background work inline when requested, making certificate/email assertions deterministic | June 24, 2026 | `tests/submission.service.integration.test.js` 46/46 |
-| Runtime Stabilization Phase 6C — submission service integration tests now suppress shadow/ranking sync side effects, removing noisy background errors from the suite output | June 24, 2026 | `tests/submission.service.integration.test.js` 46/46 |
-| Runtime Stabilization Phase 6D — runner screenshot and Strava result submissions now use short-lived Mongo idempotency locks to prevent concurrent duplicate organizer work | June 24, 2026 | `tests/submission-idempotency.service.integration.test.js`, `tests/submission-idempotency-source.unit.test.js`, `tests/submission-routes.integration.test.js` |
-| Runtime Stabilization Phase 6E — payment receipt uploads now use short-lived Mongo idempotency locks to prevent concurrent duplicate payment review work | June 24, 2026 | `tests/submission-idempotency.service.integration.test.js`, `tests/submission-idempotency-source.unit.test.js`, `tests/page-controller-payment-proof-sync.unit.test.js` |
-| Runtime Stabilization Phase 6F — shop order payment receipt uploads now use short-lived Mongo idempotency locks to prevent concurrent duplicate shop payment review work | June 24, 2026 | `tests/submission-idempotency-source.unit.test.js`, `tests/shop-runner-payment-actions.integration.test.js` |
-| Runtime Stabilization Phase 7A — registration/shop payment proof submissions plus registrant/shop export downloads now write critical audit events | June 24, 2026 | `tests/audit-source.unit.test.js`, `tests/page-controller-payment-proof-sync.unit.test.js` |
-| Runtime Stabilization Phase 7B — admins and organisers can filter critical audit history for payment proofs, exports, reminders, review actions, and account governance | June 24, 2026 | `tests/audit-source.unit.test.js` |
-| Runtime Stabilization Phase 7C — audit consoles now show anomaly signals for export bursts, rejection bursts, and rapid review/export activity | June 24, 2026 | `tests/audit-source.unit.test.js` |
-| Runtime Stabilization Phase 8A — payment reminders, payment decisions, shop payment decisions, and run-result decisions now queue failed notifications for retry | June 24, 2026 | `tests/communication-retry-source.unit.test.js` |
-| Runtime Stabilization Phase 8B — admin Communications now exposes queued/dead notification retries with filters, payload inspection, and manual retry | June 24, 2026 | `tests/communication-retry-source.unit.test.js` |
-| Runtime Stabilization Phase 8C — communication retry worker now runs stale/dead retention hygiene and Communications shows retry queue health counts | June 24, 2026 | `tests/communication-retry-source.unit.test.js` |
-| Runtime Stabilization Phase 8D — admin Communications now surfaces delivery alerts for recent dead letters, stale retry jobs, and overdue retry backlog | June 24, 2026 | `tests/communication-retry-source.unit.test.js` |
-| Runtime Stabilization Phase 8E — admin Communications now shows 24h/7d delivery digest tables ranking event types by failed logs and retry queue failures | June 24, 2026 | `tests/communication-retry-source.unit.test.js` |
-| Runtime Stabilization Phase 8F — admins can drill into a failing notification event to review recent failed logs, recipients, retry sources, attempts, and status | June 24, 2026 | `tests/communication-retry-source.unit.test.js` |
-| Runtime Stabilization Phase 8G — retry operations now write an admin-visible action trail for manual retries, automatic dead letters, and hygiene cleanup | June 24, 2026 | `tests/communication-retry-source.unit.test.js` |
-| Runtime Stabilization Phase 8H — retry action trail now prunes old audit records and filters by action, event, or actor on the retry queue page | June 24, 2026 | `tests/communication-retry-source.unit.test.js` |
-| Badge system refinement — early generation at event save, Badges wizard step (13-step wizard), event logo as badge image fallback, badge previews on public event detail page | June 24, 2026 | — |
-| P5 Social sharing — certificate verify page share buttons + og:image; submission detail "Share your achievement" strip; badge detail page was already complete | June 24, 2026 | — |
-| P8 Email notification settings — runner profile Notifications section with 5 opt-outable event types; user-level emailOptOut stored on User model; communication.service respects opt-out (email suppressed, in-app still fires) | June 24, 2026 | — |
-| P4 Personal leaderboard rank — "Ranked #N of M verified runners" in My Standing card on event leaderboard page | June 24, 2026 | — |
-| P11 Admin user management gaps — accountStatus filter on user list; lastLoginAt field tracked on login and shown in list + detail; earned badge list section on user detail page | June 24, 2026 | `tests/admin-governance.integration.test.js`, `tests/admin-users.integration.test.js` |
-| P15 Platform Analytics — /admin/analytics page with 6 sections: platform totals, run lifecycle funnel (approval rate + avg review time), monthly growth table, top 10 events, top 10 organisers, conditional shop revenue | June 24, 2026 | — |
-| Sitemap customization — isTestData + excludeFromSitemap fields on Event model; getPublicEventVisibilityQuery excludes test data everywhere; sitemap query also excludes excludeFromSitemap; migration script (npm run mark-test-events) marks existing 198 test events; isTestData: true added to 51 Event.create() calls across 28 test files; admin per-event sitemap toggle on event detail page; sitemap cleaned from 232 → 33 URLs on production | June 24, 2026 | — |
-| P0 Security fixes — organiser self-approval of payment blocked (single + bulk) with audit log entry; password reset token made atomic via findOneAndUpdate; timing-system webhook rate-limited (10/min per IP) | June 24, 2026 | — |
-| P1 Reliability — Sentry APM integrated (conditional on SENTRY_DSN); unhandledRejection + uncaughtException handlers added; Mongoose pool sized to maxPoolSize:20; request timeout middleware (30s); admin Show All capped at 5,000 records | June 24, 2026 | — |
-| P2 Organiser UX — registration capacity enforcement using existing slots field; event cloning via GET /events/:id/clone + getCreateEventFormDataFromEvent; unpaid registrations count added to organiser dashboard Review Queue; submission rate limiting keyed per-user | June 24, 2026 | — |
-| P3 Runner UX — public runner profile page (/runners/:userId) with lifetime stats and recent badges; event search by date range (dateFrom/dateTo filters); contact organiser form on event detail page (rate-limited, email routed via HelloRun); RUN-4 was already complete | June 24, 2026 | — |
-| P4 Organiser quality — OCR/validation badge tooltips (title → data-tooltip + CSS); draft saved toast on wizard page load after save redirect; admin bulk reject submissions with shared reason; Message Runner modal per registrant row | June 24, 2026 | — |
-| P5 Infrastructure — static asset cache headers (maxAge:1d in production); Redis PING in /readyz; worker exponential backoff on consecutive DB errors; ~480 console.* calls replaced with logger across 25 server-side files; section markers added to admin.controller.js and organizer.routes.js (DEBT-1/DEBT-2 splits deferred pending test-suite verification) | June 24, 2026 | — |
-| PRODUCT.md + impeccable live config — product brief, brand personality, design principles, accessibility targets; impeccable live mode wired into main layout | June 25, 2026 | — |
-| Homepage polish — distill pass (cut four redundancies, tightened copy, bolder layout), admin published blog queue card improvements | June 25–29, 2026 | — |
-| Homepage CSS polish — impeccable re-run (score 30/40, 0 P0/P1); hero-title `clamp(2rem, 5vw, 3.25rem)`; ~130 lines of dead CSS removed (`.hero-stats`, `.hero-eyebrow`, `.hero-visual-card` etc.); `.btn` transition enumerated; blockquote full-border; heart-pop easing fixed | June 29, 2026 | EJS compile OK |
-| Blog Run Hub UX — Phase 1: removed dead public blog routes from `blog.routes.js`, added route-ownership comment in `server.js`; Phase 2: `/blog` reframed as Run Hub (intent tiles, "Featured Guides", intent labels on cards); Phase 3: `/blog/:slug` audience chips, Run Action Panel (category-mapped quick links), "Next step" CTA, "Continue this path" heading; CSS: `blog.css` + `blog-pages.css` new components, blockquote redesigned, heart-pop easing corrected | June 29, 2026 | EJS compile OK, blog tests |
-| Structured data / JSON-LD — `Organization` in `head.ejs` (site-wide); `BlogPosting` + `BreadcrumbList` in `blog-post.ejs` (dynamic from `post.*` / `seo.*`); `FAQPage` in `faq.ejs` (23 Q&A pairs); all validated via JSON.parse render test | June 30, 2026 | EJS compile OK, JSON-LD valid |
-| DEBT-1: `admin.controller.js` split — 5,682-line monolith replaced with 10-line barrel + 7 focused sub-files under `src/controllers/admin/`; `_shared.js` exports 166 symbols; all 96 controller exports verified present; `admin.routes.js` unchanged; also fixed 2 live bugs: `evaluateOrganiserAchievementsInBackground` missing import (would throw on organiser approval) and `formatPolicyContentFromRequest` never defined (would throw on format policy endpoints) | June 30, 2026 | require chain OK, all 96 exports functions |
-| DEBT-2: `organizer.routes.js` split — 5,530-line monolith replaced with 23-line barrel + `_shared.js` (1,782 lines, 183 exports) + 8 sub-routers: `dashboard.js`, `event-creation.js`, `event-management.js`, `registrants.js`, `review.js`, `profile.js`, `qr-and-dashboard.js`, `onsite-operations.js`; all `node --check` passes | June 30, 2026 | `node --check` all sub-files |
-| Platform Analytics enhancements — `/admin/analytics` page: date-range tabs (7D/30D/90D/1Y), 5 new MongoDB sections (user status, organiser funnel, event breakdown, submission breakdown, run-type distribution with CSS bars), `hasSupa` guard for graceful degradation without Supabase; logger import bug fixed in `platform-analytics.service.js` | June 30, 2026 | `node --check` OK |
-| Event Promotion feature — organisers can email their runner pool (previous participants or non-participants) about upcoming events, 25 emails/day cap; admins can send to any audience including all runners, no cap; `EventPromotion` MongoDB model tracks campaigns + quota; `event.promotion` event key registered; professional HTML email template with event poster; organiser page at `/organizer/promote`; admin page at `/admin/promote`; AJAX recipient count preview; opt-out respected via existing `notify()` pipeline | June 30, 2026 | `node --check` all files |
-| Admin improvements Phase 1 — CSV/XLSX exports for `/admin/users`, `/admin/audit`, `/admin/analytics`; shared `tabular-export.js` util; `adminExportLimiter`; `listCriticalAuditEventsForExport()`; fixed missing `logger` import bug in `admin-audit.controller.js` | July 1, 2026 | `tests/admin-export-source.unit.test.js` 5/5; full `npm run test:admin` unverified (no live DB) |
-| Admin improvements Phase 2 — closed rate-limiting gaps on ~90 unprotected admin mutation routes (incl. user delete, mass-email `/promote`); 3 new limiters; fixed stale `tests/organizer-route-source.unit.test.js` (broken since DEBT-2) | July 1, 2026 | `tests/admin-route-source.unit.test.js` 7/7, `tests/organizer-route-source.unit.test.js` 3/3; manual 429 smoke-check unverified (no live server) |
-| Admin improvements Phase 3 — extended `security_route_matrix.md` with `/admin/*` section; deleted dead unmounted `src/routes/admin/onsite-operations.js` + `onsite-operations-bulk.service.js` | July 1, 2026 | `node --check`, full-tree grep, server require smoke check |
-| Admin improvements Phase 4 — future-considerations backlog doc (permission tiers, email template editor, impersonation), docs only | July 1, 2026 | — |
-| Admin permission tiers — `User.adminTier` (`full`/`support`, default `full`); new `requireFullAdmin` middleware gates user/event deletion, policy publishing, communications settings, site config (homepage carousel/ads), mass-email promotion, and all data exports; only a full admin can grant/change admin role or tier, and self-tier-changes are always blocked; UI tier selector + badges in admin user views; promoted from the Phase 4 future-considerations backlog | July 1, 2026 | `tests/admin-permission-tier-source.unit.test.js` 9/9; full `npm run test:admin` unverified (no live DB) |
-| Run-proof submission smarts — accumulated-challenge target defaults to event calendar year when blank, category-aware OCR mismatch warnings, implausible-single-activity-distance check; runner dashboard "Missed Submissions" section + recency-sorted per-event status view replacing raw submission list | July 1, 2026 | `tests/submission.service.integration.test.js` (updated) |
-| Submission auto-approval audit script + admin correction tool — read-only CLI reporting auto-approval blockers by reason/confidence/name-match/source; review panel surfaces detection/validation metadata; full-tier-admin-only correction action to fix run data or override review outcome | July 1, 2026 | manual CLI run against prod-shaped data (`logs/submission-auto-approval-audit-2026-07-01T15-00-43-575Z.json`) |
-| OCR auto-approval fix — "name not detected" now auto-approves like "matched" (still blocks "mismatched"); audit showed the name-check wasn't load-bearing, catching nothing the confidence/suspicious-activity checks didn't already catch | July 2, 2026 | `tests/submission.service.integration.test.js` (updated) |
-| Admin test-data purge — `/admin/events?testData=1` full-tier-admin-only action permanently deletes every `isTestData` Event plus linked Registrations/Submissions/AccumulatedActivitySubmissions/EventPromotions/CertificateTemplates in MongoDB and the matching shadow rows across 16 Postgres tables; password + reason + typed `PURGE` confirmation; dedicated rate limiter + audit logging. Run for real against the live database: purged 336 events and everything linked to them. Bonus fix: `deleteEvent`/`bulkDeleteEvents` had a latent missing-import `ReferenceError` bug, fixed alongside | July 2, 2026 | `tests/test-data-cleanup-service.unit.test.js` 7/7 (DB-free — see In Progress note on why) |
-| Event promotion email flow analysis — diagnosed the grayed-out Send button after a Selected Emails test send: the test recipient account is opted out of `event.promotion` (one-click GET unsubscribe link opts out the logged-in session user), so the preview count is 0 and the button disables; no Resend credits consumed because opted-out recipients never reach the provider. Recovery path + 7 follow-up findings documented in `docs/features/event_promotion_email_sending.md` (docs only, no code changed) | July 4, 2026 | Code-path analysis; live-DB opt-out flag not yet checked |
-| Full codebase analysis — fresh-eyes read of all of `src/` (73k LoC) across security, correctness, performance, code quality, dependencies, and test suite; 7 reports in `docs/analysis/2026-07-05/`. Found 1 P0 (stored XSS via unescaped `<%-` on author-controlled fields in `admin/blog-review.ejs`) and a short P1 list (PASSWORD_RESET_EXPIRY NaN silently breaks reset links; `/healthz/sync` dead due to middleware ordering; unguarded async auth middleware; unindexed reset/verify token lookups). June 24 SEC-1/2/3 fixes re-verified as holding. Docs only, no code changed | July 5, 2026 | Read-only analysis; findings cite verified `file:line` |
-| Analysis P0/P1 fix batch — **SEC-A:** 12 author-controlled `<%-` fields in `admin/blog-review.ejs` switched to escaped `<%=`; also hardened the three `JSON.stringify` script-tag bootstraps on both blog form pages with a `</script>`-proof `<` escape (`post.contentBlocks` is author-controlled — same XSS class, missed by the analysis), and pulled SEC-B in early (`contentHtml`/`galleryImageUrlsJson` attribute encoding in `blog/author-form.ejs`). **COR-A:** `/healthz/sync` moved below the session middleware — endpoint now reachable by admins. **COR-B:** try/catch → `next(err)` added to all five async auth guards in `auth.middleware.js`. **COR-C:** new `passwordService.getResetTokenTtlMs()` (1-hour fallback on unset/invalid `PASSWORD_RESET_EXPIRY`) used by `authRoutes`, `email.service`, `token.service`; boot-time warning in `server.js`. **PERF-A:** sparse indexes on `User.passwordResetToken` + `User.emailVerificationToken` | July 5, 2026 | `node --check` on all 7 edited JS files; both EJS templates compile; hostile-payload render test on the real template lines (attribute breakout + `</script>` breakout neutralised, JSON round-trips); unit suite 270/275 — 5 failures pre-existing (`audit-source`/`communication-retry-source` scan the pre-DEBT-1 `admin.controller.js` monolith), unrelated to this batch |
-| Analysis P2 hardening batch — **PERF-B:** in-memory rate-limit fallback now sweeps expired buckets lazily (60s cadence) and caps the Map at 50k entries with oldest-first eviction; matters extra because production has no Redis, so this *is* the limiter. **PERF-C:** Redis client no longer nulled on a failed initial connect and `retryStrategy` no longer gives up after 3 attempts — reconnects forever with 30s-capped backoff; callers already gate on `client.status === 'ready'` so a down Redis degrades per-request, not permanently. **SEC-E:** `CSRF_PROTECTION=0` kill-switch ignored when `NODE_ENV=production` (fail-safe) with a loud boot warning either way; test harnesses unaffected. **SEC-D:** CSRF session-vs-request token compare now length-guarded `crypto.timingSafeEqual`. **COR-D:** timing-webhook signature length-guarded before `timingSafeEqual` — wrong-length signature is a clean 401, not a `RangeError` 500. **SEC-C:** verbatim (non-sharp) uploads — PDFs, webp, conversion-disabled images — now magic-byte-verified against the declared MIME before the R2 put | July 5, 2026 | New `tests/p2-hardening.unit.test.js` 5/5 (bucket sweep/cap/eviction, constant-time compare, prod kill-switch override via mocked req/res, webhook guard, PDF/webp magic-byte accept+reject); full unit suite 286/286 |
-| Event promotion "queued emails never send" fix — root causes: concurrent `Promise.allSettled` dispatch tripped Resend's ~2 req/s limit (everything past the first burst 429'd into the retry queue), and `buildCommunicationRetryKey` omitted `campaignId` so re-send campaigns collided with the previous campaign's finished retry jobs and were silently swallowed. Fixed: campaign-scoped retry keys, sequential throttled dispatch (`EVENT_PROMOTION_SEND_INTERVAL_MS`, default 600ms), background campaign execution with immediate redirect (admin + organiser), `recipientCount` set at creation to keep quota sums race-free. See `docs/features/event_promotion_queued_email_fix.md` | July 5, 2026 | `tests/communication-retry-key.unit.test.js` 3/3 (DB-free); `tests/event-promotion-source.unit.test.js` updated; re-send of the swallowed Jul 5 campaign after deploy pending |
-| Organizer onboarding simplification design doc — full code-path analysis of organizer registration/approval (application form, required documents, admin review, pending-organizer acknowledgement path, event auto-approval rules) plus a 4-phase proposal: risk-based gating (free virtual events need no application; ID becomes a "verify to unlock paid events" step), OCR-assisted application auto-approval reusing the run-proof name-match pattern, graduated paid-event auto-publish for proven organizers, and status-page/checklist UX. `docs/to-implement/organizer-onboarding-simplification.md` (docs only, no code changed) | July 5, 2026 | Analysis-only; all cited `file:line` references verified in-session |
-| Analysis P3 debt batch — **CQ-4:** deleted dead `src/config/db.js` (never required) and `src/routes/event.routes.js` (unmounted, byte-identical to `certificateVerification.routes.js`). **CQ-1 sweep:** repo-wide `<%-` audit of all 131 views; fixed organizer→runner stored-XSS scalars (`galleryUrl`/`posterImageUrl` attributes on public + organizer event pages, `eventDetailsMarkdown` hidden input) and hardened 15 more `JSON.stringify` script bootstraps with the `</script>`-proof `<` escape (event forms, event-register pricing, run-proof modal, shop checkout, badge JSON-LD, admin event pages, policy editor); convention documented in CLAUDE.md and **enforced by a repo-wide allowlist test** (`tests/blog-template-escaping.unit.test.js` now walks all of `src/views/`). **New finding fixed en route: `renderWaiverTemplate` had no sanitization** — organizer-supplied waiver HTML rendered raw into the runner-facing registration page (`<%- waiverHtml %>`); now sanitized through `utils/sanitize.js` with a waiver-shaped allowlist, default template verified to survive intact. **CQ-5 (boot-scope):** new `src/config/validate-env.js` — fatal on missing `SESSION_SECRET`/`MONGODB_URI`, warns on missing recommended vars (Postgres/APP_URL/Resend/Turnstile/R2/Redis) and non-numeric duration vars; replaces the inline checks in `server.js`. **Deps:** `multer` bumped 1.4.5-lts.1 → 2.2.0 (`npm audit` still 0 vulns; `.single`/`.fields` API surface unchanged, upload.service loads clean) | July 6, 2026 | Repo-wide escaping test green over all views; waiver sanitizer verified against hostile payload + default-template round-trip; new `tests/validate-env.unit.test.js` 5/5; all 11 touched templates compile; full unit suite 299/299 |
-| Organizer onboarding simplification — all 4 phases of `docs/to-implement/organizer-onboarding-simplification.md` implemented. **P1 risk-based gating:** any verified organiser who signs the e-signature acknowledgement can create/manage free virtual events with no application (`canCreateEvents()` + `canCreateEventsFromLeanUser` widened, restricted-account guard added); paid/physical/delivery/onsite setups blocked at event create/edit for non-approved organizers (`getRestrictedSetupReasons` in `event-approval.service.js`); 10 event-management routes switched `requireApprovedOrganizer`→`requireCanCreateEvents` (promote stays approved-only); per-type application form (individuals skip business name/address/proof — account name used; companies/NGOs/clubs now *require* registration number + business proof); wizard pricing step shows "verify to unlock" notice. **P2 UX:** application-status page gained a "What You Can Do Right Now" panel; verification form leads with the free-events capability framing; address maxlength 200→500 + server-side per-type requiredness. **P3 graduated auto-publish:** `event_auto_approval_v2_trusted_organizer` — approved + active organizers with ≥3 completed events (env `EVENT_AUTO_APPROVAL_TRUSTED_MIN_COMPLETED_EVENTS`) get paid virtual events auto-published; onsite/hybrid always manual. **P4 OCR-assist:** new `src/services/id-ocr.service.js` (server-side tesseract.js, self-hosted tessdata, 30s timeout, injectable recognizer) scans the uploaded ID for the account name; verdict (`matched`/`not_detected`/`not_checked`) + duplicate-phone count stored on `OrganiserApplication` and shown as badges in admin application details; `not_detected` routes to the previously-unused `under_review` triage lane; **advisory only, no auto-decision**, OCR failure never blocks submission | July 6, 2026 | `tests/organizer-gating.unit.test.js` 8/8, `tests/event-auto-approval-trusted.unit.test.js` 6/6, `tests/id-ocr-name-match.unit.test.js` 10/10; full DB-free unit suite 315/315; all touched templates compile; live smoke (real signup→ack→free event, real ID OCR) pending — no staging |
-| Analysis CQ-2 file splits — the three oversized files split via the proven barrel/extract pattern, all as pure verbatim moves (code sliced by AST position, never retyped). **`page.controller.js` (3,564 lines)** → 8 concern sub-controllers (`page/{home,event,badge,registration,submission,blog-public,leaderboard,sitemap}.controller.js`) + `page/_shared.js` (imports + cross-concern helpers), behind a 14-line barrel; the mutable `syncRegistrationPaymentShadow` binding + its test hooks kept together in `submission.controller.js`. **`blog.controller.js` (2,583 lines)** → `blog/{public,author,admin}.controller.js` + `blog/_shared.js` (imports, FeedCtor cache, ~40 helpers) behind a barrel. **`submission.service.js` (2,111 lines)** → extracted the OCR/plausibility/auto-approval decision cluster (a verified leaf) into `submission-validation.service.js`, orchestrator down to 1,739 lines; conservative — the accumulated-challenge logic was left in place to avoid a new require cycle (this service has circular-dep history). Built a reusable acorn-based no-undef checker as the safety oracle for the pure moves | July 6, 2026 | Per file: exports byte-identical to pre-split module (35/35, 34/34, 20/20); acorn no-undef clean on every new file; multiset line-diff shows zero content change (only a deduped `escapeXml` in page); modules + dependents load; full unit suite 315/315 (4 source-scan tests repointed at the split files) |
-| Cross-role workflow and mobile UX program — implemented all 7 waves from `docs/workflow-analysis/`: shared recovery errors; governed high-risk decisions; structured rejection/lifecycle guidance; durable queues and communication incidents; stage-based runner, organizer, and admin workspaces; mobile proof/review/field/navigation/drafts; shared editor autosave, role switching, breadcrumbs, and contextual completion paths | July 15, 2026 | `tests/workflow-*.unit.test.js`, template compilation, JS syntax checks, `git diff --check`; live DB/device validation remains follow-up |
-| Runner desktop dashboard redesign — replaced the nested half-width card stream with task-first active, overview, result-history, missed-archive, and history zones; compact recent-result rows; native collapsed missed archive; 3/2/1-column desktop breakpoints prevent narrow vertically wrapped event cards | July 15, 2026 | `tests/runner-dashboard-desktop.unit.test.js` plus lifecycle, mobile, workspace, and template-escaping regressions; authenticated browser screenshots pending a safe session |
+## Implemented and Repository-Verified
 
----
+The repository contains implementation and focused automated coverage for the
+core platform:
 
-## 🟡 In Progress / Follow-Up
+- authentication, account recovery, role-aware access, abuse protection, and
+  administrator permission tiers;
+- event creation and management for virtual, onsite, and hybrid workflows;
+- runner registration, payment proof, run-proof and accumulated-activity
+  submission, organiser review, results, leaderboards, certificates, and
+  achievement badges;
+- organiser dashboards, registrant/review queues, bulk actions, event
+  promotion, analytics, audit workflows, and running groups;
+- shop, cart, registration add-ons, platform merchandise, reporting, and
+  settings;
+- blog authoring/moderation, scheduled publishing, community comments,
+  editorial content, policies, contact, FAQ, consent, and AdSense-related
+  crawl/content support;
+- responsive runner, organiser, administrator, event-discovery, policy, and
+  public-content refinements committed through July 29;
+- the reusable `@hellorun/threaded-comments` package and HelloRun blog
+  integration.
 
-- **Workflow/mobile production validation (July 15, 2026):** all seven implementation priorities are complete and DB-free verified. After deploy, run the documented usability scenarios at 320–430 px, tablet, and desktop; verify weak-connectivity onsite behavior with a supervised event; and run live-database mutation suites only in an approved environment. No staging environment was available during implementation.
+Repository verification means the implementation and its recorded focused
+tests exist. It does not imply that every workflow has been exercised against
+production services.
 
-- **Full codebase review (July 6, 2026) — implementation pending:** second fresh-eyes review pass (process/efficiency/intuitivity/security), complementary to `docs/analysis/2026-07-05/` — zero overlap with its fixed items. 23 findings across 4 files in `docs/review-2026-07/` (README has the 4-phase implementation plan). Phase 1 rides along with the production deploy: CI on main (PROC-1), live-DB test guard (PROC-2), `REDIS_URL` in prod (SEC-3), trust-proxy/client-IP verification behind Cloudflare+Render (SEC-4), session regeneration at login (SEC-1), stop persisting the full user doc into the session store (SEC-2). Nothing implemented yet — docs only.
+## Implemented, Production or Live Verification Pending
 
-- **Organizer onboarding simplification — live verification (July 6, 2026):** all 4 phases implemented and DB-free-verified (315/315); still pending after deploy: (1) real signup → acknowledgement → free virtual event end-to-end, (2) a real ID upload to confirm the server-side Tesseract verdict lands on the application and renders in `/admin/applications/:id` (tessdata must exist on Render — `postinstall` downloads it), (3) confirm a non-approved organizer saving a paid setup gets the "verify to unlock" error in the browser, (4) an existing trusted organizer submitting a paid virtual event auto-publishes under the v2 rule. Tracker: `docs/to-implement/organizer-onboarding-simplification.md`.
-- **Priority 1 — Production AdSense (ops only):** deploy current main, run `npm run seed:adsense-blog` if needed, verify live `/robots.txt`, `/sitemap.xml`, `/ads.txt`, submit/refresh sitemap in Google Search Console, then request review after crawl stability.
-- **Admin improvements Phases 1–2 verification:** code is complete and pushed, but `docs/todo/admin-improvements/01-phase-admin-data-exports.md` and `02-phase-admin-mutation-rate-limiting.md` remain in `docs/todo/` pending (1) a full `npm run test:admin` run against live MongoDB + PostgreSQL, and (2) a manual 429 smoke-check on `/admin/promote` and `/admin/communications/test-email` against a running server. Move both files to `docs/done/admin-improvements/` once verified.
-- **Admin permission tiers verification:** implemented and source-verified, but needs a live-DB `npm run test:admin` run plus a manual click-through as a `support`-tier admin (confirm the 24 gated routes 403 correctly and the edit-form escalation guards behave as designed) before considering it fully verified.
-- **Run-proof submission smarts verification:** implemented and source-verified (including a fixed test fixture that had been silently exercising the wrong accumulated-distance target), but the full `submission.service.integration.test.js` suite has not been run against a live MongoDB + PostgreSQL in this environment. Run it before trusting the new implausible-single-activity-distance check and the OCR "not_detected" auto-approval change in production.
-- **No staging environment exists for this project** (confirmed July 2, 2026 — single `.env`, matches production `APP_URL`). Live integration tests that write real documents have nowhere safe to run; going forward, prefer DB-free unit tests with mocked Mongoose/Postgres clients (see `tests/test-data-cleanup-service.unit.test.js` for the pattern) over live-DB integration tests unless a deliberate, supervised live run is genuinely warranted.
-- **2 leftover placeholder Users from the test-data-purge incident:** `purge.runner.*@example.com` and `purge.organizer.*@example.com` — harmless, but still in the live database. `purgeTestData()` doesn't touch Users by design, so these need a separate, narrowly-scoped manual delete. Not yet removed — pending explicit go-ahead.
-- **Codebase analysis follow-up (July 5–6, 2026):** P0 + P1, the full P2 batch, and P3 CQ-1/CQ-2/CQ-4/CQ-5(boot)/multer are fixed — see completed table. **Only CQ-3 remains open** (unify organiser route auth onto `protectEventMutation`/`protectEventRead`): deliberately deferred because it changes runtime auth *semantics* (not just file layout), the source-scan tests can't catch a 403/200 regression, there's no live DB to exercise the actual access-control behavior, and the organiser routes were just heavily rewritten by the onboarding workstream — it should be done as a supervised change against a running app, not a blind static refactor. Manual smoke still pending: submit a draft titled `"><b>x` and confirm it renders as literal text in `/admin` blog review.
-- Test runtime follow-up: several server-spawning smoke/integration tests pass assertions locally but do not exit cleanly during teardown; investigate open handles separately (low urgency).
-- Documentation follow-up: keep `docs/to-implement/*` files as historical design records unless a new gap reopens. Stale `docs/todo refinement/` files archived to `docs/archive/todo-refinement/`.
+- Validate runner, organiser, and administrator workflows on deployed phone,
+  tablet, and desktop layouts, including weak-connectivity onsite behavior.
+- Verify organiser onboarding with a real ID OCR upload, restricted paid-event
+  gating, and trusted-organiser auto-publishing.
+- Run the administrator export, mutation-limit, permission-tier, and
+  submission-smarts integration suites only after a safe non-production
+  database environment exists.
+- Confirm certificate, accumulated-challenge reconciliation, upload, policy,
+  email, queue, Redis, and worker behavior in the deployed environment.
+- Confirm the July public, runner, organiser, policy, blog, running-group, and
+  proof-review refinements through supervised browser smoke tests.
 
----
+## Operational Work Pending
 
-## 🔲 Backlog (Not Started)
+- Deploy the current revision and complete the AdSense crawl/review procedure.
+- Configure and verify production Redis plus Cloudflare/Render client-IP
+  handling.
+- Create an isolated development or staging data environment and enforce a
+  live-database test guard.
+- Remove the two narrowly identified placeholder users from the earlier purge
+  incident with an explicitly approved production operation.
+- Verify backup/restore and graceful-deployment procedures.
 
-| Item | Priority | Spec |
-|------|----------|------|
-| Advanced analytics & reporting | — | PRD.md |
-| Mobile app integration | — | PRD.md |
+## Active Engineering Follow-Up
 
----
+The canonical active plan is [`improvement-plan/README.md`](improvement-plan/README.md).
+Open themes include:
 
-## Resolved / Historical
+- remaining process and environment safety-net checks;
+- CQ-3 organiser authorization-chain unification, which needs supervised
+  runtime verification;
+- request-path and asset efficiency work that depends on measurement;
+- server-spawning test open-handle investigation;
+- residual event-promotion delivery/unsubscribe refinements listed in
+  [`improvement-plan/event-promotion-follow-ups.md`](improvement-plan/event-promotion-follow-ups.md).
 
-- `to-implement/organiser-vs-platform-shop-products.md` — fully implemented June 7, 2026 (kept as design record)
-- `to-implement/admin-governance.md` — implemented June 22, 2026 (kept as design record)
-- `to-implement/runner-experience.md` — core listed UX items implemented June 22, 2026 (kept as design record)
-- `to-implement/organiser-experience.md` — core listed UX items implemented June 22, 2026 (kept as design record)
-- `adsense-readiness/` — local code readiness implemented; production crawl/review remains operational
-- `blog/` — core blog workflow implemented; AdSense seed inventory expanded June 24, 2026
+## Backlog
+
+- Advanced platform analytics and reporting beyond the implemented baseline.
+- Mobile-app integration after the web workflows and operational safeguards
+  are stable.
+
+## Historical Status
+
+The former detailed completion table is preserved at
+[`archive/status/status-through-2026-07-15.md`](archive/status/status-through-2026-07-15.md).
+Implementation history after that date is summarized in
+[`changelog/2026-07-july.md`](changelog/2026-07-july.md).
+
+## Documentation Reconciliation Verification
+
+On July 31, 2026:
+
+- the repository-wide Markdown audit found no missing H1 titles, unbalanced
+  fences, heading-level jumps, exact duplicate documents, or broken relative
+  links;
+- the focused event-promotion documentation consumer test passed 9/9;
+- the DB-free unit suite passed 933/933;
+- no live-database integration suite was run.

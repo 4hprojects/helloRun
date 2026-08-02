@@ -1,4 +1,9 @@
-# HelloRun Blog Feature - Phased Implementation Specification
+# HelloRun Blog Feature — Phased Implementation Record
+
+**Status:** Core phased feature implemented. Unchecked acceptance examples in
+this document are historical test guidance, not the active backlog.
+
+**Reconciled:** July 31, 2026
 
 ## Purpose
 

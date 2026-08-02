@@ -97,7 +97,7 @@ test('admin promotion supports selected pasted email recipients', () => {
 
 test('organizer basic promotion quota is 25 emails per day', () => {
   const organizerRoutes = read('src/routes/organiser/event-management.js');
-  const tracker = read('docs/to-implement/event-promotion.md');
+  const tracker = read('docs/implementation/event-promotion.md');
 
   assert.match(organizerRoutes, /const PROMO_DAILY_LIMIT = 25;/);
   assert.match(tracker, /Daily cap: 25 emails\/day/);

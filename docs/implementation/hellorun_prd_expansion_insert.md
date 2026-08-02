@@ -1321,8 +1321,8 @@ Keep PRD.md as the master planning document.
 
 Create or maintain dedicated detail files:
 
-- `docs/shop_feature.md`
-- `docs/ocr_smart_submission.md`
+- `docs/implementation/shop_feature.md`
+- `docs/implementation/ocr-smart-submission.md`
 - `docs/onsite_result_import.md`
 - `docs/organizer_reports.md`
 - `docs/payment_gateway_integration.md`

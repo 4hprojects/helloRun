@@ -1,6 +1,9 @@
-# HelloRun — Improvement Plan (July 6, 2026)
+# HelloRun Improvement Plan
 
-**Source:** full-codebase review across four lenses — **process, efficiency, intuitivity, security**.
+**Last reconciled:** July 31, 2026
+
+**Source:** July codebase reviews, subsequent implementation history, and the
+July 31 documentation reconciliation.
 **Relationship to prior work:** this is the successor to `docs/analysis/2026-07-05/` (whose P0–P3 findings are all fixed except CQ-3). Nothing already resolved is re-reported here; the still-open items from earlier reviews (CQ-3, the live-verification backlog, the 2 placeholder users) are folded into the phases below so **this folder is the single active plan**.
 
 ---
@@ -12,7 +15,7 @@
 | Security | B+ | App-level authz/CSRF/injection story is strong (validated July 5); the remaining gaps are *session lifecycle* (no regenerate on login), *IP attribution* (spoofable/misattributed), and *supply chain* (unpinned CDN script on every page). |
 | Process | C | The weakest lens. No CI, no lint, no staging, `npm test` can touch the production DB, no graceful shutdown, no dependency automation. The code is better than the pipeline around it. |
 | Efficiency | B+ | DB-side discipline is good (July 5 validated indexes/pagination). Remaining costs: a per-request `User.findById` in `populateAuthLocals`, request-path OCR, and an unversioned/unminified asset pipeline. |
-| Intuitivity | B | Core journeys got dedicated UX passes (June–July). Remaining: raw `403 Access denied` plain-text responses, HTML error pages returned to `fetch()` callers, no skip-link, and no holistic cross-journey audit since the flows were rebuilt. |
+| Intuitivity | B+ | Shared error handling and the July 15–20 cross-journey audits are implemented. Remaining work is site-wide skip-link consistency, residual route-level response normalization, and deployed usability validation. |
 
 **Fixed during this review (zero-risk):** `startAuthenticatedSession` was storing the **full user document — including `passwordHash` — into the MongoDB session store** on every login (`req.session.user = user`, never read anywhere). Removed; unit suite 315/315 green.
 

@@ -2,7 +2,7 @@
 
 _Date: July 4, 2026 · Trigger: after a successful "Selected Emails" test send from `/admin/promote`, the Send Promotion button stayed grayed out on retry, while the platform email quota barely moved._
 
-Related historical doc: `docs/to-implement/event-promotion-feature-analysis.md` (pre-refinement analysis, Jul 3).
+Related historical doc: `docs/improvement-plan/event-promotion-follow-ups.md` (pre-refinement analysis, Jul 3).
 
 ---
 

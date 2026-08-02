@@ -11,8 +11,8 @@ This file is not the master PRD. It is a focused Codex task file for the run res
 Related references:
 
 - `docs/PRD.md`
-- `docs/ocr_smart_submission.md`
-- `docs/submission_review_page.md`
+- `docs/implementation/ocr-smart-submission.md`
+- `docs/implementation/submission-review-page.md`
 - `docs/create_event/create_event_wizard_codex_implementation.md`
 
 ## Current Status

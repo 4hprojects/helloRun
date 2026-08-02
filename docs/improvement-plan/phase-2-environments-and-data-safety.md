@@ -22,8 +22,10 @@ Once a safe DB target exists, run in one supervised session:
 - `ALLOW_LIVE_DB=1 npm run test:admin` (admin improvements Phases 1–2, permission tiers)
 - `ALLOW_LIVE_DB=1 node --test tests/submission.service.integration.test.js` (submission smarts, OCR "not_detected" auto-approval)
 - Manual: 429 smoke on `/admin/promote` + `/admin/communications/test-email`; `support`-tier admin click-through of the 24 gated routes
-- Onboarding live smoke (tracked in `docs/to-implement/organizer-onboarding-simplification.md`): signup → acknowledgement → free virtual event; real ID upload → OCR verdict on `/admin/applications/:id`; paid-setup block for non-approved organizer; trusted auto-publish
-- Then move `docs/todo/admin-improvements/01-*.md`, `02-*.md` → `docs/done/admin-improvements/` and clear the STATUS.md In Progress entries.
+- Onboarding live smoke (tracked in `docs/implementation/organizer-onboarding-simplification.md`): signup → acknowledgement → free virtual event; real ID upload → OCR verdict on `/admin/applications/:id`; paid-setup block for non-approved organizer; trusted auto-publish
+- Then update the records under
+  `docs/implementation/verification-pending/` with the approved environment,
+  results, and completion date.
 
 ## OPS-1 · Redis in production (P2)
 
@@ -47,7 +49,8 @@ Create `docs/RUNBOOK.md` — one page, checklists only:
 
 ## Exit criteria
 - [ ] `npm run dev` and integration tests physically cannot write to production (boot guard)
-- [ ] Seeded dev DB; verification backlog executed; `docs/todo/admin-improvements/` emptied into `docs/done/`
+- [ ] Seeded dev DB; verification backlog executed; verification-pending
+  records updated with evidence
 - [ ] Redis live in prod (or single-instance constraint documented)
 - [ ] Placeholder users gone
 - [ ] RUNBOOK.md exists with a tested restore path

@@ -35,7 +35,7 @@ Notes:
 ## Admin Routes (`/admin/*`)
 
 Added 2026-07-01 as part of the admin-panel improvements initiative
-(`docs/todo/admin-improvements/`, Phase 3). All `/admin/*` mutating routes now carry a
+(`docs/done/admin-improvements/`, Phase 3). All `/admin/*` mutating routes now carry a
 rate limiter (Phase 2); this section makes that coverage auditable. Only the
 destructive/high-risk routes are listed — see `src/routes/admin.routes.js` for the full
 route table.
@@ -81,7 +81,7 @@ Admin notes:
   `adminAccountActionLimiter`, `adminModerationLimiter`, `adminContentSettingsLimiter`,
   `adminTestEmailLimiter`, `adminPromotionLimiter`, or `adminExportLimiter` — the admin
   mutation rate-limiting gap referenced in earlier planning docs is now closed.
-- **Admin permission tiers (implemented 2026-07-01, see `docs/to-implement/admin-permission-tiers.md`):**
+- **Admin permission tiers (implemented 2026-07-01, see `docs/implementation/admin-permission-tiers.md`):**
   `User.adminTier` (`'full'` default, or `'support'`) plus a new `requireFullAdmin`
   middleware (`src/middleware/auth.middleware.js`) gate the "Admin Tier" column above.
   Missing/undefined `adminTier` is always treated as `'full'`, so existing admins are

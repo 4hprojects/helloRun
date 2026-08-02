@@ -472,10 +472,10 @@ GET /admin/events/evt-123/result-imports/imp-456/errors/export
 
 ## Related Documentation
 
-- [Phase 7 Core](./hellorun_phase7_onsite_core.md)
-- [Hybrid Database Architecture](./hellorun_hybrid_database_schema_architecture.md)
-- [API Endpoints Reference](./api-reference.md)
-- [Security Guidelines](./security.md)
+- [Phase 7 completion record](phase-7-extended-completion.md)
+- [Hybrid Database Architecture](../database/hellorun_hybrid_database_schema_architecture.md)
+- API endpoints: see the current organiser and webhook route modules
+- [Security Route Matrix](../architecture/security_route_matrix.md)
 
 ---
 
