@@ -102,6 +102,14 @@ const {
   ARTICLE: SCHOOLS_ORGANIZATIONS_GUIDE_ARTICLE,
   buildArticlePayload: buildSchoolsOrganizationsGuidePayload
 } = require('../content/schools-organizations-virtual-runs-guide');
+const {
+  ARTICLE: REALISTIC_MONTHLY_RUNNING_GOAL_ARTICLE,
+  buildArticlePayload: buildRealisticMonthlyRunningGoalPayload
+} = require('../content/realistic-monthly-running-goal');
+const {
+  ARTICLE: CLEAR_VIRTUAL_RUN_RULES_ARTICLE,
+  buildArticlePayload: buildClearVirtualRunRulesPayload
+} = require('../content/clear-virtual-run-rules-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -154,6 +162,10 @@ const FIRST_TIME_ORGANIZER_CHECKLIST_COVER_IMAGE_URL = 'https://cdn.hellorun.onl
 const FIRST_TIME_ORGANIZER_CHECKLIST_PAYLOAD = buildFirstTimeOrganizerChecklistPayload({ coverImageUrl: FIRST_TIME_ORGANIZER_CHECKLIST_COVER_IMAGE_URL });
 const SCHOOLS_ORGANIZATIONS_GUIDE_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785388535469-101481065-how-schools-and-organizations-can-use-virtual-runs.webp';
 const SCHOOLS_ORGANIZATIONS_GUIDE_PAYLOAD = buildSchoolsOrganizationsGuidePayload({ coverImageUrl: SCHOOLS_ORGANIZATIONS_GUIDE_COVER_IMAGE_URL });
+const REALISTIC_MONTHLY_RUNNING_GOAL_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785668498609-628989328-how-to-set-a-realistic-monthly-running-goal.webp';
+const REALISTIC_MONTHLY_RUNNING_GOAL_PAYLOAD = buildRealisticMonthlyRunningGoalPayload({ coverImageUrl: REALISTIC_MONTHLY_RUNNING_GOAL_COVER_IMAGE_URL });
+const CLEAR_VIRTUAL_RUN_RULES_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785670404268-504104721-how-to-write-clear-virtual-run-rules-participants-can-follow.webp';
+const CLEAR_VIRTUAL_RUN_RULES_PAYLOAD = buildClearVirtualRunRulesPayload({ coverImageUrl: CLEAR_VIRTUAL_RUN_RULES_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -759,6 +771,44 @@ const POSTS = [
       '/blog/how-leaderboards-work-virtual-running-events',
       '/blog/running-safety-tips-early-morning-night-runs'
     ]
+  },
+  {
+    ...REALISTIC_MONTHLY_RUNNING_GOAL_ARTICLE,
+    contentHtml: REALISTIC_MONTHLY_RUNNING_GOAL_PAYLOAD.contentHtml,
+    coverImageUrl: REALISTIC_MONTHLY_RUNNING_GOAL_COVER_IMAGE_URL,
+    coverImageAlt: REALISTIC_MONTHLY_RUNNING_GOAL_ARTICLE.coverImageAlt,
+    ogImageUrl: REALISTIC_MONTHLY_RUNNING_GOAL_COVER_IMAGE_URL,
+    publishedAt: '2026-08-02T11:04:09.434Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
+      '/blog/how-to-stay-consistent-during-a-month-long-virtual-run',
+      '/blog/beginner-5k-training-plan-new-runners'
+    ]
+  },
+  {
+    ...CLEAR_VIRTUAL_RUN_RULES_ARTICLE,
+    contentHtml: CLEAR_VIRTUAL_RUN_RULES_PAYLOAD.contentHtml,
+    coverImageUrl: CLEAR_VIRTUAL_RUN_RULES_COVER_IMAGE_URL,
+    coverImageAlt: CLEAR_VIRTUAL_RUN_RULES_ARTICLE.coverImageAlt,
+    ogImageUrl: CLEAR_VIRTUAL_RUN_RULES_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-08-03T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/how-it-works',
+      '/faq',
+      '/organiser-terms',
+      '/community-guidelines',
+      '/privacy',
+      '/refund-and-cancellation-policy',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers'
+    ]
   }
 ];
 
@@ -779,7 +829,8 @@ async function main() {
         ? await findExistingAuthor(post.authorEmail)
         : author;
       const payload = buildPostPayload(post, postAuthor, index);
-      const existing = await Blog.findOne({ slug: post.slug }).select('_id title').lean();
+      const existing = await Blog.findOne({ slug: post.slug }).select('_id title status approvedAt publishedAt').lean();
+      preservePublishedSeedState(payload, existing);
       results.push({
         slug: post.slug,
         action: existing ? 'update' : 'create'
@@ -875,7 +926,7 @@ function buildPostPayload(post, author, index) {
     category: post.category,
     customCategory: '',
     tags: post.tags,
-    status: 'published',
+    status: post.status || 'published',
     featured: typeof post.featured === 'boolean' ? post.featured : index < 3,
     readingTime: Math.max(4, Math.ceil(contentText.split(/\s+/).filter(Boolean).length / 180)),
     seoTitle: post.seoTitle || `${post.title} - HelloRun Guide`,
@@ -883,13 +934,22 @@ function buildPostPayload(post, author, index) {
     ogImageUrl: post.ogImageUrl || coverImageUrl,
     isDeleted: false,
     publishedAt,
-    approvedAt: publishedAt,
+    approvedAt: post.status === 'scheduled' ? null : publishedAt,
     rejectionReason: '',
     moderationNotes: '',
     moderationFlags: [],
     moderationFlagSummary: ''
   };
   Object.assign(payload, buildTrustedEditorialReview(payload, author._id, publishedAt));
+  return payload;
+}
+
+function preservePublishedSeedState(payload, existing) {
+  if (!payload || !existing) return payload;
+  if (payload.status === 'scheduled' && existing.status === 'published') {
+    payload.status = 'published';
+    payload.approvedAt = existing.approvedAt || existing.publishedAt || payload.publishedAt;
+  }
   return payload;
 }
 
@@ -953,5 +1013,6 @@ module.exports = {
   POSTS,
   buildContentHtml,
   buildPostPayload,
-  htmlToText
+  htmlToText,
+  preservePublishedSeedState
 };

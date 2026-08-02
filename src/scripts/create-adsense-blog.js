@@ -16,6 +16,7 @@ function parseArguments(argv = process.argv.slice(2)) {
   let slug = '';
   let apply = false;
   let dryRun = false;
+  let publishAt = '';
 
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -26,6 +27,9 @@ function parseArguments(argv = process.argv.slice(2)) {
       apply = true;
     } else if (argument === '--dry-run') {
       dryRun = true;
+    } else if (argument === '--publish-at') {
+      publishAt = String(argv[index + 1] || '').trim();
+      index += 1;
     } else {
       throw new Error(`Unsupported argument: ${argument}`);
     }
@@ -34,8 +38,11 @@ function parseArguments(argv = process.argv.slice(2)) {
   if (!slug) throw new Error(`--slug is required. Available slugs: ${listArticleSlugs().join(', ')}`);
   if (apply && dryRun) throw new Error('Choose either --apply or --dry-run, not both.');
   if (!getArticleModule(slug)) throw new Error(`Unknown AdSense article slug: ${slug}. Available slugs: ${listArticleSlugs().join(', ')}`);
+  if (publishAt && Number.isNaN(new Date(publishAt).getTime())) throw new Error('--publish-at must be a valid ISO timestamp.');
 
-  return { slug, mode: apply ? 'apply' : 'dry-run' };
+  const parsed = { slug, mode: apply ? 'apply' : 'dry-run' };
+  if (publishAt) parsed.publishAt = publishAt;
+  return parsed;
 }
 
 function getCanonicalSeed(slug) {
@@ -46,7 +53,7 @@ function getCanonicalSeed(slug) {
   return matches[0];
 }
 
-function buildCreatePayload({ slug, authorId, now = new Date() }) {
+function buildCreatePayload({ slug, authorId, now = new Date(), publishAt = null }) {
   const articleModule = getArticleModule(slug);
   if (!articleModule) throw new Error(`Unknown AdSense article slug: ${slug}`);
   if (!authorId) throw new Error('Existing guide author is required.');
@@ -58,8 +65,13 @@ function buildCreatePayload({ slug, authorId, now = new Date() }) {
   }
 
   const editorialPayload = articleModule.buildArticlePayload({ coverImageUrl });
-  const publishedAt = new Date(now);
-  if (Number.isNaN(publishedAt.getTime())) throw new Error('A valid publication timestamp is required.');
+  const reviewedAt = new Date(now);
+  if (Number.isNaN(reviewedAt.getTime())) throw new Error('A valid review timestamp is required.');
+  const scheduledAt = publishAt ? new Date(publishAt) : null;
+  if (scheduledAt && Number.isNaN(scheduledAt.getTime())) throw new Error('A valid scheduled publication timestamp is required.');
+  if (scheduledAt && scheduledAt <= reviewedAt) throw new Error('Scheduled publication timestamp must be in the future.');
+  const publishedAt = scheduledAt || reviewedAt;
+  const status = scheduledAt ? 'scheduled' : 'published';
 
   const payload = {
     authorId,
@@ -68,27 +80,27 @@ function buildCreatePayload({ slug, authorId, now = new Date() }) {
     templateKey: 'custom',
     coverImageUrl,
     galleryImageUrls: [],
-    status: 'published',
+    status,
     featured: false,
     views: 0,
     likesCount: 0,
     commentsCount: 0,
     isDeleted: false,
     publishedAt,
-    approvedAt: publishedAt,
+    approvedAt: status === 'published' ? reviewedAt : null,
     rejectionReason: '',
     moderationNotes: '',
     moderationFlags: [],
     moderationFlagSummary: ''
   };
-  Object.assign(payload, buildTrustedEditorialReview(payload, authorId, publishedAt));
+  Object.assign(payload, buildTrustedEditorialReview(payload, authorId, reviewedAt));
 
   const validationError = new Blog(payload).validateSync();
   if (validationError) throw validationError;
   return payload;
 }
 
-async function createAdsenseBlog({ slug, mode = 'dry-run', now = new Date() } = {}) {
+async function createAdsenseBlog({ slug, mode = 'dry-run', now = new Date(), publishAt = null } = {}) {
   if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is required.');
   if (!['dry-run', 'apply'].includes(mode)) throw new Error(`Unsupported create mode: ${mode}`);
   if (!getArticleModule(slug)) throw new Error(`Unknown AdSense article slug: ${slug}`);
@@ -103,7 +115,7 @@ async function createAdsenseBlog({ slug, mode = 'dry-run', now = new Date() } = 
     const author = await User.findOne({ email: GUIDE_AUTHOR_EMAIL, emailVerified: true, role: 'admin' }).select('_id email role').lean();
     if (!author) throw new Error(`Existing verified admin guide author not found: ${GUIDE_AUTHOR_EMAIL}`);
 
-    const payload = buildCreatePayload({ slug, authorId: author._id, now });
+    const payload = buildCreatePayload({ slug, authorId: author._id, now, publishAt });
     let createdId = null;
 
     if (mode === 'apply') {
@@ -120,6 +132,7 @@ async function createAdsenseBlog({ slug, mode = 'dry-run', now = new Date() } = 
       authorId: String(author._id),
       createdId,
       publishedAt: payload.publishedAt.toISOString(),
+      status: payload.status,
       featured: payload.featured,
       coverImageUrl: payload.coverImageUrl,
       wordCount: payload.contentText.split(/\s+/).filter(Boolean).length,
