@@ -36,7 +36,7 @@
 | Thu, Aug 13 | 19:00 Asia/Manila | 2026-08-13 11:00:00Z | Organizer | Organizer Guide | How to Design Fair Distance Categories and Challenge Goals | Scheduled — production record and CDN cover verified |
 | Sat, Aug 15 | 19:00 Asia/Manila | 2026-08-15 11:00:00Z | Runner | Injury Prevention | Post-Run Recovery Basics: Rest, Hydration, and When to Ease Back | Scheduled — production record and CDN cover verified |
 | Mon, Aug 17 | 19:00 Asia/Manila | 2026-08-17 11:00:00Z | Organizer | Virtual Run Guide | A Fair and Consistent Run-Proof Review Checklist for Organizers | Scheduled — production record and CDN cover verified |
-| Thu, Aug 20 | 19:00 Asia/Manila | 2026-08-20 11:00:00Z | Runner | Training | How to Build a Weekly Running Schedule Around Work or School | Candidate — Search Console validation pending |
+| Thu, Aug 20 | 19:00 Asia/Manila | 2026-08-20 11:00:00Z | Runner | Training | How to Build a Weekly Running Schedule Around Work or School | Scheduled — production record and CDN cover verified |
 | Sat, Aug 22 | 19:00 Asia/Manila | 2026-08-22 11:00:00Z | Organizer | Organizer Guide | Data Privacy Checklist for Running Event Organizers | Candidate — Search Console validation pending |
 | Mon, Aug 24 | 19:00 Asia/Manila | 2026-08-24 11:00:00Z | Runner | Race Tips | What to Bring on Race Day: A Checklist for On-Site and Hybrid Events | Candidate — Search Console validation pending |
 | Thu, Aug 27 | 19:00 Asia/Manila | 2026-08-27 11:00:00Z | Organizer | Community | How to Make Running Event Instructions More Inclusive and Accessible | Candidate — Search Console validation pending |
@@ -150,15 +150,23 @@
 
 ### 9. How to Build a Weekly Running Schedule Around Work or School
 
+- **Editorial status:** Scheduled for August 20; Search Console validation
+  remains pending and is not recorded as complete.
 - **Reader problem:** A runner needs a realistic routine that fits changing
   responsibilities instead of an inflexible daily plan.
-- **Distinct angle:** Show how to identify available time, mix effort and
-  easier days, preserve recovery, and revise the plan after missed sessions.
+- **Distinct angle:** Build Plan A, Plan B, and a minimum-viable week from
+  fixed, flexible, backup, and unavailable time while protecting recovery.
 - **Recommended internal links:**
+  `/blog/how-to-set-a-realistic-monthly-running-goal`,
   `/blog/how-to-stay-consistent-during-a-month-long-virtual-run`,
-  `/blog/beginners-guide-to-running-pace`, and `/events`.
-- **Source requirements:** WHO physical-activity guidance, CDC intensity
-  guidance, and explicit individual-variation limits.
+  `/blog/run-walk-method-beginner-friendly-way-build-endurance`,
+  `/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back`,
+  `/blog/how-to-choose-a-safe-route-for-your-virtual-run`, `/events`, and
+  `/faq`.
+- **Source requirements:** WHO population physical-activity guidance, CDC
+  barrier and relative-intensity guidance, an NHS rest-day example, PAGASA
+  weather products, current HelloRun status behavior, and explicit
+  individual-variation limits.
 
 ### 10. Data Privacy Checklist for Running Event Organizers
 

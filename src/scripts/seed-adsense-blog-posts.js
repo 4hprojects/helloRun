@@ -134,6 +134,10 @@ const {
   ARTICLE: FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_ARTICLE,
   buildArticlePayload: buildFairConsistentRunProofReviewChecklistPayload
 } = require('../content/fair-consistent-run-proof-review-checklist-guide');
+const {
+  ARTICLE: WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_ARTICLE,
+  buildArticlePayload: buildWeeklyRunningScheduleWorkSchoolPayload
+} = require('../content/weekly-running-schedule-work-school-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -202,6 +206,8 @@ const POST_RUN_RECOVERY_BASICS_COVER_IMAGE_URL = 'https://cdn.hellorun.online/bl
 const POST_RUN_RECOVERY_BASICS_PAYLOAD = buildPostRunRecoveryBasicsPayload({ coverImageUrl: POST_RUN_RECOVERY_BASICS_COVER_IMAGE_URL });
 const FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785685456907-509035887-fair-and-consistent-run-proof-review-checklist-for-organizers.webp';
 const FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_PAYLOAD = buildFairConsistentRunProofReviewChecklistPayload({ coverImageUrl: FAIR_CONSISTENT_RUN_PROOF_REVIEW_CHECKLIST_COVER_IMAGE_URL });
+const WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785686943864-648488379-how-to-build-a-weekly-running-schedule-around-work-or-school.webp';
+const WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_PAYLOAD = buildWeeklyRunningScheduleWorkSchoolPayload({ coverImageUrl: WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -976,6 +982,29 @@ const POSTS = [
       '/blog/why-a-virtual-run-submission-may-be-rejected',
       '/blog/how-accumulated-distance-challenges-work',
       '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers'
+    ]
+  },
+  {
+    ...WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_ARTICLE,
+    contentHtml: WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_PAYLOAD.contentHtml,
+    coverImageUrl: WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_COVER_IMAGE_URL,
+    coverImageAlt: WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_ARTICLE.coverImageAlt,
+    ogImageUrl: WEEKLY_RUNNING_SCHEDULE_WORK_SCHOOL_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-08-20T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/faq',
+      '/blog/how-to-set-a-realistic-monthly-running-goal',
+      '/blog/how-to-stay-consistent-during-a-month-long-virtual-run',
+      '/blog/run-walk-method-beginner-friendly-way-build-endurance',
+      '/blog/beginner-5k-training-plan-new-runners',
+      '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
+      '/blog/how-to-run-safely-during-hot-and-humid-weather',
+      '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge'
     ]
   }
 ];

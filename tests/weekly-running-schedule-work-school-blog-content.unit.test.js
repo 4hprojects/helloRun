@@ -27,31 +27,26 @@ const {
   REQUIRED_LINKS,
   buildArticlePayload,
   validateArticlePayload
-} = require('../src/content/post-run-recovery-basics-guide');
+} = require('../src/content/weekly-running-schedule-work-school-guide');
 
-const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785684194043-524731892-post-run-recovery-basics-rest-hydration-when-to-ease-back.webp';
+const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785686943864-648488379-how-to-build-a-weekly-running-schedule-around-work-or-school.webp';
 const COVER_IMAGE_PATH = path.join(
-  __dirname,
-  '..',
-  'src',
-  'public',
-  'images',
-  'blog',
-  'covers',
-  'post-run-recovery-basics-rest-hydration-when-to-ease-back.webp'
+  __dirname, '..', 'src', 'public', 'images', 'blog', 'covers',
+  'how-to-build-a-weekly-running-schedule-around-work-or-school.webp'
 );
 
-test('post-run recovery guide builds a substantive health-gated payload', () => {
+test('weekly running schedule builds a substantive, flexible planning guide', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const wordCount = payload.contentText.split(/\s+/).filter(Boolean).length;
 
   assert.equal(ARTICLE.slug, CANONICAL_SLUG);
-  assert.equal(payload.title, 'Post-Run Recovery Basics: Rest, Hydration, and When to Ease Back');
-  assert.equal(payload.category, 'Injury Prevention');
+  assert.equal(payload.title, 'How to Build a Weekly Running Schedule Around Work or School');
+  assert.equal(payload.category, 'Training');
   assert.ok(BLOG_CATEGORIES.includes(payload.category));
+  assert.equal(payload.tags.length, 8);
   assert.deepEqual(payload.tags, [
-    'post-run recovery', 'recovery basics', 'runner hydration', 'rest after running',
-    'muscle soreness', 'injury awareness', 'running safety', 'beginner runners'
+    'weekly run schedule', 'running routine', 'work life balance', 'student runners',
+    'shift work running', 'training calendar', 'runner recovery', 'virtual run planning'
   ]);
   assert.ok(payload.tags.every((tag) => tag.length <= 30));
   assert.ok(payload.excerpt.length <= 220);
@@ -65,13 +60,10 @@ test('post-run recovery guide builds a substantive health-gated payload', () => 
   assert.equal(payload.readingTime, Math.ceil(wordCount / 180));
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.doesNotThrow(() => validateArticlePayload(payload));
-
   assert.doesNotMatch(payload.contentHtml, /<h1\b/i);
-  assert.doesNotMatch(payload.contentHtml, /<h[12]>Post-Run Recovery Basics:/i);
-  assert.match(payload.contentText, /reviewed in August 2026 using World Health Organization/i);
-  assert.match(payload.contentText, /Approval means the evidence met the applicable platform and event review requirements/i);
-  assert.match(payload.contentText, /Contact local emergency services or obtain immediate medical help/i);
-  assert.match(payload.contentText, /After the next ordinary run, complete the worksheet once/i);
+  assert.match(payload.contentText, /reviewed in August 2026 using current World Health Organization/i);
+  assert.match(payload.contentText, /Platform approval is not a health or training-readiness assessment/i);
+  assert.match(payload.contentText, /Plan A, Plan B, and a minimum-viable week/i);
 
   for (const heading of REQUIRED_HEADINGS) {
     assert.ok(payload.contentHtml.includes(`<h2>${heading}</h2>`), `missing required heading: ${heading}`);
@@ -81,30 +73,28 @@ test('post-run recovery guide builds a substantive health-gated payload', () => 
   }
 });
 
-test('post-run recovery guide sanitizes official sources and passes health eligibility', () => {
+test('weekly running schedule sanitizes official sources and passes health eligibility', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const eligibility = evaluateBlogContentEligibility({
     ...payload,
     coverImageUrl: COVER_IMAGE_URL
-  }, { evaluatedAt: new Date('2026-08-02T00:00:00.000Z') });
+  }, { evaluatedAt: new Date('2026-08-03T00:00:00.000Z') });
 
   assert.equal(payload.contentHtml.includes('<script'), false);
   assert.equal(payload.contentHtml.includes('javascript:'), false);
   assert.notEqual(payload.contentHtml, RAW_CONTENT_HTML.trim());
   assert.match(payload.contentHtml, /href="https:\/\/www\.who\.int\/publications\/i\/item\/9789240015128" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.acsm\.org\/docs\/default-source\/nyshsi_resources\/resources\/sssi-nyshsi-recovery\.pdf" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.cdc\.gov\/physical-activity-basics\/overcoming-barriers\/index\.html" rel="noopener noreferrer" target="_blank"/);
   assert.match(payload.contentHtml, /href="https:\/\/www\.nhs\.uk\/better-health\/get-active\/get-running-with-couch-to-5k\/couch-to-5k-running-plan\/" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.nhs\.uk\/conditions\/sprains-and-strains\/" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.cdc\.gov\/heat-health\/risk-factors\/heat-and-athletes\.html" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.pagasa\.dost\.gov\.ph\/products-and-services" rel="noopener noreferrer" target="_blank"/);
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
   assert.equal(eligibility.healthReviewRequired, true);
   assert.ok(eligibility.wordCount >= 3200);
-  assert.ok(eligibility.semanticUnitCount >= 3);
   assert.equal(eligibility.externalLinkCount, 5);
 });
 
-test('post-run recovery guide uses a 1600 by 900 quiet documentary cover', async () => {
+test('weekly running schedule uses a distinct 1600 by 900 linocut cover', async () => {
   assert.equal(fs.existsSync(COVER_IMAGE_PATH), true);
   const metadata = await sharp(COVER_IMAGE_PATH).metadata();
   assert.equal(metadata.format, 'webp');
@@ -112,7 +102,7 @@ test('post-run recovery guide uses a 1600 by 900 quiet documentary cover', async
   assert.equal(metadata.height, 900);
 });
 
-test('post-run recovery guide is registered and seeded once for August 15', () => {
+test('weekly running schedule is registered and seeded once for August 20', () => {
   const articleModule = getArticleModule(CANONICAL_SLUG);
   const seededPosts = POSTS.filter((post) => post.slug === CANONICAL_SLUG);
   const seededPost = seededPosts[0];
@@ -127,15 +117,15 @@ test('post-run recovery guide is registered and seeded once for August 15', () =
   assert.equal(seededPost.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(seededPost.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(seededPost.status, 'scheduled');
-  assert.equal(seededPost.publishedAt, '2026-08-15T11:00:00.000Z');
+  assert.equal(seededPost.publishedAt, '2026-08-20T11:00:00.000Z');
   assert.equal(seededPost.featured, false);
   assert.equal(seededPost.authorEmail, GUIDE_AUTHOR_EMAIL);
 });
 
-test('post-run recovery guide supports exact health-reviewed scheduling and updates', () => {
+test('weekly running schedule supports exact eligible scheduling and updates', () => {
   const authorId = new mongoose.Types.ObjectId();
-  const reviewedAt = new Date('2026-08-02T16:00:00.000Z');
-  const publishAt = '2026-08-15T11:00:00.000Z';
+  const reviewedAt = new Date('2026-08-03T10:00:00.000Z');
+  const publishAt = '2026-08-20T11:00:00.000Z';
   const payload = buildCreatePayload({ slug: CANONICAL_SLUG, authorId, now: reviewedAt, publishAt });
 
   assert.deepEqual(
@@ -143,23 +133,24 @@ test('post-run recovery guide supports exact health-reviewed scheduling and upda
     { slug: CANONICAL_SLUG, mode: 'apply', publishAt }
   );
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
-  assert.equal(String(payload.authorId), String(authorId));
   assert.equal(payload.status, 'scheduled');
   assert.equal(payload.publishedAt.toISOString(), publishAt);
   assert.equal(payload.approvedAt, null);
+  assert.equal(payload.featured, false);
   assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
-  assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.contentEligibility.eligible, true);
   assert.equal(payload.contentEligibility.healthReviewRequired, true);
+  assert.equal(payload.publicationReview.originalityConfirmed, true);
+  assert.equal(payload.publicationReview.externalLinksConfirmed, true);
   assert.equal(payload.publicationReview.healthSafetyConfirmed, true);
   assert.equal(payload.publicationReview.healthChecks.healthExperienceConfirmed, true);
   assert.equal(payload.publicationReview.healthChecks.healthSourcesConfirmed, true);
   assert.equal(payload.publicationReview.healthChecks.healthSafetyConfirmed, true);
   assert.equal(payload.publicationReview.healthChecks.healthCredentialsConfirmed, true);
-  assert.match(packageJson.scripts['blog:update-post-run-recovery'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+  assert.match(packageJson.scripts['blog:update-weekly-running-schedule'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
-test('post-run recovery guide rejects diagnosis, dosing, and unsafe return claims', () => {
+test('weekly running schedule rejects unsafe or unsupported planning claims', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const withClaim = (claim) => ({
     ...payload,
@@ -167,12 +158,13 @@ test('post-run recovery guide rejects diagnosis, dosing, and unsafe return claim
     contentRaw: `${payload.contentText} ${claim}`
   });
 
-  assert.throws(() => validateArticlePayload(withClaim('This is definitely a strain.')), /diagnose symptoms/);
-  assert.throws(() => validateArticlePayload(withClaim('Everyone should drink exactly 500 ml.')), /universal hydration/);
-  assert.throws(() => validateArticlePayload(withClaim('Take painkillers after every run.')), /medication/);
-  assert.throws(() => validateArticlePayload(withClaim('Ignore the pain and continue.')), /continuing through pain/);
-  assert.throws(() => validateArticlePayload(withClaim('This guarantees injury prevention.')), /guarantee prevention/);
-  assert.throws(() => validateArticlePayload(withClaim('Approved evidence proves you are recovered.')), /health readiness/);
-  assert.throws(() => validateArticlePayload(withClaim('You should make up the run by doubling.')), /catch-up activity/);
+  assert.throws(() => validateArticlePayload(withClaim('Everyone should run exactly 5 times a week.')), /universal weekly frequency/);
+  assert.throws(() => validateArticlePayload(withClaim('This schedule guarantees event completion.')), /guarantee schedule outcomes/);
+  assert.throws(() => validateArticlePayload(withClaim('You should double the next session.')), /unsafe catch-up/);
+  assert.throws(() => validateArticlePayload(withClaim('Continue running through severe fatigue.')), /unsafe continuation/);
+  assert.throws(() => validateArticlePayload(withClaim('School is an excuse.')), /shame real-life constraints/);
+  assert.throws(() => validateArticlePayload(withClaim('WHO guidance is your individualized training plan.')), /individualize population guidance/);
+  assert.throws(() => validateArticlePayload(withClaim('Pending distance counts as approved progress.')), /unapproved distance/);
+  assert.throws(() => validateArticlePayload(withClaim('Platform approval proves physical readiness.')), /physical readiness/);
   assert.throws(() => buildArticlePayload(), /cover artwork/);
 });

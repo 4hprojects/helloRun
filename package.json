@@ -54,6 +54,7 @@
     "blog:update-fair-distance-categories": "node src/scripts/update-adsense-blog.js --slug how-to-design-fair-distance-categories-and-challenge-goals",
     "blog:update-post-run-recovery": "node src/scripts/update-adsense-blog.js --slug post-run-recovery-basics-rest-hydration-when-to-ease-back",
     "blog:update-fair-run-proof-review": "node src/scripts/update-adsense-blog.js --slug fair-and-consistent-run-proof-review-checklist-for-organizers",
+    "blog:update-weekly-running-schedule": "node src/scripts/update-adsense-blog.js --slug how-to-build-a-weekly-running-schedule-around-work-or-school",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",
