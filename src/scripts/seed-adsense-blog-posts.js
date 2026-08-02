@@ -146,6 +146,10 @@ const {
   ARTICLE: RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_ARTICLE,
   buildArticlePayload: buildRaceDayPackingOnsiteHybridEventsPayload
 } = require('../content/race-day-packing-onsite-hybrid-events-guide');
+const {
+  ARTICLE: INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_ARTICLE,
+  buildArticlePayload: buildInclusiveAccessibleRunningEventInstructionsPayload
+} = require('../content/inclusive-accessible-running-event-instructions-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -220,6 +224,8 @@ const DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_COVER_IMAGE_URL = 'https:/
 const DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_PAYLOAD = buildDataPrivacyChecklistRunningEventOrganizersPayload({ coverImageUrl: DATA_PRIVACY_CHECKLIST_RUNNING_EVENT_ORGANIZERS_COVER_IMAGE_URL });
 const RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785688505189-897783697-what-to-bring-race-day-onsite-hybrid-events.webp';
 const RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_PAYLOAD = buildRaceDayPackingOnsiteHybridEventsPayload({ coverImageUrl: RACE_DAY_PACKING_ONSITE_HYBRID_EVENTS_COVER_IMAGE_URL });
+const INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785689137471-354610662-inclusive-accessible-running-event-instructions.webp';
+const INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_PAYLOAD = buildInclusiveAccessibleRunningEventInstructionsPayload({ coverImageUrl: INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1058,6 +1064,26 @@ const POSTS = [
       '/blog/virtual-run-vs-traditional-race-which-one-should-you-join',
       '/blog/how-to-run-safely-during-hot-and-humid-weather',
       '/blog/how-to-choose-a-safe-route-for-your-virtual-run'
+    ]
+  },
+  {
+    ...INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_ARTICLE,
+    contentHtml: INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_PAYLOAD.contentHtml,
+    coverImageUrl: INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_COVER_IMAGE_URL,
+    coverImageAlt: INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_ARTICLE.coverImageAlt,
+    ogImageUrl: INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-08-27T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/community-guidelines',
+      '/how-it-works',
+      '/contact',
+      '/blog/how-schools-and-organizations-can-use-virtual-runs',
+      '/blog/how-to-write-clear-virtual-run-rules-participants-can-follow',
+      '/blog/participant-communication-timeline-virtual-running-events',
+      '/blog/why-a-virtual-run-submission-may-be-rejected'
     ]
   }
 ];

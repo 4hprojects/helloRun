@@ -13,35 +13,28 @@ const { getArticleModule, listArticleSlugs } = require('../src/content/adsense-b
 const { evaluateBlogContentEligibility } = require('../src/utils/blog-content-eligibility');
 const { BLOG_CATEGORIES } = require('../src/utils/blog');
 const {
-  GUIDE_AUTHOR_EMAIL,
-  buildCreatePayload,
-  getCanonicalSeed,
+  GUIDE_AUTHOR_EMAIL, buildCreatePayload, getCanonicalSeed,
   parseArguments: parseCreateArguments
 } = require('../src/scripts/create-adsense-blog');
 const { parseArguments: parseUpdateArguments } = require('../src/scripts/update-adsense-blog');
 const {
-  ARTICLE,
-  CANONICAL_SLUG,
-  RAW_CONTENT_HTML,
-  REQUIRED_HEADINGS,
-  REQUIRED_LINKS,
-  buildArticlePayload,
-  validateArticlePayload
-} = require('../src/content/data-privacy-checklist-running-event-organizers-guide');
+  ARTICLE, CANONICAL_SLUG, RAW_CONTENT_HTML, REQUIRED_HEADINGS, REQUIRED_LINKS,
+  buildArticlePayload, validateArticlePayload
+} = require('../src/content/inclusive-accessible-running-event-instructions-guide');
 
-const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785687764281-767893634-data-privacy-checklist-running-event-organizers.webp';
+const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785689137471-354610662-inclusive-accessible-running-event-instructions.webp';
 const COVER_IMAGE_PATH = path.join(
   __dirname, '..', 'src', 'public', 'images', 'blog', 'covers',
-  'data-privacy-checklist-running-event-organizers.webp'
+  'inclusive-accessible-running-event-instructions.webp'
 );
 
-test('organizer data privacy checklist builds a substantive source-grounded payload', () => {
+test('inclusive event instructions guide builds a substantive community payload', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const wordCount = payload.contentText.split(/\s+/).filter(Boolean).length;
 
   assert.equal(ARTICLE.slug, CANONICAL_SLUG);
-  assert.equal(payload.title, 'Data Privacy Checklist for Running Event Organizers');
-  assert.equal(payload.category, 'Organizer Guide');
+  assert.equal(payload.title, 'How to Make Running Event Instructions More Inclusive and Accessible');
+  assert.equal(payload.category, 'Community');
   assert.ok(BLOG_CATEGORIES.includes(payload.category));
   assert.equal(payload.tags.length, 8);
   assert.ok(payload.tags.every((tag) => tag.length <= 30));
@@ -57,19 +50,14 @@ test('organizer data privacy checklist builds a substantive source-grounded payl
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.doesNotThrow(() => validateArticlePayload(payload));
   assert.doesNotMatch(payload.contentHtml, /<h1\b/i);
-  assert.match(payload.contentText, /reviewed in August 2026 against the Philippine Data Privacy Act/i);
-  assert.match(payload.contentText, /operational education, not legal advice/i);
-  assert.match(payload.contentText, /Treat every export as a controlled new copy/i);
-
-  for (const heading of REQUIRED_HEADINGS) {
-    assert.ok(payload.contentHtml.includes(`<h2>${heading}</h2>`), `missing required heading: ${heading}`);
-  }
-  for (const link of REQUIRED_LINKS) {
-    assert.ok(payload.contentHtml.includes(link), `missing required link: ${link}`);
-  }
+  assert.match(payload.contentText, /reviewed in August 2026 using current World Wide Web Consortium/i);
+  assert.match(payload.contentText, /not an accessibility certification, conformance audit/i);
+  assert.match(payload.contentText, /recorded, submitted, pending review, approved, and rejected/i);
+  for (const heading of REQUIRED_HEADINGS) assert.ok(payload.contentHtml.includes(`<h2>${heading}</h2>`));
+  for (const link of REQUIRED_LINKS) assert.ok(payload.contentHtml.includes(link));
 });
 
-test('organizer data privacy checklist sanitizes official sources and passes eligibility', () => {
+test('inclusive event instructions guide sanitizes W3C sources and passes eligibility', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const eligibility = evaluateBlogContentEligibility(payload, {
     evaluatedAt: new Date('2026-08-03T00:00:00.000Z')
@@ -78,17 +66,17 @@ test('organizer data privacy checklist sanitizes official sources and passes eli
   assert.equal(payload.contentHtml.includes('<script'), false);
   assert.equal(payload.contentHtml.includes('javascript:'), false);
   assert.notEqual(payload.contentHtml, RAW_CONTENT_HTML.trim());
-  assert.match(payload.contentHtml, /href="https:\/\/privacy\.gov\.ph\/data-privacy-act\/" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/privacy\.gov\.ph\/implementing-rules-regulations-data-privacy-act-2012\/" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/privacy\.gov\.ph\/data-subject-rights\/" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/WAI\/tips\/writing\/" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/WAI\/tutorials\/page-structure\/" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/TR\/WCAG22\/" rel="noopener noreferrer" target="_blank"/);
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
   assert.equal(eligibility.healthReviewRequired, true);
   assert.ok(eligibility.wordCount >= 3200);
-  assert.equal(eligibility.externalLinkCount, 4);
+  assert.equal(eligibility.externalLinkCount, 5);
 });
 
-test('organizer data privacy checklist uses a distinct 1600 by 900 paper-theatre cover', async () => {
+test('inclusive event instructions guide uses a distinct embroidered 1600 by 900 cover', async () => {
   assert.equal(fs.existsSync(COVER_IMAGE_PATH), true);
   const metadata = await sharp(COVER_IMAGE_PATH).metadata();
   assert.equal(metadata.format, 'webp');
@@ -96,7 +84,7 @@ test('organizer data privacy checklist uses a distinct 1600 by 900 paper-theatre
   assert.equal(metadata.height, 900);
 });
 
-test('organizer data privacy checklist is registered and seeded once for August 22', () => {
+test('inclusive event instructions guide is registered and seeded once for August 27', () => {
   const articleModule = getArticleModule(CANONICAL_SLUG);
   const seededPosts = POSTS.filter((post) => post.slug === CANONICAL_SLUG);
   const seededPost = seededPosts[0];
@@ -109,21 +97,18 @@ test('organizer data privacy checklist is registered and seeded once for August 
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
   assert.equal(htmlToText(seededPost.contentHtml), buildArticlePayload({ coverImageUrl: seededPost.coverImageUrl }).contentText);
   assert.equal(seededPost.coverImageUrl, COVER_IMAGE_URL);
-  assert.equal(seededPost.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(seededPost.status, 'scheduled');
-  assert.equal(seededPost.publishedAt, '2026-08-22T11:00:00.000Z');
+  assert.equal(seededPost.publishedAt, '2026-08-27T11:00:00.000Z');
   assert.equal(seededPost.featured, false);
   assert.equal(seededPost.authorEmail, GUIDE_AUTHOR_EMAIL);
 });
 
-test('organizer data privacy checklist supports exact eligible scheduling and updates', () => {
+test('inclusive event instructions guide supports exact eligible scheduling and updates', () => {
   const authorId = new mongoose.Types.ObjectId();
-  const publishAt = '2026-08-22T11:00:00.000Z';
+  const publishAt = '2026-08-27T11:00:00.000Z';
   const payload = buildCreatePayload({
-    slug: CANONICAL_SLUG,
-    authorId,
-    now: new Date('2026-08-03T10:00:00.000Z'),
-    publishAt
+    slug: CANONICAL_SLUG, authorId,
+    now: new Date('2026-08-03T10:00:00.000Z'), publishAt
   });
 
   assert.deepEqual(
@@ -143,10 +128,10 @@ test('organizer data privacy checklist supports exact eligible scheduling and up
   assert.equal(payload.publicationReview.healthChecks.healthSourcesConfirmed, true);
   assert.equal(payload.publicationReview.healthChecks.healthSafetyConfirmed, true);
   assert.equal(payload.publicationReview.healthChecks.healthCredentialsConfirmed, true);
-  assert.match(packageJson.scripts['blog:update-organizer-data-privacy'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+  assert.match(packageJson.scripts['blog:update-accessible-event-instructions'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
-test('organizer data privacy checklist rejects unsafe or unsupported privacy claims', () => {
+test('inclusive event instructions guide rejects unsupported accessibility claims', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const withClaim = (claim) => ({
     ...payload,
@@ -154,13 +139,13 @@ test('organizer data privacy checklist rejects unsafe or unsupported privacy cla
     contentRaw: `${payload.contentText} ${claim}`
   });
 
-  assert.throws(() => validateArticlePayload(withClaim('This checklist guarantees compliance.')), /certify compliance/);
-  assert.throws(() => validateArticlePayload(withClaim('Consent is always the lawful basis.')), /oversimplify lawful basis/);
-  assert.throws(() => validateArticlePayload(withClaim('All personal data must be deleted immediately.')), /universal retention/);
-  assert.throws(() => validateArticlePayload(withClaim('Every incident must trigger notification.')), /predetermine notification/);
-  assert.throws(() => validateArticlePayload(withClaim('Proof images are public.')), /private review material/);
-  assert.throws(() => validateArticlePayload(withClaim('Organizers may collect any data.')), /excessive collection/);
-  assert.throws(() => validateArticlePayload(withClaim('Approved results prove identity.')), /overstate approval/);
-  assert.throws(() => validateArticlePayload(withClaim('Downloaded exports remain protected automatically.')), /export protection/);
+  assert.throws(() => validateArticlePayload(withClaim('This checklist certifies accessibility.')), /certify accessibility/);
+  assert.throws(() => validateArticlePayload(withClaim('Everyone can participate.')), /universal participation/);
+  assert.throws(() => validateArticlePayload(withClaim('Alt text alone makes an image accessible.')), /oversimplify accessibility/);
+  assert.throws(() => validateArticlePayload(withClaim('Use only green to show status.')), /color alone/);
+  assert.throws(() => validateArticlePayload(withClaim('Every venue is wheelchair accessible.')), /invent accessibility support/);
+  assert.throws(() => validateArticlePayload(withClaim('Participants must publicly disclose disability.')), /unsafe assumptions or disclosure/);
+  assert.throws(() => validateArticlePayload(withClaim('All accommodations are available.')), /guarantee accommodations/);
+  assert.throws(() => validateArticlePayload(withClaim('Pending results count as approved.')), /preserve review states/);
   assert.throws(() => buildArticlePayload(), /cover artwork/);
 });
