@@ -88,7 +88,7 @@ test('submission-rejection guide is registered, canonical, and seeded once with 
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 29);
+  assert.equal(listArticleSlugs().length, 30);
   assert.equal(getCanonicalBlogSlug(CANONICAL_SLUG), '');
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);

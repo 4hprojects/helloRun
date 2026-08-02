@@ -27,9 +27,9 @@ const {
   REQUIRED_LINKS,
   buildArticlePayload,
   validateArticlePayload
-} = require('../src/content/choose-safe-virtual-run-route-guide');
+} = require('../src/content/fair-distance-categories-challenge-goals-guide');
 
-const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785678117646-898427735-how-to-choose-a-safe-route-for-your-virtual-run.webp';
+const COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785680107500-610435147-how-to-design-fair-distance-categories-and-challenge-goals.webp';
 const COVER_IMAGE_PATH = path.join(
   __dirname,
   '..',
@@ -38,20 +38,20 @@ const COVER_IMAGE_PATH = path.join(
   'images',
   'blog',
   'covers',
-  'how-to-choose-a-safe-route-for-your-virtual-run.webp'
+  'how-to-design-fair-distance-categories-and-challenge-goals.webp'
 );
 
-test('safe virtual-run route guide builds a substantive race-tips payload', () => {
+test('fair distance categories guide builds a substantive organizer payload', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const wordCount = payload.contentText.split(/\s+/).filter(Boolean).length;
 
   assert.equal(ARTICLE.slug, CANONICAL_SLUG);
-  assert.equal(payload.title, 'How to Choose a Safe Route for Your Virtual Run');
-  assert.equal(payload.category, 'Race Tips');
+  assert.equal(payload.title, 'How to Design Fair Distance Categories and Challenge Goals');
+  assert.equal(payload.category, 'Organizer Guide');
   assert.ok(BLOG_CATEGORIES.includes(payload.category));
   assert.deepEqual(payload.tags, [
-    'running route safety', 'virtual run route', 'runner safety', 'route planning',
-    'Philippines running', 'weather awareness', 'pedestrian safety', 'virtual race tips'
+    'event categories', 'distance goals', 'virtual run organizer', 'accumulated challenge',
+    'race distance design', 'event pricing', 'leaderboard rules', 'organizer guide'
   ]);
   assert.ok(payload.tags.every((tag) => tag.length <= 30));
   assert.ok(payload.excerpt.length <= 220);
@@ -67,11 +67,11 @@ test('safe virtual-run route guide builds a substantive race-tips payload', () =
   assert.doesNotThrow(() => validateArticlePayload(payload));
 
   assert.doesNotMatch(payload.contentHtml, /<h1\b/i);
-  assert.doesNotMatch(payload.contentHtml, /<h[12]>How to Choose a Safe Route/i);
-  assert.match(payload.contentText, /No public route is completely safe/i);
-  assert.match(payload.contentText, /Pending evidence awaits the applicable checks/i);
-  assert.match(payload.contentText, /reviewed in August 2026 using current Philippine Atmospheric/i);
-  assert.match(payload.contentText, /Choose two candidate routes and complete the assessment/i);
+  assert.doesNotMatch(payload.contentHtml, /<h[12]>How to Design Fair Distance Categories/i);
+  assert.match(payload.contentText, /selected race category stored with the registration/i);
+  assert.match(payload.contentText, /Pending activity remains separate and does not enter official ordering/i);
+  assert.match(payload.contentText, /reviewed in August 2026 against current HelloRun/i);
+  assert.match(payload.contentText, /Draft no more than the categories the event genuinely needs/i);
 
   for (const heading of REQUIRED_HEADINGS) {
     assert.ok(payload.contentHtml.includes(`<h2>${heading}</h2>`), `missing required heading: ${heading}`);
@@ -81,7 +81,7 @@ test('safe virtual-run route guide builds a substantive race-tips payload', () =
   }
 });
 
-test('safe virtual-run route guide sanitizes sources and passes publication eligibility', () => {
+test('fair distance categories guide sanitizes sources and passes eligibility', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const eligibility = evaluateBlogContentEligibility({
     ...payload,
@@ -91,10 +91,10 @@ test('safe virtual-run route guide sanitizes sources and passes publication elig
   assert.equal(payload.contentHtml.includes('<script'), false);
   assert.equal(payload.contentHtml.includes('javascript:'), false);
   assert.notEqual(payload.contentHtml, RAW_CONTENT_HTML.trim());
-  assert.match(payload.contentHtml, /href="https:\/\/www\.pagasa\.dost\.gov\.ph\/products-and-services" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.pagasa\.dost\.gov\.ph\/learning-tools\/floods" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.nhtsa\.gov\/road-safety\/pedestrian-safety" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.dpwh\.gov\.ph\/dpwh\/sites\/default\/files\/issuances\/DO_062_S2011\.pdf" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.rrca\.org\/programs\/race-director-certification\/race-director-code-of-ethics\/" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/WAI\/WCAG22\/Understanding\/labels-or-instructions" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/WAI\/curricula\/content-author-modules\/forms\/" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/worldathletics\.org\/about-iaaf\/documents\/book-of-rules" rel="noopener noreferrer" target="_blank"/);
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
   assert.equal(eligibility.healthReviewRequired, true);
@@ -103,7 +103,7 @@ test('safe virtual-run route guide sanitizes sources and passes publication elig
   assert.equal(eligibility.externalLinkCount, 4);
 });
 
-test('safe virtual-run route guide uses a 1600 by 900 isometric cover', async () => {
+test('fair distance categories guide uses a 1600 by 900 editorial blueprint cover', async () => {
   assert.equal(fs.existsSync(COVER_IMAGE_PATH), true);
   const metadata = await sharp(COVER_IMAGE_PATH).metadata();
   assert.equal(metadata.format, 'webp');
@@ -111,7 +111,7 @@ test('safe virtual-run route guide uses a 1600 by 900 isometric cover', async ()
   assert.equal(metadata.height, 900);
 });
 
-test('safe virtual-run route guide is registered and seeded once for August 10', () => {
+test('fair distance categories guide is registered and seeded once for August 13', () => {
   const articleModule = getArticleModule(CANONICAL_SLUG);
   const seededPosts = POSTS.filter((post) => post.slug === CANONICAL_SLUG);
   const seededPost = seededPosts[0];
@@ -126,15 +126,15 @@ test('safe virtual-run route guide is registered and seeded once for August 10',
   assert.equal(seededPost.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(seededPost.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(seededPost.status, 'scheduled');
-  assert.equal(seededPost.publishedAt, '2026-08-10T11:00:00.000Z');
+  assert.equal(seededPost.publishedAt, '2026-08-13T11:00:00.000Z');
   assert.equal(seededPost.featured, false);
   assert.equal(seededPost.authorEmail, GUIDE_AUTHOR_EMAIL);
 });
 
-test('safe virtual-run route guide supports exact future scheduling and updates', () => {
+test('fair distance categories guide supports exact future scheduling and updates', () => {
   const authorId = new mongoose.Types.ObjectId();
-  const reviewedAt = new Date('2026-08-02T14:00:00.000Z');
-  const publishAt = '2026-08-10T11:00:00.000Z';
+  const reviewedAt = new Date('2026-08-02T15:00:00.000Z');
+  const publishAt = '2026-08-13T11:00:00.000Z';
   const payload = buildCreatePayload({ slug: CANONICAL_SLUG, authorId, now: reviewedAt, publishAt });
 
   assert.deepEqual(
@@ -151,10 +151,10 @@ test('safe virtual-run route guide supports exact future scheduling and updates'
   assert.equal(payload.contentEligibility.eligible, true);
   assert.equal(payload.publicationReview.policyVersion, 'ugc-adsense-v1');
   assert.equal(payload.publicationReview.originalityConfirmed, true);
-  assert.match(packageJson.scripts['blog:update-safe-virtual-run-route'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+  assert.match(packageJson.scripts['blog:update-fair-distance-categories'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
-test('safe virtual-run route guide rejects unsafe or unsupported claims', () => {
+test('fair distance categories guide rejects unsupported fairness and result claims', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const withClaim = (claim) => ({
     ...payload,
@@ -162,12 +162,12 @@ test('safe virtual-run route guide rejects unsafe or unsupported claims', () => 
     contentRaw: `${payload.contentText} ${claim}`
   });
 
-  assert.throws(() => validateArticlePayload(withClaim('This route is completely safe.')), /route safety/);
-  assert.throws(() => validateArticlePayload(withClaim('A favorable forecast means safe weather.')), /forecasts/);
-  assert.throws(() => validateArticlePayload(withClaim('Run through floodwater.')), /floodwater/);
-  assert.throws(() => validateArticlePayload(withClaim('Visibility clothing makes a road safe.')), /visibility/);
-  assert.throws(() => validateArticlePayload(withClaim('Every event accepts treadmill running.')), /event acceptance/);
-  assert.throws(() => validateArticlePayload(withClaim('Pending evidence counts as official progress.')), /pending evidence/);
-  assert.throws(() => validateArticlePayload(withClaim('Every submission is automatically approved.')), /automatic approval/);
+  assert.throws(() => validateArticlePayload(withClaim('Any distance is fair for everyone.')), /universal fairness/);
+  assert.throws(() => validateArticlePayload(withClaim('Standard road distances are mandatory for virtual events.')), /standard road distances/);
+  assert.throws(() => validateArticlePayload(withClaim('Pending distance counts toward official progress.')), /pending results/);
+  assert.throws(() => validateArticlePayload(withClaim('Categories automatically guarantee accessibility.')), /accessibility/);
+  assert.throws(() => validateArticlePayload(withClaim('Every registration is automatically approved.')), /automatic approval/);
+  assert.throws(() => validateArticlePayload(withClaim('Certificates are guaranteed.')), /recognition/);
+  assert.throws(() => validateArticlePayload(withClaim('Leaderboard placement is guaranteed.')), /recognition/);
   assert.throws(() => buildArticlePayload(), /cover artwork/);
 });

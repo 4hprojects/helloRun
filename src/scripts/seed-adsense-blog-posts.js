@@ -122,6 +122,10 @@ const {
   ARTICLE: CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_ARTICLE,
   buildArticlePayload: buildChooseSafeVirtualRunRoutePayload
 } = require('../content/choose-safe-virtual-run-route-guide');
+const {
+  ARTICLE: FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_ARTICLE,
+  buildArticlePayload: buildFairDistanceCategoriesChallengeGoalsPayload
+} = require('../content/fair-distance-categories-challenge-goals-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -184,6 +188,8 @@ const PARTICIPANT_COMMUNICATION_TIMELINE_COVER_IMAGE_URL = 'https://cdn.hellorun
 const PARTICIPANT_COMMUNICATION_TIMELINE_PAYLOAD = buildParticipantCommunicationTimelinePayload({ coverImageUrl: PARTICIPANT_COMMUNICATION_TIMELINE_COVER_IMAGE_URL });
 const CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785678117646-898427735-how-to-choose-a-safe-route-for-your-virtual-run.webp';
 const CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_PAYLOAD = buildChooseSafeVirtualRunRoutePayload({ coverImageUrl: CHOOSE_SAFE_VIRTUAL_RUN_ROUTE_COVER_IMAGE_URL });
+const FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785680107500-610435147-how-to-design-fair-distance-categories-and-challenge-goals.webp';
+const FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_PAYLOAD = buildFairDistanceCategoriesChallengeGoalsPayload({ coverImageUrl: FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -894,6 +900,27 @@ const POSTS = [
       '/blog/what-counts-as-valid-run-proof',
       '/blog/what-to-do-when-gps-tracking-stops-during-a-run',
       '/blog/how-to-record-a-treadmill-run-for-a-virtual-event'
+    ]
+  },
+  {
+    ...FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_ARTICLE,
+    contentHtml: FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_PAYLOAD.contentHtml,
+    coverImageUrl: FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_COVER_IMAGE_URL,
+    coverImageAlt: FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_ARTICLE.coverImageAlt,
+    ogImageUrl: FAIR_DISTANCE_CATEGORIES_CHALLENGE_GOALS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-08-13T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/how-it-works',
+      '/events',
+      '/organiser-terms',
+      '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers',
+      '/blog/how-to-write-clear-virtual-run-rules-participants-can-follow',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
+      '/blog/how-leaderboards-work-virtual-running-events'
     ]
   }
 ];
