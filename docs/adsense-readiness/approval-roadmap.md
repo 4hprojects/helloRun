@@ -55,25 +55,34 @@ Remove known broken public navigation and prevent new eligible content from publ
 
 ### Implementation Checklist
 
-- [ ] Replace `/blog/how-to-choose-between-running-distances` with the canonical distance-choice article URL in the schools and organizations guide and its seed metadata.
-- [ ] Replace the Training-category `View your results` destination at `/runner` with a valid public or authentication-aware destination.
-- [ ] Add regression coverage for both destinations.
-- [ ] Add or document a repeatable public internal-link crawl that distinguishes real failures from Cloudflare email-protection links and intentional redirects.
+- [x] Replace `/blog/how-to-choose-between-running-distances` with the canonical distance-choice article URL in the schools and organizations guide and its seed metadata.
+- [x] Replace the Training-category `View your results` destination at `/runner` with a valid public or authentication-aware destination.
+- [x] Add regression coverage for both destinations.
+- [x] Add or document a repeatable public internal-link crawl that distinguishes real failures from Cloudflare email-protection links and intentional redirects.
 
 ### Acceptance Criteria
 
 - [ ] Both known broken links resolve without an actionable `4xx` response for an anonymous visitor.
-- [ ] The canonical distance-choice URL is used consistently in article content, seed links, and tests.
+- [x] The canonical distance-choice URL is used consistently in article content, seed links, and tests.
 - [ ] Every same-origin link discovered from sitemap pages returns `2xx`, an intentional `3xx`, or is explicitly documented as a non-navigational provider route.
 - [ ] Focused tests and the public-link crawl pass.
 
 ### Verification Evidence
 
-Pending.
+- Source commits pushed to `main` on August 2, 2026:
+  - `042f959` — public-link fixes, compatibility redirect, reusable crawl command, and regression tests.
+  - `eed3800` — no-content deployment retrigger after production remained on the previous build.
+- Focused verification passed: 22 tests, 0 failures.
+- Full unit verification passed: 956 tests, 0 failures.
+- The production schools and organizations guide was reconciled with the canonical distance-choice URL. A follow-up dry run reported `changedFields: []`, and the live page contains the canonical URL with the obsolete URL absent.
+- The pre-deployment production crawl found 46 sitemap pages, 108 unique same-origin links, and the two expected actionable `404` failures.
+- After the article reconciliation, the production crawl found 46 sitemap pages, 107 unique same-origin links, and one remaining actionable `404`: `/runner`, linked from six Training guides.
+- Anonymous `/runner/submissions` requests correctly finish at `/login`, confirming the replacement destination is authentication-aware.
+- Deployment blocker observed August 2, 2026: production still returns `404` for the compatibility slug and still renders `/runner`, so the application build containing `042f959` is not live. GitHub reports DigitalOcean check suites for `042f959` and `eed3800` as `queued` with no check runs; the workspace has no DigitalOcean or Render deployment credentials, and GitHub denied a check-suite rerequest.
 
 ### Completion Note
 
-Pending.
+Pending production deployment and a zero-failure public-link crawl. Do not advance Priority 2 until both are recorded.
 
 ## Priority 2 — Event Heading Hierarchy
 
