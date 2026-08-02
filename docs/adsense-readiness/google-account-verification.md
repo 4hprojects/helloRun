@@ -66,6 +66,9 @@ The repository-controlled release gate passed without changing deployment infras
 - Metadata audit: 46 sitemap HTML pages, zero findings; `robots.txt`, `sitemap.xml`, and `ads.txt` returned `200`.
 - Public HTML loaded the Google AdSense bootstrap and rendered zero manual ad units.
 - `ADSENSE_MANUAL_PLACEMENTS_ENABLED` was unset in the PM2 process.
-- Privacy v1.7 and Cookie Policy v1.5 drafts were prepared idempotently for full-admin review. Published versions remain Privacy v1.4 and Cookie Policy v1.3 until that review is completed.
+- Privacy v1.7 and Cookie Policy v1.5 were published through the normal full-admin workflow and are the sole current versions.
+- Both policy pages return `200`, render exactly one `<h1>`, contain the expected Google CMP separation wording, and render no manual ad unit.
+- Privacy and Cookie Policy notice delivery completed successfully for 482 eligible accounts each with no recorded delivery error.
+- Post-publication link and metadata audits remained clean: 46 sitemap pages, 106 internal links, and zero findings.
 
 This production evidence does not verify Google’s account-side ownership, `ads.txt` authorization result, Policy Center, account tasks, CMP publication, Search Console indexing, or site-review status. Those rows remain pending until checked in the authenticated Google interfaces.

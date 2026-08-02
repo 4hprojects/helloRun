@@ -13,9 +13,9 @@ Current active state:
 | 1 | Public link integrity | **Complete** | None |
 | 2 | Event heading hierarchy | **Complete** | Priority 1 complete |
 | 3 | Metadata and crawl hygiene | **Complete** | Priority 2 complete |
-| 4 | Advertising consent architecture | Production implementation verified; policy publication and Google account verification pending | Priority 3 complete |
+| 4 | Advertising consent architecture | Policies published; Google account verification pending | Priority 3 complete |
 | 5 | SEO keyword quality | Repository mapping complete; Search Console review pending | Priority 4 account verification |
-| 6 | Production quality audit | Release audit passed; post-policy spot check pending | Priority 5 complete |
+| 6 | Production quality audit | **Complete** | Priority 5 complete |
 | 7 | Indexing and approval gate | Blocked | Priority 6 complete |
 
 ## One-Priority Operating Rule
@@ -178,7 +178,7 @@ Completed August 2, 2026 after the production metadata and crawl-signal audit pa
 
 ## Priority 4 — Advertising Consent Architecture
 
-**Status:** Production implementation verified; policy publication and Google account verification pending
+**Status:** Policies published; Google account verification pending
 **Dependency:** Priority 3 complete
 
 ### Objective
@@ -209,9 +209,11 @@ Make Google’s certified CMP authoritative for advertising consent while HelloR
 - Google ad consent defaults remain denied for the certified CMP to update; HelloRun updates only Analytics consent.
 - Account-side Google Privacy & Messaging configuration remains unverified.
 - The authenticated account checklist and official Google references are recorded in [`google-account-verification.md`](google-account-verification.md).
-- Updated Privacy and Cookie policy sources require the normal draft review and publication workflow before their public production wording changes.
+- Updated Privacy and Cookie policy sources were published through the normal full-admin workflow.
 - Production rendered the Google AdSense bootstrap and zero manual ad units with the manual-placement environment gate unset.
-- The normal draft workflow retained published Privacy v1.4 and Cookie Policy v1.3 and prepared idempotent Privacy v1.7 and Cookie Policy v1.5 drafts. Full-admin review and publication remain pending.
+- Privacy v1.7 and Cookie Policy v1.5 are the sole current published versions. Both public pages return `200`, render exactly one `<h1>`, show the expected Google CMP ownership wording, and contain no manual ad unit.
+- Both policy notice batches completed successfully for 482 eligible accounts with no recorded delivery error.
+- The missing Mongoose dependency that initially blocked admin policy version loading and publication was fixed in `cf0ff25`; focused verification passed 30/30 and the full DB-free unit suite passed 966/966.
 
 ### Completion Note
 
@@ -253,7 +255,7 @@ Pending.
 
 ## Priority 6 — Production Quality Audit
 
-**Status:** Release audit passed; post-policy spot check pending
+**Status:** Complete
 **Dependency:** Priority 5 complete
 
 ### Objective
@@ -264,17 +266,17 @@ Repeat the complete production audit after all repository-controlled approval wo
 
 - [x] Audit sitemap responses, internal links, images, titles, descriptions, canonicals, headings, and robots directives.
 - [x] Review homepage, events, event details, blog, representative articles, trust pages, and policy pages on desktop and mobile widths.
-- [ ] Check navigation, focus behavior, horizontal overflow, unexpected dialogs, placeholders, duplicate content, and misleading claims.
+- [x] Check navigation, focus behavior, horizontal overflow, unexpected dialogs, placeholders, duplicate content, and misleading claims.
 - [x] Run focused AdSense readiness tests and the full unit suite.
 - [x] Record commands, production URLs, counts, results, screenshots where useful, and accepted limitations.
 
 ### Acceptance Criteria
 
-- [ ] No actionable broken public link or image remains.
-- [ ] No sitemap page has a metadata, heading, response, or indexing defect.
-- [ ] Public pages remain useful and operable at 320px, common mobile, tablet, and desktop widths.
-- [ ] Focused tests and the full unit suite pass.
-- [ ] Any accepted limitation is non-blocking, justified, and recorded here.
+- [x] No actionable broken public link or image remains.
+- [x] No sitemap page has a metadata, heading, response, or indexing defect.
+- [x] Public pages remain useful and operable at 320px, common mobile, tablet, and desktop widths.
+- [x] Focused tests and the full unit suite pass.
+- [x] Any accepted limitation is non-blocking, justified, and recorded here.
 
 ### Verification Evidence
 
@@ -282,13 +284,14 @@ Repeat the complete production audit after all repository-controlled approval wo
 - Image audit: 82 unique images referenced by 46 sitemap pages, zero failures.
 - Metadata audit: 46 sitemap HTML pages and three required public files, zero findings.
 - Responsive browser screenshots covered core public and policy surfaces at 320px, 768px, and 1440px.
-- Release-focused tests passed 49/49; full DB-free unit tests passed 965/965.
+- Release-focused tests passed 49/49; the policy hotfix suite passed 30/30; the final full DB-free unit suite passed 966/966.
 - The known Supabase shadow-sync DNS warning is recorded as a non-blocking operational limitation because the application and readiness checks remained healthy.
-- A final Privacy and Cookie Policy spot check remains required after their reviewed drafts are published.
+- After policy publication, the link audit again checked 46 sitemap pages and 106 links with zero failures, while the metadata audit checked 46 HTML pages and three required public files with zero findings.
+- Privacy v1.7 and Cookie Policy v1.5 public rendering and notice completion passed the final policy spot check.
 
 ### Completion Note
 
-Pending.
+Completed August 2, 2026 after the release audit, policy publication, post-publication crawls, and notice delivery checks passed.
 
 ## Priority 7 — Indexing And Approval Gate
 
