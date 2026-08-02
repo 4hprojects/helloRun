@@ -154,6 +154,10 @@ const {
   ARTICLE: RETURNING_TO_RUNNING_AFTER_BREAK_ARTICLE,
   buildArticlePayload: buildReturningToRunningAfterBreakPayload
 } = require('../content/returning-to-running-after-break-guide');
+const {
+  ARTICLE: CLOSE_VIRTUAL_RUN_FINAL_REVIEWS_RESULTS_RECOGNITION_ARTICLE,
+  buildArticlePayload: buildCloseVirtualRunFinalReviewsResultsRecognitionPayload
+} = require('../content/close-virtual-run-final-reviews-results-recognition-guide');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -232,6 +236,8 @@ const INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_COVER_IMAGE_URL = 'https:/
 const INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_PAYLOAD = buildInclusiveAccessibleRunningEventInstructionsPayload({ coverImageUrl: INCLUSIVE_ACCESSIBLE_RUNNING_EVENT_INSTRUCTIONS_COVER_IMAGE_URL });
 const RETURNING_TO_RUNNING_AFTER_BREAK_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785689975436-85185858-returning-to-running-after-a-break-gradual-restart.webp';
 const RETURNING_TO_RUNNING_AFTER_BREAK_PAYLOAD = buildReturningToRunningAfterBreakPayload({ coverImageUrl: RETURNING_TO_RUNNING_AFTER_BREAK_COVER_IMAGE_URL });
+const CLOSE_VIRTUAL_RUN_FINAL_REVIEWS_RESULTS_RECOGNITION_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785690759825-213037969-close-virtual-run-final-reviews-results-recognition.webp';
+const CLOSE_VIRTUAL_RUN_FINAL_REVIEWS_RESULTS_RECOGNITION_PAYLOAD = buildCloseVirtualRunFinalReviewsResultsRecognitionPayload({ coverImageUrl: CLOSE_VIRTUAL_RUN_FINAL_REVIEWS_RESULTS_RECOGNITION_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1110,6 +1116,26 @@ const POSTS = [
       '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
       '/blog/how-to-run-safely-during-hot-and-humid-weather',
       '/blog/beginner-5k-training-plan-new-runners'
+    ]
+  },
+  {
+    ...CLOSE_VIRTUAL_RUN_FINAL_REVIEWS_RESULTS_RECOGNITION_ARTICLE,
+    contentHtml: CLOSE_VIRTUAL_RUN_FINAL_REVIEWS_RESULTS_RECOGNITION_PAYLOAD.contentHtml,
+    coverImageUrl: CLOSE_VIRTUAL_RUN_FINAL_REVIEWS_RESULTS_RECOGNITION_COVER_IMAGE_URL,
+    coverImageAlt: CLOSE_VIRTUAL_RUN_FINAL_REVIEWS_RESULTS_RECOGNITION_ARTICLE.coverImageAlt,
+    ogImageUrl: CLOSE_VIRTUAL_RUN_FINAL_REVIEWS_RESULTS_RECOGNITION_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-08-31T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/how-it-works',
+      '/faq',
+      '/organiser-terms',
+      '/privacy',
+      '/blog/fair-and-consistent-run-proof-review-checklist-for-organizers',
+      '/blog/how-accumulated-distance-challenges-work'
     ]
   }
 ];
