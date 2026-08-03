@@ -1,7 +1,11 @@
 const crypto = require('crypto');
 const express = require('express');
 const router = express.Router();
-const { requireAuth } = require('../middleware/auth.middleware');
+const {
+  requireAuth,
+  requireRunnerWorkspace,
+  requireRunnerWorkspaceJson
+} = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const stravaService = require('../services/strava.service');
@@ -19,7 +23,7 @@ const stravaSubmissionLimiter = createRateLimiter({
   message: 'Too many Strava result submissions. Please wait a few minutes and try again.'
 });
 
-router.get('/integrations/strava/connect', requireAuth, (req, res) => {
+router.get('/integrations/strava/connect', requireAuth, requireRunnerWorkspace, (req, res) => {
   try {
     const state = crypto.randomBytes(24).toString('hex');
     req.session.stravaOAuthState = state;
@@ -30,7 +34,7 @@ router.get('/integrations/strava/connect', requireAuth, (req, res) => {
   }
 });
 
-router.get('/integrations/strava/callback', requireAuth, async (req, res) => {
+router.get('/integrations/strava/callback', requireAuth, requireRunnerWorkspace, async (req, res) => {
   const returnTo = getSafeReturnTo(req.session?.stravaReturnTo || '/runner/profile');
   try {
     const expectedState = String(req.session?.stravaOAuthState || '');
@@ -55,7 +59,7 @@ router.get('/integrations/strava/callback', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/integrations/strava/disconnect', requireAuth, requireCsrfProtection, async (req, res) => {
+router.post('/integrations/strava/disconnect', requireAuth, requireRunnerWorkspace, requireCsrfProtection, async (req, res) => {
   const returnTo = getSafeReturnTo(req.body.returnTo || '/runner/profile');
   try {
     await stravaService.disconnect(req.session.userId);
@@ -65,7 +69,7 @@ router.post('/integrations/strava/disconnect', requireAuth, requireCsrfProtectio
   }
 });
 
-router.get('/api/strava/connection', requireAuthJson, async (req, res) => {
+router.get('/api/strava/connection', requireAuthJson, requireRunnerWorkspaceJson, async (req, res) => {
   try {
     const connection = await stravaService.getConnectionSummary(req.session.userId);
     return res.json({ success: true, connection });
@@ -77,7 +81,7 @@ router.get('/api/strava/connection', requireAuthJson, async (req, res) => {
   }
 });
 
-router.get('/api/strava/activities', requireAuthJson, stravaActivityFetchLimiter, async (req, res) => {
+router.get('/api/strava/activities', requireAuthJson, requireRunnerWorkspaceJson, stravaActivityFetchLimiter, async (req, res) => {
   try {
     const result = await stravaService.fetchRecentActivities(req.session.userId, {
       after: req.query.after,
@@ -98,7 +102,7 @@ router.get('/api/strava/activities', requireAuthJson, stravaActivityFetchLimiter
   }
 });
 
-router.post('/api/events/:eventId/submissions/strava', requireAuthJson, requireCsrfProtection, stravaSubmissionLimiter, async (req, res) => {
+router.post('/api/events/:eventId/submissions/strava', requireAuthJson, requireRunnerWorkspaceJson, requireCsrfProtection, stravaSubmissionLimiter, async (req, res) => {
   try {
     const result = await submitStravaActivity({
       runnerId: req.session.userId,

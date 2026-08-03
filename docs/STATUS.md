@@ -2,7 +2,7 @@
 
 **Source of truth for delivery status**
 
-**Last reconciled:** July 31, 2026
+**Last reconciled:** August 3, 2026
 
 **Evidence window:** repository history through July 29, 2026
 
@@ -26,6 +26,8 @@ core platform:
   crawl/content support;
 - responsive runner, organiser, administrator, event-discovery, policy, and
   public-content refinements committed through July 29;
+- session-based organizer and runner workspaces, including verified-organizer
+  participation in other organizers' events and own-event conflict guards;
 - the reusable `@hellorun/threaded-comments` package and HelloRun blog
   integration.
 
@@ -46,6 +48,10 @@ production services.
   email, queue, Redis, and worker behavior in the deployed environment.
 - Confirm the July public, runner, organiser, policy, blog, running-group, and
   proof-review refinements through supervised browser smoke tests.
+- Apply and audit the additive step-competition migration and legacy backfill,
+  run the step-only and legacy accumulated-distance smoke workflows, then
+  enable `FEATURE_STEP_COMPETITIONS_ENABLED`. The repository implementation is
+  complete and the flag remains disabled by default.
 
 ## Operational Work Pending
 

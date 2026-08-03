@@ -12,6 +12,7 @@ const { syncSubmissionShadow } = require('./submission-shadow.service');
 const communicationService = require('./communication.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 const logger = require('../utils/logger');
+const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
 
 const LOCK_TIMEOUT_MS = 15 * 60 * 1000;
 
@@ -26,7 +27,7 @@ function resolveAccumulatedCertificateDeadline(event = {}) {
 function isAccumulatedCertificateFinalizationDue(event, now = new Date()) {
   const deadline = resolveAccumulatedCertificateDeadline(event);
   return Boolean(
-    event?.virtualCompletionMode === 'accumulated_distance' &&
+    isAccumulatedChallenge(event) &&
     deadline &&
     now.getTime() > deadline.getTime()
   );
@@ -35,7 +36,7 @@ function isAccumulatedCertificateFinalizationDue(event, now = new Date()) {
 async function finalizeDueAccumulatedCertificates(options = {}) {
   const now = options.now instanceof Date ? options.now : new Date();
   const events = await findDueEvents(now, options.eventLimit || 50);
-  const summary = { eventsChecked: events.length, blockedByReviews: 0, issued: 0, skipped: 0, failed: 0 };
+  const summary = { eventsChecked: events.length, blockedByReviews: 0, issued: 0, revoked: 0, skipped: 0, failed: 0 };
 
   for (const event of events) {
     const pendingCount = await AccumulatedActivitySubmission.countDocuments({
@@ -86,15 +87,58 @@ async function finalizeRegistrationCertificate({ registration, event, now = new 
   const activities = await AccumulatedActivitySubmission.find({ registrationId: registration._id })
     .sort({ reviewedAt: 1, submittedAt: 1, createdAt: 1, _id: 1 });
   const targetDistanceKm = resolveAccumulatedTargetDistanceKm(registration, event);
-  const progress = buildAccumulatedProgress({ activities, targetDistanceKm });
-  if (!progress.completed) return 'skipped';
+  const challengeConfig = resolveChallengeConfig(event);
+  const progress = buildAccumulatedProgress({
+    activities,
+    targetDistanceKm,
+    targetSteps: challengeConfig.targetSteps,
+    primaryMetric: challengeConfig.primaryMetric
+  });
 
   const existingCertificateActivity = activities.find((activity) => activity.certificate?.certificateNumber);
+  if (!progress.completed) {
+    if (
+      existingCertificateActivity &&
+      ['generated', 'regenerated'].includes(existingCertificateActivity.certificate?.status)
+    ) {
+      existingCertificateActivity.certificate.status = 'revoked';
+      existingCertificateActivity.certificate.revokedAt = now;
+      existingCertificateActivity.certificate.generationError =
+        'Verified primary-metric total fell below the completion goal.';
+      await existingCertificateActivity.save();
+      await Registration.updateOne(
+        { _id: registration._id },
+        {
+          $set: {
+            'accumulatedCertificateFinalization.state': '',
+            'accumulatedCertificateFinalization.finalizedAt': null,
+            'accumulatedCertificateFinalization.error': 'Completion eligibility was withdrawn after review.'
+          }
+        }
+      );
+      await syncSubmissionShadow(existingCertificateActivity, { operation: 'live_sync' }).catch(() => {});
+      recordCriticalAuditEventInBackground({
+        actorMongoUserId: '',
+        action: 'certificate.revoked',
+        targetType: 'accumulated_activity_certificate',
+        targetId: String(existingCertificateActivity._id),
+        statusFrom: 'issued',
+        statusTo: 'revoked',
+        notes: 'Verified primary-metric total fell below the completion goal after review.',
+        occurredAt: now
+      });
+      return 'revoked';
+    }
+    return 'skipped';
+  }
   const existingSnapshotMatches = Boolean(
     existingCertificateActivity?.certificate?.finalizedAt &&
     ['generated', 'regenerated'].includes(existingCertificateActivity.certificate.status) &&
+    String(existingCertificateActivity.certificate.completionMetric || 'distance') === progress.primaryMetric &&
     Number(existingCertificateActivity.certificate.goalDistanceKm || 0) === Number(progress.targetDistanceKm || 0) &&
     Number(existingCertificateActivity.certificate.verifiedDistanceKm || 0) === Number(progress.approvedDistanceKm || 0) &&
+    Number(existingCertificateActivity.certificate.goalSteps || 0) === Number(progress.targetSteps || 0) &&
+    Number(existingCertificateActivity.certificate.verifiedSteps || 0) === Number(progress.approvedSteps || 0) &&
     Number(existingCertificateActivity.certificate.approvedActivityCount || 0) === Number(progress.approvedActivityCount || 0)
   );
   if (existingSnapshotMatches) {
@@ -102,7 +146,11 @@ async function finalizeRegistrationCertificate({ registration, event, now = new 
     return 'skipped';
   }
 
-  const certificateActivity = existingCertificateActivity || findThresholdCrossingActivity(activities, targetDistanceKm);
+  const certificateActivity = existingCertificateActivity || findThresholdCrossingActivity(
+    activities,
+    progress.primaryTarget,
+    progress.primaryMetric
+  );
   if (!certificateActivity) return 'skipped';
 
   if (registration.accumulatedCertificateFinalization?.state === 'generated') {
@@ -155,8 +203,11 @@ async function finalizeRegistrationCertificate({ registration, event, now = new 
       runner,
       certificateNumber: priorNumber,
       accumulatedSnapshot: {
+        completionMetric: progress.primaryMetric,
         goalDistanceKm: progress.targetDistanceKm,
         verifiedDistanceKm: progress.approvedDistanceKm,
+        goalSteps: progress.targetSteps,
+        verifiedSteps: progress.approvedSteps,
         approvedActivityCount: progress.approvedActivityCount,
         finalizedAt: now
       }
@@ -173,8 +224,11 @@ async function finalizeRegistrationCertificate({ registration, event, now = new 
       revokedAt: null,
       regeneratedAt: wasRevoked || priorNumber ? now : null,
       generationError: '',
+      completionMetric: progress.primaryMetric,
       goalDistanceKm: progress.targetDistanceKm,
       verifiedDistanceKm: progress.approvedDistanceKm,
+      goalSteps: progress.targetSteps,
+      verifiedSteps: progress.approvedSteps,
       approvedActivityCount: progress.approvedActivityCount,
       finalizedAt: now
     };
@@ -193,7 +247,9 @@ async function finalizeRegistrationCertificate({ registration, event, now = new 
       targetId: String(certificateActivity._id),
       statusFrom: wasRevoked ? 'revoked' : '',
       statusTo: 'issued',
-      notes: `Finalized accumulated certificate at ${progress.approvedDistanceKm} km for a ${progress.targetDistanceKm} km goal.`,
+      notes: progress.primaryMetric === 'steps'
+        ? `Finalized accumulated certificate at ${progress.approvedSteps} steps for a ${progress.targetSteps} step goal.`
+        : `Finalized accumulated certificate at ${progress.approvedDistanceKm} km for a ${progress.targetDistanceKm} km goal.`,
       occurredAt: now
     });
     await notifyCertificateReady({ runner, registration, event, certificateActivity }).catch((error) => {
@@ -222,7 +278,7 @@ async function reconcilePrematureAccumulatedCertificates(options = {}) {
 
   for (const activity of records) {
     const event = await Event.findById(activity.eventId).lean();
-    if (!event || event.virtualCompletionMode !== 'accumulated_distance') {
+    if (!event || !isAccumulatedChallenge(event)) {
       summary.skipped += 1;
       continue;
     }
@@ -274,12 +330,12 @@ async function reconcilePrematureAccumulatedCertificates(options = {}) {
   return summary;
 }
 
-function findThresholdCrossingActivity(activities, targetDistanceKm) {
+function findThresholdCrossingActivity(activities, target, primaryMetric = 'distance') {
   let total = 0;
   for (const activity of activities) {
     if (activity.status !== 'approved') continue;
-    total += Number(activity.distanceKm || 0);
-    if (total >= targetDistanceKm) return activity;
+    total += primaryMetric === 'steps' ? Number(activity.steps || 0) : Number(activity.distanceKm || 0);
+    if (total >= target) return activity;
   }
   return null;
 }
@@ -343,7 +399,7 @@ async function notifyCertificateReady({ runner, registration, event, certificate
 
 async function findDueEvents(now, limit) {
   const candidates = await Event.find({
-    virtualCompletionMode: 'accumulated_distance',
+    virtualCompletionMode: { $in: ['accumulated_activity', 'accumulated_distance'] },
     digitalCertificateEnabled: { $ne: false },
     status: 'published',
     isDeleted: { $ne: true },

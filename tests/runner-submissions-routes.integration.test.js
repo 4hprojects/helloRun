@@ -75,12 +75,16 @@ test('unauthenticated GET /runner/submissions/:id/proof redirects to /login', as
   assert.match(res.headers.get('location') || '', /\/login/i);
 });
 
-test('non-runner (organiser) cannot access /runner/submissions', async () => {
+test('verified organiser can access /runner/submissions in runner workspace', async () => {
+  assert.equal(await waitForSessionReady(seed.cookieOrg), true);
   const res = await fetch(`${BASE_URL}/runner/submissions`, {
     headers: { Cookie: seed.cookieOrg },
     redirect: 'manual'
   });
-  assert.ok(res.status !== 200, `Expected non-200 for organiser, got ${res.status}`);
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, /Submission History/i);
+  assert.match(html, /Switch to Organizer mode/i);
 });
 
 // ─── Submissions list page ────────────────────────────────────────────────────

@@ -33,6 +33,8 @@ const POSITIVE_NUMBER_VARS = [
   { name: 'PORT', fallback: 'platform-assigned' }
 ];
 
+const BOOLEAN_VARS = ['FEATURE_STEP_COMPETITIONS_ENABLED'];
+
 function validateEnv(env = process.env) {
   const missingRequired = REQUIRED_VARS.filter((name) => !String(env[name] || '').trim());
 
@@ -48,6 +50,12 @@ function validateEnv(env = process.env) {
     const value = Number(raw);
     if (!Number.isFinite(value) || value <= 0) {
       warnings.push(`${name}="${raw}" is not a positive number — the code default (${fallback}) will be used.`);
+    }
+  }
+  for (const name of BOOLEAN_VARS) {
+    const raw = String(env[name] || '').trim().toLowerCase();
+    if (raw && !['0', '1', 'true', 'false'].includes(raw)) {
+      warnings.push(`${name}="${env[name]}" is not a boolean — the feature will remain disabled.`);
     }
   }
   if (!String(env.REDIS_URL || '').trim()) {

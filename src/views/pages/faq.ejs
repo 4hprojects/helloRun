@@ -5,7 +5,7 @@
   <link rel="stylesheet" href="/css/faq-page.css">
   <script type="application/ld+json"><%- faqPresentation.structuredDataJson %></script>
 </head>
-<body class="faq-body<%= locals.isAuthenticated && !locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer ? ' has-runner-mobile-nav' : '' %>">
+<body class="faq-body<%= locals.isAuthenticated && locals.isRunnerWorkspace ? ' has-runner-mobile-nav' : '' %>">
   <%- include('../layouts/nav') %>
 
   <main class="faq-page" id="main-content">

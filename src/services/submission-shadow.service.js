@@ -14,7 +14,7 @@ let disableSubmissionShadowSync = false;
  * FIELDS SYNCED (official submission state):
  * - mongo_submission_id: official document reference
  * - registration_id, runner_user_id, event_id: relational references
- * - distance_km, elapsed_ms, run_date, run_type: official result metrics
+ * - distance_km, steps, elapsed_ms, run_date, run_type: official result metrics
  * - proof_type, proof_url, proof_key: proof metadata only
  * - submission_status: submitted/approved/rejected state
  * - is_personal_record: official flag
@@ -24,18 +24,24 @@ let disableSubmissionShadowSync = false;
  * - ocrData: extraction scores, confidence, candidate names, mismatches
  * - suspiciousFlag, suspiciousFlagReason: manual review flags
  * - stravaActivity: source metadata for traceability
- * - proofNotes, runLocation, elevationGain, steps: flexible details
+ * - proofNotes, runLocation, elevationGain: flexible details
  * 
  * @param {Object} submission MongoDB Submission document
  * @returns {Object} normalized submission object
  */
 function normalizeMongoSubmission(submission) {
+  const rawDistanceKm = submission.distanceKm;
   return {
     mongo_submission_id: submission._id.toString(),
     registration_id: submission.registrationId?.toString(),
     runner_user_id: submission.runnerId?.toString(),
     event_id: submission.eventId?.toString(),
-    distance_km: submission.distanceKm || 0,
+    distance_km: rawDistanceKm === null || rawDistanceKm === undefined || rawDistanceKm === ''
+      ? null
+      : (Number.isFinite(Number(rawDistanceKm)) ? Number(rawDistanceKm) : null),
+    steps: Number.isInteger(Number(submission.steps)) && Number(submission.steps) > 0
+      ? Number(submission.steps)
+      : null,
     elapsed_ms: submission.elapsedMs || 0,
     run_date: submission.runDate ? new Date(submission.runDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     participation_mode: submission.participationMode || 'virtual',
@@ -61,6 +67,7 @@ function normalizeMongoSubmission(submission) {
 function buildSubmissionChecksum(normalized) {
   const fields = [
     normalized.distance_km,
+    normalized.steps,
     normalized.elapsed_ms,
     normalized.proof_type,
     normalized.submission_status,
@@ -100,6 +107,11 @@ function normalizeMongoSubmissionCertificate(submission, submissionCoreRow) {
     generation_error: submission.certificate.generationError || null,
     goal_distance_km: finiteOrNull(submission.certificate.goalDistanceKm),
     verified_distance_km: finiteOrNull(submission.certificate.verifiedDistanceKm),
+    completion_metric: ['distance', 'steps'].includes(submission.certificate.completionMetric)
+      ? submission.certificate.completionMetric
+      : null,
+    goal_steps: integerOrNull(submission.certificate.goalSteps),
+    verified_steps: integerOrNull(submission.certificate.verifiedSteps),
     approved_activity_count: integerOrNull(submission.certificate.approvedActivityCount),
     finalized_at: submission.certificate.finalizedAt ? new Date(submission.certificate.finalizedAt) : null
   };
@@ -185,7 +197,7 @@ async function syncSubmissionShadow(submission, options = {}) {
     const submissionResult = await sql`
       INSERT INTO submissions_core (
         mongo_submission_id, registration_id, runner_user_id, event_id, 
-        distance_km, elapsed_ms, run_date, participation_mode, run_type, 
+        distance_km, steps, elapsed_ms, run_date, participation_mode, run_type,
         proof_type, proof_url, proof_key, proof_mime_type, submission_status, 
         is_personal_record, submitted_at, reviewed_at, reviewed_by, updated_at,
         is_smoke_test, test_run_id, created_by_test, expires_at
@@ -195,6 +207,7 @@ async function syncSubmissionShadow(submission, options = {}) {
         ${appUserId}, 
         ${eventId},
         ${normalizedSubmission.distance_km},
+        ${normalizedSubmission.steps},
         ${normalizedSubmission.elapsed_ms},
         ${normalizedSubmission.run_date},
         ${normalizedSubmission.participation_mode},
@@ -216,6 +229,8 @@ async function syncSubmissionShadow(submission, options = {}) {
       )
       ON CONFLICT (mongo_submission_id) DO UPDATE SET
         submission_status = EXCLUDED.submission_status,
+        distance_km = EXCLUDED.distance_km,
+        steps = EXCLUDED.steps,
         proof_url = EXCLUDED.proof_url,
         proof_key = EXCLUDED.proof_key,
         reviewed_at = EXCLUDED.reviewed_at,
@@ -240,7 +255,8 @@ async function syncSubmissionShadow(submission, options = {}) {
           registration_id, certificate_url, certificate_key, issued_at, issued_by, certificate_type,
           certificate_template_id, certificate_number, verification_url, status, generated_at,
           regenerated_at, revoked_at, generation_error, goal_distance_km,
-          verified_distance_km, approved_activity_count, finalized_at, updated_at,
+          verified_distance_km, completion_metric, goal_steps, verified_steps,
+          approved_activity_count, finalized_at, updated_at,
           is_smoke_test, test_run_id, created_by_test, expires_at
         ) VALUES (
           ${normalizedCertificate.mongo_certificate_id},
@@ -263,6 +279,9 @@ async function syncSubmissionShadow(submission, options = {}) {
           ${normalizedCertificate.generation_error},
           ${normalizedCertificate.goal_distance_km},
           ${normalizedCertificate.verified_distance_km},
+          ${normalizedCertificate.completion_metric},
+          ${normalizedCertificate.goal_steps},
+          ${normalizedCertificate.verified_steps},
           ${normalizedCertificate.approved_activity_count},
           ${normalizedCertificate.finalized_at},
           CURRENT_TIMESTAMP,
@@ -286,6 +305,9 @@ async function syncSubmissionShadow(submission, options = {}) {
           generation_error = EXCLUDED.generation_error,
           goal_distance_km = EXCLUDED.goal_distance_km,
           verified_distance_km = EXCLUDED.verified_distance_km,
+          completion_metric = EXCLUDED.completion_metric,
+          goal_steps = EXCLUDED.goal_steps,
+          verified_steps = EXCLUDED.verified_steps,
           approved_activity_count = EXCLUDED.approved_activity_count,
           finalized_at = EXCLUDED.finalized_at,
           updated_at = CURRENT_TIMESTAMP,

@@ -124,12 +124,13 @@ async function buildCertificateRenderData({
   const eventTitle = String(event.title || 'HelloRun Event').trim() || 'HelloRun Event';
   const organizerName = String(event.organiserName || '').trim() || 'HelloRun';
   const distance = String(registration.raceDistance || submission.raceDistance || formatDistance(submission.distanceKm) || '').trim();
-  const goalDistance = accumulatedSnapshot?.goalDistanceKm > 0
-    ? formatDistance(accumulatedSnapshot.goalDistanceKm)
-    : distance;
-  const verifiedDistance = accumulatedSnapshot?.verifiedDistanceKm >= 0
-    ? formatDistance(accumulatedSnapshot.verifiedDistanceKm)
-    : '';
+  const completionMetric = accumulatedSnapshot?.completionMetric === 'steps' ? 'steps' : 'distance';
+  const goalDistance = completionMetric === 'steps'
+    ? (accumulatedSnapshot?.goalSteps > 0 ? `${Number(accumulatedSnapshot.goalSteps).toLocaleString('en-US')} steps` : '')
+    : (accumulatedSnapshot?.goalDistanceKm > 0 ? formatDistance(accumulatedSnapshot.goalDistanceKm) : distance);
+  const verifiedDistance = completionMetric === 'steps'
+    ? (accumulatedSnapshot?.verifiedSteps >= 0 ? `${Number(accumulatedSnapshot.verifiedSteps).toLocaleString('en-US')} steps` : '')
+    : (accumulatedSnapshot?.verifiedDistanceKm >= 0 ? formatDistance(accumulatedSnapshot.verifiedDistanceKm) : '');
   const finishTime = accumulatedSnapshot ? '' : formatElapsedMs(submission.elapsedMs);
   const eventDate = formatCertificateDate(event.eventStartAt || event.eventEndAt || issuedAt || new Date());
   const content = { ...(renderTemplate.content || {}) };
@@ -145,6 +146,9 @@ async function buildCertificateRenderData({
     raceDistance: goalDistance,
     goalDistance,
     verifiedDistance,
+    completionMetric,
+    goalSteps: Number(accumulatedSnapshot?.goalSteps || 0),
+    verifiedSteps: Number(accumulatedSnapshot?.verifiedSteps || 0),
     approvedActivityCount: Number(accumulatedSnapshot?.approvedActivityCount || 0),
     isAccumulatedChallenge: Boolean(accumulatedSnapshot),
     finishTime,

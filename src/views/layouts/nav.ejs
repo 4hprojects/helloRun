@@ -17,6 +17,14 @@
   const runnerUnreadNotificationDisplay = runnerUnreadNotifications > 99
     ? '99+'
     : String(runnerUnreadNotifications);
+  const isRunnerWorkspace = Boolean(
+    locals.isRunnerWorkspace ||
+    (locals.isAuthenticated && !locals.isAdmin && !locals.isOrganizer && !locals.isApprovedOrganizer)
+  );
+  const isOrganizerWorkspace = Boolean(
+    locals.isOrganizerWorkspace ||
+    (locals.isAuthenticated && (locals.isOrganizer || locals.isApprovedOrganizer) && !isRunnerWorkspace)
+  );
 %>
 <nav class="nav" role="navigation" aria-label="Main navigation">
   <div class="nav-container">
@@ -25,7 +33,7 @@
       <span>HelloRun</span>
     </a>
 
-    <% if (locals.renderRunProofModal && (!locals.isAuthenticated || (!locals.isAdmin && !locals.isOrganizer && !locals.isApprovedOrganizer))) { %>
+    <% if (locals.renderRunProofModal && (!locals.isAuthenticated || isRunnerWorkspace)) { %>
       <div class="nav-run-proof-action">
         <span class="nav-run-proof-callout" data-nav-run-proof-callout aria-hidden="true">
           <span class="nav-run-proof-callout-kicker">Run proof</span>
@@ -76,7 +84,7 @@
           <span class="nav-tooltip">My Registrations</span>
         </a>
 
-        <% if (!locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer) { %>
+        <% if (isRunnerWorkspace) { %>
           <a href="/runner/submissions" class="<%= navClass('/runner/submissions') %>" aria-label="Submission History" title="Submission History" <% if (ariaCurrent('/runner/submissions')) { %>aria-current="page"<% } %>>
             <i data-lucide="file-check"></i>
             <span class="nav-tooltip">Submission History</span>
@@ -89,17 +97,35 @@
             <i data-lucide="shield-check"></i>
             <span class="nav-tooltip">Admin — <%= locals.isFullAdmin ? 'Full access' : 'Support access' %></span>
           </a>
-        <% } else if (locals.isApprovedOrganizer) { %>
+        <% } else if (isRunnerWorkspace) { %>
+          <a href="/runner/dashboard" class="<%= navClass('/runner/dashboard') %>" aria-label="Dashboard" title="Dashboard" <% if (ariaCurrent('/runner/dashboard')) { %>aria-current="page"<% } %>>
+            <i data-lucide="layout-dashboard"></i>
+            <span class="nav-tooltip">Dashboard</span>
+          </a>
+          <a href="/runner/notifications" class="<%= navClass('/runner/notifications', 'nav-notifications-link') %>" aria-label="<%= runnerUnreadNotificationLabel %>" title="Notifications" <% if (ariaCurrent('/runner/notifications')) { %>aria-current="page"<% } %>>
+            <i data-lucide="bell"></i>
+            <span class="nav-tooltip">Notifications</span>
+            <% if (runnerUnreadNotifications > 0) { %>
+              <span class="nav-notification-badge" aria-hidden="true"><%= runnerUnreadNotificationDisplay %></span>
+            <% } %>
+          </a>
+          <% if (locals.isOrganizer) { %>
+            <form action="/workspace/organizer" method="POST" class="workspace-switch-form">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <button type="submit" class="nav-icon-link" aria-label="Switch to Organizer mode" title="Switch to Organizer mode"><i data-lucide="calendar-cog"></i><span class="nav-tooltip">Organizer mode</span></button>
+            </form>
+          <% } %>
+        <% } else if (isOrganizerWorkspace) { %>
           <a href="/organizer/dashboard" class="<%= navClass('/organizer/dashboard') %>" aria-label="Dashboard" title="Dashboard" <% if (ariaCurrent('/organizer/dashboard')) { %>aria-current="page"<% } %>>
             <i data-lucide="layout-dashboard"></i>
             <span class="nav-tooltip">Dashboard</span>
           </a>
-          <a href="/runner/dashboard" class="<%= navClass('/runner/dashboard') %>" aria-label="Switch to Runner mode" title="Switch to Runner mode"><i data-lucide="person-standing"></i><span class="nav-tooltip">Runner mode</span></a>
-        <% } else if (locals.isOrganizer) { %>
-          <a href="/organizer/dashboard" class="<%= navClass('/organizer/dashboard') %>" aria-label="Dashboard" title="Dashboard" <% if (ariaCurrent('/organizer/dashboard')) { %>aria-current="page"<% } %>>
-            <i data-lucide="layout-dashboard"></i>
-            <span class="nav-tooltip">Dashboard</span>
-          </a>
+          <% if (locals.canUseRunnerWorkspace) { %>
+            <form action="/workspace/runner" method="POST" class="workspace-switch-form">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <button type="submit" class="nav-icon-link" aria-label="Switch to Runner mode" title="Switch to Runner mode"><i data-lucide="person-standing"></i><span class="nav-tooltip">Runner mode</span></button>
+            </form>
+          <% } %>
         <% } else { %>
           <a href="/runner/dashboard" class="<%= navClass('/runner/dashboard') %>" aria-label="Dashboard" title="Dashboard" <% if (ariaCurrent('/runner/dashboard')) { %>aria-current="page"<% } %>>
             <i data-lucide="layout-dashboard"></i>
@@ -150,7 +176,7 @@
     <button type="button" aria-label="Dismiss message" data-dismiss-global-flash><i data-lucide="x" aria-hidden="true"></i></button>
   </div>
 <% } %>
-<% if (locals.isAuthenticated && !locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer) { %>
+<% if (locals.isAuthenticated && isRunnerWorkspace) { %>
 <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
   <a href="/runner/dashboard" class="mobile-nav-tab<%= isCurrent('/runner/dashboard') ? ' is-active' : '' %>" aria-label="Dashboard" <% if (isCurrent('/runner/dashboard')) { %>aria-current="page"<% } %>>
     <i data-lucide="layout-dashboard" aria-hidden="true"></i>
@@ -166,13 +192,27 @@
     <span>Progress</span>
   </a>
   <a href="/runner/profile" class="mobile-nav-tab<%= isCurrent('/runner/profile') ? ' is-active' : '' %>" aria-label="Profile" <% if (isCurrent('/runner/profile')) { %>aria-current="page"<% } %>><i data-lucide="user" aria-hidden="true"></i><span>Profile</span></a>
+  <% if (locals.isOrganizer) { %>
+    <form action="/workspace/organizer" method="POST" class="workspace-switch-form mobile-workspace-switch-form">
+      <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+      <button type="submit" class="mobile-nav-tab" aria-label="Switch to Organizer mode"><i data-lucide="calendar-cog" aria-hidden="true"></i><span>Organizer</span></button>
+    </form>
+  <% } %>
 </nav>
-<% } else if (locals.isAuthenticated && locals.isApprovedOrganizer) { %>
+<% } else if (locals.isAuthenticated && isOrganizerWorkspace) { %>
 <nav class="mobile-bottom-nav" aria-label="Organizer mobile navigation">
   <a href="/organizer/dashboard" class="mobile-nav-tab<%= isCurrent('/organizer/dashboard') ? ' is-active' : '' %>" aria-label="Organizer Dashboard" <% if (isCurrent('/organizer/dashboard')) { %>aria-current="page"<% } %>><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></a>
-  <a href="/organizer/events" class="mobile-nav-tab<%= isCurrent('/organizer/events') ? ' is-active' : '' %>" aria-label="Organizer Events" <% if (isCurrent('/organizer/events')) { %>aria-current="page"<% } %>><i data-lucide="calendar-days" aria-hidden="true"></i><span>Events</span></a>
-  <a href="/organizer/dashboard#queue-breakdown-heading" class="mobile-nav-tab" aria-label="Organizer Work Queue"><i data-lucide="inbox" aria-hidden="true"></i><span>Work</span></a>
-  <a href="/organizer/promote" class="mobile-nav-tab<%= isCurrent('/organizer/promote') ? ' is-active' : '' %>" aria-label="Organizer Promotion Tools" <% if (isCurrent('/organizer/promote')) { %>aria-current="page"<% } %>><i data-lucide="more-horizontal" aria-hidden="true"></i><span>More</span></a>
+  <% if (locals.isApprovedOrganizer) { %>
+    <a href="/organizer/events" class="mobile-nav-tab<%= isCurrent('/organizer/events') ? ' is-active' : '' %>" aria-label="Organizer Events" <% if (isCurrent('/organizer/events')) { %>aria-current="page"<% } %>><i data-lucide="calendar-days" aria-hidden="true"></i><span>Events</span></a>
+    <a href="/organizer/dashboard#queue-breakdown-heading" class="mobile-nav-tab" aria-label="Organizer Work Queue"><i data-lucide="inbox" aria-hidden="true"></i><span>Work</span></a>
+    <a href="/organizer/promote" class="mobile-nav-tab<%= isCurrent('/organizer/promote') ? ' is-active' : '' %>" aria-label="Organizer Promotion Tools" <% if (isCurrent('/organizer/promote')) { %>aria-current="page"<% } %>><i data-lucide="more-horizontal" aria-hidden="true"></i><span>More</span></a>
+  <% } %>
+  <% if (locals.canUseRunnerWorkspace) { %>
+    <form action="/workspace/runner" method="POST" class="workspace-switch-form mobile-workspace-switch-form">
+      <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+      <button type="submit" class="mobile-nav-tab" aria-label="Switch to Runner mode"><i data-lucide="person-standing" aria-hidden="true"></i><span>Runner</span></button>
+    </form>
+  <% } %>
 </nav>
 <% } else if (locals.isAuthenticated && locals.isAdmin) { %>
 <nav class="mobile-bottom-nav" aria-label="Admin mobile navigation">

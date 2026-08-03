@@ -982,8 +982,17 @@ function checkBadgeRequirement(badge, context) {
   }
 
   if (requirementType === 'challenge_progress') {
-    const currentValue = Number(context.currentValue || context.approvedDistanceKm || 0);
-    const targetValue = Number(requirementValue.targetDistanceKm || context.targetValue || 0);
+    const isSteps = requirementValue.completionMetric === 'steps';
+    const currentValue = Number(
+      context.currentValue ||
+      (isSteps ? context.approvedSteps : context.approvedDistanceKm) ||
+      0
+    );
+    const targetValue = Number(
+      (isSteps ? requirementValue.targetSteps : requirementValue.targetDistanceKm) ||
+      context.targetValue ||
+      0
+    );
     return targetValue > 0 && currentValue >= targetValue;
   }
 

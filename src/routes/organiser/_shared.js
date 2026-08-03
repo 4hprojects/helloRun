@@ -83,10 +83,10 @@ const RUN_PROOF_REVIEW_PAGE_SIZE = 50;
 const PAYMENT_PROOF_REVIEW_PAGE_SIZE = 50;
 const REGISTRANTS_PAGE_SIZE = 25;
 const REGISTRANTS_PAGE_SIZES = new Set([25, 50, 100]);
-const VIRTUAL_COMPLETION_MODES = new Set(['single_activity', 'accumulated_distance']);
+const VIRTUAL_COMPLETION_MODES = new Set(['single_activity', 'accumulated_activity', 'accumulated_distance']);
 const ACCEPTED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run']);
 const RECOGNITION_MODES = new Set(['completion_only', 'completion_with_optional_ranking']);
-const LEADERBOARD_MODES = new Set(['finishers', 'top_distance', 'finishers_and_top_distance']);
+const LEADERBOARD_MODES = new Set(['finishers', 'top_metric', 'finishers_and_top_metric', 'top_distance', 'finishers_and_top_distance']);
 const FEE_MODES = new Set(['free', 'paid']);
 const WAIVER_SANITIZE_OPTIONS = Object.freeze({
   allowedTags: ['div', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'blockquote', 'a'],
@@ -919,7 +919,9 @@ async function getSubmissionReviewContext(event, submissionId, queryParams = {})
     accumulatedProgress: submissionKind === 'accumulated'
       ? buildAccumulatedProgress({
         activities: accumulatedActivities,
-        targetDistanceKm: event.targetDistanceKm
+        targetDistanceKm: event.targetDistanceKm,
+        targetSteps: event.targetSteps,
+        primaryMetric: event.primaryChallengeMetric
       })
       : null,
     backHref: buildRunProofReviewPath(event._id, queueContext),
@@ -1207,10 +1209,12 @@ function getDefaultedCreateEventBody(body = {}) {
     feeMode: 'free',
     feeCurrency: 'PHP',
     pricingMode: 'free',
-    virtualCompletionMode: 'accumulated_distance',
+    virtualCompletionMode: 'accumulated_activity',
     acceptedRunTypes: ['run', 'walk', 'hike', 'trail_run'],
     recognitionMode: 'completion_with_optional_ranking',
-    leaderboardMode: 'finishers_and_top_distance'
+    challengeMetrics: ['distance'],
+    primaryChallengeMetric: 'distance',
+    leaderboardMode: 'finishers_and_top_metric'
   };
 }
 

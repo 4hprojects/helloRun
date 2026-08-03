@@ -74,7 +74,7 @@ test('July registration presentation exposes six descending free accumulated goa
     }
   });
 
-  assert.equal(presentation.event.formatLabel, 'Accumulated-distance challenge');
+  assert.equal(presentation.event.formatLabel, 'Accumulated challenge');
   assert.equal(presentation.event.registrationCloseLabel, 'Jul 22, 2026');
   assert.equal(presentation.event.activityWindowLabel, 'Jul 1, 2026 – Jul 31, 2026');
   assert.equal(presentation.event.submissionDeadlineLabel, 'Aug 14, 2026');

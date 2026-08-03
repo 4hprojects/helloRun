@@ -22,6 +22,8 @@ const { normalizeSingleActivityRanking, syncRankingEntry } = require('./ranking.
 const { evaluatePublishedRankingAchievements } = require('./achievement.service');
 const { syncSubmissionShadow } = require('./submission-shadow.service');
 const { recordSyncFailureInBackground } = require('./sync-failure.service');
+const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
+const { isOwnOrganizerEvent } = require('../utils/workspace');
 
 const APPROVABLE_STATUS = new Set(['submitted', 'rejected']);
 const REJECTABLE_STATUS = new Set(['submitted']);
@@ -112,6 +114,10 @@ async function createSubmission({
 async function editRejectedSubmissionMetadata({ submissionId, runnerId, distanceKm, elapsedMs, runDate, runLocation, runType }) {
   const submission = await Submission.findOne({ _id: submissionId, runnerId });
   if (!submission) throw new Error('Submission not found or you do not have access.');
+  await assertNoOwnOrganizerEventParticipation({
+    registrationId: submission.registrationId,
+    runnerId
+  });
   if (submission.status !== 'rejected') throw new Error('Only rejected submissions can have their details updated.');
   if (String(submission.source || '') === 'strava') throw new Error('Strava submission metadata cannot be edited manually.');
 
@@ -666,17 +672,20 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
   const limit = clampInt(options.limit, 1, 100, 30);
   const now = options.now instanceof Date ? options.now : new Date();
 
-  const registrations = await Registration.find({
-    userId: runnerId,
-    paymentStatus: 'paid',
-    status: 'confirmed'
-  })
-    .sort({ registeredAt: -1 })
-    .populate({
-      path: 'eventId',
-      select: 'title slug status eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country virtualCompletionMode raceCategories targetDistanceKm minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt'
+  const [registrations, runner] = await Promise.all([
+    Registration.find({
+      userId: runnerId,
+      paymentStatus: 'paid',
+      status: 'confirmed'
     })
-    .lean();
+      .sort({ registeredAt: -1 })
+      .populate({
+        path: 'eventId',
+        select: 'title slug status organizerId eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps raceCategories targetDistanceKm minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt'
+      })
+      .lean(),
+    User.findById(runnerId).select('role').lean()
+  ]);
 
   const registrationIds = registrations.map((item) => item?._id).filter(Boolean);
   const submissions = registrationIds.length
@@ -691,6 +700,7 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
   const eligibleRegistrations = registrations
     .filter((registration) => {
       if (!registration?.eventId) return false;
+      if (isOwnOrganizerEvent(runner, registration.eventId)) return false;
       if (!isSubmissionWindowOpen({ registration, event: registration.eventId, now })) return false;
 
       const submission = submissionByRegistrationId.get(String(registration._id));
@@ -701,6 +711,7 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
     .map((registration) => {
       const submission = submissionByRegistrationId.get(String(registration._id)) || null;
       const minimumDistanceKm = getStandardSubmissionMinimumDistanceKm(registration, registration.eventId);
+      const challengeConfig = resolveChallengeConfig(registration.eventId);
       return {
         registrationId: String(registration._id),
         eventId: String(registration.eventId?._id || ''),
@@ -712,15 +723,20 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
         eventEndAt: registration.eventId?.eventEndAt || null,
         submissionDeadlineAt: getSubmissionDeadlineAtForOption(registration, registration.eventId),
         virtualCompletionMode: registration.eventId?.virtualCompletionMode || '',
-        submissionMode: registration.eventId?.virtualCompletionMode === 'accumulated_distance'
+        submissionMode: challengeConfig.accumulated
           ? 'accumulated'
           : 'standard',
+        challengeMetrics: challengeConfig.metrics,
+        primaryChallengeMetric: challengeConfig.primaryMetric,
+        requiresDistance: !challengeConfig.accumulated || challengeConfig.tracksDistance,
+        requiresSteps: challengeConfig.tracksSteps,
+        targetSteps: challengeConfig.targetSteps,
         minimumRequiredDistanceKm: minimumDistanceKm,
         minimumActivityDistanceKm: Number(registration.eventId?.minimumActivityDistanceKm || 0) || null,
         acceptedRunTypes: Array.isArray(registration.eventId?.acceptedRunTypes)
           ? registration.eventId.acceptedRunTypes
           : [],
-        targetDistanceKm: registration.eventId?.virtualCompletionMode === 'accumulated_distance'
+        targetDistanceKm: challengeConfig.accumulated && challengeConfig.tracksDistance
           ? resolveAccumulatedTargetDistanceKm(registration, registration.eventId)
           : null,
         venueName: registration.eventId?.venueName || '',
@@ -765,10 +781,14 @@ async function getEligibleRunnerRegistration({ registrationId, runnerId }) {
   }
 
   const event = await Event.findById(registration.eventId)
-    .select('status isDeleted eventStartAt eventEndAt virtualWindow onsiteCheckinWindows virtualCompletionMode finalSubmissionDeadlineAt raceCategories targetDistanceKm')
+    .select('status isDeleted organizerId eventStartAt eventEndAt virtualWindow onsiteCheckinWindows virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps finalSubmissionDeadlineAt raceCategories targetDistanceKm')
     .lean();
   if (!event || event.isDeleted || event.status !== 'published') {
     throw new Error('Event not found for this registration.');
+  }
+  const runner = await User.findById(runnerId).select('role').lean();
+  if (isOwnOrganizerEvent(runner, event)) {
+    throw new Error('Organizers cannot submit results to events they manage.');
   }
   if (!isSubmissionWindowOpen({ registration, event })) {
     throw new Error('Event is not currently accepting result submissions.');
@@ -778,6 +798,19 @@ async function getEligibleRunnerRegistration({ registrationId, runnerId }) {
     ...registration,
     resultProofMinimumDistanceKm: getStandardSubmissionMinimumDistanceKm(registration, event)
   };
+}
+
+async function assertNoOwnOrganizerEventParticipation({ registrationId, runnerId }) {
+  if (!registrationId) return;
+  const [registration, runner] = await Promise.all([
+    Registration.findById(registrationId).select('eventId').lean(),
+    User.findById(runnerId).select('role').lean()
+  ]);
+  if (!registration || !runner || runner.role !== 'organiser') return;
+  const event = await Event.findById(registration.eventId).select('organizerId').lean();
+  if (isOwnOrganizerEvent(runner, event)) {
+    throw new Error('Organizers cannot submit results to events they manage.');
+  }
 }
 
 async function createPersonalRecordSubmission({
@@ -964,13 +997,23 @@ function buildSubmissionEligibilityContext(registrations, eligibleRegistrations,
 }
 
 function buildSubmissionPayload(registration, input, context = {}) {
-  const safeDistance = sanitizeNumber(input.distanceKm, 0.1, 500, 'Distance is invalid.');
+  const challengeConfig = resolveChallengeConfig(context.event || {});
+  const requiresDistance = !challengeConfig.accumulated || challengeConfig.tracksDistance;
+  const safeDistance = requiresDistance
+    ? sanitizeNumber(input.distanceKm, 0.1, 500, 'Distance is invalid.')
+    : sanitizeOptionalNumber(input.distanceKm, 0.1, 500);
   const safeElapsedMs = sanitizeNumber(input.elapsedMs, 1, 7 * 24 * 60 * 60 * 1000, 'Elapsed time is invalid.');
   const safeRunDate = sanitizeRunDate(input.runDate);
   const safeRunLocation = sanitizeRunLocation(input.runLocation);
   const safeRunType = sanitizeRunType(input.runType);
   const safeElevationGain = sanitizeElevationGain(input.elevationGain);
   const safeSteps = sanitizeSteps(input.steps);
+  if (challengeConfig.tracksSteps && (!Number.isInteger(safeSteps) || safeSteps <= 0)) {
+    throw new Error('Steps are required for this competition and must be between 1 and 200,000.');
+  }
+  if (challengeConfig.tracksSteps && String(input.source || '').trim().toLowerCase() === 'strava') {
+    throw new Error('Strava-only activities cannot enter a steps competition. Upload tracker proof with verified steps.');
+  }
   const ocrData = sanitizeOcrData(input.ocrData);
   const integrity = detectSuspiciousActivity({
     distanceKm: safeDistance,
@@ -994,7 +1037,7 @@ function buildSubmissionPayload(registration, input, context = {}) {
     );
   }
   let implausibleAccumulatedCheck = { implausible: false, detectedDistanceKm: null, targetDistanceKm: null };
-  if (context.event?.virtualCompletionMode === 'accumulated_distance') {
+  if (challengeConfig.accumulated && safeDistance !== null) {
     implausibleAccumulatedCheck = detectImplausibleAccumulatedActivityDistance({
       submittedDistanceKm: safeDistance,
       ocrData,
@@ -1118,8 +1161,8 @@ function sanitizeElevationGain(value) {
 function sanitizeSteps(value) {
   if (value === undefined || value === null || value === '') return null;
   const numeric = Number(value);
-  if (!Number.isFinite(numeric) || numeric < 0 || numeric > 200000) return null;
-  return Math.round(numeric);
+  if (!Number.isInteger(numeric) || numeric < 0 || numeric > 200000) return null;
+  return numeric;
 }
 
 function sanitizeProof(value) {
@@ -1688,8 +1731,7 @@ function syncEventRankingsInBackground(submission, eventSlug) {
 function getSubmissionDeadlineAtForOption(registration, event) {
   if (!event) return null;
   const participationMode = String(registration?.participationMode || '').trim().toLowerCase();
-  const completionMode = String(event.virtualCompletionMode || '').trim().toLowerCase();
-  if (participationMode === 'virtual' && completionMode === 'accumulated_distance' && event.finalSubmissionDeadlineAt) {
+  if (participationMode === 'virtual' && isAccumulatedChallenge(event) && event.finalSubmissionDeadlineAt) {
     return event.finalSubmissionDeadlineAt;
   }
   if (participationMode === 'virtual' && event.virtualWindow?.endAt) {

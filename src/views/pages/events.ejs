@@ -4,7 +4,7 @@
   <%- include('../layouts/head', { title: title, seo: typeof seo !== 'undefined' ? seo : null }) %>
   <link rel="stylesheet" href="/css/events.css">
 </head>
-<body class="<%= locals.isAuthenticated && !locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer ? 'has-runner-mobile-nav' : '' %>">
+<body class="<%= locals.isAuthenticated && locals.isRunnerWorkspace ? 'has-runner-mobile-nav' : '' %>">
   <%- include('../layouts/nav') %>
 
   <% if (loginSuccess && userName) { %>

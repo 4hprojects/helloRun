@@ -18,11 +18,17 @@ const {
 const { syncPolicyConsentsForMongoUser } = require('../services/policy-consent.service');
 const { syncProfileCompletionNotification } = require('../services/profile-completion.service');
 const crypto = require('crypto');
-const { redirectIfAuth } = require('../middleware/auth.middleware');
+const { redirectIfAuth, requireAuth } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const logger = require('../utils/logger');
 const { recordSyncFailureInBackground } = require('../services/sync-failure.service');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
+const {
+  canUseWorkspace,
+  getDefaultWorkspace,
+  getWorkspaceDashboard,
+  resolveActiveWorkspace
+} = require('../utils/workspace');
 
 const LOGIN_TURNSTILE_FAILURE_THRESHOLD = 3;
 
@@ -109,6 +115,7 @@ function getRequestUserAgent(req) {
 function startAuthenticatedSession(req, user) {
   req.session.userId = user._id;
   req.session.role = user.role;
+  req.session.activeWorkspace = getDefaultWorkspace(user);
   req.session.userName = user.firstName || '';
   req.session.loginSuccess = true;
   // Fire-and-forget — don't block the login response
@@ -145,15 +152,8 @@ function redirectAfterLogin(req, res, user) {
     return res.redirect(returnTo);
   }
 
-  if (user.role === 'organiser') {
-    return res.redirect('/organizer/dashboard');
-  }
-
-  if (user.role === 'admin') {
-    return res.redirect('/admin/dashboard');
-  }
-
-  return res.redirect('/runner/dashboard');
+  req.session.activeWorkspace = resolveActiveWorkspace(user, req.session.activeWorkspace);
+  return res.redirect(getWorkspaceDashboard(req.session.activeWorkspace));
 }
 
 function renderResendVerificationPage(req, res, options = {}) {
@@ -1010,6 +1010,8 @@ router.get('/verify-email/:token', async (req, res) => {
 
     // Set session
     req.session.userId = user._id;
+    req.session.role = user.role;
+    req.session.activeWorkspace = getDefaultWorkspace(user);
     req.session.firstLogin = true;
 
     // Send welcome email (non-blocking)
@@ -1031,6 +1033,36 @@ router.get('/verify-email/:token', async (req, res) => {
       showResendButton: true,
       email: req.query.email || null
     });
+  }
+});
+
+router.post('/workspace/:workspace', requireAuth, requireCsrfProtection, async (req, res, next) => {
+  try {
+    const requestedWorkspace = String(req.params.workspace || '').trim();
+    const user = await User.findById(req.session.userId)
+      .select('role organizerStatus emailVerified accountStatus')
+      .lean();
+
+    if (
+      !['runner', 'organizer'].includes(requestedWorkspace) ||
+      !user ||
+      !canUseWorkspace(user, requestedWorkspace)
+    ) {
+      return res.status(403).render('error', {
+        title: 'Workspace unavailable',
+        status: 403,
+        message: 'This workspace is not available for your account.'
+      });
+    }
+
+    req.session.role = user.role;
+    req.session.activeWorkspace = requestedWorkspace;
+    return req.session.save((error) => {
+      if (error) return next(error);
+      return res.redirect(getWorkspaceDashboard(requestedWorkspace));
+    });
+  } catch (error) {
+    return next(error);
   }
 });
 

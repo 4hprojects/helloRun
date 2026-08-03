@@ -2,19 +2,26 @@ const Event = require('../models/Event');
 const { getCountries, isValidCountryCode, normalizeCountryCode } = require('../utils/country');
 const { DEFAULT_WAIVER_TEMPLATE, normalizeWaiverTemplate } = require('../utils/waiver');
 const { sanitizeHtml, htmlToPlainText } = require('../utils/sanitize');
+const {
+  isAccumulatedChallenge,
+  isStepCompetitionsEnabled,
+  normalizeChallengeMetrics,
+  normalizePrimaryChallengeMetric,
+  normalizeTargetSteps
+} = require('../utils/challenge-metrics');
 
 const countries = getCountries();
 const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K', '42K']);
 const MAX_GALLERY_IMAGES = 12;
-const VIRTUAL_COMPLETION_MODES = new Set(['single_activity', 'accumulated_distance']);
+const VIRTUAL_COMPLETION_MODES = new Set(['single_activity', 'accumulated_activity', 'accumulated_distance']);
 const ACCEPTED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run']);
 const RECOGNITION_MODES = new Set(['completion_only', 'completion_with_optional_ranking']);
-const LEADERBOARD_MODES = new Set(['finishers', 'top_distance', 'finishers_and_top_distance']);
+const LEADERBOARD_MODES = new Set(['finishers', 'top_metric', 'finishers_and_top_metric', 'top_distance', 'finishers_and_top_distance']);
 const LEADERBOARD_SETTING_TYPES = new Set(['race_result', 'accumulated_challenge']);
-const LEADERBOARD_RANKING_BASES = new Set(['fastest_time', 'highest_verified_distance']);
+const LEADERBOARD_RANKING_BASES = new Set(['fastest_time', 'highest_verified_distance', 'highest_verified_steps']);
 const LEADERBOARD_VISIBILITIES = new Set(['public', 'registered_only', 'private_until_published']);
 const LEADERBOARD_NAME_DISPLAY_MODES = new Set(['full_name', 'first_name_last_initial', 'display_name', 'anonymous_runner_id']);
-const LEADERBOARD_VISIBLE_COLUMNS = new Set(['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status']);
+const LEADERBOARD_VISIBLE_COLUMNS = new Set(['rank', 'runner', 'category', 'distance', 'steps', 'time', 'pace', 'status']);
 const DEFAULT_LEADERBOARD_VISIBLE_COLUMNS = ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status'];
 const FEE_MODES = new Set(['free', 'paid']);
 const PRICING_MODES = new Set([
@@ -226,7 +233,8 @@ function normalizeModeValue(value, allowedValues, fallback) {
 }
 
 function normalizeVirtualCompletionMode(value) {
-  return normalizeModeValue(value, VIRTUAL_COMPLETION_MODES, 'accumulated_distance');
+  const normalized = normalizeModeValue(value, VIRTUAL_COMPLETION_MODES, 'accumulated_activity');
+  return normalized === 'accumulated_distance' ? 'accumulated_activity' : normalized;
 }
 
 function normalizeRunTypes(value) {
@@ -273,11 +281,12 @@ function normalizeLeaderboardVisibleColumns(value) {
 }
 
 function getDefaultLeaderboardType(virtualCompletionMode) {
-  return virtualCompletionMode === 'accumulated_distance' ? 'accumulated_challenge' : 'race_result';
+  return isAccumulatedChallenge(virtualCompletionMode) ? 'accumulated_challenge' : 'race_result';
 }
 
-function getDefaultLeaderboardRankingBasis(type) {
-  return type === 'accumulated_challenge' ? 'highest_verified_distance' : 'fastest_time';
+function getDefaultLeaderboardRankingBasis(type, primaryMetric = 'distance') {
+  if (type !== 'accumulated_challenge') return 'fastest_time';
+  return primaryMetric === 'steps' ? 'highest_verified_steps' : 'highest_verified_distance';
 }
 
 function normalizeLeaderboardSettings(body = {}, context = {}) {
@@ -286,7 +295,7 @@ function normalizeLeaderboardSettings(body = {}, context = {}) {
   const rankingBasis = normalizeModeValue(
     body.leaderboardSettingsRankingBasis || body.leaderboardRankingBasis || body.rankingBasis,
     LEADERBOARD_RANKING_BASES,
-    getDefaultLeaderboardRankingBasis(type)
+    getDefaultLeaderboardRankingBasis(type, context.primaryChallengeMetric)
   );
   const hasSettingsEnabledValue = hasOwnValue(body, 'leaderboardSettingsEnabled') || hasOwnValue(body, 'enabled');
   const hasEnabledValue = hasSettingsEnabledValue || hasOwnValue(body, 'leaderboardRecognitionEnabled');
@@ -298,7 +307,9 @@ function normalizeLeaderboardSettings(body = {}, context = {}) {
       ? normalizeBoolean(enabledValue)
       : context.leaderboardRecognitionEnabled !== false,
     type,
-    rankingBasis: type === 'accumulated_challenge' ? 'highest_verified_distance' : rankingBasis,
+    rankingBasis: type === 'accumulated_challenge'
+      ? getDefaultLeaderboardRankingBasis(type, context.primaryChallengeMetric)
+      : rankingBasis,
     visibility: normalizeModeValue(
       body.leaderboardSettingsVisibility || body.leaderboardVisibility || body.visibility,
       LEADERBOARD_VISIBILITIES,
@@ -320,10 +331,13 @@ function normalizeLeaderboardSettings(body = {}, context = {}) {
 function normalizeLeaderboardSettingsFromEvent(event = {}) {
   const existing = event.leaderboardSettings || {};
   const type = normalizeModeValue(existing.type, LEADERBOARD_SETTING_TYPES, getDefaultLeaderboardType(event.virtualCompletionMode));
+  const primaryMetric = normalizePrimaryChallengeMetric(event.primaryChallengeMetric, event.challengeMetrics);
   return {
     enabled: typeof existing.enabled === 'boolean' ? existing.enabled : event.leaderboardRecognitionEnabled !== false,
     type,
-    rankingBasis: normalizeModeValue(existing.rankingBasis, LEADERBOARD_RANKING_BASES, getDefaultLeaderboardRankingBasis(type)),
+    rankingBasis: type === 'accumulated_challenge'
+      ? getDefaultLeaderboardRankingBasis(type, primaryMetric)
+      : normalizeModeValue(existing.rankingBasis, LEADERBOARD_RANKING_BASES, 'fastest_time'),
     visibility: normalizeModeValue(existing.visibility, LEADERBOARD_VISIBILITIES, 'public'),
     showPending: Boolean(existing.showPending),
     hideFlagged: typeof existing.hideFlagged === 'boolean' ? existing.hideFlagged : true,
@@ -594,10 +608,12 @@ function getBlankCreateEventDefaults() {
     feeMode: 'free',
     feeCurrency: 'PHP',
     pricingMode: 'free',
-    virtualCompletionMode: 'accumulated_distance',
+    virtualCompletionMode: 'accumulated_activity',
+    challengeMetrics: ['distance'],
+    primaryChallengeMetric: 'distance',
     acceptedRunTypes: ['run', 'walk', 'hike', 'trail_run'],
     recognitionMode: 'completion_with_optional_ranking',
-    leaderboardMode: 'finishers_and_top_distance',
+    leaderboardMode: 'finishers_and_top_metric',
     leaderboardRecognitionEnabled: '1',
     digitalBadgeEnabled: '1',
     digitalCertificateEnabled: '1',
@@ -678,10 +694,24 @@ function sanitizeWaiverTemplate(value) {
 
 function getCreateEventFormData(body = {}) {
   const isDefaultCreateBody = !Object.keys(body || {}).length;
+  const submittedChallengeMetrics = Array.isArray(body.challengeMetrics)
+    ? body.challengeMetrics
+    : [body.challengeMetrics];
+  const hasExplicitChallengeMetricSelection = hasOwnValue(body, 'challengeMetrics');
+  const hasValidExplicitChallengeMetric = submittedChallengeMetrics
+    .some((metric) => ['distance', 'steps'].includes(String(metric || '').trim().toLowerCase()));
   const hasHomePromotionFields = hasOwnValue(body, 'homeFeatured')
     || hasOwnValue(body, 'homeFeaturedRank')
     || hasOwnValue(body, 'homeFeaturedUntil');
   body = getDefaultedCreateEventBody(body);
+  const virtualCompletionMode = normalizeVirtualCompletionMode(body.virtualCompletionMode);
+  const challengeMetrics = normalizeChallengeMetrics(body.challengeMetrics, {
+    accumulated: isAccumulatedChallenge(virtualCompletionMode)
+  });
+  const primaryChallengeMetric = normalizePrimaryChallengeMetric(body.primaryChallengeMetric, challengeMetrics);
+  const requestedPrimaryChallengeMetric = String(body.primaryChallengeMetric || '').trim().toLowerCase();
+  const targetStepsRaw = String(body.targetSteps ?? '').trim();
+  const targetSteps = normalizeTargetSteps(body.targetSteps);
   const legacyRaceDistances = normalizeRaceDistances(body);
   const raceCategories = normalizeRaceCategories(body, legacyRaceDistances);
   const raceDistances = getRaceDistancesFromCategories(raceCategories);
@@ -700,7 +730,8 @@ function getCreateEventFormData(body = {}) {
     ? normalizeBoolean(body.leaderboardRecognitionEnabled)
     : normalizeBoolean(body.leaderboardRecognitionEnabled);
   const leaderboardSettings = normalizeLeaderboardSettings(body, {
-    virtualCompletionMode: normalizeVirtualCompletionMode(body.virtualCompletionMode),
+    virtualCompletionMode,
+    primaryChallengeMetric,
     leaderboardRecognitionEnabled
   });
   const normalizedFormData = {
@@ -770,19 +801,30 @@ function getCreateEventFormData(body = {}) {
     virtualStartAt: body.virtualStartAt || '',
     virtualEndAt: body.virtualEndAt || '',
     proofTypesAllowed: normalizeProofTypes(body.proofTypesAllowed),
-    virtualCompletionMode: normalizeVirtualCompletionMode(body.virtualCompletionMode),
-    targetDistanceKm: inferTargetDistanceKm(raceDistances, raceCategories, {
-      yearFallback: normalizeVirtualCompletionMode(body.virtualCompletionMode) === 'accumulated_distance'
-        ? resolveEventYearFromDates(body.eventStartAt, body.virtualStartAt, body.eventEndAt, body.virtualEndAt)
-        : null
-    }),
+    virtualCompletionMode,
+    challengeMetrics,
+    challengeMetricsSelectionMissing: hasExplicitChallengeMetricSelection && !hasValidExplicitChallengeMetric,
+    primaryChallengeMetric,
+    primaryChallengeMetricInvalid: Boolean(
+      requestedPrimaryChallengeMetric && !challengeMetrics.includes(requestedPrimaryChallengeMetric)
+    ),
+    targetSteps,
+    targetStepsProvided: Boolean(targetStepsRaw),
+    stepCompetitionsEnabled: isStepCompetitionsEnabled(),
+    targetDistanceKm: challengeMetrics.includes('distance')
+      ? inferTargetDistanceKm(raceDistances, raceCategories, {
+          yearFallback: isAccumulatedChallenge(virtualCompletionMode)
+            ? resolveEventYearFromDates(body.eventStartAt, body.virtualStartAt, body.eventEndAt, body.virtualEndAt)
+            : null
+        })
+      : null,
     minimumActivityDistanceKm: parseOptionalPositiveNumber(body.minimumActivityDistanceKm),
     acceptedRunTypes: normalizeRunTypes(body.acceptedRunTypes),
     finalSubmissionDeadlineAt: body.finalSubmissionDeadlineAt || '',
     milestoneDistancesKm: normalizeMilestoneDistances(body.milestoneDistancesKm),
     milestoneDistancesText: normalizeMilestoneDistances(body.milestoneDistancesKm).join(', '),
     recognitionMode: normalizeModeValue(body.recognitionMode, RECOGNITION_MODES, 'completion_with_optional_ranking'),
-    leaderboardMode: normalizeModeValue(body.leaderboardMode, LEADERBOARD_MODES, 'finishers_and_top_distance'),
+    leaderboardMode: normalizeModeValue(body.leaderboardMode, LEADERBOARD_MODES, 'finishers_and_top_metric'),
     raceDistances,
     raceCategories,
     raceDistancePresets: raceDistances.filter((item) => RACE_DISTANCE_PRESETS.has(item)),
@@ -823,6 +865,11 @@ function formatDateForInput(value) {
 }
 
 function getCreateEventFormDataFromEvent(event) {
+  const virtualCompletionMode = normalizeVirtualCompletionMode(event.virtualCompletionMode);
+  const challengeMetrics = normalizeChallengeMetrics(event.challengeMetrics, {
+    accumulated: isAccumulatedChallenge(event.virtualCompletionMode)
+  });
+  const primaryChallengeMetric = normalizePrimaryChallengeMetric(event.primaryChallengeMetric, challengeMetrics);
   const eventRaceDistances = Array.isArray(event.raceDistances) ? event.raceDistances : [];
   const normalizedEventDistances = eventRaceDistances.map(normalizeRaceDistanceLabel).filter(Boolean);
   const raceCategories = (Array.isArray(event.raceCategories) && event.raceCategories.length
@@ -909,19 +956,30 @@ function getCreateEventFormDataFromEvent(event) {
     virtualStartAt: formatDateForInput(event.virtualWindow?.startAt),
     virtualEndAt: formatDateForInput(event.virtualWindow?.endAt),
     proofTypesAllowed: normalizeProofTypes(event.proofTypesAllowed),
-    virtualCompletionMode: normalizeVirtualCompletionMode(event.virtualCompletionMode),
-    targetDistanceKm: Number.isFinite(event.targetDistanceKm) ? event.targetDistanceKm : inferTargetDistanceKm(normalizedEventDistances, raceCategories, {
-      yearFallback: normalizeVirtualCompletionMode(event.virtualCompletionMode) === 'accumulated_distance'
+    virtualCompletionMode,
+    challengeMetrics,
+    primaryChallengeMetric,
+    targetSteps: normalizeTargetSteps(event.targetSteps),
+    targetStepsProvided: normalizeTargetSteps(event.targetSteps) !== null,
+    stepCompetitionsEnabled: isStepCompetitionsEnabled(),
+    targetDistanceKm: challengeMetrics.includes('distance')
+      ? (Number.isFinite(event.targetDistanceKm) ? event.targetDistanceKm : inferTargetDistanceKm(normalizedEventDistances, raceCategories, {
+      yearFallback: isAccumulatedChallenge(event.virtualCompletionMode)
         ? resolveEventYearFromDates(event.eventStartAt, event.virtualWindow?.startAt, event.eventEndAt, event.virtualWindow?.endAt)
         : null
-    }),
+      }))
+      : null,
     minimumActivityDistanceKm: Number.isFinite(event.minimumActivityDistanceKm) ? event.minimumActivityDistanceKm : null,
     acceptedRunTypes: Array.isArray(event.acceptedRunTypes) ? event.acceptedRunTypes : [],
     finalSubmissionDeadlineAt: formatDateForInput(event.finalSubmissionDeadlineAt),
     milestoneDistancesKm: Array.isArray(event.milestoneDistancesKm) ? event.milestoneDistancesKm : [],
     milestoneDistancesText: (Array.isArray(event.milestoneDistancesKm) ? event.milestoneDistancesKm : []).join(', '),
     recognitionMode: normalizeModeValue(event.recognitionMode, RECOGNITION_MODES, 'completion_only'),
-    leaderboardMode: normalizeModeValue(event.leaderboardMode, LEADERBOARD_MODES, 'finishers'),
+    leaderboardMode: event.leaderboardMode === 'top_distance'
+      ? 'top_metric'
+      : (event.leaderboardMode === 'finishers_and_top_distance'
+          ? 'finishers_and_top_metric'
+          : normalizeModeValue(event.leaderboardMode, LEADERBOARD_MODES, 'finishers')),
     raceDistances: normalizedEventDistances,
     raceCategories,
     raceDistancePresets,
@@ -1028,6 +1086,9 @@ function validateOptionalCreateEventFields(formData, errors) {
   }
   if (formData.homeFeaturedRank !== null && (!Number.isInteger(formData.homeFeaturedRank) || formData.homeFeaturedRank < 0)) {
     errors.homeFeaturedRank = 'Homepage featured rank must be zero or higher.';
+  }
+  if (formData.targetStepsProvided && formData.targetSteps === null) {
+    errors.targetSteps = 'Step goal must be a whole number from 1 to 1,000,000,000.';
   }
 
   const hasGeoLat = !!formData.geoLat;
@@ -1413,9 +1474,27 @@ function validateCreateEventForm(formData) {
     if (!formData.virtualStartAt) errors.virtualStartAt = 'Virtual window start is required for virtual/hybrid events.';
     if (!formData.virtualEndAt) errors.virtualEndAt = 'Virtual window end is required for virtual/hybrid events.';
     if (!formData.proofTypesAllowed.length) errors.proofTypesAllowed = 'Select at least one proof type.';
-    if (formData.virtualCompletionMode === 'accumulated_distance') {
-      if (!Number.isFinite(formData.targetDistanceKm) || formData.targetDistanceKm <= 0) {
+    if (isAccumulatedChallenge(formData.virtualCompletionMode)) {
+      const metrics = normalizeChallengeMetrics(formData.challengeMetrics);
+      const primaryMetric = normalizePrimaryChallengeMetric(formData.primaryChallengeMetric, metrics);
+      if (
+        metrics.includes('steps') &&
+        !formData.stepCompetitionsEnabled &&
+        !formData.allowStepCompetitionWhenDisabled
+      ) {
+        errors.challengeMetrics = 'Step competitions are not enabled yet.';
+      }
+      if (!metrics.length || formData.challengeMetricsSelectionMissing) {
+        errors.challengeMetrics = 'Select at least one competition metric.';
+      }
+      if (!metrics.includes(primaryMetric) || formData.primaryChallengeMetricInvalid) {
+        errors.primaryChallengeMetric = 'Official ranking metric must be one of the tracked metrics.';
+      }
+      if (metrics.includes('distance') && (!Number.isFinite(formData.targetDistanceKm) || formData.targetDistanceKm <= 0)) {
         errors.raceDistances = 'Add a numeric race distance (e.g. 100K) — it sets the completion goal for accumulated challenges.';
+      }
+      if (metrics.includes('steps') && formData.targetStepsProvided && formData.targetSteps === null) {
+        errors.targetSteps = 'Step goal must be a whole number from 1 to 1,000,000,000.';
       }
       if (!Array.isArray(formData.acceptedRunTypes) || !formData.acceptedRunTypes.length) {
         errors.acceptedRunTypes = 'Select at least one accepted activity type.';
@@ -1482,7 +1561,7 @@ function getEventReadinessChecklist(formData = {}) {
   const isPackagePriced = publishFormData.pricingMode === 'package_period';
   const needsOnsiteFields = publishFormData.eventType === 'onsite' || publishFormData.eventType === 'hybrid';
   const needsVirtualFields = publishFormData.eventType === 'virtual' || publishFormData.eventType === 'hybrid';
-  const needsAccumulatedFields = needsVirtualFields && publishFormData.virtualCompletionMode === 'accumulated_distance';
+  const needsAccumulatedFields = needsVirtualFields && isAccumulatedChallenge(publishFormData.virtualCompletionMode);
   const items = [
     { id: 'title', label: 'Event title', ok: !hasError('title') },
     { id: 'description', label: 'Short description', ok: !hasError('description') },
@@ -1517,6 +1596,11 @@ function getEventReadinessChecklist(formData = {}) {
     });
   }
   if (needsAccumulatedFields) {
+    items.push({
+      id: 'challengeMetrics',
+      label: 'Competition metrics and official ranking',
+      ok: !hasError('challengeMetrics', 'primaryChallengeMetric', 'targetSteps', 'raceDistances')
+    });
     items.push({
       id: 'acceptedRunTypes',
       label: 'Accepted activity types',
@@ -1644,6 +1728,11 @@ function getEventReviewSummary(formData = {}) {
   ].filter(Boolean);
   const waiverText = htmlToPlainText(formData.waiverTemplate || '');
   const detailsText = htmlToPlainText(formData.eventDetailsMarkdown || '');
+  const metrics = normalizeChallengeMetrics(formData.challengeMetrics);
+  const primaryMetric = normalizePrimaryChallengeMetric(formData.primaryChallengeMetric, metrics);
+  const primaryGoal = primaryMetric === 'steps'
+    ? (formData.targetSteps ? `${Number(formData.targetSteps).toLocaleString('en-US')} steps` : 'Ranking only')
+    : (formData.targetDistanceKm ? `${formData.targetDistanceKm} km` : 'Ranking only');
 
   return [
     {
@@ -1668,6 +1757,9 @@ function getEventReviewSummary(formData = {}) {
       rows: [
         { label: 'Venue', value: [formData.venueName, formData.city, formData.country].filter(Boolean).join(', ') || 'Not set' },
         { label: 'Completion', value: formData.virtualCompletionMode || 'Not set' },
+        { label: 'Metrics', value: metrics.join(' + ') },
+        { label: 'Official ranking', value: primaryMetric },
+        { label: 'Primary goal', value: primaryGoal },
         { label: 'Proof', value: (formData.proofTypesAllowed || []).join(', ') || 'Not set' }
       ]
     },
@@ -1716,6 +1808,9 @@ function getEventTypesAllowed(eventType) {
 function applyEventFormData(event, formData, user) {
   const organiserNameFromUser = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
   const isVirtualMode = formData.eventType === 'virtual' || formData.eventType === 'hybrid';
+  const isAccumulated = isVirtualMode && isAccumulatedChallenge(formData.virtualCompletionMode);
+  const challengeMetrics = normalizeChallengeMetrics(formData.challengeMetrics, { accumulated: isAccumulated });
+  const primaryChallengeMetric = normalizePrimaryChallengeMetric(formData.primaryChallengeMetric, challengeMetrics);
   event.title = formData.title;
   event.organiserName = formData.organiserName || organiserNameFromUser || 'HelloRun Organizer';
   event.description = formData.description;
@@ -1745,16 +1840,19 @@ function applyEventFormData(event, formData, user) {
     ? { startAt: parseDateSafe(formData.virtualStartAt), endAt: parseDateSafe(formData.virtualEndAt) }
     : undefined;
   event.proofTypesAllowed = isVirtualMode ? formData.proofTypesAllowed : [];
-  event.virtualCompletionMode = isVirtualMode ? formData.virtualCompletionMode : 'single_activity';
-  event.targetDistanceKm = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance' ? formData.targetDistanceKm : null;
+  event.virtualCompletionMode = isAccumulated ? 'accumulated_activity' : 'single_activity';
+  event.challengeMetrics = isAccumulated ? challengeMetrics : ['distance'];
+  event.primaryChallengeMetric = isAccumulated ? primaryChallengeMetric : 'distance';
+  event.targetSteps = isAccumulated && challengeMetrics.includes('steps') ? normalizeTargetSteps(formData.targetSteps) : null;
+  event.targetDistanceKm = isAccumulated && challengeMetrics.includes('distance') ? formData.targetDistanceKm : null;
   event.minimumActivityDistanceKm = null;
-  event.acceptedRunTypes = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance' ? formData.acceptedRunTypes : [];
-  event.finalSubmissionDeadlineAt = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+  event.acceptedRunTypes = isAccumulated ? formData.acceptedRunTypes : [];
+  event.finalSubmissionDeadlineAt = isAccumulated
     ? resolveFinalSubmissionDeadline(formData)
     : null;
   event.milestoneDistancesKm = [];
-  event.recognitionMode = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance' ? formData.recognitionMode : 'completion_only';
-  event.leaderboardMode = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance' ? formData.leaderboardMode : 'finishers';
+  event.recognitionMode = isAccumulated ? formData.recognitionMode : 'completion_only';
+  event.leaderboardMode = isAccumulated ? formData.leaderboardMode : 'finishers';
   event.feeMode = formData.feeMode === 'paid' ? 'paid' : 'free';
   event.feeAmount = event.feeMode === 'paid' ? formData.feeAmount : null;
   event.feeCurrency = formData.feeCurrency || 'PHP';
@@ -1767,6 +1865,7 @@ function applyEventFormData(event, formData, user) {
   event.leaderboardRecognitionEnabled = formData.leaderboardRecognitionEnabled !== false;
   event.leaderboardSettings = normalizeLeaderboardSettings(formData.leaderboardSettings || {}, {
     virtualCompletionMode: event.virtualCompletionMode,
+    primaryChallengeMetric: event.primaryChallengeMetric,
     leaderboardRecognitionEnabled: event.leaderboardRecognitionEnabled
   });
   event.physicalRewardsEnabled = Boolean(formData.physicalRewardsEnabled);

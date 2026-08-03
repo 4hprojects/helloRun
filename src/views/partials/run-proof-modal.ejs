@@ -1,5 +1,5 @@
 <%
-  const isRunnerAuthenticated = Boolean(locals && locals.isAuthenticated && !locals.isAdmin && !locals.isOrganizer);
+  const isRunnerAuthenticated = Boolean(locals && locals.isAuthenticated && locals.isRunnerWorkspace);
   const modalConfig = (locals && locals.runProofModalConfig) || {};
   const defaultMode = String(modalConfig.mode || 'submit').trim() || 'submit';
   const modalTitle = String(modalConfig.title || 'Submit Run Result').trim() || 'Submit Run Result';

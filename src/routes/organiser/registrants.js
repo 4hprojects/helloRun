@@ -1,6 +1,7 @@
 // src/routes/organiser/registrants.js
 const express = require('express');
 const router = express.Router();
+const { isAccumulatedChallenge, resolveChallengeConfig } = require('../../utils/challenge-metrics');
 const {
   logger,
   User,
@@ -180,10 +181,12 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       expectedPaymentLabel: formatExpectedPaymentLabel(item, event),
       signupOptionLabel: item.pricingSnapshot?.optionDescription || '',
       pricingPeriodLabel: item.pricingSnapshot?.pricingPeriodLabel || '',
-      accumulatedProgress: event.virtualCompletionMode === 'accumulated_distance'
+      accumulatedProgress: isAccumulatedChallenge(event)
         ? buildAccumulatedProgress({
           activities: accumulatedProgressActivitiesByRegistrationId.get(String(item._id)) || [],
-          targetDistanceKm: resolveAccumulatedTargetDistanceKm(item, event)
+          targetDistanceKm: resolveAccumulatedTargetDistanceKm(item, event),
+          targetSteps: resolveChallengeConfig(event).targetSteps,
+          primaryMetric: resolveChallengeConfig(event).primaryMetric
         })
         : null,
       submission: mapSubmissionForRegistrant(
@@ -221,7 +224,7 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
     ] = await Promise.all([
       getEventRegistrationSummaryCounts(event._id),
       getEventSubmissionSummaryCounts(Submission, event._id),
-      event.virtualCompletionMode === 'accumulated_distance'
+      isAccumulatedChallenge(event)
         ? getEventSubmissionSummaryCounts(AccumulatedActivitySubmission, event._id)
         : { submitted: 0, approved: 0, rejected: 0 }
     ]);
@@ -232,7 +235,7 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       allowedModes.add('onsite');
     }
     const isPaidEvent = event.feeMode === 'paid';
-    const isAccumulatedEvent = event.virtualCompletionMode === 'accumulated_distance';
+    const isAccumulatedEvent = isAccumulatedChallenge(event);
     const supportsOnsite = allowedModes.has('onsite');
     const supportsVirtual = allowedModes.has('virtual');
     const hasAdvancedFilters = Boolean(

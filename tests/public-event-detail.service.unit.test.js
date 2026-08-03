@@ -192,6 +192,6 @@ test('missing accumulated targets remain explicit instead of fabricating progres
 
   assert.equal(state.targetDistanceKm, 0);
   assert.equal(state.progressPercentage, null);
-  assert.equal(state.progressLabel, 'Progress unavailable');
+  assert.equal(state.progressLabel, 'Ranking only — no completion goal');
   assert.equal(state.remainingDistanceLabel, 'Goal not listed');
 });

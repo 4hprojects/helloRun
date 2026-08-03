@@ -252,7 +252,7 @@ function getChoiceControlKind(count) {
 
 function buildFormatLabel(event = {}, allowedModes = []) {
   const completion = String(event.virtualCompletionMode || '').trim();
-  if (completion === 'accumulated_distance') return 'Accumulated-distance challenge';
+  if (completion === 'accumulated_distance' || completion === 'accumulated_activity') return 'Accumulated challenge';
   if (completion === 'single_activity') return 'Single-activity event';
   const modes = (Array.isArray(allowedModes) ? allowedModes : []).map((mode) => String(mode || '').toLowerCase());
   if (modes.length > 1) return 'Hybrid event';

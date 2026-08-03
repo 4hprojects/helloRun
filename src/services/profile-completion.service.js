@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
 const { createNotificationSafe } = require('./notification.service');
+const { canUseRunnerWorkspace } = require('../utils/workspace');
 
 const PROFILE_NOTIFICATION_TYPE = 'profile_incomplete';
 const PROFILE_NOTIFICATION_HREF = '/runner/profile?source=notification#overview';
@@ -32,7 +33,7 @@ function getRunnerProfileCompleteness(user = {}) {
 }
 
 function isRunnerProfileIncomplete(user = {}) {
-  if (!user || user.role !== 'runner') return false;
+  if (!user || !canUseRunnerWorkspace(user)) return false;
   return getRunnerProfileCompleteness(user).missingFields.length > 0;
 }
 

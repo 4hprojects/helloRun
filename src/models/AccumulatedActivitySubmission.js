@@ -62,9 +62,10 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
     },
     distanceKm: {
       type: Number,
-      required: true,
+      required: false,
       min: 0.1,
-      max: 500
+      max: 500,
+      default: null
     },
     elapsedMs: {
       type: Number,
@@ -200,6 +201,13 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
       generationError: { type: String, trim: true, default: '', maxlength: 1000 },
       goalDistanceKm: { type: Number, min: 0, default: null },
       verifiedDistanceKm: { type: Number, min: 0, default: null },
+      completionMetric: {
+        type: String,
+        enum: ['distance', 'steps', ''],
+        default: ''
+      },
+      goalSteps: { type: Number, min: 0, default: null },
+      verifiedSteps: { type: Number, min: 0, default: null },
       approvedActivityCount: { type: Number, min: 0, default: null },
       finalizedAt: { type: Date, default: null }
     },

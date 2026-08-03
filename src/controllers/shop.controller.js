@@ -195,7 +195,7 @@ exports.getProductDetail = async (req, res, next) => {
         product: payload.product,
         variants: payload.variants,
         formatCurrency,
-        canAddToCart: Boolean(req.session && req.session.userId && req.session.role === 'runner'),
+        canAddToCart: Boolean(res.locals.isRunnerWorkspace),
         message: getPageMessage(req.query)
       });
     }
@@ -241,7 +241,7 @@ exports.getPlatformProductDetail = async (req, res, next) => {
         product: payload.product,
         variants: payload.variants,
         formatCurrency,
-        canAddToCart: Boolean(req.session && req.session.userId && req.session.role === 'runner'),
+        canAddToCart: Boolean(res.locals.isRunnerWorkspace),
         message: getPageMessage(req.query)
       });
     }

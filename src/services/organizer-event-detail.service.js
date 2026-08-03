@@ -5,6 +5,7 @@ const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const { PLATFORM_TIME_ZONE, formatPlatformDate } = require('../utils/platform-date');
 const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
+const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
   timeZone: PLATFORM_TIME_ZONE,
@@ -91,7 +92,8 @@ async function loadEventOperationalCounts(eventId, dependencies = {}) {
 }
 
 async function loadAccumulatedOperations(event, dependencies = {}) {
-  if (event?.virtualCompletionMode !== 'accumulated_distance') return null;
+  if (!isAccumulatedChallenge(event)) return null;
+  const challengeConfig = resolveChallengeConfig(event);
   const RegistrationModel = dependencies.RegistrationModel || Registration;
   const AccumulatedModel = dependencies.AccumulatedModel || AccumulatedActivitySubmission;
   const [registrations, activityGroups] = await Promise.all([
@@ -105,16 +107,17 @@ async function loadAccumulatedOperations(event, dependencies = {}) {
         $group: {
           _id: { registrationId: '$registrationId', status: '$status' },
           activityCount: { $sum: 1 },
-          distanceKm: { $sum: '$distanceKm' }
+          distanceKm: { $sum: { $ifNull: ['$distanceKm', 0] } },
+          steps: { $sum: { $ifNull: ['$steps', 0] } }
         }
       }
     ])
   ]);
   const progressByRegistration = new Map();
   const statusTotals = {
-    approved: { activityCount: 0, distanceKm: 0 },
-    submitted: { activityCount: 0, distanceKm: 0 },
-    rejected: { activityCount: 0, distanceKm: 0 }
+    approved: { activityCount: 0, distanceKm: 0, steps: 0 },
+    submitted: { activityCount: 0, distanceKm: 0, steps: 0 },
+    rejected: { activityCount: 0, distanceKm: 0, steps: 0 }
   };
   for (const row of activityGroups) {
     const registrationId = String(row?._id?.registrationId || '');
@@ -122,11 +125,20 @@ async function loadAccumulatedOperations(event, dependencies = {}) {
     if (!registrationId || !Object.hasOwn(statusTotals, status)) continue;
     const activityCount = Number(row.activityCount || 0);
     const distanceKm = Number(row.distanceKm || 0);
+    const steps = Number(row.steps || 0);
     statusTotals[status].activityCount += activityCount;
     statusTotals[status].distanceKm += distanceKm;
-    const progress = progressByRegistration.get(registrationId) || { approvedDistanceKm: 0, pendingDistanceKm: 0 };
+    statusTotals[status].steps += steps;
+    const progress = progressByRegistration.get(registrationId) || {
+      approvedDistanceKm: 0,
+      pendingDistanceKm: 0,
+      approvedSteps: 0,
+      pendingSteps: 0
+    };
     if (status === 'approved') progress.approvedDistanceKm += distanceKm;
     if (status === 'submitted') progress.pendingDistanceKm += distanceKm;
+    if (status === 'approved') progress.approvedSteps += steps;
+    if (status === 'submitted') progress.pendingSteps += steps;
     progressByRegistration.set(registrationId, progress);
   }
 
@@ -134,11 +146,18 @@ async function loadAccumulatedOperations(event, dependencies = {}) {
   let goalsReached = 0;
   let missingGoalCount = 0;
   for (const registration of registrations) {
-    const progress = progressByRegistration.get(String(registration._id)) || { approvedDistanceKm: 0, pendingDistanceKm: 0 };
+    const progress = progressByRegistration.get(String(registration._id)) || {
+      approvedDistanceKm: 0,
+      pendingDistanceKm: 0,
+      approvedSteps: 0,
+      pendingSteps: 0
+    };
     const targetDistanceKm = resolveAccumulatedTargetDistanceKm(registration, event);
-    if (progress.approvedDistanceKm > 0) participantsStarted += 1;
-    if (targetDistanceKm > 0 && progress.approvedDistanceKm >= targetDistanceKm) goalsReached += 1;
-    if (!(targetDistanceKm > 0)) missingGoalCount += 1;
+    const target = challengeConfig.primaryMetric === 'steps' ? challengeConfig.targetSteps : targetDistanceKm;
+    const approved = challengeConfig.primaryMetric === 'steps' ? progress.approvedSteps : progress.approvedDistanceKm;
+    if (approved > 0) participantsStarted += 1;
+    if (target > 0 && approved >= target) goalsReached += 1;
+    if (!(target > 0)) missingGoalCount += 1;
   }
 
   return {
@@ -152,6 +171,12 @@ async function loadAccumulatedOperations(event, dependencies = {}) {
     approvedDistanceKm: roundDistance(statusTotals.approved.distanceKm),
     pendingDistanceKm: roundDistance(statusTotals.submitted.distanceKm),
     rejectedDistanceKm: roundDistance(statusTotals.rejected.distanceKm),
+    approvedSteps: statusTotals.approved.steps,
+    pendingSteps: statusTotals.submitted.steps,
+    rejectedSteps: statusTotals.rejected.steps,
+    primaryMetric: challengeConfig.primaryMetric,
+    trackedMetrics: challengeConfig.metrics,
+    targetSteps: challengeConfig.targetSteps,
     approvedDistanceLabel: formatDistance(statusTotals.approved.distanceKm),
     pendingDistanceLabel: formatDistance(statusTotals.submitted.distanceKm),
     rejectedDistanceLabel: formatDistance(statusTotals.rejected.distanceKm)

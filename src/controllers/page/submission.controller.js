@@ -1,5 +1,7 @@
 'use strict';
 
+const { isAccumulatedChallenge, resolveChallengeConfig } = require('../../utils/challenge-metrics');
+
 const {
   crypto,
   Event,
@@ -74,6 +76,7 @@ const {
   getPublishedEventBySlug,
   renderEventNotFound
 } = require('./_shared');
+const { canUseRunnerWorkspace, isOwnOrganizerEvent } = require('../../utils/workspace');
 
 let { syncRegistrationPaymentShadow } = require('../../services/registration-payment-shadow.service');
 
@@ -96,8 +99,12 @@ exports.postResubmitResult = async (req, res) => {
 
 exports.postEditSubmissionMetadata = async (req, res) => {
   try {
-    const user = await User.findById(req.session.userId).select('_id');
+    const user = await User.findById(req.session.userId)
+      .select('role emailVerified accountStatus');
     if (!user) return res.redirect('/login');
+    if (!canUseRunnerWorkspace(user)) {
+      return redirectWithPageMessage(res, 'error', 'Runner participation is not available for this account.');
+    }
 
     const submissionId = String(req.params.submissionId || '').trim();
     if (!submissionId) return redirectWithPageMessage(res, 'error', 'Invalid submission.');
@@ -203,9 +210,17 @@ exports.getSubmissionCertificateDownload = async (req, res) => {
 exports.postUploadPaymentProof = async (req, res) => {
   let uploadedProofKey = '';
   try {
-    const user = await User.findById(req.session.userId).select('firstName lastName email role');
+    const user = await User.findById(req.session.userId)
+      .select('firstName lastName email role emailVerified accountStatus');
     if (!user) {
       return res.redirect('/login');
+    }
+    if (!canUseRunnerWorkspace(user)) {
+      const query = new URLSearchParams({
+        type: 'error',
+        msg: 'Runner participation is not available for this account.'
+      });
+      return res.redirect(`/my-registrations?${query.toString()}`);
     }
 
     if (req.uploadError) {
@@ -235,6 +250,13 @@ exports.postUploadPaymentProof = async (req, res) => {
       const query = new URLSearchParams({
         type: 'error',
         msg: 'Registration not found or inaccessible.'
+      });
+      return res.redirect(`/my-registrations?${query.toString()}`);
+    }
+    if (isOwnOrganizerEvent(user, registration.eventId)) {
+      const query = new URLSearchParams({
+        type: 'error',
+        msg: 'Organizers cannot continue participant registration or payment actions for events they manage.'
       });
       return res.redirect(`/my-registrations?${query.toString()}`);
     }
@@ -414,9 +436,13 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
   let uploadedProofKey = '';
   const respond = (type, message, details = {}) => respondRunnerSubmission(req, res, type, message, details);
   try {
-    const user = await User.findById(req.session.userId).select('email role firstName lastName accountStatus');
+    const user = await User.findById(req.session.userId)
+      .select('email role firstName lastName emailVerified accountStatus');
     if (!user) {
       return res.redirect('/login');
+    }
+    if (!canUseRunnerWorkspace(user)) {
+      return respond('error', 'Runner participation is not available for this account.', { code: 'RUNNER_ACCESS_REQUIRED' });
     }
 
     if (user.accountStatus === 'restricted') {
@@ -475,12 +501,15 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
         _id: { $in: selectedEventRegistrationIds },
         userId: user._id
       })
-        .populate('eventId', 'virtualCompletionMode title targetDistanceKm eventStartAt eventEndAt')
+        .populate('eventId', 'organizerId virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps title targetDistanceKm eventStartAt eventEndAt')
         .select('_id eventId')
         .lean()
       : [];
     if (selectedRegistrations.length !== selectedEventRegistrationIds.length) {
       return respond('error', 'One or more selected events is no longer available.', { code: 'STALE_ELIGIBILITY', retryable: true });
+    }
+    if (selectedRegistrations.some((item) => isOwnOrganizerEvent(user, item.eventId))) {
+      return respond('error', 'Organizers cannot submit results to events they manage.', { code: 'OWN_EVENT_CONFLICT' });
     }
     const eventByRegistrationId = new Map(
       selectedRegistrations
@@ -489,7 +518,7 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
     );
     const accumulatedTargetIds = new Set(
       selectedRegistrations
-        .filter((item) => item.eventId?.virtualCompletionMode === 'accumulated_distance')
+        .filter((item) => isAccumulatedChallenge(item.eventId))
         .map((item) => String(item._id))
     );
     const regularEventRegistrationIds = selectedEventRegistrationIds.filter((id) => !accumulatedTargetIds.has(String(id)));
@@ -543,14 +572,19 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       runnerId: user._id
     })));
 
-    const distanceKm = parseDistanceKm(req.body.distanceKm);
+    const selectedChallengeConfigs = selectedRegistrations.map((item) => resolveChallengeConfig(item.eventId));
+    const requiresDistance = selectedHasPersonalRecord
+      || regularEventRegistrationIds.length > 0
+      || selectedChallengeConfigs.some((config) => config.tracksDistance);
+    const requiresSteps = selectedChallengeConfigs.some((config) => config.tracksSteps);
+    const distanceKm = parseDistanceKm(req.body.distanceKm, requiresDistance);
     const elapsedMs = parseElapsedToMs(req.body.elapsedTime);
     const runLocation = parseRunLocation(req.body.runLocation);
     const proofType = normalizeProofType(req.body.proofType);
     const proofNotes = String(req.body.proofNotes || '').trim().slice(0, 1200);
     const runType = parseRunType(req.body.runType);
     const elevationGain = parseElevationGain(req.body.elevationGain);
-    const steps = parseSteps(req.body.steps);
+    const steps = parseSteps(req.body.steps, requiresSteps);
 
     const ocrData = parseOcrData(req.body, distanceKm, elapsedMs, user);
 
@@ -759,8 +793,10 @@ function redirectWithPageMessage(res, type, message) {
   return res.redirect(`/my-registrations?${query.toString()}`);
 }
 
-function parseDistanceKm(value) {
-  const numeric = Number(String(value || '').trim());
+function parseDistanceKm(value, required = true) {
+  const raw = String(value || '').trim();
+  if (!raw && !required) return null;
+  const numeric = Number(raw);
   if (!Number.isFinite(numeric) || numeric <= 0 || numeric > 500) {
     throw new Error('Distance must be a valid number between 0.1 and 500 km.');
   }
@@ -1004,10 +1040,15 @@ function parseElevationGain(value) {
   return Math.round(numeric);
 }
 
-function parseSteps(value) {
-  if (value === undefined || value === null || value === '') return null;
+function parseSteps(value, required = false) {
+  if (value === undefined || value === null || value === '') {
+    if (required) throw new Error('Steps are required for this competition.');
+    return null;
+  }
   const numeric = Number(String(value).trim());
-  if (!Number.isFinite(numeric) || numeric < 0 || numeric > 200000) throw new Error('Steps must be between 0 and 200,000.');
+  if (!Number.isInteger(numeric) || numeric < (required ? 1 : 0) || numeric > 200000) {
+    throw new Error(required ? 'Steps must be a whole number between 1 and 200,000.' : 'Steps must be between 0 and 200,000.');
+  }
   return Math.round(numeric);
 }
 

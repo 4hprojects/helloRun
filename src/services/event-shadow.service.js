@@ -2,6 +2,11 @@ const crypto = require('crypto');
 const { getPostgresClient } = require('../db/postgres');
 const { syncAppUserFromMongoUser } = require('./user-bridge.service');
 const { toPostgresSmokeMeta } = require('../utils/smoke-test-meta');
+const {
+  normalizeChallengeMetrics,
+  normalizePrimaryChallengeMetric,
+  normalizeTargetSteps
+} = require('../utils/challenge-metrics');
 
 const PHASE = 'phase_3_event_core_shadow';
 
@@ -47,8 +52,11 @@ function normalizeMongoEvent(event) {
     eventType: normalizeNullableEnum(event.eventType, ['virtual', 'onsite', 'hybrid']),
     virtualCompletionMode: normalizeNullableEnum(
       event.virtualCompletionMode,
-      ['single_activity', 'accumulated_distance']
+      ['single_activity', 'accumulated_activity', 'accumulated_distance']
     ) || 'single_activity',
+    challengeMetrics: normalizeChallengeMetrics(event.challengeMetrics),
+    primaryChallengeMetric: normalizePrimaryChallengeMetric(event.primaryChallengeMetric, event.challengeMetrics),
+    targetSteps: normalizeTargetSteps(event.targetSteps),
     registrationOpenAt: event.registrationOpenAt || null,
     registrationCloseAt: event.registrationCloseAt || null,
     eventStartAt: event.eventStartAt || null,
@@ -96,6 +104,9 @@ function buildEventChecksum(normalizedEvent) {
       status: normalizedEvent.status,
       eventType: normalizedEvent.eventType || '',
       virtualCompletionMode: normalizedEvent.virtualCompletionMode,
+      challengeMetrics: normalizedEvent.challengeMetrics,
+      primaryChallengeMetric: normalizedEvent.primaryChallengeMetric,
+      targetSteps: normalizedEvent.targetSteps,
       registrationOpenAt: isoOrEmpty(normalizedEvent.registrationOpenAt),
       registrationCloseAt: isoOrEmpty(normalizedEvent.registrationCloseAt),
       eventStartAt: isoOrEmpty(normalizedEvent.eventStartAt),
@@ -210,6 +221,9 @@ async function syncEventShadow(event, options = {}) {
         status,
         event_type,
         virtual_completion_mode,
+        challenge_metrics,
+        primary_challenge_metric,
+        target_steps,
         registration_open_at,
         registration_close_at,
         event_start_at,
@@ -255,6 +269,9 @@ async function syncEventShadow(event, options = {}) {
         ${normalized.status},
         ${normalized.eventType},
         ${normalized.virtualCompletionMode},
+        ${normalized.challengeMetrics},
+        ${normalized.primaryChallengeMetric},
+        ${normalized.targetSteps},
         ${normalized.registrationOpenAt},
         ${normalized.registrationCloseAt},
         ${normalized.eventStartAt},
@@ -300,6 +317,9 @@ async function syncEventShadow(event, options = {}) {
         status = excluded.status,
         event_type = excluded.event_type,
         virtual_completion_mode = excluded.virtual_completion_mode,
+        challenge_metrics = excluded.challenge_metrics,
+        primary_challenge_metric = excluded.primary_challenge_metric,
+        target_steps = excluded.target_steps,
         registration_open_at = excluded.registration_open_at,
         registration_close_at = excluded.registration_close_at,
         event_start_at = excluded.event_start_at,

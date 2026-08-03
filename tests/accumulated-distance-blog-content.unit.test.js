@@ -72,14 +72,14 @@ test('documented target, progress, ranking, and finalization behavior remains gr
   assert.match(ACTIVITY_SOURCE, /const approvedDistanceKm = sumDistance\(approved\)/);
   assert.match(ACTIVITY_SOURCE, /const pendingDistanceKm = sumDistance\(pending\)/);
   assert.match(ACTIVITY_SOURCE, /potentialDistanceKm = approvedDistanceKm \+ pendingDistanceKm/);
-  assert.match(ACTIVITY_SOURCE, /Math\.max\(0, approvedDistanceKm - target\)/);
-  assert.match(ACTIVITY_SOURCE, /Math\.max\(0, target - approvedDistanceKm\)/);
+  assert.match(ACTIVITY_SOURCE, /Math\.max\(0, approvedDistanceKm - distanceTarget\)/);
+  assert.match(ACTIVITY_SOURCE, /Math\.max\(0, distanceTarget - approvedDistanceKm\)/);
   assert.match(ACTIVITY_SOURCE, /minimumActivityDistanceKm/);
   assert.match(ACTIVITY_SOURCE, /acceptedRunTypes/);
   assert.match(ACTIVITY_SOURCE, /applyAccumulatedAutoApprovalIfEligible/);
 
-  assert.match(LEADERBOARD_SOURCE, /totalDistanceKm:\s*\{\s*\$sum:\s*'\$distanceKm'\s*\}/);
-  assert.match(LEADERBOARD_SOURCE, /\{ \$sort: \{ totalDistanceKm: -1, verifiedAt: 1, submittedAt: 1 \} \}/);
+  assert.match(LEADERBOARD_SOURCE, /totalDistanceKm:\s*\{\s*\$sum:\s*\{\s*\$ifNull:\s*\['\$distanceKm', 0\]\s*\}\s*\}/);
+  assert.match(LEADERBOARD_SOURCE, /compareAccumulatedRows\(a, b, primaryMetric\)/);
 
   assert.match(FINALIZATION_SOURCE, /event\.finalSubmissionDeadlineAt \|\|/);
   assert.match(FINALIZATION_SOURCE, /status: 'submitted'/);

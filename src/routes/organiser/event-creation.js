@@ -1,6 +1,7 @@
 // src/routes/organiser/event-creation.js
 const express = require('express');
 const router = express.Router();
+const { isAccumulatedChallenge } = require('../../utils/challenge-metrics');
 const {
   logger,
   mongoose,
@@ -338,7 +339,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     let slug = null;
     const eventTypesAllowed = getEventTypesAllowed(formData.eventType);
     const isVirtualMode = formData.eventType === 'virtual' || formData.eventType === 'hybrid';
-    const finalSubmissionDeadlineAt = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+    const finalSubmissionDeadlineAt = isVirtualMode && isAccumulatedChallenge(formData.virtualCompletionMode)
       ? resolveFinalSubmissionDeadline(formData)
       : null;
 
@@ -463,21 +464,21 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
         ? formData.proofTypesAllowed
         : [],
       virtualCompletionMode: isVirtualMode ? formData.virtualCompletionMode : 'single_activity',
-      targetDistanceKm: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      targetDistanceKm: isVirtualMode && isAccumulatedChallenge(formData.virtualCompletionMode)
         ? formData.targetDistanceKm
         : null,
       minimumActivityDistanceKm: null,
-      acceptedRunTypes: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      acceptedRunTypes: isVirtualMode && isAccumulatedChallenge(formData.virtualCompletionMode)
         ? formData.acceptedRunTypes
         : [],
-      finalSubmissionDeadlineAt: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      finalSubmissionDeadlineAt: isVirtualMode && isAccumulatedChallenge(formData.virtualCompletionMode)
         ? finalSubmissionDeadlineAt
         : null,
       milestoneDistancesKm: [],
-      recognitionMode: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      recognitionMode: isVirtualMode && isAccumulatedChallenge(formData.virtualCompletionMode)
         ? formData.recognitionMode
         : 'completion_only',
-      leaderboardMode: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      leaderboardMode: isVirtualMode && isAccumulatedChallenge(formData.virtualCompletionMode)
         ? formData.leaderboardMode
         : 'finishers',
       feeMode: formData.feeMode === 'paid' ? 'paid' : 'free',

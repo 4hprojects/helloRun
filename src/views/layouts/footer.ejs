@@ -40,7 +40,7 @@
     </div>
   </div>
 </footer>
-<button type="button" class="global-back-to-top<%= (locals.isAuthenticated && !locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer) ? ' global-back-to-top--with-mobile-nav' : '' %>" id="globalBackToTopBtn" aria-label="Back to top">
+<button type="button" class="global-back-to-top<%= (locals.isAuthenticated && locals.isRunnerWorkspace) ? ' global-back-to-top--with-mobile-nav' : '' %>" id="globalBackToTopBtn" aria-label="Back to top">
   <i data-lucide="arrow-up"></i>
 </button>
 <%- include('../partials/cookie-preferences') %>

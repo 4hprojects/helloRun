@@ -125,10 +125,10 @@
               Activity Metrics
             </h3>
             <dl class="submission-review-meta-grid">
-              <div>
+              <% if (!locals.challengeConfig || !locals.challengeConfig.accumulated || locals.challengeConfig.tracksDistance) { %><div>
                 <dt>Distance</dt>
                 <dd><strong><%= Number(submission.distanceKm || 0).toFixed(2) %> km</strong></dd>
-              </div>
+              </div><% } %>
               <div>
                 <dt>Elapsed</dt>
                 <dd><%= submission.elapsedLabel || 'N/A' %></dd>
@@ -270,8 +270,10 @@
 
               <form id="js-admin-correction-form" data-correction-url="/admin/submissions/<%= submission._id || submission.id %>/correct" class="submission-review-action-form">
                 <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-                <label for="admin-correct-distance">Distance (km)</label>
-                <input type="number" step="0.01" min="0.1" max="500" id="admin-correct-distance" name="distanceKm" value="<%= Number(submission.distanceKm || 0).toFixed(2) %>">
+                <% if (!locals.challengeConfig || !locals.challengeConfig.accumulated || locals.challengeConfig.tracksDistance) { %>
+                  <label for="admin-correct-distance">Distance (km)</label>
+                  <input type="number" step="0.01" min="0.1" max="500" id="admin-correct-distance" name="distanceKm" value="<%= Number(submission.distanceKm || 0).toFixed(2) %>">
+                <% } %>
                 <label for="admin-correct-elapsed">Elapsed (HH:MM:SS)</label>
                 <input type="text" id="admin-correct-elapsed" name="elapsedHms" value="<%= submission.elapsedLabel || '00:00:00' %>" pattern="\d{1,2}:\d{2}:\d{2}">
                 <label for="admin-correct-date">Run Date</label>

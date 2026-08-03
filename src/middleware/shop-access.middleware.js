@@ -2,11 +2,17 @@ const mongoose = require('mongoose');
 const Event = require('../models/Event');
 const User = require('../models/User');
 const { getPostgresClient } = require('../db/postgres');
+const { WORKSPACES, canUseRunnerWorkspace } = require('../utils/workspace');
 
 async function requireRunner(req, res, next) {
   try {
     const user = await getSessionUser(req);
-    if (!user || user.role !== 'runner') {
+    const isRunnerActor = Boolean(
+      user &&
+      canUseRunnerWorkspace(user) &&
+      (user.role === 'runner' || req.session?.activeWorkspace === WORKSPACES.RUNNER)
+    );
+    if (!isRunnerActor) {
       return renderAccessDenied(res, 'Runner access is required.');
     }
     req.shopActor = user;
@@ -192,7 +198,9 @@ async function canManagePlatformProduct(req, res, next) {
 
 async function getSessionUser(req) {
   if (!req.session || !req.session.userId) return null;
-  return User.findById(req.session.userId).select('role organizerStatus').lean();
+  return User.findById(req.session.userId)
+    .select('role organizerStatus emailVerified accountStatus')
+    .lean();
 }
 
 async function getAppUserIdForMongoUser(mongoUserId) {

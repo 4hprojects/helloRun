@@ -2,6 +2,10 @@ const { markdownToHtml } = require('./markdown');
 const { sanitizeHtml, htmlToPlainText } = require('./sanitize');
 const { getCountryName } = require('./country');
 const { formatPlatformDate } = require('./platform-date');
+const {
+  isAccumulatedChallenge: isAccumulatedChallengeEvent,
+  resolveChallengeConfig
+} = require('./challenge-metrics');
 
 const EVENT_DETAILS_SANITIZE_OPTIONS = Object.freeze({
   allowedTags: [
@@ -79,7 +83,8 @@ function buildPublicEventView(event, options = {}) {
   const targetDistanceLabel = Number.isFinite(Number(event.targetDistanceKm)) && Number(event.targetDistanceKm) > 0
     ? `${formatNumber(event.targetDistanceKm)} km`
     : (raceDistances[0] || 'Open distance');
-  const isAccumulatedChallenge = event.virtualCompletionMode === 'accumulated_distance';
+  const isAccumulatedChallenge = isAccumulatedChallengeEvent(event);
+  const challengeConfig = resolveChallengeConfig(event);
   const categoryGoalOptions = buildCategoryGoalOptions(raceCategories);
   const hasCategorySpecificGoals = isAccumulatedChallenge && categoryGoalOptions.length > 1;
   const distanceSummaryLabel = raceDistances.length
@@ -98,6 +103,10 @@ function buildPublicEventView(event, options = {}) {
     allowedModes,
     raceDistances,
     raceCategories,
+    challengeMetrics: challengeConfig.metrics,
+    primaryChallengeMetric: challengeConfig.primaryMetric,
+    targetSteps: challengeConfig.targetSteps,
+    rankingOnly: challengeConfig.rankingOnly,
     targetDistanceLabel,
     completionGoalLabel: hasCategorySpecificGoals ? 'Selected category distance' : targetDistanceLabel,
     distanceSummaryLabel,
@@ -601,6 +610,7 @@ function buildTimeline(event) {
 }
 
 function buildVirtualRules(event) {
+  const challengeConfig = resolveChallengeConfig(event);
   const acceptedActivities = normalizeList(event.acceptedRunTypes).map(formatActivityTypeLabel);
   const proofTypes = normalizeList(event.proofTypesAllowed).map(formatProofTypeLabel);
   const minimumDistance = Number.isFinite(Number(event.minimumActivityDistanceKm)) && Number(event.minimumActivityDistanceKm) > 0
@@ -608,8 +618,14 @@ function buildVirtualRules(event) {
     : '';
 
   return {
-    completionMode: event.virtualCompletionMode === 'accumulated_distance' ? 'Accumulated distance challenge' : 'Single activity completion',
+    completionMode: challengeConfig.accumulated
+      ? `${challengeConfig.metrics.map((metric) => metric === 'steps' ? 'steps' : 'distance').join(' and ')} accumulated challenge`
+      : 'Single activity completion',
     targetDistanceKm: Number.isFinite(Number(event.targetDistanceKm)) ? Number(event.targetDistanceKm) : null,
+    targetSteps: challengeConfig.targetSteps,
+    trackedMetrics: challengeConfig.metrics,
+    primaryMetric: challengeConfig.primaryMetric,
+    rankingOnly: challengeConfig.rankingOnly,
     acceptedActivities,
     proofTypes,
     minimumDistance,
@@ -654,7 +670,7 @@ function buildEventRecap(event, options = {}) {
 }
 
 function buildStats({ event, registrationCount, targetDistanceLabel, raceDistances = [], distanceSummaryLabel = '' }) {
-  const isAccumulatedChallenge = event.virtualCompletionMode === 'accumulated_distance';
+  const isAccumulatedChallenge = isAccumulatedChallengeEvent(event);
   const hasMultipleDistances = !isAccumulatedChallenge && raceDistances.length > 1;
   const stats = [
     { label: 'Signups', value: String(registrationCount), helper: 'Registered runners' }
@@ -775,6 +791,8 @@ function normalizePricingMode(value, feeMode = 'free') {
 function formatLeaderboardMode(value) {
   const labels = {
     finishers: 'Finishers leaderboard',
+    top_metric: 'Top official metric',
+    finishers_and_top_metric: 'Finishers and top official metric',
     top_distance: 'Top total distance',
     finishers_and_top_distance: 'Finishers and top total distance'
   };

@@ -4,12 +4,13 @@ const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubm
 const { buildAccumulatedProgress } = require('./accumulated-activity.service');
 const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
 const { getPlatformDateKey } = require('../utils/platform-date');
+const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
 
 async function getRunnerRegistrations(userId) {
   return Registration.find({ userId })
     .populate({
       path: 'eventId',
-      select: 'title slug status logoUrl bannerImageUrl eventStartAt eventEndAt city country venueName virtualCompletionMode targetDistanceKm raceCategories minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt virtualWindow onsiteCheckinWindows feeMode feeAmount feeCurrency paymentAccountName paymentInstructions paymentQrImageUrl',
+      select: 'title slug status logoUrl bannerImageUrl eventStartAt eventEndAt city country venueName virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm raceCategories minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt virtualWindow onsiteCheckinWindows feeMode feeAmount feeCurrency paymentAccountName paymentInstructions paymentQrImageUrl',
       match: { isPersonalRecord: { $ne: true } }
     })
     .sort({ registeredAt: -1 })
@@ -96,7 +97,7 @@ function buildRunnerEventProgressCards(registrations = [], sources = {}, options
     .map((registration) => {
       const registrationId = String(registration._id || '');
       const event = registration.eventId || {};
-      const isAccumulated = event.virtualCompletionMode === 'accumulated_distance';
+      const isAccumulated = isAccumulatedChallenge(event);
       const paymentStatus = String(registration.paymentStatus || '').trim() || 'unpaid';
       const registrationStatus = String(registration.status || '').trim() || 'confirmed';
       const paymentReady = paymentStatus === 'paid';
@@ -603,13 +604,18 @@ function buildStandardProgressCard(base, submission) {
 }
 
 function buildAccumulatedProgressCard(base, activities, registration, event) {
+  const challengeConfig = resolveChallengeConfig(event);
   const progress = buildAccumulatedProgress({
     activities,
-    targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, event)
+    targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, event),
+    targetSteps: challengeConfig.targetSteps,
+    primaryMetric: challengeConfig.primaryMetric
   });
-  const percent = progress.targetDistanceKm > 0 ? progress.progressPercent : 0;
+  const percent = progress.primaryTarget > 0 ? progress.progressPercent : 0;
   const latestActivity = activities[0] || null;
   const remainingDistanceKm = Math.max(0, Number(progress.targetDistanceKm || 0) - Number(progress.approvedDistanceKm || 0));
+  const remainingSteps = Math.max(0, Number(progress.targetSteps || 0) - Number(progress.approvedSteps || 0));
+  const remainingPrimaryValue = challengeConfig.primaryMetric === 'steps' ? remainingSteps : remainingDistanceKm;
   const potentialDistanceKm = Number(progress.approvedDistanceKm || 0) + Number(progress.pendingDistanceKm || 0);
   const guidanceDays = base.challengeDaysRemaining > 0 ? base.challengeDaysRemaining : 0;
   const displayProgress = {
@@ -617,6 +623,11 @@ function buildAccumulatedProgressCard(base, activities, registration, event) {
     percent,
     remainingDistanceKm,
     potentialDistanceKm,
+    remainingSteps,
+    remainingPrimaryValue,
+    suggestedDailySteps: challengeConfig.primaryMetric === 'steps' && guidanceDays && remainingSteps > 0
+      ? Math.ceil(remainingSteps / guidanceDays)
+      : null,
     suggestedDailyDistanceKm: guidanceDays && remainingDistanceKm > 0 ? remainingDistanceKm / guidanceDays : null,
     suggestedWeeklyDistanceKm: guidanceDays && remainingDistanceKm > 0 ? (remainingDistanceKm / guidanceDays) * 7 : null
   };
@@ -626,10 +637,12 @@ function buildAccumulatedProgressCard(base, activities, registration, event) {
       return {
         ...base,
         state: 'goal_reached',
-        stateLabel: progress.overGoalDistanceKm > 0 ? 'Goal Reached · Extra Distance Verified' : 'Goal Reached',
+        stateLabel: (challengeConfig.primaryMetric === 'steps' ? progress.overGoalSteps : progress.overGoalDistanceKm) > 0
+          ? 'Goal Reached · Extra Progress Verified'
+          : 'Goal Reached',
         stateTone: 'approved',
         helperText: progress.pendingActivityCount > 0
-          ? 'Your badge is earned. Pending distance remains separate until approval, and submissions stay open until the deadline.'
+          ? 'Your badge is earned. Pending progress remains separate until approval, and submissions stay open until the deadline.'
           : 'Your badge is earned. Keep adding eligible activities until the submission deadline.',
         progress: displayProgress,
         submittedAt: latestActivity?.submittedAt || null,
@@ -656,7 +669,7 @@ function buildAccumulatedProgressCard(base, activities, registration, event) {
       stateLabel: progress.certificateActivityId ? 'Certificate Ready' : 'Certificate Finalizing',
       stateTone: 'approved',
       helperText: progress.certificateActivityId
-        ? 'Your final approved distance is recorded and your certificate is ready.'
+        ? 'Your final approved competition total is recorded and your certificate is ready.'
         : 'Final reviews are complete and your certificate is being prepared.',
       progress: displayProgress,
       submittedAt: latestActivity?.submittedAt || null,

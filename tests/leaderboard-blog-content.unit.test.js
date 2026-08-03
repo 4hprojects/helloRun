@@ -44,7 +44,7 @@ test('leaderboard guide builds a substantive HelloRun-grounded payload', () => {
   assert.match(payload.contentText, /event submissions with an approved status/i);
   assert.match(payload.contentText, /primary ordering value is the approved submission's elapsed time, shortest first/i);
   assert.match(payload.contentText, /adds the distances of approved activities belonging to the same event registration/i);
-  assert.match(payload.contentText, /assigns sequential ordinal ranks rather than shared tie positions/i);
+  assert.match(payload.contentText, /equal approved totals.+share the same competition rank/i);
   assert.match(payload.contentText, /Pending entries.+receive no rank/i);
   assert.match(payload.contentText, /up to approximately 60 seconds/i);
   assert.match(payload.contentText, /Proof files, OCR output, email addresses.+are not returned as public leaderboard fields/i);
@@ -65,8 +65,8 @@ test('documented ranking and privacy behavior remains grounded in the service', 
   assert.match(SERVICE_SOURCE, /status:\s*'approved'/);
   assert.match(SERVICE_SOURCE, /isPersonalRecord:\s*\{\s*\$ne:\s*true\s*\}/);
   assert.match(SERVICE_SOURCE, /\.sort\(\{ elapsedMs: 1, reviewedAt: 1, submittedAt: 1, createdAt: 1 \}\)/);
-  assert.match(SERVICE_SOURCE, /totalDistanceKm:\s*\{\s*\$sum:\s*'\$distanceKm'\s*\}/);
-  assert.match(SERVICE_SOURCE, /\{ \$sort: \{ totalDistanceKm: -1, verifiedAt: 1, submittedAt: 1 \} \}/);
+  assert.match(SERVICE_SOURCE, /totalDistanceKm:\s*\{\s*\$sum:\s*\{\s*\$ifNull:\s*\['\$distanceKm', 0\]\s*\}\s*\}/);
+  assert.match(SERVICE_SOURCE, /rankAccumulatedRows\(rows, settings\.primaryMetric\)/);
   assert.match(SERVICE_SOURCE, /LEADERBOARD_CACHE_TTL_SECONDS = 60/);
   assert.match(SERVICE_SOURCE, /const \{ searchableText, \.\.\.publicEntry \} = entry/);
 });

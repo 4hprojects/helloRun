@@ -6,6 +6,7 @@ const User = require('../models/User');
 const mongoose = require('mongoose');
 const { issueSubmissionCertificate } = require('../services/certificate.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
+const { isAccumulatedChallenge } = require('../utils/challenge-metrics');
 
 async function regenerateCertificate(req, res, next) {
   try {
@@ -19,7 +20,7 @@ async function regenerateCertificate(req, res, next) {
     if (context.record.certificate?.status === 'revoked') {
       return res.status(400).json({ success: false, error: 'Revoked certificates cannot be regenerated.' });
     }
-    const isAccumulated = context.event.virtualCompletionMode === 'accumulated_distance';
+    const isAccumulated = isAccumulatedChallenge(context.event);
     if (isAccumulated && !context.record.certificate?.finalizedAt) {
       return res.status(400).json({ success: false, error: 'Accumulated challenge certificates are finalized automatically after the submission deadline and final reviews.' });
     }
@@ -31,8 +32,11 @@ async function regenerateCertificate(req, res, next) {
       runner: context.runner,
       certificateNumber: context.record.certificate?.certificateNumber || '',
       accumulatedSnapshot: isAccumulated ? {
+        completionMetric: context.record.certificate.completionMetric,
         goalDistanceKm: context.record.certificate.goalDistanceKm,
         verifiedDistanceKm: context.record.certificate.verifiedDistanceKm,
+        goalSteps: context.record.certificate.goalSteps,
+        verifiedSteps: context.record.certificate.verifiedSteps,
         approvedActivityCount: context.record.certificate.approvedActivityCount,
         finalizedAt: context.record.certificate.finalizedAt
       } : null
@@ -49,8 +53,11 @@ async function regenerateCertificate(req, res, next) {
       revokedAt: null,
       regeneratedAt: new Date(),
       generationError: '',
+      completionMetric: context.record.certificate?.completionMetric || '',
       goalDistanceKm: context.record.certificate?.goalDistanceKm ?? null,
       verifiedDistanceKm: context.record.certificate?.verifiedDistanceKm ?? null,
+      goalSteps: context.record.certificate?.goalSteps ?? null,
+      verifiedSteps: context.record.certificate?.verifiedSteps ?? null,
       approvedActivityCount: context.record.certificate?.approvedActivityCount ?? null,
       finalizedAt: context.record.certificate?.finalizedAt || null
     };

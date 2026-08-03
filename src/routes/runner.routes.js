@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const runnerController = require('../controllers/runner.controller');
 const groupCommunityController = require('../controllers/running-group-community.controller');
-const { requireAuth } = require('../middleware/auth.middleware');
+const { requireAuth, requireRunnerWorkspace } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const uploadService = require('../services/upload.service');
@@ -46,6 +46,8 @@ router.use((req, res, next) => {
   }
   return next();
 });
+
+router.use('/runner', requireAuth, requireRunnerWorkspace);
 
 router.get('/runner/dashboard', requireAuth, runnerController.getDashboard);
 router.get('/runner/dashboard/refresh', requireAuth, runnerController.getDashboardRefresh);

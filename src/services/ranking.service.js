@@ -20,6 +20,8 @@ function normalizeSingleActivityRanking(entry, rank) {
     participation_mode: entry.participationMode || 'virtual',
     elapsed_ms: entry.elapsedMs || 0,
     approved_distance_km: null,
+    approved_steps: null,
+    primary_metric: 'distance',
     approved_activity_count: null,
     submitted_at: entry.submittedAt ? new Date(entry.submittedAt) : new Date()
   };
@@ -39,8 +41,10 @@ function normalizeAccumulatedRanking(entry, rank) {
     race_distance: entry.raceDistance || '',
     participation_mode: entry.participationMode || 'virtual',
     elapsed_ms: null,
-    approved_distance_km: entry.approvedDistanceKm || 0,
-    approved_activity_count: entry.approvedActivityCount || 0,
+    approved_distance_km: Number(entry.approvedDistanceKm ?? entry.totalDistanceKm ?? 0),
+    approved_steps: Number(entry.approvedSteps ?? entry.totalSteps ?? 0),
+    primary_metric: entry.primaryMetric === 'steps' ? 'steps' : 'distance',
+    approved_activity_count: Number(entry.approvedActivityCount ?? entry.activityCount ?? 0),
     submitted_at: entry.submittedAt ? new Date(entry.submittedAt) : new Date()
   };
 }
@@ -57,6 +61,8 @@ function buildRankingChecksum(normalized) {
     normalized.rank_position,
     normalized.elapsed_ms,
     normalized.approved_distance_km,
+    normalized.approved_steps,
+    normalized.primary_metric,
     normalized.approved_activity_count
   ].join('|');
   return crypto.createHash('sha256').update(fields).digest('hex');
@@ -114,7 +120,7 @@ async function syncRankingEntry(entry, eventData, runnerData, options = {}) {
       INSERT INTO rankings (
         mongo_submission_id, event_core_id, runner_user_id,
         leaderboard_type, rank_position, race_distance, participation_mode,
-        elapsed_ms, approved_distance_km, approved_activity_count,
+        elapsed_ms, approved_distance_km, approved_steps, primary_metric, approved_activity_count,
         submitted_at, calculated_at
       ) VALUES (
         ${normalized.mongo_submission_id},
@@ -126,12 +132,19 @@ async function syncRankingEntry(entry, eventData, runnerData, options = {}) {
         ${normalized.participation_mode},
         ${normalized.elapsed_ms},
         ${normalized.approved_distance_km},
+        ${normalized.approved_steps},
+        ${normalized.primary_metric},
         ${normalized.approved_activity_count},
         ${normalized.submitted_at},
         CURRENT_TIMESTAMP
       )
       ON CONFLICT (mongo_submission_id) DO UPDATE SET
         rank_position = EXCLUDED.rank_position,
+        approved_distance_km = EXCLUDED.approved_distance_km,
+        approved_steps = EXCLUDED.approved_steps,
+        primary_metric = EXCLUDED.primary_metric,
+        approved_activity_count = EXCLUDED.approved_activity_count,
+        submitted_at = EXCLUDED.submitted_at,
         calculated_at = CURRENT_TIMESTAMP,
         updated_at = CURRENT_TIMESTAMP
       RETURNING *

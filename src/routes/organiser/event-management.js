@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const CertificateTemplate = require('../../models/CertificateTemplate');
+const { isAccumulatedChallenge, resolveChallengeConfig } = require('../../utils/challenge-metrics');
 const {
   logger,
   User,
@@ -481,6 +482,7 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
     }
 
     const formData = getCreateEventFormData(req.body);
+    formData.allowStepCompetitionWhenDisabled = resolveChallengeConfig(event).tracksSteps;
     const incomingPaymentQrFile = req.files?.paymentQrImageFile?.[0] || null;
     if (incomingPaymentQrFile && formData.feeMode === 'paid' && !formData.paymentQrImageUrl) {
       formData.paymentQrImageUrl = 'https://pending-upload.local/payment-qr.png';
@@ -495,8 +497,8 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
       : 'draft';
     if (
       (event.eventType === 'virtual' || event.eventType === 'hybrid') &&
-      event.virtualCompletionMode === 'accumulated_distance' &&
-      formData.virtualCompletionMode === 'accumulated_distance' &&
+      isAccumulatedChallenge(event) &&
+      isAccumulatedChallenge(formData.virtualCompletionMode) &&
       (!Number.isFinite(formData.targetDistanceKm) || formData.targetDistanceKm <= 0) &&
       Number.isFinite(event.targetDistanceKm) &&
       event.targetDistanceKm > 0
@@ -661,21 +663,21 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
       : undefined;
     event.proofTypesAllowed = isVirtualMode ? formData.proofTypesAllowed : [];
     event.virtualCompletionMode = isVirtualMode ? formData.virtualCompletionMode : 'single_activity';
-    event.targetDistanceKm = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+    event.targetDistanceKm = isVirtualMode && isAccumulatedChallenge(formData.virtualCompletionMode)
       ? formData.targetDistanceKm
       : null;
     event.minimumActivityDistanceKm = null;
-    event.acceptedRunTypes = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+    event.acceptedRunTypes = isVirtualMode && isAccumulatedChallenge(formData.virtualCompletionMode)
       ? formData.acceptedRunTypes
       : [];
-    event.finalSubmissionDeadlineAt = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+    event.finalSubmissionDeadlineAt = isVirtualMode && isAccumulatedChallenge(formData.virtualCompletionMode)
       ? resolveFinalSubmissionDeadline(formData)
       : null;
     event.milestoneDistancesKm = [];
-    event.recognitionMode = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+    event.recognitionMode = isVirtualMode && isAccumulatedChallenge(formData.virtualCompletionMode)
       ? formData.recognitionMode
       : 'completion_only';
-    event.leaderboardMode = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+    event.leaderboardMode = isVirtualMode && isAccumulatedChallenge(formData.virtualCompletionMode)
       ? formData.leaderboardMode
       : 'finishers';
 

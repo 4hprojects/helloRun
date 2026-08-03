@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="/css/events.css">
   <link rel="stylesheet" href="/css/event-details.css">
 </head>
-<body class="event-details-body<%= details.isAccumulatedChallenge ? ' is-accumulated-challenge' : '' %><%= locals.isAuthenticated ? ' is-authenticated' : '' %><%= locals.isAuthenticated && !locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer ? ' has-runner-mobile-nav' : '' %><%= showMobileStickyCta ? ' has-event-mobile-sticky-cta' : '' %>">
+<body class="event-details-body<%= details.isAccumulatedChallenge ? ' is-accumulated-challenge' : '' %><%= locals.isAuthenticated ? ' is-authenticated' : '' %><%= locals.isAuthenticated && locals.isRunnerWorkspace ? ' has-runner-mobile-nav' : '' %><%= showMobileStickyCta ? ' has-event-mobile-sticky-cta' : '' %>">
   <%- include('../layouts/nav') %>
 
   <main class="event-details-page">
@@ -73,6 +73,16 @@
         (!details.hasCategorySpecificGoals || hasDetailedRaceCategories)
       );
     %>
+
+    <% if (!isPreviewMode && typeof ownEventParticipationConflict !== 'undefined' && ownEventParticipationConflict) { %>
+      <section class="event-preview-notice" role="status" aria-label="Organizer participation restriction">
+        <div>
+          <strong>You manage this event</strong>
+          <span>Organizers cannot register for, submit results to, or compete in events they manage.</span>
+        </div>
+        <a href="/organizer/dashboard" class="btn btn-outline">Organizer Dashboard</a>
+      </section>
+    <% } %>
 
     <% if (isPreviewMode) { %>
       <section class="event-preview-notice" role="status" aria-label="Event preview status">

@@ -355,15 +355,20 @@
       if (!item || !isOptionAligned(item)) return false;
       if (item.isPersonalRecord) return true;
       const distanceKm = Number(distanceInput?.value || 0);
+      const steps = Number(stepsInput?.value || 0);
       const runType = String(runTypeInput?.value || '').trim();
-      if (!Number.isFinite(distanceKm) || distanceKm <= 0 || !runType) return false;
+      if ((item.requiresDistance !== false && (!Number.isFinite(distanceKm) || distanceKm <= 0)) || !runType) return false;
+      if (item.requiresSteps === true && (!Number.isInteger(steps) || steps <= 0)) return false;
       const acceptedRunTypes = Array.isArray(item.acceptedRunTypes) ? item.acceptedRunTypes : [];
       if (acceptedRunTypes.length && !acceptedRunTypes.includes(runType)) return false;
       const mode = getSubmissionMode(item);
       const minimumDistance = mode === 'accumulated'
         ? Number(item.minimumActivityDistanceKm || 0)
         : Number(item.minimumRequiredDistanceKm || 0);
-      return !Number.isFinite(minimumDistance) || minimumDistance <= 0 || distanceKm >= minimumDistance;
+      return item.requiresDistance === false
+        || !Number.isFinite(minimumDistance)
+        || minimumDistance <= 0
+        || distanceKm >= minimumDistance;
     };
 
     const updateDatePreview = () => {
@@ -552,7 +557,7 @@
       const explicit = String(item?.submissionMode || '').trim().toLowerCase();
       if (explicit) return explicit;
       const completionMode = String(item?.virtualCompletionMode || '').trim().toLowerCase();
-      if (completionMode === 'accumulated_distance') return 'accumulated';
+      if (completionMode === 'accumulated_distance' || completionMode === 'accumulated_activity') return 'accumulated';
       return 'standard';
     };
 
@@ -570,7 +575,8 @@
       if (submissionDeadline) parts.push('Upload deadline ' + submissionDeadline);
       const mode = getSubmissionMode(item);
       if (mode === 'accumulated') {
-        parts.push('Adds distance after organizer approval');
+        const metrics = Array.isArray(item?.challengeMetrics) ? item.challengeMetrics : ['distance'];
+        parts.push('Adds approved ' + metrics.join(' + '));
         const minimumActivityDistanceKm = Number(item?.minimumActivityDistanceKm || 0);
         if (Number.isFinite(minimumActivityDistanceKm) && minimumActivityDistanceKm > 0) {
           parts.push('Minimum activity ' + formatDistanceKm(minimumActivityDistanceKm) + ' km');
@@ -596,6 +602,14 @@
     const syncSelectedRegistrationFields = () => {
       const ids = Array.from(state.selectedRegistrationIds);
       selectedIdsInput.value = ids.join(',');
+      const selectedOptions = ids
+        .map((id) => state.options.find((item) => String(item.registrationId || '') === String(id)))
+        .filter(Boolean);
+      const requiresDistance = selectedOptions.length === 0
+        || selectedOptions.some((item) => item.isPersonalRecord || item.requiresDistance !== false);
+      const requiresSteps = selectedOptions.some((item) => item.requiresSteps === true);
+      if (distanceInput) distanceInput.required = requiresDistance;
+      if (stepsInput) stepsInput.required = requiresSteps;
 
       if (!ids.length) {
         state.primaryRegistrationId = '';
@@ -1325,6 +1339,12 @@
     };
 
     const validateDistance = () => {
+      const required = getSelectedOptions().some((item) => item.isPersonalRecord || item.requiresDistance !== false);
+      const raw = String(distanceInput.value || '').trim();
+      if (!raw && !required) {
+        setFieldError('runProofDistanceError', 'distanceKm', '');
+        return true;
+      }
       const value = Number(distanceInput.value);
       if (!Number.isFinite(value) || value <= 0) {
         setFieldError('runProofDistanceError', 'distanceKm', 'Distance must be a positive number.');
@@ -1404,8 +1424,14 @@
       }
       const stepsRaw = String(stepsInput?.value || '').trim();
       const steps = Number(stepsRaw);
-      if (stepsRaw && (!Number.isFinite(steps) || steps < 0 || steps > 200000 || !Number.isInteger(steps))) {
-        setFieldError('runProofStepsError', 'steps', 'Steps must be a whole number from 0 to 200,000.');
+      const stepsRequired = getSelectedOptions().some((item) => item.requiresSteps === true);
+      if (stepsRequired && !stepsRaw) {
+        setFieldError('runProofStepsError', 'steps', 'Steps are required for the selected competition.');
+        valid = false;
+      } else if (stepsRaw && (!Number.isFinite(steps) || steps < (stepsRequired ? 1 : 0) || steps > 200000 || !Number.isInteger(steps))) {
+        setFieldError('runProofStepsError', 'steps', stepsRequired
+          ? 'Steps must be a whole number from 1 to 200,000.'
+          : 'Steps must be a whole number from 0 to 200,000.');
         valid = false;
       } else {
         setFieldError('runProofStepsError', 'steps', '');
@@ -2292,6 +2318,12 @@
       if (!registrationId) return;
 
       if (input.checked) {
+        const selectedOption = state.options.find((item) => String(item.registrationId || '') === registrationId);
+        if (state.selectedStravaActivity && selectedOption?.requiresSteps) {
+          input.checked = false;
+          setMessage('Strava-only activities cannot enter a steps competition. Upload tracker proof with verified steps.', 'error');
+          return;
+        }
         state.manuallyDeselectedTargetIds.delete(registrationId);
         if (state.selectedStravaActivity) {
           state.selectedRegistrationIds.clear();

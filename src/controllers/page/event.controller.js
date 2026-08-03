@@ -79,6 +79,7 @@ const {
   startContactCooldown,
   acquireContactSendLock
 } = require('../../services/event-contact-protection.service');
+const { isOwnOrganizerEvent } = require('../../utils/workspace');
 
 exports.getEventDetails = async (req, res) => {
   try {
@@ -115,6 +116,14 @@ exports.getEventDetails = async (req, res) => {
     ]);
     const baseUrl = getSitemapBaseUrl(req);
     const publicEvent = buildPublicEventView(event, { registrationCount, eventBadges: badges });
+    const ownEventParticipationConflict = isOwnOrganizerEvent(res.locals.user, event);
+    if (ownEventParticipationConflict) {
+      publicEvent.primaryCta = {
+        label: 'Organizer cannot register',
+        href: '',
+        disabled: true
+      };
+    }
     const eventShop = {
       href: `/events/${event.slug}/shop`,
       products: eventShopProducts,
@@ -136,7 +145,8 @@ exports.getEventDetails = async (req, res) => {
       publicEvent,
       badges,
       eventShop,
-      runnerEventState,
+      runnerEventState: ownEventParticipationConflict ? null : runnerEventState,
+      ownEventParticipationConflict,
       contactCooldown: buildContactCooldownPresentation(contactCooldown),
       isSaved,
       relatedEvents,

@@ -12,9 +12,13 @@ const {
   refreshGlobalDistanceMilestoneProgressInBackground
 } = require('./badge-progress.service');
 const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
+const {
+  isAccumulatedChallenge,
+  resolveChallengeConfig
+} = require('../utils/challenge-metrics');
 
 const APPROVABLE_STATUS = new Set(['submitted', 'rejected']);
-const REJECTABLE_STATUS = new Set(['submitted']);
+const REJECTABLE_STATUS = new Set(['submitted', 'approved']);
 
 async function createAccumulatedActivitySubmission(input) {
   const {
@@ -26,7 +30,7 @@ async function createAccumulatedActivitySubmission(input) {
     runnerId: input.runnerId
   });
   const event = await Event.findById(registration.eventId)
-    .select('virtualCompletionMode targetDistanceKm minimumActivityDistanceKm acceptedRunTypes raceCategories title')
+    .select('virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm minimumActivityDistanceKm acceptedRunTypes raceCategories title')
     .lean();
 
   assertAccumulatedEvent(event);
@@ -69,15 +73,15 @@ async function reviewAccumulatedActivitySubmission({
     throw new Error('Only submitted or rejected activities can be approved.');
   }
   if (safeAction === 'reject' && !REJECTABLE_STATUS.has(activity.status)) {
-    throw new Error('Only submitted activities can be rejected.');
+    throw new Error('Only submitted or approved activities can be rejected.');
   }
 
   const normalizedReviewerRole = String(reviewerRole || '').trim().toLowerCase();
   const isAdminReviewer = normalizedReviewerRole === 'admin';
   const event = await Event.findById(activity.eventId)
-    .select('organizerId title targetDistanceKm virtualCompletionMode')
+    .select('organizerId title targetDistanceKm targetSteps challengeMetrics primaryChallengeMetric virtualCompletionMode')
     .lean();
-  if (!event || event.virtualCompletionMode !== 'accumulated_distance') {
+  if (!event || !isAccumulatedChallenge(event)) {
     throw new Error('Activity submission not found or inaccessible.');
   }
   if (!isAdminReviewer && String(event.organizerId || '') !== String(organizerId || '')) {
@@ -116,7 +120,7 @@ async function reviewAccumulatedActivitySubmission({
     throw new Error(
       safeAction === 'approve'
         ? 'Only submitted or rejected activities can be approved.'
-        : 'Only submitted activities can be rejected.'
+        : 'Only submitted or approved activities can be rejected.'
     );
   }
 
@@ -133,20 +137,29 @@ async function reviewAccumulatedActivitySubmission({
     occurredAt: reviewedActivity.reviewedAt
   });
 
-  if (safeAction === 'approve') {
-    refreshAccumulatedChallengeProgress(reviewedActivity.registrationId, {
-      performedBy: organizerId
-    }).catch((error) => {
-      logger.error('Accumulated challenge badge progress refresh failed:', {
-        activityId: String(reviewedActivity._id || ''),
-        registrationId: String(reviewedActivity.registrationId || ''),
-        error: error.message
-      });
+  refreshAccumulatedChallengeProgress(reviewedActivity.registrationId, {
+    performedBy: organizerId
+  }).catch((error) => {
+    logger.error('Accumulated challenge badge progress refresh failed:', {
+      activityId: String(reviewedActivity._id || ''),
+      registrationId: String(reviewedActivity.registrationId || ''),
+      error: error.message
     });
+  });
+
+  if (safeAction === 'approve') {
     refreshGlobalDistanceMilestoneProgressInBackground(reviewedActivity.runnerId, {
       performedBy: organizerId
     });
   }
+
+  reconcileAccumulatedCertificateAfterReview(reviewedActivity.registrationId, event).catch((error) => {
+    logger.error('Accumulated challenge certificate reconciliation failed:', {
+      activityId: String(reviewedActivity._id || ''),
+      registrationId: String(reviewedActivity.registrationId || ''),
+      error: error.message
+    });
+  });
 
   await sendActivityReviewNotifications({
     activity: reviewedActivity,
@@ -158,13 +171,20 @@ async function reviewAccumulatedActivitySubmission({
   return reviewedActivity;
 }
 
+async function reconcileAccumulatedCertificateAfterReview(registrationId, event) {
+  const registration = await Registration.findById(registrationId);
+  if (!registration) return;
+  const { finalizeRegistrationCertificate } = require('./accumulated-certificate-finalization.service');
+  await finalizeRegistrationCertificate({ registration, event, now: new Date() });
+}
+
 async function getRegistrationAccumulatedProgress(registrationId) {
   const registration = await Registration.findById(registrationId).lean();
   if (!registration) return buildEmptyProgress();
   const event = await Event.findById(registration.eventId)
-    .select('targetDistanceKm raceCategories virtualCompletionMode')
+    .select('targetDistanceKm targetSteps challengeMetrics primaryChallengeMetric raceCategories virtualCompletionMode')
     .lean();
-  if (!event || event.virtualCompletionMode !== 'accumulated_distance') {
+  if (!event || !isAccumulatedChallenge(event)) {
     return buildEmptyProgress();
   }
   const activities = await AccumulatedActivitySubmission.find({ registrationId })
@@ -172,7 +192,9 @@ async function getRegistrationAccumulatedProgress(registrationId) {
     .lean();
   return buildAccumulatedProgress({
     activities,
-    targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, event)
+    targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, event),
+    targetSteps: event.targetSteps,
+    primaryMetric: resolveChallengeConfig(event).primaryMetric
   });
 }
 
@@ -181,7 +203,7 @@ async function getRunnerAccumulatedActivities(runnerId, options = {}) {
   return AccumulatedActivitySubmission.find({ runnerId })
     .sort({ submittedAt: -1 })
     .limit(limit)
-    .populate({ path: 'eventId', select: 'title slug eventStartAt targetDistanceKm virtualCompletionMode' })
+    .populate({ path: 'eventId', select: 'title slug eventStartAt targetDistanceKm targetSteps challengeMetrics primaryChallengeMetric virtualCompletionMode' })
     .populate({ path: 'registrationId', select: 'confirmationCode raceDistance participationMode' })
     .lean();
 }
@@ -223,6 +245,7 @@ async function getAccumulatedLeaderboardRows(filters = {}) {
         raceDistance: { $first: '$raceDistance' },
         participationMode: { $first: '$participationMode' },
         approvedDistanceKm: { $sum: '$distanceKm' },
+        approvedSteps: { $sum: { $ifNull: ['$steps', 0] } },
         approvedActivityCount: { $sum: 1 },
         lastApprovedAt: { $max: '$reviewedAt' },
         firstSubmittedAt: { $min: '$submittedAt' }
@@ -233,19 +256,30 @@ async function getAccumulatedLeaderboardRows(filters = {}) {
   ]);
 }
 
-function buildAccumulatedProgress({ activities = [], targetDistanceKm }) {
-  const target = Number(targetDistanceKm || 0);
+function buildAccumulatedProgress({ activities = [], targetDistanceKm, targetSteps, primaryMetric = 'distance' }) {
+  const distanceTarget = Number(targetDistanceKm || 0);
+  const stepsTarget = Number(targetSteps || 0);
+  const safePrimaryMetric = primaryMetric === 'steps' ? 'steps' : 'distance';
+  const primaryTarget = safePrimaryMetric === 'steps' ? stepsTarget : distanceTarget;
   const approved = activities.filter((item) => item.status === 'approved');
   const pending = activities.filter((item) => item.status === 'submitted');
   const rejected = activities.filter((item) => item.status === 'rejected');
   const approvedDistanceKm = sumDistance(approved);
   const pendingDistanceKm = sumDistance(pending);
   const rejectedDistanceKm = sumDistance(rejected);
-  const completed = target > 0 && approvedDistanceKm >= target;
-  const progressPercent = target > 0 ? (approvedDistanceKm / target) * 100 : 0;
+  const approvedSteps = sumSteps(approved);
+  const pendingSteps = sumSteps(pending);
+  const rejectedSteps = sumSteps(rejected);
+  const approvedPrimaryValue = safePrimaryMetric === 'steps' ? approvedSteps : approvedDistanceKm;
+  const pendingPrimaryValue = safePrimaryMetric === 'steps' ? pendingSteps : pendingDistanceKm;
+  const completed = primaryTarget > 0 && approvedPrimaryValue >= primaryTarget;
+  const progressPercent = primaryTarget > 0 ? (approvedPrimaryValue / primaryTarget) * 100 : 0;
   const potentialDistanceKm = approvedDistanceKm + pendingDistanceKm;
-  const potentialProgressPercent = target > 0 ? (potentialDistanceKm / target) * 100 : 0;
-  const overGoalDistanceKm = target > 0 ? Math.max(0, approvedDistanceKm - target) : 0;
+  const potentialSteps = approvedSteps + pendingSteps;
+  const potentialPrimaryValue = approvedPrimaryValue + pendingPrimaryValue;
+  const potentialProgressPercent = primaryTarget > 0 ? (potentialPrimaryValue / primaryTarget) * 100 : 0;
+  const overGoalDistanceKm = distanceTarget > 0 ? Math.max(0, approvedDistanceKm - distanceTarget) : 0;
+  const overGoalSteps = stepsTarget > 0 ? Math.max(0, approvedSteps - stepsTarget) : 0;
   const certificateActivity = approved.find((item) =>
     item.certificate?.url &&
     !['revoked', 'failed', 'pending'].includes(item.certificate?.status) &&
@@ -259,8 +293,8 @@ function buildAccumulatedProgress({ activities = [], targetDistanceKm }) {
       .slice()
       .sort((a, b) => new Date(a.reviewedAt || a.submittedAt || 0) - new Date(b.reviewedAt || b.submittedAt || 0));
     for (const activity of orderedApproved) {
-      total += Number(activity.distanceKm || 0);
-      if (total >= target) {
+      total += safePrimaryMetric === 'steps' ? Number(activity.steps || 0) : Number(activity.distanceKm || 0);
+      if (total >= primaryTarget) {
         completionTimestamp = activity.reviewedAt || activity.submittedAt || null;
         break;
       }
@@ -268,10 +302,17 @@ function buildAccumulatedProgress({ activities = [], targetDistanceKm }) {
   }
 
   return {
-    targetDistanceKm: target,
+    primaryMetric: safePrimaryMetric,
+    primaryTarget: primaryTarget > 0 ? primaryTarget : null,
+    rankingOnly: !(primaryTarget > 0),
+    targetDistanceKm: distanceTarget,
+    targetSteps: stepsTarget > 0 ? stepsTarget : null,
     approvedDistanceKm,
     pendingDistanceKm,
     rejectedDistanceKm,
+    approvedSteps,
+    pendingSteps,
+    rejectedSteps,
     approvedActivityCount: approved.length,
     pendingActivityCount: pending.length,
     rejectedActivityCount: rejected.length,
@@ -280,21 +321,28 @@ function buildAccumulatedProgress({ activities = [], targetDistanceKm }) {
     progressPercent,
     progressBarPercent: Math.min(100, Math.max(0, progressPercent)),
     potentialDistanceKm,
+    potentialSteps,
     potentialProgressPercent,
     overGoalDistanceKm,
-    remainingDistanceKm: target > 0 ? Math.max(0, target - approvedDistanceKm) : 0,
+    overGoalSteps,
+    remainingDistanceKm: distanceTarget > 0 ? Math.max(0, distanceTarget - approvedDistanceKm) : 0,
+    remainingSteps: stepsTarget > 0 ? Math.max(0, stepsTarget - approvedSteps) : 0,
     completionTimestamp,
     certificateEligible: completed,
     certificateActivityId: certificateActivity ? String(certificateActivity._id) : '',
     certificateUrl: certificateActivity?.certificate?.url || '',
-    progressLabel: target > 0
-      ? `${formatDistance(approvedDistanceKm)} km / ${formatDistance(target)} km`
-      : `${formatDistance(approvedDistanceKm)} km`
+    progressLabel: safePrimaryMetric === 'steps'
+      ? (stepsTarget > 0
+          ? `${formatSteps(approvedSteps)} / ${formatSteps(stepsTarget)} steps`
+          : `${formatSteps(approvedSteps)} steps`)
+      : (distanceTarget > 0
+          ? `${formatDistance(approvedDistanceKm)} km / ${formatDistance(distanceTarget)} km`
+          : `${formatDistance(approvedDistanceKm)} km`)
   };
 }
 
 function buildEmptyProgress() {
-  return buildAccumulatedProgress({ activities: [], targetDistanceKm: 0 });
+  return buildAccumulatedProgress({ activities: [], targetDistanceKm: 0, targetSteps: null });
 }
 
 async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
@@ -307,10 +355,17 @@ async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
   }
 
   const eventDoc = event || await Event.findById(activity.eventId)
-    .select('title targetDistanceKm virtualCompletionMode')
+    .select('title targetDistanceKm targetSteps challengeMetrics primaryChallengeMetric virtualCompletionMode')
     .lean();
-  if (!eventDoc || eventDoc.virtualCompletionMode !== 'accumulated_distance') {
+  if (!eventDoc || !isAccumulatedChallenge(eventDoc)) {
     return activity;
+  }
+  const challengeConfig = resolveChallengeConfig(eventDoc);
+  if (challengeConfig.tracksSteps) {
+    const extractedSteps = Number(activity.ocrData?.extractedSteps || 0);
+    if (!(extractedSteps > 0) || activity.ocrData?.stepsMismatch) {
+      return activity;
+    }
   }
 
   const autoApprovalReviewNote = getAutoApprovalReviewNote(activity);
@@ -357,15 +412,26 @@ async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
 }
 
 function assertAccumulatedEvent(event) {
-  if (!event || event.virtualCompletionMode !== 'accumulated_distance') {
-    throw new Error('This registration is not for an accumulated-distance event.');
+  if (!event || !isAccumulatedChallenge(event)) {
+    throw new Error('This registration is not for an accumulated challenge.');
   }
 }
 
 function validateActivityAgainstEvent(input, event) {
+  const config = resolveChallengeConfig(event);
   const distance = Number(input.distanceKm || 0);
+  const steps = Number(input.steps || 0);
+  if (config.tracksDistance && (!(distance > 0) || distance > 500)) {
+    throw new Error('Distance is required for this competition and must be between 0.1 and 500 km.');
+  }
+  if (config.tracksSteps && (!Number.isInteger(steps) || steps < 1 || steps > 200000)) {
+    throw new Error('Steps are required for this competition and must be between 1 and 200,000.');
+  }
+  if (config.tracksSteps && String(input.source || '').trim().toLowerCase() === 'strava') {
+    throw new Error('Strava-only activities cannot enter a steps competition. Upload tracker proof with verified steps.');
+  }
   const minimum = Number(event.minimumActivityDistanceKm || 0);
-  if (minimum > 0 && distance < minimum) {
+  if (config.tracksDistance && minimum > 0 && distance < minimum) {
     throw new Error(`Activity distance must be at least ${formatDistance(minimum)} km.`);
   }
 
@@ -376,6 +442,14 @@ function validateActivityAgainstEvent(input, event) {
       throw new Error('Activity type is not accepted for this event.');
     }
   }
+}
+
+function sumSteps(items = []) {
+  return items.reduce((sum, item) => sum + Number(item.steps || 0), 0);
+}
+
+function formatSteps(value) {
+  return Math.max(0, Number(value || 0)).toLocaleString('en-US');
 }
 
 async function sendActivityReviewNotifications({ activity, eventTitle, action, certificateWasIssued }) {

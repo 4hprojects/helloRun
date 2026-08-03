@@ -77,7 +77,7 @@ const RAW_CONTENT_HTML = `
 <p>Only approved activity distance contributes. Rejected, duplicate, or still-pending activities do not count toward the total shown as official challenge progress. Read <a href="/blog/how-accumulated-distance-challenges-work">How Accumulated Distance Challenges Work</a> for the broader completion workflow.</p>
 
 <h2>How ties are ordered today</h2>
-<p>HelloRun currently assigns sequential ordinal ranks rather than shared tie positions. Two entries with the same displayed time or distance do not both receive the same rank.</p>
+<p>For accumulated challenges, equal approved totals in the official primary metric share the same competition rank. Stable display ordering uses the final contributing submission time and registration ID; a secondary tracked metric does not silently break the tie.</p>
 <p>For race results, elapsed time is compared first. If elapsed values match, the current deterministic ordering uses earlier review time, then earlier submission time, then record creation order. For accumulated totals, verified distance is compared first; equal totals are ordered using the current verification and submission timestamps.</p>
 <p>This fallback makes the database order stable, but it should not be presented as an ideal sporting tie-break. Organisers should explain any competition or prize tie policy before registration. HelloRun does not currently expose a separate organiser-configurable shared-rank or custom tie-break rule through this leaderboard calculation.</p>
 
@@ -303,7 +303,7 @@ function validateArticlePayload(payload) {
   if (/automatically (?:approves?|verifies?|ranks?)/i.test(text)) errors.push('article must not promise automatic review or ranking');
   if (/live (?:GPS )?(?:timing|leaderboard updates?)/i.test(text)) errors.push('article must not claim live timing or updates');
   if (/pending (?:entries|results|submissions).{0,30}(?:receive|have|get) (?:an? )?(?:official )?rank/i.test(text)) errors.push('article must not rank pending entries');
-  if (/equal (?:times|distances|results).{0,40}(?:share|receive the same) rank/i.test(text)) errors.push('article must not claim shared ties');
+  if (!/equal approved totals.{0,80}share the same competition rank/i.test(text)) errors.push('article must explain shared accumulated-challenge ranks');
   if (/HelloRun leaderboard (?:is|provides) (?:an? )?(?:official|certified|qualifying)/i.test(text)) errors.push('article must not claim external certification');
   if (/public leaderboard.{0,60}(?:shows|includes|exposes) (?:proof|OCR|email|review notes)/i.test(text)) errors.push('article must not claim private review data is public');
   if (/registered.only|private.until.published/i.test(text)) errors.push('article must not claim unverified restricted visibility behavior');

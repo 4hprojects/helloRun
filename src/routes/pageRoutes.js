@@ -6,7 +6,7 @@ const pageController = require('../controllers/page.controller');
 const blogInteractionController = require('../controllers/blog-interaction.controller');
 const PrivacyPolicy = require('../models/PrivacyPolicy');
 const User = require('../models/User');
-const { requireAuth } = require('../middleware/auth.middleware');
+const { requireAuth, requireRunnerWorkspace } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const uploadService = require('../services/upload.service');
@@ -84,16 +84,17 @@ router.get('/unsubscribe', requireAuth, async (req, res) => {
 });
 
 router.get('/events', pageController.getEvents);
-router.get('/my-registrations', requireAuth, pageController.getMyRegistrations);
-router.get('/events/:slug/register', requireAuth, pageController.getEventRegistrationForm);
-router.post('/events/:slug/register', requireAuth, requireCsrfProtection, pageController.postEventRegistration);
+router.get('/my-registrations', requireAuth, requireRunnerWorkspace, pageController.getMyRegistrations);
+router.get('/events/:slug/register', requireAuth, requireRunnerWorkspace, pageController.getEventRegistrationForm);
+router.post('/events/:slug/register', requireAuth, requireRunnerWorkspace, requireCsrfProtection, pageController.postEventRegistration);
 router.get('/events/:slug/leaderboard', pageController.getEventLeaderboardPage);
 router.get('/events/:slug/leaderboard/data', pageController.getEventLeaderboardData);
 router.get('/events/:slug/leaderboard/my-standing', pageController.getEventLeaderboardMyStanding);
-router.post('/profile/quick-update', requireAuth, requireCsrfProtection, quickProfileUpdateLimiter, pageController.postQuickProfileUpdate);
+router.post('/profile/quick-update', requireAuth, requireRunnerWorkspace, requireCsrfProtection, quickProfileUpdateLimiter, pageController.postQuickProfileUpdate);
 router.post(
   '/my-registrations/:registrationId/payment-proof',
   requireAuth,
+  requireRunnerWorkspace,
   paymentProofUploadLimiter,
   uploadService.uploadPaymentProof,
   requireCsrfProtection,
@@ -102,6 +103,7 @@ router.post(
 router.post(
   '/my-registrations/:registrationId/submit-result',
   requireAuth,
+  requireRunnerWorkspace,
   resultSubmissionLimiter,
   uploadService.uploadResultProof,
   requireCsrfProtection,
@@ -110,6 +112,7 @@ router.post(
 router.post(
   '/my-registrations/:registrationId/resubmit-result',
   requireAuth,
+  requireRunnerWorkspace,
   resultSubmissionLimiter,
   uploadService.uploadResultProof,
   requireCsrfProtection,
@@ -118,11 +121,12 @@ router.post(
 router.post(
   '/runner/submissions/:submissionId/edit-metadata',
   requireAuth,
+  requireRunnerWorkspace,
   resultSubmissionLimiter,
   requireCsrfProtection,
   pageController.postEditSubmissionMetadata
 );
-router.get('/my-submissions/:submissionId/certificate', requireAuth, pageController.getSubmissionCertificateDownload);
+router.get('/my-submissions/:submissionId/certificate', requireAuth, requireRunnerWorkspace, pageController.getSubmissionCertificateDownload);
 router.get('/runners/:userId/badges/share-image.svg', pageController.getPublicRunnerBadgeCollectionShareImage);
 router.get('/runners/:userId/badges', pageController.getPublicRunnerBadgeCollection);
 router.get('/runners/:userId', pageController.getPublicRunnerProfile);

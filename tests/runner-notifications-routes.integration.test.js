@@ -169,17 +169,21 @@ test('notification mark-read returnTo is sanitized against open redirect', async
   await cleanupSeed(localSeed);
 });
 
-test('non-runner authenticated user cannot access runner notifications page', async () => {
+test('verified organizer can access runner notifications in runner workspace', async () => {
   const organizerSeed = await seedOrganizerFixture();
   const cookie = await login(organizerSeed.organizer.email, organizerSeed.password);
+  const ready = await waitForSessionReady(cookie);
+  assert.equal(ready, true);
 
   const page = await fetch(`${BASE_URL}/runner/notifications`, {
     headers: { Cookie: cookie },
     redirect: 'manual'
   });
 
-  assert.equal(page.status, 302);
-  assert.equal(page.headers.get('location'), '/login');
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.match(html, /Notifications/i);
+  assert.match(html, /Switch to Organizer mode/i);
 
   await cleanupOrganizerSeed(organizerSeed);
 });

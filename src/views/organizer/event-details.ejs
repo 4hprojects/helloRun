@@ -143,7 +143,7 @@
                   <div><dt>Format</dt><dd><%= p.formatLabel %></dd></div>
                   <div><dt>Allowed modes</dt><dd><%= (event.eventTypesAllowed || []).join(', ') || event.eventType || 'Not configured' %></dd></div>
                   <div><dt>Location</dt><dd><%= p.locationLabel %></dd></div>
-                  <div><dt>Distance mode</dt><dd><%= event.virtualCompletionMode === 'accumulated_distance' ? 'Accumulated distance' : 'Single activity' %></dd></div>
+                  <div><dt>Challenge mode</dt><dd><%= ['accumulated_distance', 'accumulated_activity'].includes(event.virtualCompletionMode) ? 'Accumulated challenge' : 'Single activity' %></dd></div>
                 </dl>
               </article>
 

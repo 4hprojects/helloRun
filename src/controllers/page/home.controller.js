@@ -236,7 +236,8 @@ exports.getAbout = async (req, res) => {
 
 function buildAboutActions(locals = {}) {
   const isAuthenticated = Boolean(locals.isAuthenticated);
-  const isOrganizer = Boolean(locals.isOrganizer || locals.isApprovedOrganizer);
+  const isOrganizerAccount = Boolean(locals.isOrganizer || locals.isApprovedOrganizer);
+  const isOrganizerWorkspace = isOrganizerAccount && !locals.isRunnerWorkspace;
   const isAdmin = Boolean(locals.isAdmin);
 
   let accountAction = {
@@ -245,7 +246,7 @@ function buildAboutActions(locals = {}) {
     icon: 'route'
   };
 
-  if (isOrganizer) {
+  if (isOrganizerWorkspace) {
     accountAction = {
       label: 'Organizer Dashboard',
       href: '/organizer/dashboard',
@@ -272,7 +273,7 @@ function buildAboutActions(locals = {}) {
       icon: 'calendar-search'
     },
     account: accountAction,
-    organizer: isOrganizer
+    organizer: isOrganizerAccount
       ? {
           label: 'Manage Your Events',
           href: '/organizer/dashboard'
@@ -302,7 +303,7 @@ exports.getHowItWorks = (req, res) => {
 
 function buildHowItWorksActions(locals = {}) {
   const isAuthenticated = Boolean(locals.isAuthenticated);
-  const isOrganizer = Boolean(locals.isOrganizer || locals.isApprovedOrganizer);
+  const isOrganizer = Boolean(locals.isOrganizer || locals.isApprovedOrganizer) && !locals.isRunnerWorkspace;
   const isAdmin = Boolean(locals.isAdmin);
 
   const runner = isAuthenticated

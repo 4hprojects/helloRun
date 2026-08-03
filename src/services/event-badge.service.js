@@ -8,6 +8,10 @@ const { syncEventShadow } = require('./event-shadow.service');
 const { upsertBadgeDefinition } = require('./badge-definition.service');
 const { logBadgeAudit } = require('./badge-audit.service');
 const { normalizeBadgeDistanceLabel } = require('../utils/badge-normalization');
+const {
+  isAccumulatedChallenge: isAccumulatedMode,
+  resolveChallengeConfig
+} = require('../utils/challenge-metrics');
 
 async function generateDefaultEventBadges(eventOrId, options = {}) {
   if (!process.env.DATABASE_URL) return [];
@@ -279,22 +283,34 @@ function buildDefaultEventBadges(event) {
     });
   }
 
-  if (isAccumulatedChallenge(event) && !hasMultipleAccumulatedDistances(event)) {
-    for (const milestone of buildChallengeMilestones(event.targetDistanceKm)) {
+  const challengeConfig = resolveChallengeConfig(event);
+  const primaryTarget = challengeConfig.primaryMetric === 'steps'
+    ? challengeConfig.targetSteps
+    : Number(event.targetDistanceKm || 0);
+  if (
+    isAccumulatedChallenge(event) &&
+    primaryTarget > 0 &&
+    (challengeConfig.primaryMetric === 'steps' || !hasMultipleAccumulatedDistances(event))
+  ) {
+    for (const milestone of buildChallengeMilestones(primaryTarget, challengeConfig.primaryMetric)) {
       badges.push({
         badgeCode: `${slug}-challenge-${milestone.percent}`,
         name: milestone.percent === 100
           ? `${title} Challenge Finisher`
           : `${title} ${milestone.percent}% Complete`,
         description: milestone.percent === 100
-          ? `Awarded for completing the ${milestone.targetDistanceKm}K challenge goal for ${title}.`
+          ? (challengeConfig.primaryMetric === 'steps'
+              ? `Awarded for completing the ${milestone.targetSteps.toLocaleString('en-US')} step challenge goal for ${title}.`
+              : `Awarded for completing the ${milestone.targetDistanceKm}K challenge goal for ${title}.`)
           : `Awarded for reaching ${milestone.percent}% of the ${title} challenge goal.`,
         badgeScope: 'challenge',
         badgeType: milestone.percent === 100 ? 'challenge_finisher' : 'challenge_progress',
         requirementType: 'challenge_progress',
         requirementValue: {
           percent: milestone.percent,
-          targetDistanceKm: milestone.targetDistanceKm
+          ...(challengeConfig.primaryMetric === 'steps'
+            ? { completionMetric: 'steps', targetSteps: milestone.targetSteps }
+            : { targetDistanceKm: milestone.targetDistanceKm })
         },
         emailNotificationLevel: milestone.percent === 100 ? 'major' : 'none',
         visibilityState: 'revealed',
@@ -482,12 +498,16 @@ function getRaceDistances(event) {
 }
 
 function isAccumulatedChallenge(event) {
-  return event?.virtualCompletionMode === 'accumulated_distance' &&
-    Number(event.targetDistanceKm || 0) > 0;
+  const config = resolveChallengeConfig(event);
+  return isAccumulatedMode(event) && (
+    config.primaryMetric === 'steps'
+      ? Number(config.targetSteps || 0) > 0
+      : Number(event.targetDistanceKm || 0) > 0
+  );
 }
 
 function hasMultipleAccumulatedDistances(event) {
-  if (event?.virtualCompletionMode !== 'accumulated_distance') return false;
+  if (!isAccumulatedMode(event)) return false;
   const categoryDistances = Array.from(new Set(
     (Array.isArray(event.raceCategories) ? event.raceCategories : [])
       .map((category) => Number(category?.distanceKm || 0))
@@ -497,12 +517,14 @@ function hasMultipleAccumulatedDistances(event) {
   return getRaceDistances(event).length > 1;
 }
 
-function buildChallengeMilestones(targetDistanceKm) {
-  const target = Number(targetDistanceKm || 0);
+function buildChallengeMilestones(targetValue, primaryMetric = 'distance') {
+  const target = Number(targetValue || 0);
   if (!Number.isFinite(target) || target <= 0) return [];
   return [25, 50, 75, 100].map((percent) => ({
     percent,
-    targetDistanceKm: Number(((target * percent) / 100).toFixed(2))
+    ...(primaryMetric === 'steps'
+      ? { targetSteps: Math.ceil((target * percent) / 100) }
+      : { targetDistanceKm: Number(((target * percent) / 100).toFixed(2)) })
   }));
 }
 

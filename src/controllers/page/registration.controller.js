@@ -1,4 +1,5 @@
 'use strict';
+const { isAccumulatedChallenge, resolveChallengeConfig } = require('../../utils/challenge-metrics');
 
 const {
   crypto,
@@ -81,13 +82,14 @@ const {
   MAX_RUNNING_GROUP_NAME_LENGTH,
   normalizeRunningGroupMemberships
 } = require('../../utils/running-group-memberships');
+const { canUseRunnerWorkspace, isOwnOrganizerEvent } = require('../../utils/workspace');
 
 exports.getEventRegistrationForm = async (req, res) => {
   try {
     const [event, user] = await Promise.all([
       getPublishedEventBySlug(req.params.slug),
       User.findById(req.session.userId).select(
-        'firstName lastName email mobile country timezone dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified'
+        'firstName lastName email mobile country timezone dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified accountStatus'
       )
     ]);
 
@@ -96,6 +98,9 @@ exports.getEventRegistrationForm = async (req, res) => {
     }
     if (!user) {
       return res.redirect('/login');
+    }
+    if (isOwnOrganizerEvent(user, event)) {
+      return renderOwnEventParticipationConflict(res);
     }
     const eligibilityError = getUserRegistrationEligibilityError(user);
     if (eligibilityError) {
@@ -188,7 +193,7 @@ exports.postEventRegistration = async (req, res) => {
     const [event, user] = await Promise.all([
       getPublishedEventBySlug(req.params.slug),
       User.findById(req.session.userId).select(
-        'firstName lastName email mobile country timezone dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified'
+        'firstName lastName email mobile country timezone dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified accountStatus'
       )
     ]);
 
@@ -197,6 +202,9 @@ exports.postEventRegistration = async (req, res) => {
     }
     if (!user) {
       return res.redirect('/login');
+    }
+    if (isOwnOrganizerEvent(user, event)) {
+      return renderOwnEventParticipationConflict(res);
     }
     const eligibilityError = getUserRegistrationEligibilityError(user);
     if (eligibilityError) {
@@ -547,7 +555,7 @@ exports.getMyRegistrations = async (req, res) => {
       getRunnerSubmissions(user._id, { limit: 300 })
     ]);
     const accumulatedRegistrationIds = registrations
-      .filter((registration) => registration.eventId?.virtualCompletionMode === 'accumulated_distance')
+      .filter((registration) => isAccumulatedChallenge(registration.eventId))
       .map((registration) => registration._id);
     const accumulatedActivities = await getAccumulatedActivitiesForRegistrations(accumulatedRegistrationIds);
     const accumulatedActivitiesByRegistrationId = new Map();
@@ -561,7 +569,8 @@ exports.getMyRegistrations = async (req, res) => {
       submissions.map((item) => [String(item.registrationId?._id || item.registrationId), item])
     );
     const enrichedRegistrations = registrations.map((registration) => {
-      const isAccumulated = registration.eventId?.virtualCompletionMode === 'accumulated_distance';
+      const isAccumulated = isAccumulatedChallenge(registration.eventId);
+      const challengeConfig = resolveChallengeConfig(registration.eventId);
       const activities = accumulatedActivitiesByRegistrationId.get(String(registration._id)) || [];
       return {
         ...registration,
@@ -570,7 +579,9 @@ exports.getMyRegistrations = async (req, res) => {
         accumulatedProgress: isAccumulated
           ? buildAccumulatedProgress({
             activities,
-            targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, registration.eventId)
+            targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, registration.eventId),
+            targetSteps: challengeConfig.targetSteps,
+            primaryMetric: challengeConfig.primaryMetric
           })
           : null,
         submission: submissionsByRegistrationId.get(String(registration._id)) || null
@@ -1299,6 +1310,9 @@ function getUserRegistrationEligibilityError(user) {
   if (!user || typeof user.canParticipateInEvents !== 'function') {
     return 'Only registered HelloRun accounts can register for events.';
   }
+  if (!canUseRunnerWorkspace(user)) {
+    return 'Runner participation is not available for this account.';
+  }
   if (user.accountStatus === 'restricted') {
     return 'Your account is currently restricted. Please contact support.';
   }
@@ -1306,6 +1320,14 @@ function getUserRegistrationEligibilityError(user) {
     return 'Your account is not eligible to register for events. Please verify your email first.';
   }
   return null;
+}
+
+function renderOwnEventParticipationConflict(res) {
+  return res.status(403).render('error', {
+    title: '403 - Registration Not Allowed',
+    status: 403,
+    message: 'Organizers cannot register for or compete in events they manage.'
+  });
 }
 
 async function generateConfirmationCode() {

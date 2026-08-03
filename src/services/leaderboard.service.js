@@ -8,11 +8,12 @@ const { getAccumulatedLeaderboardRows } = require('./accumulated-activity.servic
 const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
 const { getPublicEventVisibilityQuery, isPublicEventVisible } = require('../utils/public-event-visibility');
 const { getRedisClient } = require('../config/redis');
+const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
 
 const LEADERBOARD_CACHE_TTL_SECONDS = 60;
 const HOMEPAGE_LEADERBOARD_EVENT_SLUG = '2026k-hellorun-challenge-4';
 
-const DEFAULT_EVENT_LEADERBOARD_COLUMNS = ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status'];
+const DEFAULT_EVENT_LEADERBOARD_COLUMNS = ['rank', 'runner', 'category', 'distance', 'steps', 'time', 'pace', 'status'];
 const DEFAULT_EVENT_IMAGE_URL = '/images/helloRun-icon.webp';
 
 async function getLeaderboardDiscoveryData(rawFilters = {}) {
@@ -57,7 +58,7 @@ async function getLeaderboardDiscoveryData(rawFilters = {}) {
   }
 
   const events = await Event.find(query)
-    .select('title slug description organiserName eventType eventTypesAllowed raceDistances eventStartAt eventEndAt bannerImageUrl leaderboardRecognitionEnabled leaderboardSettings virtualCompletionMode targetDistanceKm createdAt updatedAt')
+    .select('title slug description organiserName eventType eventTypesAllowed raceDistances eventStartAt eventEndAt bannerImageUrl leaderboardRecognitionEnabled leaderboardSettings virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm createdAt updatedAt')
     .sort({ eventStartAt: -1, updatedAt: -1, createdAt: -1 })
     .lean();
 
@@ -195,7 +196,7 @@ function formatHomepageLeaderboardEntry(entry, leaderboardType) {
   if (leaderboardType === 'accumulated_challenge') {
     return {
       ...common,
-      primaryMetric: entry.distanceLabel || '',
+      primaryMetric: entry.primaryMetricLabel || entry.distanceLabel || '',
       secondaryMetric: `${Number(entry.activityCount || 0).toLocaleString('en-US')} ${Number(entry.activityCount || 0) === 1 ? 'activity' : 'activities'}`
     };
   }
@@ -244,7 +245,7 @@ async function getLeaderboardData(rawFilters = {}) {
   const entries = [...singleEntries, ...accumulatedEntries]
     .sort((a, b) => {
       if (a.leaderboardType === 'accumulated' || b.leaderboardType === 'accumulated') {
-        return Number(b.approvedDistanceKm || 0) - Number(a.approvedDistanceKm || 0);
+        return Number(b.primaryTotal || b.approvedDistanceKm || 0) - Number(a.primaryTotal || a.approvedDistanceKm || 0);
       }
       return Number(a.elapsedMs || 0) - Number(b.elapsedMs || 0);
     })
@@ -288,7 +289,8 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
   const options = normalizeEventLeaderboardOptions(rawOptions);
 
   // Use cached groups/entries when available; fall through on any Redis error.
-  const cacheKey = `leaderboard:v2:${eventSlug}`;
+  const metricCacheKey = `${settings.primaryMetric}:${settings.trackedMetrics.join('+')}`;
+  const cacheKey = `leaderboard:v3:${eventSlug}:${metricCacheKey}`;
   const redis = getRedisClient();
   let cachedGroups = null;
   if (redis) {
@@ -371,7 +373,7 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
       lastUpdatedAt: getLastUpdatedAt(activeEntries)
     },
     rankingExplanation: settings.type === 'accumulated_challenge'
-      ? 'Ranked by highest verified accumulated distance. Official rankings include approved submissions only.'
+      ? `Ranked by highest verified ${settings.primaryMetric}. Official rankings include approved submissions only.`
       : 'Ranked by fastest verified time. Official rankings include approved submissions only.'
   };
 }
@@ -379,7 +381,14 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
 function invalidateLeaderboardCache(eventSlug) {
   const redis = getRedisClient();
   if (!redis || !eventSlug) return;
-  redis.del(`leaderboard:${eventSlug}`, `leaderboard:v2:${eventSlug}`).catch(() => {});
+  redis.del(
+    `leaderboard:${eventSlug}`,
+    `leaderboard:v2:${eventSlug}`,
+    `leaderboard:v3:${eventSlug}:distance:distance`,
+    `leaderboard:v3:${eventSlug}:steps:steps`,
+    `leaderboard:v3:${eventSlug}:distance:distance+steps`,
+    `leaderboard:v3:${eventSlug}:steps:distance+steps`
+  ).catch(() => {});
 }
 
 async function getMyStanding(eventSlug, userId, rawOptions = {}) {
@@ -473,11 +482,23 @@ function buildEventLeaderboardGroups(entries = [], event = {}, options = {}) {
       label: resolveEventLeaderboardGroupLabel(key, event, ''),
       entries: []
     };
-    let officialRank = 0;
+    let officialPosition = 0;
+    let previousPrimaryTotal = null;
+    let competitionRank = 0;
     const rankedEntries = bucket.entries.map((entry) => {
       if (entry.status === 'verified') {
-        officialRank += 1;
-        return { ...entry, rank: options.preserveRanks && Number.isInteger(entry.rank) ? entry.rank : officialRank };
+        officialPosition += 1;
+        if (options.preserveRanks && Number.isInteger(entry.rank)) return { ...entry };
+        if (Number.isFinite(Number(entry.primaryTotal))) {
+          const primaryTotal = Number(entry.primaryTotal);
+          if (previousPrimaryTotal === null || primaryTotal !== previousPrimaryTotal) {
+            competitionRank = officialPosition;
+          }
+          previousPrimaryTotal = primaryTotal;
+        } else {
+          competitionRank = officialPosition;
+        }
+        return { ...entry, rank: competitionRank };
       }
       return { ...entry, rank: null };
     });
@@ -612,19 +633,24 @@ async function getLeaderboardEventBySlug(eventSlug) {
   const slug = String(eventSlug || '').trim();
   if (!slug) return null;
   return Event.findOne({ slug, ...getPublicEventVisibilityQuery(new Date()) })
-    .select('title slug status organiserName logoUrl bannerImageUrl eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow virtualCompletionMode targetDistanceKm leaderboardRecognitionEnabled leaderboardSettings raceDistances raceCategories updatedAt')
+    .select('title slug status organiserName logoUrl bannerImageUrl eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm leaderboardRecognitionEnabled leaderboardSettings raceDistances raceCategories updatedAt')
     .lean();
 }
 
 function resolveEventLeaderboardSettings(event = {}) {
   const existing = event.leaderboardSettings || {};
-  const type = event.virtualCompletionMode === 'accumulated_distance'
+  const challengeConfig = resolveChallengeConfig(event);
+  const type = challengeConfig.accumulated
     ? 'accumulated_challenge'
     : (['race_result', 'accumulated_challenge'].includes(existing.type) ? existing.type : 'race_result');
   return {
     enabled: typeof existing.enabled === 'boolean' ? existing.enabled : event.leaderboardRecognitionEnabled !== false,
     type,
-    rankingBasis: type === 'accumulated_challenge' ? 'highest_verified_distance' : 'fastest_time',
+    primaryMetric: challengeConfig.primaryMetric,
+    trackedMetrics: challengeConfig.metrics,
+    rankingBasis: type === 'accumulated_challenge'
+      ? (challengeConfig.primaryMetric === 'steps' ? 'highest_verified_steps' : 'highest_verified_distance')
+      : 'fastest_time',
     visibility: ['public', 'registered_only', 'private_until_published'].includes(existing.visibility) ? existing.visibility : 'public',
     showPending: Boolean(existing.showPending),
     hideFlagged: typeof existing.hideFlagged === 'boolean' ? existing.hideFlagged : true,
@@ -670,13 +696,14 @@ async function getAccumulatedEventEntries(event, settings) {
         raceDistance: { $first: '$raceDistance' },
         participationMode: { $first: '$participationMode' },
         totalDistanceKm: { $sum: '$distanceKm' },
+        totalSteps: { $sum: { $ifNull: ['$steps', 0] } },
         activityCount: { $sum: 1 },
         submittedAt: { $min: '$submittedAt' },
+        finalContributingAt: { $max: '$submittedAt' },
         verifiedAt: { $max: '$reviewedAt' },
         updatedAt: { $max: '$updatedAt' }
       }
-    },
-    { $sort: { totalDistanceKm: -1, verifiedAt: 1, submittedAt: 1 } }
+    }
   ]);
   if (!rows.length) return [];
 
@@ -691,14 +718,16 @@ async function getAccumulatedEventEntries(event, settings) {
   const runnerById = new Map(runners.map((item) => [String(item._id), item]));
   const registrationById = new Map(registrations.map((item) => [String(item._id), item]));
 
-  return rows.map((row, index) => formatAccumulatedEntry({
-    row,
-    event,
-    settings,
-    runner: runnerById.get(String(row.runnerId)),
-    registration: registrationById.get(String(row._id)),
-    rank: index + 1
-  }));
+  return rankAccumulatedRows(rows, settings.primaryMetric).map(({ row, rank }) => {
+    return formatAccumulatedEntry({
+      row,
+      event,
+      settings,
+      runner: runnerById.get(String(row.runnerId)),
+      registration: registrationById.get(String(row._id)),
+      rank
+    });
+  });
 }
 
 async function getPendingEventEntries(event, settings) {
@@ -736,8 +765,10 @@ async function getPendingAccumulatedEventEntries(event, settings) {
         raceDistance: { $first: '$raceDistance' },
         participationMode: { $first: '$participationMode' },
         totalDistanceKm: { $sum: '$distanceKm' },
+        totalSteps: { $sum: { $ifNull: ['$steps', 0] } },
         activityCount: { $sum: 1 },
         submittedAt: { $min: '$submittedAt' },
+        finalContributingAt: { $max: '$submittedAt' },
         updatedAt: { $max: '$updatedAt' }
       }
     },
@@ -768,7 +799,7 @@ async function hydrateAccumulatedLeaderboardRows(rows = []) {
   const registrationIds = rows.map((item) => item._id).filter(Boolean);
   const [events, runners, registrations] = await Promise.all([
     Event.find({ _id: { $in: eventIds }, ...getPublicEventVisibilityQuery(new Date()) })
-      .select('title slug status isDeleted')
+      .select('title slug status isDeleted virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps')
       .lean(),
     User.find({ _id: { $in: runnerIds } }).select('firstName lastName displayName email').lean(),
     Registration.find({ _id: { $in: registrationIds } }).select('confirmationCode').lean()
@@ -782,6 +813,8 @@ async function hydrateAccumulatedLeaderboardRows(rows = []) {
       const event = eventById.get(String(item.eventId));
       if (!event) return null;
       const approvedDistanceKm = Number(item.approvedDistanceKm || 0);
+      const approvedSteps = Number(item.approvedSteps || 0);
+      const challengeConfig = resolveChallengeConfig(event);
       return {
         rank: 0,
         submissionId: String(item._id),
@@ -791,10 +824,15 @@ async function hydrateAccumulatedLeaderboardRows(rows = []) {
         raceDistance: item.raceDistance || 'N/A',
         participationMode: item.participationMode || 'virtual',
         elapsedMs: 0,
-        elapsedLabel: `${formatDistance(approvedDistanceKm)} km total`,
+        elapsedLabel: challengeConfig.primaryMetric === 'steps'
+          ? `${approvedSteps.toLocaleString('en-US')} steps total`
+          : `${formatDistance(approvedDistanceKm)} km total`,
         submittedAt: item.lastApprovedAt || item.firstSubmittedAt || null,
         leaderboardType: 'accumulated',
         approvedDistanceKm,
+        approvedSteps,
+        primaryMetric: challengeConfig.primaryMetric,
+        primaryTotal: challengeConfig.primaryMetric === 'steps' ? approvedSteps : approvedDistanceKm,
         approvedActivityCount: Number(item.approvedActivityCount || 0),
         confirmationCode: registrationById.get(String(item._id))?.confirmationCode || ''
       };
@@ -1212,6 +1250,7 @@ function formatDistanceWithGrouping(value) {
 }
 
 function formatLeaderboardEvent(event = {}) {
+  const challengeConfig = resolveChallengeConfig(event);
   const modes = Array.from(new Set(
     [event.eventType].concat(Array.isArray(event.eventTypesAllowed) ? event.eventTypesAllowed : [])
       .map((item) => String(item || '').trim().toLowerCase())
@@ -1238,7 +1277,11 @@ function formatLeaderboardEvent(event = {}) {
       distanceLabel: category.distanceLabel || '',
       distanceKm: Number(category.distanceKm || 0) || null
     })) : [],
-    leaderboardType: event.virtualCompletionMode === 'accumulated_distance' ? 'accumulated_challenge' : 'race_result'
+    challengeMetrics: challengeConfig.metrics,
+    primaryChallengeMetric: challengeConfig.primaryMetric,
+    targetSteps: challengeConfig.targetSteps,
+    targetStepsLabel: challengeConfig.targetSteps ? `${challengeConfig.targetSteps.toLocaleString('en-US')} steps` : 'Ranking only',
+    leaderboardType: challengeConfig.accumulated ? 'accumulated_challenge' : 'race_result'
   };
 }
 
@@ -1381,8 +1424,16 @@ function formatRaceEntry(row, event, settings, rank) {
 
 function formatAccumulatedEntry({ row, event, settings, runner, registration, rank, status = 'approved' }) {
   const totalDistanceKm = Number(row.totalDistanceKm || 0);
+  const totalSteps = Number(row.totalSteps || 0);
   const targetDistanceKm = resolveAccumulatedTargetDistanceKm(registration || { raceDistance: row.raceDistance }, event);
-  const progress = buildAccumulatedProgressMetrics(totalDistanceKm, targetDistanceKm);
+  const challengeConfig = resolveChallengeConfig(event);
+  const progress = buildAccumulatedProgressMetrics({
+    totalDistanceKm,
+    totalSteps,
+    targetDistanceKm,
+    targetSteps: challengeConfig.targetSteps,
+    primaryMetric: challengeConfig.primaryMetric
+  });
   return {
     rank: Number.isInteger(rank) ? rank : null,
     registrationId: String(registration?._id || row._id || ''),
@@ -1394,6 +1445,14 @@ function formatAccumulatedEntry({ row, event, settings, runner, registration, ra
     distanceKm: totalDistanceKm,
     totalDistanceKm,
     distanceLabel: `${formatDistance(totalDistanceKm)} km total`,
+    steps: totalSteps,
+    totalSteps,
+    stepsLabel: `${totalSteps.toLocaleString('en-US')} steps`,
+    primaryMetric: challengeConfig.primaryMetric,
+    primaryTotal: challengeConfig.primaryMetric === 'steps' ? totalSteps : totalDistanceKm,
+    primaryMetricLabel: challengeConfig.primaryMetric === 'steps'
+      ? `${totalSteps.toLocaleString('en-US')} steps`
+      : `${formatDistance(totalDistanceKm)} km`,
     timeMs: 0,
     timeLabel: '',
     paceSecondsPerKm: 0,
@@ -1411,24 +1470,77 @@ function formatAccumulatedEntry({ row, event, settings, runner, registration, ra
   };
 }
 
-function buildAccumulatedProgressMetrics(totalDistanceValue, targetDistanceValue) {
+function buildAccumulatedProgressMetrics(input = {}, legacyTargetDistanceKm) {
+  const values = input && typeof input === 'object'
+    ? input
+    : { totalDistanceKm: input, targetDistanceKm: legacyTargetDistanceKm };
+  const {
+    totalDistanceKm: totalDistanceValue,
+    totalSteps: totalStepsValue,
+    targetDistanceKm: targetDistanceValue,
+    targetSteps: targetStepsValue,
+    primaryMetric = 'distance'
+  } = values;
   const totalDistanceKm = Math.max(0, Number(totalDistanceValue || 0));
+  const totalSteps = Math.max(0, Number(totalStepsValue || 0));
   const targetDistanceKm = Math.max(0, Number(targetDistanceValue || 0));
-  const rawPercentage = targetDistanceKm > 0 ? (totalDistanceKm / targetDistanceKm) * 100 : null;
+  const targetSteps = Math.max(0, Number(targetStepsValue || 0));
+  const isSteps = primaryMetric === 'steps';
+  const primaryTotal = isSteps ? totalSteps : totalDistanceKm;
+  const primaryTarget = isSteps ? targetSteps : targetDistanceKm;
+  const rawPercentage = primaryTarget > 0 ? (primaryTotal / primaryTarget) * 100 : null;
   const progressPercentage = rawPercentage === null ? null : Number(rawPercentage.toFixed(1));
   const progressBarPercentage = progressPercentage === null ? 0 : Math.min(100, Math.max(0, progressPercentage));
   const remainingDistanceKm = targetDistanceKm > 0 ? Math.max(0, targetDistanceKm - totalDistanceKm) : null;
-  const isGoalComplete = targetDistanceKm > 0 && totalDistanceKm >= targetDistanceKm;
+  const remainingSteps = targetSteps > 0 ? Math.max(0, targetSteps - totalSteps) : null;
+  const isGoalComplete = primaryTarget > 0 && primaryTotal >= primaryTarget;
   return {
+    primaryMetric: isSteps ? 'steps' : 'distance',
+    primaryTotal,
+    primaryTarget: primaryTarget > 0 ? primaryTarget : null,
+    rankingOnly: !(primaryTarget > 0),
     targetDistanceKm,
     targetDistanceLabel: targetDistanceKm > 0 ? `${formatDistanceWithGrouping(targetDistanceKm)} km` : 'Goal not set',
     progressPercentage,
     progressBarPercentage,
-    progressLabel: progressPercentage === null ? 'Goal progress unavailable' : `${formatDistance(progressPercentage)}% of ${formatDistanceWithGrouping(targetDistanceKm)} km`,
+    targetSteps: targetSteps > 0 ? targetSteps : null,
+    targetStepsLabel: targetSteps > 0 ? `${targetSteps.toLocaleString('en-US')} steps` : 'Goal not set',
+    progressLabel: progressPercentage === null
+      ? 'Ranking only — no completion goal'
+      : `${formatDistance(progressPercentage)}% of ${isSteps ? `${targetSteps.toLocaleString('en-US')} steps` : `${formatDistanceWithGrouping(targetDistanceKm)} km`}`,
     remainingDistanceKm,
     remainingDistanceLabel: remainingDistanceKm === null ? 'Goal not set' : `${formatDistanceWithGrouping(remainingDistanceKm)} km`,
+    remainingSteps,
+    remainingStepsLabel: remainingSteps === null ? 'Goal not set' : `${remainingSteps.toLocaleString('en-US')} steps`,
     isGoalComplete
   };
+}
+
+function getAccumulatedPrimaryTotal(row, primaryMetric) {
+  return primaryMetric === 'steps'
+    ? Number(row.totalSteps || 0)
+    : Number(row.totalDistanceKm || 0);
+}
+
+function compareAccumulatedRows(a, b, primaryMetric) {
+  const primaryDifference = getAccumulatedPrimaryTotal(b, primaryMetric) - getAccumulatedPrimaryTotal(a, primaryMetric);
+  if (primaryDifference) return primaryDifference;
+  const aTime = new Date(a.finalContributingAt || a.submittedAt || 0).getTime();
+  const bTime = new Date(b.finalContributingAt || b.submittedAt || 0).getTime();
+  if (aTime !== bTime) return aTime - bTime;
+  return String(a._id || '').localeCompare(String(b._id || ''));
+}
+
+function rankAccumulatedRows(rows = [], primaryMetric = 'distance') {
+  const sortedRows = rows.slice().sort((a, b) => compareAccumulatedRows(a, b, primaryMetric));
+  let previousTotal = null;
+  let sharedRank = 0;
+  return sortedRows.map((row, index) => {
+    const total = getAccumulatedPrimaryTotal(row, primaryMetric);
+    if (previousTotal === null || total !== previousTotal) sharedRank = index + 1;
+    previousTotal = total;
+    return { row, rank: sharedRank };
+  });
 }
 
 function applyEventLeaderboardFilters(entries, options) {
@@ -1521,9 +1633,11 @@ async function getRunnerPendingAccumulatedStanding(event = {}, userId, settings 
         runnerId: { $first: '$runnerId' },
         raceDistance: { $first: '$raceDistance' },
         participationMode: { $first: '$participationMode' },
-        totalDistanceKm: { $sum: '$distanceKm' },
+        totalDistanceKm: { $sum: { $ifNull: ['$distanceKm', 0] } },
+        totalSteps: { $sum: { $ifNull: ['$steps', 0] } },
         activityCount: { $sum: 1 },
         submittedAt: { $min: '$submittedAt' },
+        finalContributingAt: { $max: '$submittedAt' },
         updatedAt: { $max: '$updatedAt' }
       }
     },
@@ -1589,5 +1703,7 @@ module.exports = {
   filterEventLeaderboardGroups,
   buildAccumulatedProgressMetrics,
   resolveEventLeaderboardSettings,
-  invalidateLeaderboardCache
+  invalidateLeaderboardCache,
+  rankAccumulatedRows,
+  buildEventLeaderboardGroups
 };

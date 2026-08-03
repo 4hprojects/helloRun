@@ -8,9 +8,10 @@ const {
   buildChallengeTimingDisplay,
   buildSubmissionTimingDisplay
 } = require('./runner-data.service');
+const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
 
 async function getPublicEventRunnerState({ event, userId, now = new Date() }) {
-  if (!event?._id || !userId || event.virtualCompletionMode !== 'accumulated_distance') return null;
+  if (!event?._id || !userId || !isAccumulatedChallenge(event)) return null;
 
   const registration = await Registration.findOne({
     eventId: event._id,
@@ -26,7 +27,7 @@ async function getPublicEventRunnerState({ event, userId, now = new Date() }) {
   const [activities, eventPendingActivityCount] = await Promise.all([
     AccumulatedActivitySubmission.find({ registrationId: registration._id })
       .sort({ submittedAt: -1, createdAt: -1, _id: -1 })
-      .select('status distanceKm submittedAt reviewedAt certificate.url certificate.status certificate.revokedAt certificate.finalizedAt')
+      .select('status distanceKm steps submittedAt reviewedAt certificate.url certificate.status certificate.revokedAt certificate.finalizedAt')
       .lean(),
     AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'submitted' })
   ]);
@@ -35,13 +36,19 @@ async function getPublicEventRunnerState({ event, userId, now = new Date() }) {
 }
 
 function buildPublicEventRunnerState({ event = {}, registration = {}, activities = [], eventPendingActivityCount = 0, now = new Date() }) {
-  const isAccumulated = event.virtualCompletionMode === 'accumulated_distance';
+  const isAccumulated = isAccumulatedChallenge(event);
   if (!isAccumulated) return null;
+  const challengeConfig = resolveChallengeConfig(event);
   const targetDistanceKm = isAccumulated
     ? resolveAccumulatedTargetDistanceKm(registration, event)
     : 0;
   const progress = isAccumulated
-    ? buildAccumulatedProgress({ activities, targetDistanceKm })
+    ? buildAccumulatedProgress({
+        activities,
+        targetDistanceKm,
+        targetSteps: challengeConfig.targetSteps,
+        primaryMetric: challengeConfig.primaryMetric
+      })
     : null;
   const challengeTiming = buildChallengeTimingDisplay(registration, event, now);
   const submissionTiming = buildSubmissionTimingDisplay(registration, event, now);
@@ -50,7 +57,14 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
   const paymentReady = String(event.feeMode || 'free') !== 'paid' || String(registration.paymentStatus || '') === 'paid';
   const eventStartAt = parseDate(event.virtualWindow?.startAt || event.eventStartAt);
   const beforeActivityWindow = Boolean(eventStartAt && eventStartAt > now);
-  const progressPercentage = progress?.targetDistanceKm > 0 ? roundOne(progress.progressPercent) : null;
+  const progressPercentage = progress?.primaryTarget > 0 ? roundOne(progress.progressPercent) : null;
+  const primaryMetricLabel = challengeConfig.primaryMetric === 'steps' ? 'steps' : 'distance';
+  const pendingPrimaryValue = challengeConfig.primaryMetric === 'steps'
+    ? Number(progress?.pendingSteps || 0)
+    : Number(progress?.pendingDistanceKm || 0);
+  const overPrimaryGoal = challengeConfig.primaryMetric === 'steps'
+    ? Number(progress?.overGoalSteps || 0) > 0
+    : Number(progress?.overGoalDistanceKm || 0) > 0;
   const remainingDistanceKm = progress?.targetDistanceKm > 0
     ? Math.max(0, roundTwo(progress.targetDistanceKm - Number(progress.approvedDistanceKm || 0)))
     : null;
@@ -68,6 +82,9 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
     registrationStatus: String(registration.status || ''),
     paymentStatus: String(registration.paymentStatus || ''),
     isAccumulated,
+    challengeMetrics: challengeConfig.metrics,
+    primaryChallengeMetric: challengeConfig.primaryMetric,
+    rankingOnly: Boolean(progress?.rankingOnly),
     challengeTiming,
     submissionTiming,
     targetDistanceKm,
@@ -76,6 +93,12 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
     approvedDistanceLabel: formatDistance(progress?.approvedDistanceKm || 0),
     pendingDistanceKm: Number(progress?.pendingDistanceKm || 0),
     pendingDistanceLabel: formatDistance(progress?.pendingDistanceKm || 0),
+    targetSteps: progress?.targetSteps || null,
+    approvedSteps: Number(progress?.approvedSteps || 0),
+    approvedStepsLabel: Number(progress?.approvedSteps || 0).toLocaleString('en-US'),
+    pendingSteps: Number(progress?.pendingSteps || 0),
+    pendingStepsLabel: Number(progress?.pendingSteps || 0).toLocaleString('en-US'),
+    primaryProgressLabel: progress?.progressLabel || '',
     potentialDistanceKm: Number(progress?.potentialDistanceKm || 0),
     potentialDistanceLabel: formatDistance(progress?.potentialDistanceKm || 0),
     potentialProgressLabel: progress?.targetDistanceKm > 0
@@ -86,7 +109,7 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
     remainingDistanceKm,
     remainingDistanceLabel: remainingDistanceKm === null ? 'Goal not listed' : formatDistance(remainingDistanceKm),
     progressPercentage,
-    progressLabel: progressPercentage === null ? 'Progress unavailable' : `${formatNumber(progressPercentage)}% complete`,
+    progressLabel: progressPercentage === null ? 'Ranking only — no completion goal' : `${formatNumber(progressPercentage)}% complete`,
     progressBarPercentage: progressPercentage === null ? 0 : Math.min(100, Math.max(0, progressPercentage)),
     approvedActivityCount: Number(progress?.approvedActivityCount || 0),
     pendingActivityCount: Number(progress?.pendingActivityCount || 0),
@@ -123,9 +146,9 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
       return {
         ...base,
         state: 'goal_reached',
-        stateLabel: progress.overGoalDistanceKm > 0 ? 'Goal reached · extra distance verified' : 'Goal reached',
+        stateLabel: overPrimaryGoal ? `Goal reached · extra ${primaryMetricLabel} verified` : 'Goal reached',
         helperText: progress.pendingActivityCount > 0
-          ? 'Your badge is earned. Pending distance remains separate until approval, and you can keep adding eligible activities before the deadline.'
+          ? `Your badge is earned. Pending ${primaryMetricLabel} remains separate until approval, and you can keep adding eligible activities before the deadline.`
           : 'Your badge is earned. You can keep adding eligible activities before the deadline; your certificate will use the final verified total.',
         primaryAction: { type: 'submit', label: 'Add activity', registrationId: String(registration._id || '') },
         secondaryAction: { type: 'link', label: 'View achievements', href: '/runner/achievements' }
@@ -205,7 +228,7 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
       stateLabel: challengeTiming.closed ? 'Awaiting final review' : 'Activity under review',
       helperText: challengeTiming.closed
         ? 'The activity window has ended. Pending activities are awaiting organizer review.'
-        : 'Pending distance is shown separately and does not count toward verified progress yet.',
+        : `Pending ${primaryMetricLabel} (${pendingPrimaryValue.toLocaleString('en-US')}) is shown separately and does not count toward verified progress yet.`,
       primaryAction: { type: 'link', label: 'View submissions', href: '/runner/submissions' },
       secondaryAction: challengeTiming.closed
         ? null
@@ -229,9 +252,13 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
   return {
     ...base,
     state: progress?.approvedActivityCount > 0 ? 'in_progress' : 'ready',
-    stateLabel: progress?.approvedActivityCount > 0 ? 'Challenge in progress' : 'Ready to start',
+    stateLabel: progress?.rankingOnly
+      ? (progress?.approvedActivityCount > 0 ? 'Official total recorded' : 'Ready to compete')
+      : (progress?.approvedActivityCount > 0 ? 'Challenge in progress' : 'Ready to start'),
     helperText: progress?.approvedActivityCount > 0
-      ? 'Keep adding eligible activities until your verified total reaches the selected goal.'
+      ? (progress?.rankingOnly
+          ? `Keep adding eligible activities to improve your official ${primaryMetricLabel} ranking.`
+          : 'Keep adding eligible activities until your verified total reaches the selected goal.')
       : 'Add your first eligible activity to begin verified progress.',
     primaryAction: { type: 'submit', label: 'Add activity', registrationId: String(registration._id || '') },
     secondaryAction: progress?.totalActivityCount > 0

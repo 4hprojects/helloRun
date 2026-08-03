@@ -1,5 +1,7 @@
 'use strict';
 
+const { isAccumulatedChallenge } = require('../utils/challenge-metrics');
+
 // OCR parsing, distance-plausibility, and auto-approval decision logic —
 // extracted from submission.service.js (analysis CQ-2). Pure leaf: no imports,
 // no calls back into the submission orchestrator.
@@ -121,7 +123,7 @@ function cleanOcrNameCandidate(value) {
 }
 
 function getStandardSubmissionMinimumDistanceKm(registration, event) {
-  if (!registration || !event || event.virtualCompletionMode === 'accumulated_distance') {
+  if (!registration || !event || isAccumulatedChallenge(event)) {
     return null;
   }
 

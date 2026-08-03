@@ -1,3 +1,5 @@
+const { isAccumulatedChallenge } = require('./challenge-metrics');
+
 function isSubmissionWindowOpen({ registration, event, now = new Date() }) {
   if (!registration || !event) return false;
   if (String(event.status || '').trim().toLowerCase() !== 'published') return false;
@@ -7,7 +9,7 @@ function isSubmissionWindowOpen({ registration, event, now = new Date() }) {
   if (mode === 'virtual') {
     const virtualStart = parseDateSafe(event.virtualWindow?.startAt);
     const virtualEnd = parseDateSafe(
-      event.virtualCompletionMode === 'accumulated_distance' && event.finalSubmissionDeadlineAt
+      isAccumulatedChallenge(event) && event.finalSubmissionDeadlineAt
         ? event.finalSubmissionDeadlineAt
         : event.virtualWindow?.endAt
     );

@@ -41,7 +41,8 @@ test('homepage leaderboard is scoped to the 2026K event', () => {
 
   assert.match(service, /HOMEPAGE_LEADERBOARD_EVENT_SLUG = '2026k-hellorun-challenge-4'/);
   assert.match(service, /eventSlug: HOMEPAGE_LEADERBOARD_EVENT_SLUG/);
-  assert.match(service, /event\.virtualCompletionMode === 'accumulated_distance'[\s\S]*\? 'accumulated_challenge'/);
+  assert.match(service, /const challengeConfig = resolveChallengeConfig\(event\)/);
+  assert.match(service, /challengeConfig\.accumulated[\s\S]*\? 'accumulated_challenge'/);
 });
 
 test('homepage leaderboard CSS provides a compact responsive sports table', () => {

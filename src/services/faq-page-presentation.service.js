@@ -388,6 +388,14 @@ function buildRoleActions(locals = {}) {
     ];
   }
 
+  if (locals.isRunnerWorkspace) {
+    return [
+      { label: 'My Registrations', href: '/my-registrations', icon: 'clipboard-list' },
+      { label: 'Submission History', href: '/runner/submissions', icon: 'file-check-2' },
+      contact
+    ];
+  }
+
   if (locals.isOrganizer || locals.isApprovedOrganizer) {
     return [
       { label: 'Organizer Dashboard', href: '/organizer/dashboard', icon: 'layout-dashboard' },
@@ -413,6 +421,7 @@ function buildRoleActions(locals = {}) {
 
 function buildStartAction(locals = {}) {
   if (locals.isAdmin) return { label: 'Open Admin Dashboard', href: '/admin/dashboard' };
+  if (locals.isRunnerWorkspace) return { label: 'Check My Registrations', href: '/my-registrations' };
   if (locals.isOrganizer || locals.isApprovedOrganizer) return { label: 'Open Organizer Dashboard', href: '/organizer/dashboard' };
   if (locals.isAuthenticated) return { label: 'Check My Registrations', href: '/my-registrations' };
   return { label: 'Browse Events', href: '/events' };

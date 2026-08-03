@@ -4,6 +4,7 @@ const router = express.Router();
 const { getRejectionReasonOptions, resolveRejectionReason } = require('../../utils/rejection-reasons');
 const { redirectWithFlash } = require('../../utils/session-flash');
 const { normalizeSubmissionHubFilters } = require('../../services/submission-hub.service');
+const { resolveChallengeConfig } = require('../../utils/challenge-metrics');
 const {
   logger,
   mongoose,
@@ -992,6 +993,7 @@ router.get('/events/:id/submissions/:submissionId/review', requireAuth, async (r
       reviewReasonOptions: isFullAdmin ? Object.entries(REVIEW_REASON_LABELS) : [],
       runRejectionReasonOptions: getRejectionReasonOptions('run'),
       event,
+      challengeConfig: resolveChallengeConfig(event),
       message: getPageMessage(req.query),
       ...context
     });

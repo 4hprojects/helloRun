@@ -12,13 +12,19 @@ const { __setDisableCriticalAuditBackgroundWrites } = require('../src/services/c
 const fakeUser = {
   _id: 'user-001',
   firstName: 'Test',
-  email: 'test@example.com'
+  email: 'test@example.com',
+  role: 'runner',
+  emailVerified: true,
+  accountStatus: 'active'
 };
 
 const fakeOrganizer = {
   _id: 'organiser-001',
   firstName: 'Organizer',
-  email: 'organizer@example.com'
+  email: 'organizer@example.com',
+  role: 'organiser',
+  emailVerified: true,
+  accountStatus: 'active'
 };
 
 const fakeEvent = {

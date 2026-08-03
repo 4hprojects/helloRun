@@ -74,6 +74,7 @@ const {
   MAX_RUNNING_GROUP_NAME_LENGTH,
   normalizeRunningGroupMemberships
 } = require('../utils/running-group-memberships');
+const { canUseRunnerWorkspace } = require('../utils/workspace');
 
 const countries = getCountries();
 const timezones = getTimeZoneOptions();
@@ -1596,7 +1597,7 @@ async function getRunnerFromSession(req) {
     return null;
   }
   const user = await User.findById(req.session.userId);
-  if (!user || user.role !== 'runner') {
+  if (!user || !canUseRunnerWorkspace(user)) {
     return null;
   }
   return user;

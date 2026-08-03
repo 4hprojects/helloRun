@@ -352,20 +352,51 @@
             <div class="form-group form-group-full <%= errors.virtualCompletionMode ? 'has-error' : '' %>">
               <label for="virtualCompletionMode" class="label-with-help">
                 Event Format
-                <span class="field-help-icon" tabindex="0" aria-label="Single activity means each runner submits one final run result. Accumulated distance means runners can submit multiple activity entries that add up toward the target distance.">?</span>
+                <span class="field-help-icon" tabindex="0" aria-label="Single activity means each runner submits one final result. Accumulated challenge means runners can submit multiple approved activities toward distance, steps, or both.">?</span>
               </label>
               <select id="virtualCompletionMode" name="virtualCompletionMode">
                 <option value="single_activity" <%= formData.virtualCompletionMode === 'single_activity' ? 'selected' : '' %>>Single activity</option>
-                <option value="accumulated_distance" <%= formData.virtualCompletionMode === 'accumulated_distance' ? 'selected' : '' %>>Accumulated distance challenge</option>
+                <option value="accumulated_activity" <%= formData.virtualCompletionMode === 'accumulated_activity' ? 'selected' : '' %>>Accumulated challenge</option>
               </select>
-              <small class="field-hint">Accumulated distance challenges accept multiple activity proofs and track approved progress toward the target.</small>
+              <small class="field-hint">Accumulated challenges accept multiple activity proofs and total approved competition metrics.</small>
               <% if (errors.virtualCompletionMode) { %><small class="error-text"><%= errors.virtualCompletionMode %></small><% } %>
             </div>
 
             <div class="form-group form-group-full accumulated-settings" style="display: none;">
               <label>Accumulated Challenge Setup</label>
               <div class="form-grid">
-                <div class="form-group">
+                <% const selectedChallengeMetrics = formData.challengeMetrics || ['distance']; %>
+                <% if (formData.stepCompetitionsEnabled) { %>
+                  <div class="form-group form-group-full <%= errors.challengeMetrics ? 'has-error' : '' %>">
+                    <label>Competition Metrics</label>
+                    <input type="hidden" name="challengeMetrics" value="">
+                    <div class="checkbox-row" id="challengeMetricsControls">
+                      <label><input type="checkbox" name="challengeMetrics" value="distance" <%= selectedChallengeMetrics.includes('distance') ? 'checked' : '' %>> Distance</label>
+                      <label><input type="checkbox" name="challengeMetrics" value="steps" <%= selectedChallengeMetrics.includes('steps') ? 'checked' : '' %>> Steps</label>
+                    </div>
+                    <small class="field-hint">Every proof must include each selected metric. Both totals are displayed when both are selected.</small>
+                    <% if (errors.challengeMetrics) { %><small class="error-text"><%= errors.challengeMetrics %></small><% } %>
+                  </div>
+                  <div class="form-group" id="primaryChallengeMetricGroup">
+                    <label for="primaryChallengeMetric">Official Ranking Metric</label>
+                    <select id="primaryChallengeMetric" name="primaryChallengeMetric">
+                      <option value="distance" <%= formData.primaryChallengeMetric === 'distance' ? 'selected' : '' %>>Highest verified distance</option>
+                      <option value="steps" <%= formData.primaryChallengeMetric === 'steps' ? 'selected' : '' %>>Highest verified steps</option>
+                    </select>
+                    <small class="field-hint">The primary metric determines official rank, completion, certificates, and badges.</small>
+                  </div>
+                  <div class="form-group <%= errors.targetSteps ? 'has-error' : '' %>" id="targetStepsGroup">
+                    <label for="targetSteps">Step Goal (optional)</label>
+                    <input id="targetSteps" name="targetSteps" type="number" min="1" max="1000000000" step="1" value="<%= formData.targetSteps || '' %>" placeholder="e.g., 100000">
+                    <small class="field-hint">Leave blank for a ranking-only steps competition without automatic finisher rewards.</small>
+                    <% if (errors.targetSteps) { %><small class="error-text"><%= errors.targetSteps %></small><% } %>
+                  </div>
+                <% } else { %>
+                  <% selectedChallengeMetrics.forEach((metric) => { %><input type="hidden" name="challengeMetrics" value="<%= metric %>"><% }) %>
+                  <input type="hidden" name="primaryChallengeMetric" value="<%= formData.primaryChallengeMetric || 'distance' %>">
+                  <input type="hidden" name="targetSteps" value="<%= formData.targetSteps || '' %>">
+                <% } %>
+                <div class="form-group" id="distanceGoalGroup">
                   <label class="label-with-help">
                     Completion Goal
                     <span class="field-help-icon" tabindex="0" aria-label="The accumulated challenge target is derived from the race distance selected in Race Categories.">?</span>
@@ -403,8 +434,8 @@
                   <label for="leaderboardMode">Leaderboard Mode</label>
                   <select id="leaderboardMode" name="leaderboardMode">
                     <option value="finishers" <%= formData.leaderboardMode === 'finishers' ? 'selected' : '' %>>Finishers</option>
-                    <option value="top_distance" <%= formData.leaderboardMode === 'top_distance' ? 'selected' : '' %>>Top distance</option>
-                    <option value="finishers_and_top_distance" <%= formData.leaderboardMode === 'finishers_and_top_distance' ? 'selected' : '' %>>Finishers and top distance</option>
+                    <option value="top_metric" <%= formData.leaderboardMode === 'top_metric' ? 'selected' : '' %>>Top official metric</option>
+                    <option value="finishers_and_top_metric" <%= formData.leaderboardMode === 'finishers_and_top_metric' ? 'selected' : '' %>>Finishers and top official metric</option>
                   </select>
                 </div>
                 <div class="form-group form-group-full">
@@ -431,6 +462,7 @@
                       <select id="leaderboardSettingsRankingBasis" name="leaderboardSettingsRankingBasis">
                         <option value="fastest_time" <%= leaderboardSettings.rankingBasis === 'fastest_time' ? 'selected' : '' %>>Fastest verified time</option>
                         <option value="highest_verified_distance" <%= leaderboardSettings.rankingBasis === 'highest_verified_distance' ? 'selected' : '' %>>Highest verified distance</option>
+                        <option value="highest_verified_steps" <%= leaderboardSettings.rankingBasis === 'highest_verified_steps' ? 'selected' : '' %>>Highest verified steps</option>
                       </select>
                     </div>
                     <div class="form-group">
@@ -453,7 +485,7 @@
                     <div class="form-group form-group-full">
                       <label>Visible Columns</label>
                       <div class="checkbox-row">
-                        <% ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status'].forEach((column) => { %>
+                        <% ['rank', 'runner', 'category', 'distance', 'steps', 'time', 'pace', 'status'].forEach((column) => { %>
                           <label><input type="checkbox" name="leaderboardSettingsVisibleColumns" value="<%= column %>" <%= selectedLeaderboardColumns.includes(column) ? 'checked' : '' %>> <%= column.charAt(0).toUpperCase() + column.slice(1) %></label>
                         <% }) %>
                       </div>
@@ -1354,6 +1386,12 @@
       const finalSubmissionDeadlineInput = document.getElementById('finalSubmissionDeadlineAt');
       const finalSubmissionDeadlineHint = document.getElementById('finalSubmissionDeadlineHint');
       const targetDistanceHint = document.getElementById('targetDistanceHint');
+      const challengeMetricInputs = Array.from(document.querySelectorAll('input[name="challengeMetrics"][type="checkbox"]'));
+      const primaryChallengeMetricSelect = document.getElementById('primaryChallengeMetric');
+      const primaryChallengeMetricGroup = document.getElementById('primaryChallengeMetricGroup');
+      const targetStepsGroup = document.getElementById('targetStepsGroup');
+      const distanceGoalGroup = document.getElementById('distanceGoalGroup');
+      const leaderboardRankingBasisSelect = document.getElementById('leaderboardSettingsRankingBasis');
       const raceDistanceCustomInput = document.getElementById('raceDistanceCustom');
       const raceDistancePresetInputs = Array.from(document.querySelectorAll('input[name="raceDistancePresets"]'));
       const feeModeSelect = document.getElementById('feeMode');
@@ -2086,12 +2124,13 @@
           card.classList.toggle('is-selected', Boolean(val) && card.dataset.eventTypeCard === val);
         });
         if (accumulatedSettings && virtualCompletionModeSelect) {
-          const showAccumulated = (val === 'virtual' || val === 'hybrid') && virtualCompletionModeSelect.value === 'accumulated_distance';
+          const showAccumulated = (val === 'virtual' || val === 'hybrid') && virtualCompletionModeSelect.value === 'accumulated_activity';
           accumulatedSettings.style.display = showAccumulated ? 'block' : 'none';
           if (val === 'virtual' || val === 'hybrid') {
             syncVirtualWindowFromEventDates();
           }
           if (showAccumulated) {
+            syncChallengeMetricControls();
             syncFinalSubmissionDeadlineFromEventEnd();
             syncAccumulatedTargetDistanceDefault();
           }
@@ -2104,6 +2143,32 @@
       }
       if (virtualCompletionModeSelect) {
         virtualCompletionModeSelect.addEventListener('change', toggleSections);
+      }
+      challengeMetricInputs.forEach((input) => input.addEventListener('change', syncChallengeMetricControls));
+      if (primaryChallengeMetricSelect) {
+        primaryChallengeMetricSelect.addEventListener('change', syncChallengeMetricControls);
+      }
+
+      function syncChallengeMetricControls() {
+        if (!challengeMetricInputs.length) return;
+        let metrics = challengeMetricInputs.filter((input) => input.checked).map((input) => input.value);
+        if (!metrics.length) {
+          challengeMetricInputs[0].checked = true;
+          metrics = [challengeMetricInputs[0].value];
+        }
+        const tracksDistance = metrics.includes('distance');
+        const tracksSteps = metrics.includes('steps');
+        if (distanceGoalGroup) distanceGoalGroup.style.display = tracksDistance ? '' : 'none';
+        if (targetStepsGroup) targetStepsGroup.style.display = tracksSteps ? '' : 'none';
+        if (primaryChallengeMetricGroup) primaryChallengeMetricGroup.style.display = metrics.length > 1 ? '' : 'none';
+        if (primaryChallengeMetricSelect && !metrics.includes(primaryChallengeMetricSelect.value)) {
+          primaryChallengeMetricSelect.value = metrics[0];
+        }
+        if (leaderboardRankingBasisSelect && primaryChallengeMetricSelect) {
+          leaderboardRankingBasisSelect.value = primaryChallengeMetricSelect.value === 'steps'
+            ? 'highest_verified_steps'
+            : 'highest_verified_distance';
+        }
       }
 
       function parseDateTimeLocalValue(value) {
@@ -2199,7 +2264,7 @@
       }
 
       function syncAccumulatedTargetDistanceDefault() {
-        if (!virtualCompletionModeSelect || virtualCompletionModeSelect.value !== 'accumulated_distance') return;
+        if (!virtualCompletionModeSelect || virtualCompletionModeSelect.value !== 'accumulated_activity') return;
         const rows = Array.from(document.querySelectorAll('[data-race-category-row]'));
         if (rows.length !== 1) return;
         const kmInput = rows[0].querySelector('input[name="raceCategoryDistanceKm"]');

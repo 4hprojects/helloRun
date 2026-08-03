@@ -19,6 +19,7 @@ const {
   resolveEventCore
 } = require('./event-badge.service');
 const { checkBadgeRequirement, hasRevokedBadge } = require('./achievement.service');
+const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
 
 const GLOBAL_DISTANCE_MILESTONES_KM = [5, 50, 100, 500, 1000];
 
@@ -41,6 +42,7 @@ async function refreshAccumulatedChallengeProgress(registrationOrId, options = {
   if (!context) return null;
 
   const progressRows = await upsertChallengeProgressRows(context, { sql });
+  const revoked = await revokeUnmetChallengeBadges(context, { sql });
   const awards = await awardCompletedChallengeBadges(context, {
     sql,
     performedBy: options.performedBy || null
@@ -49,8 +51,9 @@ async function refreshAccumulatedChallengeProgress(registrationOrId, options = {
   return {
     progressRows,
     awards,
+    revoked,
     currentValue: context.currentValue,
-    targetValue: context.eventTargetDistanceKm,
+    targetValue: context.eventTargetValue,
     progressPercent: context.eventProgressPercent
   };
 }
@@ -151,10 +154,10 @@ function refreshGlobalDistanceMilestoneProgressInBackground(mongoUserId, options
 }
 
 async function buildProgressContext({ registration, event, sql }) {
-  const [eventCore, runnerUserId, approvedDistanceKm] = await Promise.all([
+  const [eventCore, runnerUserId, approvedTotals] = await Promise.all([
     resolveEventCore(event, { sql }),
     resolveAppUserId(registration.userId, { sql }),
-    sumApprovedDistanceKm(registration._id)
+    sumApprovedChallengeMetrics(registration._id)
   ]);
   if (!eventCore?.id || !runnerUserId) return null;
 
@@ -165,8 +168,15 @@ async function buildProgressContext({ registration, event, sql }) {
   }
   if (!registrationRow?.id) return null;
 
+  const challengeConfig = resolveChallengeConfig(event);
+  const approvedDistanceKm = approvedTotals.distanceKm;
+  const approvedSteps = approvedTotals.steps;
   const eventTargetDistanceKm = Number(event.targetDistanceKm || 0);
-  const eventProgressPercent = calculateProgressPercent(approvedDistanceKm, eventTargetDistanceKm);
+  const eventTargetValue = challengeConfig.primaryMetric === 'steps'
+    ? Number(challengeConfig.targetSteps || 0)
+    : eventTargetDistanceKm;
+  const currentValue = challengeConfig.primaryMetric === 'steps' ? approvedSteps : approvedDistanceKm;
+  const eventProgressPercent = calculateProgressPercent(currentValue, eventTargetValue);
 
   return {
     runnerUserId,
@@ -177,11 +187,15 @@ async function buildProgressContext({ registration, event, sql }) {
     mongoEventId: String(registration.eventId),
     mongoRegistrationId: String(registration._id),
     mongoSubmissionId: '',
-    currentValue: approvedDistanceKm,
+    currentValue,
     approvedDistanceKm,
+    approvedSteps,
+    primaryMetric: challengeConfig.primaryMetric,
     eventTargetDistanceKm,
+    eventTargetSteps: challengeConfig.targetSteps,
+    eventTargetValue,
     eventProgressPercent,
-    resultStatus: approvedDistanceKm > 0 ? 'approved' : ''
+    resultStatus: currentValue > 0 ? 'approved' : ''
   };
 }
 
@@ -191,7 +205,11 @@ async function upsertChallengeProgressRows(context, options = {}) {
   const rows = [];
 
   for (const badge of badges) {
-    const targetValue = Number(badge.requirement_value?.targetDistanceKm || 0);
+    const targetValue = Number(
+      badge.requirement_value?.completionMetric === 'steps'
+        ? badge.requirement_value?.targetSteps
+        : badge.requirement_value?.targetDistanceKm
+    );
     if (!targetValue || targetValue <= 0) continue;
     const progressPercent = calculateProgressPercent(context.currentValue, targetValue);
     const result = await sql`
@@ -299,6 +317,24 @@ async function awardCompletedChallengeBadges(context, options = {}) {
 
   for (const badge of badges) {
     if (!checkBadgeRequirement(badge, context)) continue;
+    const restoredRows = await sql`
+      UPDATE user_badges
+      SET verification_status = 'verified',
+          revoke_reason = null,
+          earned_at = NOW(),
+          updated_at = NOW()
+      WHERE runner_user_id = ${context.runnerUserId}
+        AND badge_definition_id = ${badge.id}
+        AND event_core_id = ${context.eventCoreId}
+        AND verification_status = 'revoked'
+        AND source = 'system_auto_award'
+        AND revoke_reason = 'Verified challenge total fell below this milestone.'
+      RETURNING *
+    `;
+    if (restoredRows[0]) {
+      awarded.push(restoredRows[0]);
+      continue;
+    }
     if (await hasRevokedBadge({
       runnerUserId: context.runnerUserId,
       badgeDefinitionId: badge.id,
@@ -356,7 +392,7 @@ async function awardCompletedChallengeBadges(context, options = {}) {
       metadata: {
         requirementType: badge.requirement_type,
         currentValue: context.currentValue,
-        targetValue: badge.requirement_value?.targetDistanceKm || 0,
+        targetValue: badge.requirement_value?.targetSteps || badge.requirement_value?.targetDistanceKm || 0,
         mongoUserId: context.mongoUserId,
         mongoEventId: context.mongoEventId,
         mongoRegistrationId: context.mongoRegistrationId
@@ -373,6 +409,29 @@ async function awardCompletedChallengeBadges(context, options = {}) {
   }
 
   return awarded;
+}
+
+async function revokeUnmetChallengeBadges(context, options = {}) {
+  const sql = options.sql || getPostgresClient();
+  const badges = await findActiveEventBadgeDefinitions(context.eventCoreId, ['challenge_progress'], { sql });
+  const unmetIds = badges
+    .filter((badge) => !checkBadgeRequirement(badge, context))
+    .map((badge) => badge.id);
+  if (!unmetIds.length) return [];
+
+  return sql`
+    UPDATE user_badges
+    SET verification_status = 'revoked',
+        revoke_reason = 'Verified challenge total fell below this milestone.',
+        is_featured = false,
+        updated_at = NOW()
+    WHERE runner_user_id = ${context.runnerUserId}
+      AND event_core_id = ${context.eventCoreId}
+      AND badge_definition_id = ANY(${unmetIds})
+      AND verification_status = 'verified'
+      AND source = 'system_auto_award'
+    RETURNING *
+  `;
 }
 
 async function awardCompletedGlobalDistanceBadges(context, options = {}) {
@@ -485,7 +544,7 @@ async function ensureGlobalDistanceMilestoneBadges(options = {}) {
   return definitions;
 }
 
-async function sumApprovedDistanceKm(registrationId) {
+async function sumApprovedChallengeMetrics(registrationId) {
   const rows = await AccumulatedActivitySubmission.aggregate([
     {
       $match: {
@@ -496,11 +555,15 @@ async function sumApprovedDistanceKm(registrationId) {
     {
       $group: {
         _id: '$registrationId',
-        distanceKm: { $sum: '$distanceKm' }
+        distanceKm: { $sum: '$distanceKm' },
+        steps: { $sum: { $ifNull: ['$steps', 0] } }
       }
     }
   ]);
-  return Number(rows[0]?.distanceKm || 0);
+  return {
+    distanceKm: Number(rows[0]?.distanceKm || 0),
+    steps: Number(rows[0]?.steps || 0)
+  };
 }
 
 async function sumApprovedLifetimeDistanceKm(mongoUserId) {
@@ -581,8 +644,12 @@ function isEligibleChallengeEvent(event) {
     event._id &&
     event.status === 'published' &&
     event.digitalBadgeEnabled === true &&
-    event.virtualCompletionMode === 'accumulated_distance' &&
-    Number(event.targetDistanceKm || 0) > 0 &&
+    isAccumulatedChallenge(event) &&
+    (
+      resolveChallengeConfig(event).primaryMetric === 'steps'
+        ? Number(resolveChallengeConfig(event).targetSteps || 0) > 0
+        : Number(event.targetDistanceKm || 0) > 0
+    ) &&
     event.isDeleted !== true &&
     event.isPersonalRecord !== true
   );

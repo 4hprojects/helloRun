@@ -3,6 +3,13 @@ const { countUnreadNotifications } = require('../services/notification.service')
 const logger = require('../utils/logger');
 const { sendHttpError } = require('../utils/http-error-response');
 const { consumeSessionFlash } = require('../utils/session-flash');
+const {
+  WORKSPACES,
+  canUseRunnerWorkspace,
+  getWorkspaceDashboard,
+  getWorkspaceForPath,
+  resolveActiveWorkspace
+} = require('../utils/workspace');
 
 const AUTH_LOCAL_USER_FIELDS = 'userId email firstName lastName displayName role adminTier organizerStatus emailVerified authProvider profileImageUrl avatarUrl accountStatus';
 const RUNNER_UNREAD_CACHE_MS = 30 * 1000;
@@ -13,23 +20,17 @@ const RUNNER_UNREAD_CACHE_MS = 30 * 1000;
 async function redirectIfAuth(req, res, next) {
   if (req.session && req.session.userId) {
     try {
-      const user = await User.findById(req.session.userId).select('role organizerStatus');
+      const user = await User.findById(req.session.userId)
+        .select('role organizerStatus emailVerified accountStatus')
+        .lean();
       if (!user) {
         req.session.destroy(() => {});
         return next();
       }
 
       req.session.role = user.role;
-
-      if (user.role === 'admin') {
-        return res.redirect('/admin/dashboard');
-      }
-
-      if (user.role === 'organiser') {
-        return res.redirect('/organizer/dashboard');
-      }
-
-      return res.redirect('/runner/dashboard');
+      req.session.activeWorkspace = resolveActiveWorkspace(user, req.session.activeWorkspace);
+      return res.redirect(getWorkspaceDashboard(req.session.activeWorkspace));
     } catch (error) {
       logger.error('Error in redirectIfAuth:', error);
       return next(error);
@@ -38,8 +39,8 @@ async function redirectIfAuth(req, res, next) {
   next();
 }
 
-async function getRunnerUnreadCountForLocals(req, user) {
-  if (user.role !== 'runner') return 0;
+async function getRunnerUnreadCountForLocals(req, user, activeWorkspace) {
+  if (activeWorkspace !== WORKSPACES.RUNNER || !canUseRunnerWorkspace(user)) return 0;
   if (!shouldLoadRunnerUnreadCount(req)) return 0;
 
   const cache = req.session?.runnerUnreadNotifications;
@@ -88,13 +89,27 @@ async function populateAuthLocals(req, res, next) {
           req.session.destroy(() => {});
           return res.redirect('/login?suspended=1');
         }
+        req.session.role = user.role;
+        req.session.activeWorkspace = getWorkspaceForPath(
+          user,
+          req.path,
+          req.session.activeWorkspace
+        );
         res.locals.user = user;
         res.locals.isAuthenticated = true;
         res.locals.isOrganizer = user.role === 'organiser';
         res.locals.isAdmin = user.role === 'admin';
         res.locals.isFullAdmin = user.role === 'admin' && isFullAdminTier(user);
         res.locals.isApprovedOrganizer = user.role === 'organiser' && user.organizerStatus === 'approved';
-        res.locals.runnerUnreadNotifications = await getRunnerUnreadCountForLocals(req, user);
+        res.locals.activeWorkspace = req.session.activeWorkspace;
+        res.locals.isRunnerWorkspace = req.session.activeWorkspace === WORKSPACES.RUNNER;
+        res.locals.isOrganizerWorkspace = req.session.activeWorkspace === WORKSPACES.ORGANIZER;
+        res.locals.canUseRunnerWorkspace = canUseRunnerWorkspace(user);
+        res.locals.runnerUnreadNotifications = await getRunnerUnreadCountForLocals(
+          req,
+          user,
+          req.session.activeWorkspace
+        );
       } else {
         req.session.destroy(() => {});
         res.locals.user = null;
@@ -103,6 +118,10 @@ async function populateAuthLocals(req, res, next) {
         res.locals.isAdmin = false;
         res.locals.isFullAdmin = false;
         res.locals.isApprovedOrganizer = false;
+        res.locals.activeWorkspace = null;
+        res.locals.isRunnerWorkspace = false;
+        res.locals.isOrganizerWorkspace = false;
+        res.locals.canUseRunnerWorkspace = false;
         res.locals.runnerUnreadNotifications = 0;
       }
     } catch (error) {
@@ -113,6 +132,10 @@ async function populateAuthLocals(req, res, next) {
       res.locals.isAdmin = false;
       res.locals.isFullAdmin = false;
       res.locals.isApprovedOrganizer = false;
+      res.locals.activeWorkspace = null;
+      res.locals.isRunnerWorkspace = false;
+      res.locals.isOrganizerWorkspace = false;
+      res.locals.canUseRunnerWorkspace = false;
       res.locals.runnerUnreadNotifications = 0;
     }
   } else {
@@ -122,6 +145,10 @@ async function populateAuthLocals(req, res, next) {
     res.locals.isAdmin = false;
     res.locals.isFullAdmin = false;
     res.locals.isApprovedOrganizer = false;
+    res.locals.activeWorkspace = null;
+    res.locals.isRunnerWorkspace = false;
+    res.locals.isOrganizerWorkspace = false;
+    res.locals.canUseRunnerWorkspace = false;
     res.locals.runnerUnreadNotifications = 0;
   }
 
@@ -139,6 +166,63 @@ function requireAuth(req, res, next) {
     return res.redirect('/login');
   }
   next();
+}
+
+/**
+ * Require a runner-capable account for runner workspace routes.
+ * Verified organizers participate under the same user ID without changing role.
+ */
+async function requireRunnerWorkspace(req, res, next) {
+  if (!req.session || !req.session.userId) {
+    return res.redirect('/login');
+  }
+  try {
+    const user = await User.findById(req.session.userId)
+      .select('role organizerStatus emailVerified accountStatus')
+      .lean();
+    if (!user || !canUseRunnerWorkspace(user)) {
+      return sendHttpError(req, res, {
+        status: 403,
+        message: 'Runner access is not available for this account.',
+        detail: 'Verified runner and organizer accounts can use the runner workspace.'
+      });
+    }
+    req.session.activeWorkspace = WORKSPACES.RUNNER;
+    res.locals.activeWorkspace = WORKSPACES.RUNNER;
+    res.locals.isRunnerWorkspace = true;
+    res.locals.isOrganizerWorkspace = false;
+    res.locals.canUseRunnerWorkspace = true;
+    req.workspaceUser = user;
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function requireRunnerWorkspaceJson(req, res, next) {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ success: false, message: 'Authentication required.' });
+  }
+  try {
+    const user = await User.findById(req.session.userId)
+      .select('role organizerStatus emailVerified accountStatus')
+      .lean();
+    if (!user || !canUseRunnerWorkspace(user)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Runner access is not available for this account.'
+      });
+    }
+    req.session.activeWorkspace = WORKSPACES.RUNNER;
+    res.locals.activeWorkspace = WORKSPACES.RUNNER;
+    res.locals.isRunnerWorkspace = true;
+    res.locals.isOrganizerWorkspace = false;
+    res.locals.canUseRunnerWorkspace = true;
+    req.workspaceUser = user;
+    return next();
+  } catch (error) {
+    return next(error);
+  }
 }
 
 /**
@@ -284,6 +368,8 @@ module.exports = {
   populateAuthLocals,
   redirectIfAuth,
   requireAuth,
+  requireRunnerWorkspace,
+  requireRunnerWorkspaceJson,
   requireAdmin,
   requireFullAdmin,
   isFullAdminTier,

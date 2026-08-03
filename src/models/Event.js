@@ -206,8 +206,23 @@ const eventSchema = new mongoose.Schema(
     },
     virtualCompletionMode: {
       type: String,
-      enum: ['single_activity', 'accumulated_distance'],
+      enum: ['single_activity', 'accumulated_activity', 'accumulated_distance'],
       default: 'single_activity'
+    },
+    challengeMetrics: {
+      type: [{ type: String, enum: ['distance', 'steps'] }],
+      default: ['distance']
+    },
+    primaryChallengeMetric: {
+      type: String,
+      enum: ['distance', 'steps'],
+      default: 'distance'
+    },
+    targetSteps: {
+      type: Number,
+      min: 1,
+      max: 1000000000,
+      default: null
     },
     targetDistanceKm: {
       type: Number,
@@ -248,7 +263,7 @@ const eventSchema = new mongoose.Schema(
     },
     leaderboardMode: {
       type: String,
-      enum: ['finishers', 'top_distance', 'finishers_and_top_distance'],
+      enum: ['finishers', 'top_metric', 'finishers_and_top_metric', 'top_distance', 'finishers_and_top_distance'],
       default: 'finishers'
     },
     feeMode: {
@@ -314,7 +329,7 @@ const eventSchema = new mongoose.Schema(
       },
       rankingBasis: {
         type: String,
-        enum: ['fastest_time', 'highest_verified_distance'],
+        enum: ['fastest_time', 'highest_verified_distance', 'highest_verified_steps'],
         default: 'fastest_time'
       },
       visibility: {
@@ -339,7 +354,7 @@ const eventSchema = new mongoose.Schema(
         type: [
           {
             type: String,
-            enum: ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status']
+            enum: ['rank', 'runner', 'category', 'distance', 'steps', 'time', 'pace', 'status']
           }
         ],
         default: ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status']

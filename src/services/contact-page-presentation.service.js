@@ -31,6 +31,7 @@ function normalizeContactTopic(value) {
 
 function resolveRole(locals = {}) {
   if (locals.isAdmin) return 'Administrator';
+  if (locals.isRunnerWorkspace) return 'Runner';
   if (locals.isOrganizer || locals.isApprovedOrganizer) return 'Organizer';
   if (locals.isAuthenticated) return 'Runner';
   return 'Guest';
@@ -44,6 +45,11 @@ function buildRoleActions(locals = {}) {
 
   if (locals.isAdmin) {
     actions.push({ label: 'Admin Dashboard', href: '/admin/dashboard', icon: 'shield-check', help: 'Return to platform operations and review tools.' });
+  } else if (locals.isRunnerWorkspace) {
+    actions.push(
+      { label: 'My Registrations', href: '/my-registrations', icon: 'clipboard-list', help: 'Check payment, event, and submission readiness.' },
+      { label: 'Submission History', href: '/runner/submissions', icon: 'file-check', help: 'Review approved, pending, or rejected activities.' }
+    );
   } else if (locals.isOrganizer || locals.isApprovedOrganizer) {
     actions.push({ label: 'Organizer Dashboard', href: '/organizer/dashboard', icon: 'layout-dashboard', help: 'Return to event setup, participants, and review work.' });
   } else if (locals.isAuthenticated) {

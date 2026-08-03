@@ -1,5 +1,5 @@
 // tests/ocr-payload-separation.test.js
-// Verify that OCR fields stay in MongoDB and are NOT synced to Supabase
+// Verify that private OCR fields stay in MongoDB while official metrics sync.
 
 const test = require('node:test');
 const assert = require('node:assert');
@@ -59,6 +59,7 @@ test('OCR Payload Separation - OCR fields excluded from Supabase sync', async (t
   // Verify official fields ARE included
   assert.strictEqual(normalized.mongo_submission_id, 'sub_123', 'mongo_submission_id should be included');
   assert.strictEqual(normalized.distance_km, 10.5, 'distance_km should be included');
+  assert.strictEqual(normalized.steps, 12000, 'official steps should be included');
   assert.strictEqual(normalized.elapsed_ms, 3600000, 'elapsed_ms should be included');
   assert.strictEqual(normalized.submission_status, 'submitted', 'submission_status should be included');
   assert.strictEqual(normalized.is_personal_record, false, 'is_personal_record should be included');
@@ -73,7 +74,6 @@ test('OCR Payload Separation - OCR fields excluded from Supabase sync', async (t
   assert.strictEqual(normalized.proofNotes, undefined, 'proofNotes should NOT be included in sync');
   assert.strictEqual(normalized.runLocation, undefined, 'runLocation should NOT be included in sync');
   assert.strictEqual(normalized.elevationGain, undefined, 'elevationGain should NOT be included in sync');
-  assert.strictEqual(normalized.steps, undefined, 'steps should NOT be included in sync');
 
   // Verify proof metadata IS included (not full proof object)
   assert.strictEqual(normalized.proof_key, 'proof_key_123', 'proof_key should be included');

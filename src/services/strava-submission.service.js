@@ -1,5 +1,6 @@
 const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
+const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
 const Registration = require('../models/Registration');
 const Event = require('../models/Event');
 const {
@@ -88,9 +89,12 @@ async function submitStravaActivity({ runnerId, eventId, stravaActivityId }) {
   }
 
   const event = await Event.findById(registration.eventId)
-    .select('title eventStartAt eventEndAt virtualWindow acceptedRunTypes virtualCompletionMode minimumActivityDistanceKm')
+    .select('title eventStartAt eventEndAt virtualWindow acceptedRunTypes virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps minimumActivityDistanceKm')
     .lean();
   validateAgainstEvent(activity, event);
+  if (resolveChallengeConfig(event).tracksSteps) {
+    throw new Error('Strava-only activities cannot enter a steps competition. Upload tracker proof with verified steps.');
+  }
 
   const duplicate = await findDuplicateStravaSubmission({
     runnerId,
@@ -123,7 +127,7 @@ async function submitStravaActivity({ runnerId, eventId, stravaActivityId }) {
   );
   try {
     const payload = buildSubmissionInput({ registration, activity, connection });
-    if (event.virtualCompletionMode === 'accumulated_distance') {
+    if (isAccumulatedChallenge(event)) {
       const submission = await createAccumulatedActivitySubmission(payload);
       return { submission, type: 'accumulated_activity' };
     }
