@@ -1521,4 +1521,76 @@ router.post(
   }
 );
 
+/* ==========================================
+   POST: Request Clarification (accumulated activity submissions only)
+   ========================================== */
+
+router.post(
+  '/events/:id/submissions/:submissionId/clarify',
+  requireAuth,
+  requireCsrfProtection,
+  submissionReviewActionLimiter,
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
+      if (!user) {
+        return res.status(404).render('error', {
+          title: '404 - User Not Found',
+          status: 404,
+          message: 'User account not found.'
+        });
+      }
+
+      if (!canAccessRegistrantReview(user)) {
+        return res.status(403).render('error', {
+          title: '403 - Access Denied',
+          status: 403,
+          message: 'Only approved organizers or admins can review submissions.'
+        });
+      }
+
+      const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
+      if (!event) {
+        return res.status(404).render('error', {
+          title: '404 - Event Not Found',
+          status: 404,
+          message: 'Event not found or you do not have access.'
+        });
+      }
+
+      const activityRecord = await AccumulatedActivitySubmission.findOne({
+        _id: req.params.submissionId,
+        eventId: event._id
+      })
+        .select('_id')
+        .lean();
+      if (!activityRecord) {
+        const queueContext = normalizeRunProofQueueContext(req.body);
+        const queuePath = buildRunProofReviewPath(event._id, queueContext);
+        const separator = queuePath.includes('?') ? '&' : '?';
+        return res.redirect(`${queuePath}${separator}type=error&msg=${encodeURIComponent('Submission record not found for this event.')}`);
+      }
+
+      const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
+      await reviewAccumulatedActivitySubmission({
+        activityId: activityRecord._id,
+        organizerId: user._id,
+        reviewerRole: user.role,
+        action: 'clarify',
+        reviewNotes
+      });
+
+      return res.redirect(buildSubmissionReviewPath(event._id, activityRecord._id, req.body, {
+        type: 'success',
+        msg: 'Marked as needing clarification.'
+      }));
+    } catch (error) {
+      return res.redirect(buildSubmissionReviewPath(req.params.id, req.params.submissionId, req.body, {
+        type: 'error',
+        msg: String(error?.message || 'Unable to request clarification.')
+      }));
+    }
+  }
+);
+
 module.exports = router;

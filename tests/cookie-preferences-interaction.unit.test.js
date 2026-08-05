@@ -199,6 +199,29 @@ test('network and malformed-response failures restore controls with visible feed
   );
 });
 
+test('a stalled request that aborts re-enables the initiating form so the user can retry', async () => {
+  const window = createPage(async () => {
+    const error = new Error('The operation was aborted.');
+    error.name = 'AbortError';
+    throw error;
+  });
+  const form = window.document.querySelector('[data-cookie-banner] form');
+  const accept = window.document.getElementById('accept');
+  form.dispatchEvent(new window.SubmitEvent('submit', {
+    bubbles: true,
+    cancelable: true,
+    submitter: accept
+  }));
+  await flush();
+
+  assert.equal(form.getAttribute('aria-busy'), 'false');
+  assert.equal(accept.disabled, false);
+  assert.match(
+    form.querySelector('[data-cookie-preference-status]').textContent,
+    /took too long/i
+  );
+});
+
 test('mobile-navigation positioning and dialog focus restoration initialize progressively', () => {
   const window = createPage(async () => successfulResponse());
   const banner = window.document.querySelector('[data-cookie-banner]');

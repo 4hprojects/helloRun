@@ -521,6 +521,16 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
         .filter((item) => isAccumulatedChallenge(item.eventId))
         .map((item) => String(item._id))
     );
+    const honorSystemConfirmed = req.body.honorSystemConfirmed === '1'
+      || req.body.honorSystemConfirmed === 'true'
+      || req.body.honorSystemConfirmed === true
+      || req.body.honorSystemConfirmed === 'on';
+    if (accumulatedTargetIds.size > 0 && !honorSystemConfirmed) {
+      return respond('error', 'Confirm the honor-system statement before submitting.', {
+        code: 'HONOR_SYSTEM_NOT_CONFIRMED',
+        fieldErrors: { honorSystemConfirmed: 'You must confirm this statement before submitting.' }
+      });
+    }
     const regularEventRegistrationIds = selectedEventRegistrationIds.filter((id) => !accumulatedTargetIds.has(String(id)));
     const existingSubmissions = selectedEventRegistrationIds.length
       ? await Submission.find({
@@ -664,7 +674,8 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
             elevationGain,
             steps,
             ocrData,
-            submissionAttemptId
+            submissionAttemptId,
+            honorSystemConfirmed
           };
 
           let savedSubmission;

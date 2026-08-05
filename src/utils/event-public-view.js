@@ -157,6 +157,16 @@ function buildChallengeSummary(event, options = {}) {
 
   const goals = Array.isArray(options.categoryGoalOptions) ? options.categoryGoalOptions : [];
   const distances = goals.map((goal) => Number(goal.distanceKm || 0)).filter((value) => value > 0);
+  const hasStepsGoal = goals.some((goal) => Number(goal.targetSteps || 0) > 0);
+  const hasDistanceGoal = distances.length > 0;
+  if (hasDistanceGoal && hasStepsGoal) {
+    const distanceLabel = distances.length > 1
+      ? `${formatNumber(Math.min(...distances))}-${formatNumber(Math.max(...distances))} km`
+      : `${formatNumber(distances[0])} km`;
+    const stepsValues = goals.map((goal) => Number(goal.targetSteps || 0)).filter((value) => value > 0);
+    const stepsLabel = `${formatNumber(Math.min(...stepsValues))} steps`;
+    return `Choose a ${distanceLabel} distance goal, a ${stepsLabel} goal, or both, and build your progress through approved activities during the official event window.`;
+  }
   const goalLabel = distances.length > 1
     ? `${formatNumber(Math.min(...distances))}-${formatNumber(Math.max(...distances))} km`
     : (goals[0]?.distanceKmLabel || options.targetDistanceLabel || 'your selected distance');
@@ -476,20 +486,29 @@ function buildCategoryGoalOptions(raceCategories = []) {
   const seen = new Set();
   return raceCategories
     .map((category) => {
-      const distanceKm = firstFiniteNumber(category?.distanceKm);
-      if (distanceKm === null || distanceKm <= 0) return null;
-      const distanceLabel = String(category.distanceLabel || `${formatNumber(distanceKm)}K`).trim().toUpperCase();
-      const name = String(category.name || distanceLabel).trim();
-      const key = `${name.toLowerCase()}|${distanceKm}`;
+      const distanceKmRaw = firstFiniteNumber(category?.distanceKm);
+      const distanceKm = distanceKmRaw !== null && distanceKmRaw > 0 ? distanceKmRaw : 0;
+      const targetStepsRaw = firstFiniteNumber(category?.targetSteps);
+      const targetSteps = targetStepsRaw !== null && targetStepsRaw > 0 ? targetStepsRaw : 0;
+      if (distanceKm <= 0 && targetSteps <= 0) return null;
+      const distanceLabel = distanceKm > 0
+        ? String(category.distanceLabel || `${formatNumber(distanceKm)}K`).trim().toUpperCase()
+        : '';
+      const name = String(category.name || distanceLabel || `${formatNumber(targetSteps)} Steps`).trim();
+      const key = `${name.toLowerCase()}|${distanceKm}|${targetSteps}`;
       if (seen.has(key)) return null;
       seen.add(key);
+      const goalLabel = distanceKm > 0 && targetSteps > 0
+        ? `${formatNumber(distanceKm)} km + ${formatNumber(targetSteps)} steps`
+        : (distanceKm > 0 ? `${formatNumber(distanceKm)} km` : `${formatNumber(targetSteps)} steps`);
       return {
         id: category.id,
         name,
         compactName: compactAccumulatedGoalName(name),
         distanceLabel,
         distanceKm,
-        distanceKmLabel: `${formatNumber(distanceKm)} km`
+        targetSteps,
+        distanceKmLabel: goalLabel
       };
     })
     .filter(Boolean);

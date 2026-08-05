@@ -1818,7 +1818,21 @@ function applyEventFormData(event, formData, user) {
   event.eventType = formData.eventType || undefined;
   event.eventTypesAllowed = getEventTypesAllowed(formData.eventType);
   event.raceDistances = formData.raceDistances;
-  event.raceCategories = formData.raceCategories || [];
+  // The create/edit-event form has no field for per-category step goals, so a
+  // plain overwrite here would silently wipe them on every unrelated save
+  // (e.g. editing the submission deadline). Carry the existing value forward
+  // by categoryId until the form gains real support for editing it.
+  const previousCategoriesByCategoryId = new Map(
+    (Array.isArray(event.raceCategories) ? event.raceCategories : [])
+      .map((category) => [String(category?.categoryId || '').trim(), category])
+  );
+  event.raceCategories = (formData.raceCategories || []).map((category) => {
+    const previous = previousCategoriesByCategoryId.get(String(category?.categoryId || '').trim());
+    return {
+      ...category,
+      targetSteps: Number.isFinite(category.targetSteps) ? category.targetSteps : (previous ? previous.targetSteps : null)
+    };
+  });
   event.registrationOpenAt = parseDateSafe(formData.registrationOpenAt);
   event.registrationCloseAt = parseDateSafe(formData.registrationCloseAt);
   event.publicListingAvailableAt = parseDateSafe(formData.publicListingAvailableAt);

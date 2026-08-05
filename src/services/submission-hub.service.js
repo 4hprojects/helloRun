@@ -118,7 +118,7 @@ async function listSubmissionHub(options = {}) {
 function buildSubmissionHubPipeline({ filters, eventFilterIds }) {
   const eventObjectIds = eventFilterIds.map((id) => new mongoose.Types.ObjectId(id));
   const match = {
-    status: { $in: ['submitted', 'approved', 'rejected'] },
+    status: { $in: ['submitted', 'approved', 'rejected', 'needs_clarification'] },
     ...(eventObjectIds.length ? { eventId: { $in: eventObjectIds } } : {})
   };
   const pipeline = filters.type === 'accumulated'

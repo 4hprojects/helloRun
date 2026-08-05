@@ -14,8 +14,8 @@
   <% const standingView = presentation.standing || {}; %>
   <% const standing = standingView.entry || null; %>
   <% const isAccumulated = presentation.isAccumulated; %>
-  <% const primaryMetric = settings.primaryMetric === 'steps' ? 'steps' : 'distance'; %>
-  <% const primaryMetricLabel = primaryMetric === 'steps' ? 'Verified steps' : 'Verified distance'; %>
+  <% const primaryMetric = ['steps', 'elevation', 'consistency'].includes(settings.primaryMetric) ? settings.primaryMetric : 'distance'; %>
+  <% const primaryMetricLabel = primaryMetric === 'steps' ? 'Verified steps' : primaryMetric === 'elevation' ? 'Verified elevation gain' : primaryMetric === 'consistency' ? 'Active days' : 'Verified distance'; %>
   <% const challengeGoalLabel = primaryMetric === 'steps' ? event.targetStepsLabel : event.targetDistanceLabel; %>
   <main class="leaderboard-page">
     <div class="leaderboard-shell leaderboard-event-shell">
@@ -106,6 +106,16 @@
         <% } %>
       </section>
 
+      <% if (presentation.showMetricNavigation) { %>
+        <nav class="leaderboard-distance-tabs" aria-label="Leaderboard metric">
+          <% presentation.metricOptions.forEach((metric) => { %>
+            <a href="<%= presentation.getMetricUrl(metric.key) %>" class="leaderboard-distance-tab <%= metric.active ? 'is-active' : '' %>" <%= metric.active ? 'aria-current="page"' : '' %>>
+              <span><%= metric.label %></span>
+            </a>
+          <% }) %>
+        </nav>
+      <% } %>
+
       <% if (presentation.showDistanceNavigation) { %>
         <div class="leaderboard-distance-carousel" data-distance-carousel>
           <button class="leaderboard-distance-carousel-btn is-prev" type="button" aria-label="Show previous distances" data-distance-carousel-prev><i data-lucide="chevron-left" aria-hidden="true"></i></button>
@@ -127,6 +137,7 @@
             <input type="hidden" name="distance" value="<%= activeDistance.label || '' %>">
             <% if (filters.mode) { %><input type="hidden" name="mode" value="<%= filters.mode %>"><% } %>
             <% if (filters.status) { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
+            <% if (filters.metric) { %><input type="hidden" name="metric" value="<%= filters.metric %>"><% } %>
             <% if (leaderboard.pagination.limit !== 25) { %><input type="hidden" name="limit" value="<%= leaderboard.pagination.limit %>"><% } %>
             <label for="runner-search">Search runner or bib</label>
             <div class="leaderboard-search-control"><i data-lucide="search" aria-hidden="true"></i><input id="runner-search" name="search" type="search" value="<%= filters.search || '' %>" placeholder="Runner name or HR code"><button type="submit" class="leaderboard-button leaderboard-button-primary">Find result</button></div>
@@ -170,9 +181,10 @@
           <div class="leaderboard-table-wrap">
             <table class="leaderboard-table">
               <caption><%= activeDistance.label %> official verified rankings</caption>
+              <% const hasDualGoalMetrics = (settings.trackedMetrics || []).includes('distance') && (settings.trackedMetrics || []).includes('steps'); %>
               <% if (isAccumulated) { %>
-                <thead><tr><th scope="col">Rank</th><th scope="col">Runner</th><% if (presentation.showCategoryColumn) { %><th scope="col">Category</th><% } %><th scope="col"><%= primaryMetricLabel %></th><% if ((settings.trackedMetrics || []).length > 1) { %><th scope="col">Secondary total</th><% } %><th scope="col">Goal progress</th><th scope="col">Activities</th><th scope="col">Latest verification</th></tr></thead>
-                <tbody><% leaderboard.officialEntries.forEach((entry) => { %><tr class="leaderboard-rank-<%= entry.rank <= 3 ? entry.rank : 'standard' %>"><td><span class="leaderboard-rank-badge">#<%= entry.rank %></span></td><td class="leaderboard-runner-name"><%= entry.runnerName %></td><% if (presentation.showCategoryColumn) { %><td><%= entry.category || 'N/A' %></td><% } %><td><strong><%= entry.primaryMetricLabel %></strong></td><% if ((settings.trackedMetrics || []).length > 1) { %><td><%= primaryMetric === 'steps' ? entry.distanceLabel : entry.stepsLabel %></td><% } %><td><div class="leaderboard-table-progress"><span><%= entry.isGoalComplete ? 'Goal completed' : entry.progressLabel %></span><div class="leaderboard-progress-track" role="progressbar" aria-label="<%= entry.runnerName %> verified challenge progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= entry.progressBarPercentage %>"><span style="--progress-width: <%= entry.progressBarPercentage %>%"></span></div></div></td><td><%= entry.activityCountLabel %></td><td><%= entry.latestVerificationLabel %></td></tr><% }) %></tbody>
+                <thead><tr><th scope="col">Rank</th><th scope="col">Runner</th><% if (presentation.showCategoryColumn) { %><th scope="col">Category</th><% } %><th scope="col"><%= primaryMetricLabel %></th><% if (hasDualGoalMetrics) { %><th scope="col">Secondary total</th><% } %><th scope="col">Goal progress</th><th scope="col">Activities</th><th scope="col">Latest verification</th></tr></thead>
+                <tbody><% leaderboard.officialEntries.forEach((entry) => { %><tr class="leaderboard-rank-<%= entry.rank <= 3 ? entry.rank : 'standard' %>"><td><span class="leaderboard-rank-badge">#<%= entry.rank %></span></td><td class="leaderboard-runner-name"><%= entry.runnerName %><% if (entry.isPerfectAttendance) { %> <span class="leaderboard-status-badge leaderboard-status-verified" title="Active every day of the event">Perfect attendance</span><% } %></td><% if (presentation.showCategoryColumn) { %><td><%= entry.category || 'N/A' %></td><% } %><td><strong><%= entry.primaryMetricLabel %></strong></td><% if (hasDualGoalMetrics) { %><td><%= primaryMetric === 'steps' ? entry.distanceLabel : entry.stepsLabel %></td><% } %><td><div class="leaderboard-table-progress"><span><%= entry.isGoalComplete ? 'Goal completed' : entry.progressLabel %></span><div class="leaderboard-progress-track" role="progressbar" aria-label="<%= entry.runnerName %> verified challenge progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= entry.progressBarPercentage %>"><span style="--progress-width: <%= entry.progressBarPercentage %>%"></span></div></div></td><td><%= entry.activityCountLabel %></td><td><%= entry.latestVerificationLabel %></td></tr><% }) %></tbody>
               <% } else { %>
                 <thead><tr><% if (settings.visibleColumns.includes('rank')) { %><th scope="col">Rank</th><% } %><% if (settings.visibleColumns.includes('runner')) { %><th scope="col">Runner</th><% } %><% if (settings.visibleColumns.includes('category')) { %><th scope="col">Category</th><% } %><% if (settings.visibleColumns.includes('distance')) { %><th scope="col">Distance</th><% } %><% if (settings.visibleColumns.includes('steps')) { %><th scope="col">Steps</th><% } %><% if (settings.visibleColumns.includes('time')) { %><th scope="col">Time</th><% } %><% if (settings.visibleColumns.includes('pace')) { %><th scope="col">Pace</th><% } %><% if (settings.visibleColumns.includes('status')) { %><th scope="col">Status</th><% } %></tr></thead>
                 <tbody><% leaderboard.officialEntries.forEach((entry) => { %><tr class="leaderboard-rank-<%= entry.rank <= 3 ? entry.rank : 'standard' %>"><% if (settings.visibleColumns.includes('rank')) { %><td><span class="leaderboard-rank-badge">#<%= entry.rank %></span></td><% } %><% if (settings.visibleColumns.includes('runner')) { %><td class="leaderboard-runner-name"><%= entry.runnerName %></td><% } %><% if (settings.visibleColumns.includes('category')) { %><td><%= entry.category || 'N/A' %></td><% } %><% if (settings.visibleColumns.includes('distance')) { %><td><%= entry.distanceLabel || 'N/A' %></td><% } %><% if (settings.visibleColumns.includes('steps')) { %><td><%= entry.stepsLabel || '-' %></td><% } %><% if (settings.visibleColumns.includes('time')) { %><td><strong><%= entry.timeLabel || '-' %></strong></td><% } %><% if (settings.visibleColumns.includes('pace')) { %><td><%= entry.paceLabel || '-' %></td><% } %><% if (settings.visibleColumns.includes('status')) { %><td><span class="leaderboard-status-badge leaderboard-status-verified"><span class="sr-only">Submission status: </span>Verified</span></td><% } %></tr><% }) %></tbody>

@@ -5,7 +5,7 @@ const Registration = require('../models/Registration');
 const User = require('../models/User');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const { getAccumulatedLeaderboardRows } = require('./accumulated-activity.service');
-const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
+const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('./accumulated-target.service');
 const { getPublicEventVisibilityQuery, isPublicEventVisible } = require('../utils/public-event-visibility');
 const { getRedisClient } = require('../config/redis');
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
@@ -283,7 +283,7 @@ async function getLeaderboardData(rawFilters = {}) {
 async function getEventLeaderboard(eventSlug, rawOptions = {}) {
   const event = await getLeaderboardEventBySlug(eventSlug);
   if (!event) return null;
-  const settings = resolveEventLeaderboardSettings(event);
+  const settings = resolveEventLeaderboardSettings(event, rawOptions.metric);
   if (!settings.enabled) return null;
 
   const options = normalizeEventLeaderboardOptions(rawOptions);
@@ -304,10 +304,14 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
   if (cachedGroups) {
     baseGroups = cachedGroups;
   } else {
-    const officialEntries = settings.type === 'accumulated_challenge'
-      ? await getAccumulatedEventEntries(event, settings)
-      : await getRaceResultEventEntries(event, settings);
-    const pendingEntries = settings.showPending
+    const officialEntries = settings.primaryMetric === 'consistency'
+      ? await getAccumulatedConsistencyEntries(event, settings)
+      : settings.type === 'accumulated_challenge'
+        ? await getAccumulatedEventEntries(event, settings)
+        : await getRaceResultEventEntries(event, settings);
+    // Consistency ranking only reflects fully-qualified, approved history —
+    // there's no meaningful "pending consistency" standing to show alongside it.
+    const pendingEntries = settings.showPending && settings.primaryMetric !== 'consistency'
       ? await getPendingEventEntries(event, settings)
       : [];
 
@@ -373,7 +377,9 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
       lastUpdatedAt: getLastUpdatedAt(activeEntries)
     },
     rankingExplanation: settings.type === 'accumulated_challenge'
-      ? `Ranked by highest verified ${settings.primaryMetric}. Official rankings include approved submissions only.`
+      ? (settings.primaryMetric === 'consistency'
+        ? `Ranked by most active days (minimum ${MIN_CONSISTENCY_ACTIVE_DAYS}), tie-broken by total steps, then distance, then elevation. Only approved submissions count.`
+        : `Ranked by highest verified ${settings.primaryMetric}. Official rankings include approved submissions only.`)
       : 'Ranked by fastest verified time. Official rankings include approved submissions only.'
   };
 }
@@ -637,19 +643,41 @@ async function getLeaderboardEventBySlug(eventSlug) {
     .lean();
 }
 
-function resolveEventLeaderboardSettings(event = {}) {
+function resolveEventLeaderboardSettings(event = {}, requestedMetric = '') {
   const existing = event.leaderboardSettings || {};
   const challengeConfig = resolveChallengeConfig(event);
   const type = challengeConfig.accumulated
     ? 'accumulated_challenge'
     : (['race_result', 'accumulated_challenge'].includes(existing.type) ? existing.type : 'race_result');
+  const normalizedRequestedMetric = ['distance', 'steps', 'elevation', 'consistency'].includes(String(requestedMetric || '').trim().toLowerCase())
+    ? String(requestedMetric).trim().toLowerCase()
+    : '';
+  // A registration may track more than one metric (e.g. a distance-and-steps
+  // "dual challenge" category) — a caller can request which metric to rank
+  // by; otherwise fall back to the event's configured primary metric.
+  // Elevation and consistency are always requestable on accumulated events:
+  // they're ranking-only views (no completion goal), not one of the event's
+  // configured challengeMetrics.
+  const rankingOnlyMetrics = new Set(['elevation', 'consistency']);
+  const primaryMetric = normalizedRequestedMetric && (
+    challengeConfig.metrics.includes(normalizedRequestedMetric) ||
+    (rankingOnlyMetrics.has(normalizedRequestedMetric) && type === 'accumulated_challenge')
+  )
+    ? normalizedRequestedMetric
+    : challengeConfig.primaryMetric;
   return {
     enabled: typeof existing.enabled === 'boolean' ? existing.enabled : event.leaderboardRecognitionEnabled !== false,
     type,
-    primaryMetric: challengeConfig.primaryMetric,
-    trackedMetrics: challengeConfig.metrics,
+    primaryMetric,
+    trackedMetrics: type === 'accumulated_challenge' ? [...challengeConfig.metrics, 'elevation', 'consistency'] : challengeConfig.metrics,
     rankingBasis: type === 'accumulated_challenge'
-      ? (challengeConfig.primaryMetric === 'steps' ? 'highest_verified_steps' : 'highest_verified_distance')
+      ? (primaryMetric === 'steps'
+        ? 'highest_verified_steps'
+        : primaryMetric === 'elevation'
+          ? 'highest_verified_elevation'
+          : primaryMetric === 'consistency'
+            ? 'most_active_days'
+            : 'highest_verified_distance')
       : 'fastest_time',
     visibility: ['public', 'registered_only', 'private_until_published'].includes(existing.visibility) ? existing.visibility : 'public',
     showPending: Boolean(existing.showPending),
@@ -697,6 +725,7 @@ async function getAccumulatedEventEntries(event, settings) {
         participationMode: { $first: '$participationMode' },
         totalDistanceKm: { $sum: '$distanceKm' },
         totalSteps: { $sum: { $ifNull: ['$steps', 0] } },
+        totalElevationGain: { $sum: { $ifNull: ['$elevationGain', 0] } },
         activityCount: { $sum: 1 },
         submittedAt: { $min: '$submittedAt' },
         finalContributingAt: { $max: '$submittedAt' },
@@ -728,6 +757,174 @@ async function getAccumulatedEventEntries(event, settings) {
       rank
     });
   });
+}
+
+const MIN_CONSISTENCY_ACTIVE_DAYS = 15;
+const ACTIVE_DAY_MIN_STEPS = 2000;
+const ACTIVE_DAY_MIN_DISTANCE_KM = 1;
+const ACTIVE_DAY_TIME_ZONE = 'Asia/Manila';
+
+async function getAccumulatedConsistencyEntries(event, settings) {
+  const baseMatch = {
+    eventId: event._id,
+    status: 'approved',
+    ...(settings.hideFlagged ? { suspiciousFlag: { $ne: true } } : {})
+  };
+
+  // A calendar day counts once per registration when it has at least one
+  // approved activity meeting the steps-or-distance threshold — multiple
+  // activities on the same day still earn only one active-day credit.
+  const activeDayRows = await AccumulatedActivitySubmission.aggregate([
+    { $match: baseMatch },
+    {
+      $addFields: {
+        dayKey: { $dateToString: { format: '%Y-%m-%d', date: '$runDate', timezone: ACTIVE_DAY_TIME_ZONE } },
+        meetsActiveDayThreshold: {
+          $or: [
+            { $gte: [{ $ifNull: ['$steps', 0] }, ACTIVE_DAY_MIN_STEPS] },
+            { $gte: [{ $ifNull: ['$distanceKm', 0] }, ACTIVE_DAY_MIN_DISTANCE_KM] }
+          ]
+        }
+      }
+    },
+    { $match: { meetsActiveDayThreshold: true } },
+    { $group: { _id: { registrationId: '$registrationId', dayKey: '$dayKey' } } },
+    { $group: { _id: '$_id.registrationId', activeDays: { $sum: 1 } } }
+  ]);
+  const qualifyingRegistrationIds = activeDayRows
+    .filter((row) => row.activeDays >= MIN_CONSISTENCY_ACTIVE_DAYS)
+    .map((row) => row._id);
+  if (!qualifyingRegistrationIds.length) return [];
+  const activeDaysByRegistrationId = new Map(
+    activeDayRows.map((row) => [String(row._id), row.activeDays])
+  );
+
+  const totalsRows = await AccumulatedActivitySubmission.aggregate([
+    { $match: { ...baseMatch, registrationId: { $in: qualifyingRegistrationIds } } },
+    {
+      $group: {
+        _id: '$registrationId',
+        runnerId: { $first: '$runnerId' },
+        raceDistance: { $first: '$raceDistance' },
+        participationMode: { $first: '$participationMode' },
+        totalDistanceKm: { $sum: { $ifNull: ['$distanceKm', 0] } },
+        totalSteps: { $sum: { $ifNull: ['$steps', 0] } },
+        totalElevationGain: { $sum: { $ifNull: ['$elevationGain', 0] } },
+        activityCount: { $sum: 1 },
+        submittedAt: { $min: '$submittedAt' },
+        verifiedAt: { $max: '$reviewedAt' },
+        updatedAt: { $max: '$updatedAt' }
+      }
+    }
+  ]);
+  const rows = totalsRows.map((row) => ({
+    ...row,
+    activeDays: activeDaysByRegistrationId.get(String(row._id)) || 0
+  }));
+  if (!rows.length) return [];
+
+  const [runners, registrations] = await Promise.all([
+    User.find({ _id: { $in: rows.map((item) => item.runnerId).filter(Boolean) } })
+      .select('firstName lastName displayName email userId')
+      .lean(),
+    Registration.find({ _id: { $in: rows.map((item) => item._id).filter(Boolean) } })
+      .select('confirmationCode raceDistance participationMode participant pricingSnapshot registeredAt')
+      .lean()
+  ]);
+  const runnerById = new Map(runners.map((item) => [String(item._id), item]));
+  const registrationById = new Map(registrations.map((item) => [String(item._id), item]));
+  const totalPossibleDays = getEventActiveDaySpan(event);
+
+  const sortedRows = rows.slice().sort(compareConsistencyRows);
+  let previousKey = null;
+  let sharedRank = 0;
+  return sortedRows.map((row, index) => {
+    const key = [row.activeDays, row.totalSteps, row.totalDistanceKm, row.totalElevationGain].join('|');
+    if (key !== previousKey) {
+      sharedRank = index + 1;
+      previousKey = key;
+    }
+    return formatConsistencyEntry({
+      row,
+      event,
+      settings,
+      runner: runnerById.get(String(row.runnerId)),
+      registration: registrationById.get(String(row._id)),
+      rank: sharedRank,
+      totalPossibleDays
+    });
+  });
+}
+
+function compareConsistencyRows(a, b) {
+  if (b.activeDays !== a.activeDays) return b.activeDays - a.activeDays;
+  if (b.totalSteps !== a.totalSteps) return b.totalSteps - a.totalSteps;
+  if (b.totalDistanceKm !== a.totalDistanceKm) return b.totalDistanceKm - a.totalDistanceKm;
+  if (b.totalElevationGain !== a.totalElevationGain) return b.totalElevationGain - a.totalElevationGain;
+  return String(a._id || '').localeCompare(String(b._id || ''));
+}
+
+function getEventActiveDaySpan(event) {
+  const start = event.virtualWindow?.startAt || event.eventStartAt;
+  const end = event.virtualWindow?.endAt || event.eventEndAt;
+  if (!start || !end) return null;
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return null;
+  const days = Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+  return days > 0 ? days : null;
+}
+
+function formatConsistencyEntry({ row, event, settings, runner, registration, rank, totalPossibleDays }) {
+  const totalDistanceKm = Number(row.totalDistanceKm || 0);
+  const totalSteps = Number(row.totalSteps || 0);
+  const totalElevationGain = Number(row.totalElevationGain || 0);
+  const activeDays = Number(row.activeDays || 0);
+  const activeDaysLabel = `${activeDays} active day${activeDays === 1 ? '' : 's'}`;
+  const progressBarPercentage = totalPossibleDays
+    ? Math.min(100, Math.round((activeDays / totalPossibleDays) * 100))
+    : 100;
+  return {
+    rank: Number.isInteger(rank) ? rank : null,
+    registrationId: String(registration?._id || row._id || ''),
+    userId: String(runner?._id || row.runnerId || ''),
+    runnerName: formatRunnerName(runner, settings.nameDisplayMode, registration),
+    category: registration?.raceDistance || row.raceDistance || '',
+    participationMode: registration?.participationMode || row.participationMode || '',
+    activeDays,
+    activeDaysLabel,
+    isPerfectAttendance: Boolean(totalPossibleDays) && activeDays >= totalPossibleDays,
+    totalDistanceKm,
+    distanceKm: totalDistanceKm,
+    distanceLabel: `${formatDistance(totalDistanceKm)} km total`,
+    totalSteps,
+    steps: totalSteps,
+    stepsLabel: `${totalSteps.toLocaleString('en-US')} steps`,
+    totalElevationGain,
+    elevationGain: totalElevationGain,
+    elevationLabel: `${formatDistance(totalElevationGain)} m gained`,
+    primaryMetric: 'consistency',
+    primaryTotal: activeDays,
+    primaryMetricLabel: activeDaysLabel,
+    rankingOnly: false,
+    completed: true,
+    isGoalComplete: true,
+    progressLabel: totalPossibleDays ? `${activeDaysLabel} of ${totalPossibleDays}` : activeDaysLabel,
+    progressBarPercentage,
+    timeMs: 0,
+    timeLabel: '',
+    paceSecondsPerKm: 0,
+    paceLabel: '',
+    activityCount: Number(row.activityCount || 0),
+    activityCountLabel: `${Number(row.activityCount || 0).toLocaleString('en-US')} ${Number(row.activityCount || 0) === 1 ? 'activity' : 'activities'}`,
+    status: mapPublicStatus('approved'),
+    statusLabel: getPublicStatusLabel(mapPublicStatus('approved')),
+    submittedAt: row.submittedAt || null,
+    verifiedAt: row.verifiedAt || null,
+    updatedAt: row.updatedAt || row.verifiedAt || row.submittedAt || null,
+    latestVerificationLabel: formatDateTimeLabel(row.updatedAt || row.verifiedAt || row.submittedAt || null),
+    searchableText: buildSearchableText({ runner, registration, row, event })
+  };
 }
 
 async function getPendingEventEntries(event, settings) {
@@ -766,6 +963,7 @@ async function getPendingAccumulatedEventEntries(event, settings) {
         participationMode: { $first: '$participationMode' },
         totalDistanceKm: { $sum: '$distanceKm' },
         totalSteps: { $sum: { $ifNull: ['$steps', 0] } },
+        totalElevationGain: { $sum: { $ifNull: ['$elevationGain', 0] } },
         activityCount: { $sum: 1 },
         submittedAt: { $min: '$submittedAt' },
         finalContributingAt: { $max: '$submittedAt' },
@@ -1292,6 +1490,9 @@ function normalizeEventLeaderboardOptions(rawOptions = {}) {
     category: normalizeDistance(rawOptions.distance || rawOptions.category || rawOptions.categoryId),
     mode: normalizeMode(rawOptions.mode || rawOptions.participationMode),
     status: normalizePublicStatus(rawOptions.status),
+    metric: ['distance', 'steps'].includes(String(rawOptions.metric || '').trim().toLowerCase())
+      ? String(rawOptions.metric).trim().toLowerCase()
+      : '',
     search: String(rawOptions.search || '').trim().toLowerCase().slice(0, 80),
     page: clampInt(rawOptions.page, 1, 10000, 1),
     limit: clampInt(rawOptions.limit, 1, 500, 25)
@@ -1308,6 +1509,7 @@ function buildEventLeaderboardUrl(eventSlug, rawFilters = {}, requestedPage) {
   if (filters.search) params.set('search', filters.search);
   if (filters.mode) params.set('mode', filters.mode);
   if (filters.status) params.set('status', filters.status);
+  if (filters.metric) params.set('metric', filters.metric);
   if (filters.page > 1) params.set('page', String(filters.page));
   if (filters.limit !== 25) params.set('limit', String(filters.limit));
   const path = `/events/${encodeURIComponent(String(eventSlug || '').trim())}/leaderboard`;
@@ -1354,6 +1556,9 @@ function buildEventLeaderboardPresentation(leaderboard = {}, options = {}) {
   const showStatusFilter = Boolean(settings.showPending);
   const pendingProgress = options.myStanding?.pendingProgress || null;
 
+  const trackedMetrics = Array.isArray(settings.trackedMetrics) ? settings.trackedMetrics : [];
+  const activeMetric = filters.metric || settings.primaryMetric;
+
   return {
     isAccumulated,
     showDistanceNavigation: (leaderboard.distanceOptions || []).length > 1,
@@ -1362,6 +1567,19 @@ function buildEventLeaderboardPresentation(leaderboard = {}, options = {}) {
     showAdvancedFilters: showModeFilter || showStatusFilter,
     hasActiveAdvancedFilters: Boolean(filters.mode || filters.status),
     showCategoryColumn: (leaderboard.distanceOptions || []).length > 1,
+    showMetricNavigation: isAccumulated && trackedMetrics.length > 1,
+    metricOptions: trackedMetrics.map((metric) => ({
+      key: metric,
+      label: metric === 'steps'
+        ? 'Steps'
+        : metric === 'elevation'
+          ? 'Elevation'
+          : metric === 'consistency'
+            ? 'Most Consistent'
+            : 'Distance',
+      active: activeMetric === metric
+    })),
+    getMetricUrl: (metric) => buildEventLeaderboardUrl(event.slug, { ...filters, metric, page: 1 }),
     activeFilters,
     hasActiveFilters: activeFilters.length > 0,
     clearFiltersUrl: buildEventLeaderboardUrl(event.slug, { distance: filters.distance, limit: filters.limit }),
@@ -1425,15 +1643,24 @@ function formatRaceEntry(row, event, settings, rank) {
 function formatAccumulatedEntry({ row, event, settings, runner, registration, rank, status = 'approved' }) {
   const totalDistanceKm = Number(row.totalDistanceKm || 0);
   const totalSteps = Number(row.totalSteps || 0);
-  const targetDistanceKm = resolveAccumulatedTargetDistanceKm(registration || { raceDistance: row.raceDistance }, event);
-  const challengeConfig = resolveChallengeConfig(event);
+  const totalElevationGain = Number(row.totalElevationGain || 0);
+  const targetRegistration = registration || { raceDistance: row.raceDistance };
+  const targetDistanceKm = resolveAccumulatedTargetDistanceKm(targetRegistration, event);
+  const rankedMetric = settings.primaryMetric === 'elevation' ? 'elevation' : settings.primaryMetric;
   const progress = buildAccumulatedProgressMetrics({
     totalDistanceKm,
     totalSteps,
     targetDistanceKm,
-    targetSteps: challengeConfig.targetSteps,
-    primaryMetric: challengeConfig.primaryMetric
+    targetSteps: resolveAccumulatedTargetSteps(targetRegistration, event),
+    // Elevation has no completion goal — rank by it, but compute progress
+    // against the event's real goal metric so progress bars stay meaningful.
+    primaryMetric: rankedMetric === 'elevation' ? resolveChallengeConfig(event).primaryMetric : rankedMetric
   });
+  const primaryMetricLabel = rankedMetric === 'steps'
+    ? `${totalSteps.toLocaleString('en-US')} steps`
+    : rankedMetric === 'elevation'
+      ? `${formatDistance(totalElevationGain)} m gained`
+      : `${formatDistance(totalDistanceKm)} km`;
   return {
     rank: Number.isInteger(rank) ? rank : null,
     registrationId: String(registration?._id || row._id || ''),
@@ -1448,11 +1675,9 @@ function formatAccumulatedEntry({ row, event, settings, runner, registration, ra
     steps: totalSteps,
     totalSteps,
     stepsLabel: `${totalSteps.toLocaleString('en-US')} steps`,
-    primaryMetric: challengeConfig.primaryMetric,
-    primaryTotal: challengeConfig.primaryMetric === 'steps' ? totalSteps : totalDistanceKm,
-    primaryMetricLabel: challengeConfig.primaryMetric === 'steps'
-      ? `${totalSteps.toLocaleString('en-US')} steps`
-      : `${formatDistance(totalDistanceKm)} km`,
+    elevationGain: totalElevationGain,
+    totalElevationGain,
+    elevationLabel: `${formatDistance(totalElevationGain)} m gained`,
     timeMs: 0,
     timeLabel: '',
     paceSecondsPerKm: 0,
@@ -1460,6 +1685,12 @@ function formatAccumulatedEntry({ row, event, settings, runner, registration, ra
     activityCount: Number(row.activityCount || 0),
     activityCountLabel: `${Number(row.activityCount || 0).toLocaleString('en-US')} ${Number(row.activityCount || 0) === 1 ? 'activity' : 'activities'}`,
     ...progress,
+    // These win over `progress`'s own primaryMetric/primaryTotal/label:
+    // progress always reflects the real completion goal, but the leaderboard
+    // may be ranked by a different metric (e.g. elevation has no goal).
+    primaryMetric: rankedMetric,
+    primaryTotal: rankedMetric === 'steps' ? totalSteps : (rankedMetric === 'elevation' ? totalElevationGain : totalDistanceKm),
+    primaryMetricLabel,
     status: mapPublicStatus(status),
     statusLabel: getPublicStatusLabel(mapPublicStatus(status)),
     submittedAt: row.submittedAt || null,
@@ -1493,7 +1724,12 @@ function buildAccumulatedProgressMetrics(input = {}, legacyTargetDistanceKm) {
   const progressBarPercentage = progressPercentage === null ? 0 : Math.min(100, Math.max(0, progressPercentage));
   const remainingDistanceKm = targetDistanceKm > 0 ? Math.max(0, targetDistanceKm - totalDistanceKm) : null;
   const remainingSteps = targetSteps > 0 ? Math.max(0, targetSteps - totalSteps) : null;
-  const isGoalComplete = primaryTarget > 0 && primaryTotal >= primaryTarget;
+  // A registration may carry both a distance goal and a steps goal at once
+  // (a "dual challenge" category) — completion requires every goal that is
+  // actually set to be met, not just the primary/ranking metric.
+  const isGoalComplete = (targetDistanceKm > 0 || targetSteps > 0) &&
+    (targetDistanceKm <= 0 || totalDistanceKm >= targetDistanceKm) &&
+    (targetSteps <= 0 || totalSteps >= targetSteps);
   return {
     primaryMetric: isSteps ? 'steps' : 'distance',
     primaryTotal,
@@ -1517,9 +1753,9 @@ function buildAccumulatedProgressMetrics(input = {}, legacyTargetDistanceKm) {
 }
 
 function getAccumulatedPrimaryTotal(row, primaryMetric) {
-  return primaryMetric === 'steps'
-    ? Number(row.totalSteps || 0)
-    : Number(row.totalDistanceKm || 0);
+  if (primaryMetric === 'steps') return Number(row.totalSteps || 0);
+  if (primaryMetric === 'elevation') return Number(row.totalElevationGain || 0);
+  return Number(row.totalDistanceKm || 0);
 }
 
 function compareAccumulatedRows(a, b, primaryMetric) {

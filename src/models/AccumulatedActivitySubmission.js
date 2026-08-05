@@ -119,6 +119,10 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
       default: '',
       maxlength: 1200
     },
+    honorSystemConfirmed: {
+      type: Boolean,
+      default: false
+    },
     source: {
       type: String,
       enum: ['manual_upload', 'strava'],
@@ -145,7 +149,7 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['submitted', 'approved', 'rejected'],
+      enum: ['submitted', 'approved', 'rejected', 'needs_clarification'],
       default: 'submitted',
       index: true
     },

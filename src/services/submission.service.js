@@ -10,7 +10,7 @@ const { buildVerificationUrl } = require('./certificateNumber.service');
 const communicationService = require('./communication.service');
 const { notifyWithRetry } = require('./reliable-communication.service');
 const { isSubmissionWindowOpen } = require('../utils/submission-window');
-const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
+const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('./accumulated-target.service');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 const { detectSuspiciousActivity } = require('../utils/submission-integrity');
 const { REVIEW_REASON_LABELS } = require('../utils/submission-review-labels');
@@ -712,6 +712,12 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
       const submission = submissionByRegistrationId.get(String(registration._id)) || null;
       const minimumDistanceKm = getStandardSubmissionMinimumDistanceKm(registration, registration.eventId);
       const challengeConfig = resolveChallengeConfig(registration.eventId);
+      const categoryTargetDistanceKm = challengeConfig.accumulated && challengeConfig.tracksDistance
+        ? resolveAccumulatedTargetDistanceKm(registration, registration.eventId)
+        : null;
+      const categoryTargetSteps = challengeConfig.accumulated && challengeConfig.tracksSteps
+        ? resolveAccumulatedTargetSteps(registration, registration.eventId)
+        : null;
       return {
         registrationId: String(registration._id),
         eventId: String(registration.eventId?._id || ''),
@@ -728,16 +734,16 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
           : 'standard',
         challengeMetrics: challengeConfig.metrics,
         primaryChallengeMetric: challengeConfig.primaryMetric,
-        requiresDistance: !challengeConfig.accumulated || challengeConfig.tracksDistance,
-        requiresSteps: challengeConfig.tracksSteps,
-        targetSteps: challengeConfig.targetSteps,
+        requiresDistance: !challengeConfig.accumulated || (challengeConfig.tracksDistance && categoryTargetDistanceKm > 0),
+        requiresSteps: challengeConfig.accumulated && challengeConfig.tracksSteps && categoryTargetSteps !== null,
+        targetSteps: categoryTargetSteps,
         minimumRequiredDistanceKm: minimumDistanceKm,
         minimumActivityDistanceKm: Number(registration.eventId?.minimumActivityDistanceKm || 0) || null,
         acceptedRunTypes: Array.isArray(registration.eventId?.acceptedRunTypes)
           ? registration.eventId.acceptedRunTypes
           : [],
         targetDistanceKm: challengeConfig.accumulated && challengeConfig.tracksDistance
-          ? resolveAccumulatedTargetDistanceKm(registration, registration.eventId)
+          ? categoryTargetDistanceKm
           : null,
         venueName: registration.eventId?.venueName || '',
         city: registration.eventId?.city || '',
@@ -1070,6 +1076,7 @@ function buildSubmissionPayload(registration, input, context = {}) {
     proofType: sanitizeProofType(input.proofType),
     proof: sanitizeProof(input.proof),
     proofNotes: String(input.proofNotes || '').trim().slice(0, 1200),
+    honorSystemConfirmed: Boolean(input.honorSystemConfirmed),
     source: sanitizeSubmissionSource(input.source),
     stravaActivity: sanitizeStravaActivity(input.stravaActivity),
     runType: safeRunType,

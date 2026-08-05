@@ -1205,6 +1205,12 @@
   color: #9f1239;
 }
 
+.submission-review-page .status-badge-needs_clarification {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
 .submission-review-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
@@ -1759,6 +1765,12 @@
   border: 1px solid #fecdd3;
   background: #fff1f2;
   color: #9f1239;
+}
+
+.run-proof-review-page .status-badge-needs_clarification {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
 }
 
 .run-proof-results-meta {

@@ -13,7 +13,12 @@
       ? 'status-badge-approved'
       : status === 'rejected'
         ? 'status-badge-rejected'
-        : 'status-badge-submitted';
+        : status === 'needs_clarification'
+          ? 'status-badge-needs_clarification'
+          : 'status-badge-submitted';
+    const statusLabel = status === 'needs_clarification'
+      ? 'Needs Clarification'
+      : status.charAt(0).toUpperCase() + status.slice(1);
     const submissionTypeLabel = submissionKind === 'accumulated' ? 'Accumulated Activity' : 'Run Result';
     const proofUrl = submission.proof?.url || '';
     const proofMimeType = String(submission.proof?.mimeType || '');
@@ -56,7 +61,7 @@
       <section class="registrant-summary submission-review-summary" aria-label="Submission summary">
         <div class="summary-card">
           <strong>Status</strong>
-          <span class="status-badge <%= statusBadgeClass %>"><%= status %></span>
+          <span class="status-badge <%= statusBadgeClass %>"><%= statusLabel %></span>
         </div>
         <div class="summary-card">
           <strong>Type</strong>
@@ -83,7 +88,7 @@
               <h2><%= participant.name %></h2>
               <p><%= participant.email %></p>
             </div>
-            <span class="status-badge <%= statusBadgeClass %>"><%= status %></span>
+            <span class="status-badge <%= statusBadgeClass %>"><%= statusLabel %></span>
           </div>
 
           <section class="submission-review-section">
@@ -346,13 +351,16 @@
         </div>
 
         <aside class="submission-review-actions">
-          <% if (submission.status === 'submitted') { %>
+          <% if (submission.status === 'submitted' || submission.status === 'needs_clarification') { %>
             <div class="submission-review-action-header">
-              <span class="status-badge status-badge-submitted">Pending Review</span>
+              <span class="status-badge <%= statusBadgeClass %>"><%= status === 'needs_clarification' ? 'Needs Clarification' : 'Pending Review' %></span>
               <h2>Decision</h2>
-              <p>Approve verified activity evidence or reject with a reason runners can act on.</p>
+              <p>Approve verified activity evidence, reject with a reason runners can act on<%= (submissionKind === 'accumulated' && status === 'submitted') ? ', or ask the runner for clarification' : '' %>.</p>
               <% if (submission.suspiciousFlag) { %>
                 <p class="submission-review-muted">Approving this flagged submission will clear its suspicious flag and restore leaderboard eligibility when event settings allow it.</p>
+              <% } %>
+              <% if (status === 'needs_clarification' && submission.reviewNotes) { %>
+                <p class="submission-review-muted"><strong>Clarification requested:</strong> <%= submission.reviewNotes %></p>
               <% } %>
             </div>
 
@@ -368,6 +376,21 @@
                 Approve Run Result
               </button>
             </form>
+
+            <% if (submissionKind === 'accumulated' && status === 'submitted') { %>
+              <form method="POST" action="<%= reviewActionBase %>/clarify" class="payment-action-form submission-review-action-form">
+                <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                <% Object.entries(queueContext || {}).forEach(([key, value]) => { %>
+                  <input type="hidden" name="<%= key %>" value="<%= value %>">
+                <% }) %>
+                <label for="clarify-notes-<%= submission._id %>">What needs clarification?</label>
+                <textarea id="clarify-notes-<%= submission._id %>" name="reviewNotes" rows="4" maxlength="1200" placeholder="Tell the runner what's missing or unclear (required)" required></textarea>
+                <button type="submit" class="btn-secondary table-action-btn">
+                  <i data-lucide="help-circle"></i>
+                  Request Clarification
+                </button>
+              </form>
+            <% } %>
 
             <form method="POST" action="<%= reviewActionBase %>/reject" class="payment-action-form submission-review-action-form">
               <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
@@ -392,7 +415,7 @@
             </form>
           <% } else { %>
             <div class="submission-review-history">
-              <span class="status-badge <%= statusBadgeClass %>"><%= status %></span>
+              <span class="status-badge <%= statusBadgeClass %>"><%= statusLabel %></span>
               <h2>Review History</h2>
               <p><strong>Reviewed:</strong> <%= submission.reviewedAtLabel || 'N/A' %></p>
               <% if (submission.reviewerName) { %>

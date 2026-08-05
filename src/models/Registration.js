@@ -32,7 +32,19 @@ const registrationSchema = new mongoose.Schema(
       },
       emergencyContactName: { type: String, trim: true, default: '', maxlength: 120 },
       emergencyContactNumber: { type: String, trim: true, default: '', maxlength: 25 },
-      runningGroup: { type: String, trim: true, default: '', maxlength: 120 }
+      runningGroup: { type: String, trim: true, default: '', maxlength: 120 },
+      department: { type: String, trim: true, default: '', maxlength: 120 },
+      position: { type: String, trim: true, default: '', maxlength: 120 },
+      preferredFitnessApp: { type: String, trim: true, default: '', maxlength: 80 }
+    },
+    leaderboardDisplayPreference: {
+      type: String,
+      enum: ['full_name', 'abbreviated', 'hidden'],
+      default: 'full_name'
+    },
+    consentToLeaderboard: {
+      type: Boolean,
+      default: true
     },
     participationMode: {
       type: String,

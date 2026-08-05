@@ -5,7 +5,7 @@ const Registration = require('../models/Registration');
 const User = require('../models/User');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const { buildAccumulatedProgress } = require('./accumulated-activity.service');
-const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
+const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('./accumulated-target.service');
 const { issueSubmissionCertificate } = require('./certificate.service');
 const uploadService = require('./upload.service');
 const { syncSubmissionShadow } = require('./submission-shadow.service');
@@ -91,7 +91,7 @@ async function finalizeRegistrationCertificate({ registration, event, now = new 
   const progress = buildAccumulatedProgress({
     activities,
     targetDistanceKm,
-    targetSteps: challengeConfig.targetSteps,
+    targetSteps: resolveAccumulatedTargetSteps(registration, event),
     primaryMetric: challengeConfig.primaryMetric
   });
 

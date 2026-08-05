@@ -11,14 +11,15 @@ const {
   refreshAccumulatedChallengeProgress,
   refreshGlobalDistanceMilestoneProgressInBackground
 } = require('./badge-progress.service');
-const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
+const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('./accumulated-target.service');
 const {
   isAccumulatedChallenge,
   resolveChallengeConfig
 } = require('../utils/challenge-metrics');
 
-const APPROVABLE_STATUS = new Set(['submitted', 'rejected']);
-const REJECTABLE_STATUS = new Set(['submitted', 'approved']);
+const APPROVABLE_STATUS = new Set(['submitted', 'rejected', 'needs_clarification']);
+const REJECTABLE_STATUS = new Set(['submitted', 'approved', 'needs_clarification']);
+const CLARIFIABLE_STATUS = new Set(['submitted', 'rejected']);
 
 async function createAccumulatedActivitySubmission(input) {
   const {
@@ -61,7 +62,7 @@ async function reviewAccumulatedActivitySubmission({
   rejectionCode
 }) {
   const safeAction = String(action || '').trim().toLowerCase();
-  if (safeAction !== 'approve' && safeAction !== 'reject') {
+  if (safeAction !== 'approve' && safeAction !== 'reject' && safeAction !== 'clarify') {
     throw new Error('Invalid review action.');
   }
 
@@ -70,10 +71,13 @@ async function reviewAccumulatedActivitySubmission({
     throw new Error('Activity submission not found.');
   }
   if (safeAction === 'approve' && !APPROVABLE_STATUS.has(activity.status)) {
-    throw new Error('Only submitted or rejected activities can be approved.');
+    throw new Error('Only submitted, rejected, or needs-clarification activities can be approved.');
   }
   if (safeAction === 'reject' && !REJECTABLE_STATUS.has(activity.status)) {
-    throw new Error('Only submitted or approved activities can be rejected.');
+    throw new Error('Only submitted, approved, or needs-clarification activities can be rejected.');
+  }
+  if (safeAction === 'clarify' && !CLARIFIABLE_STATUS.has(activity.status)) {
+    throw new Error('Only submitted or rejected activities can be marked as needing clarification.');
   }
 
   const normalizedReviewerRole = String(reviewerRole || '').trim().toLowerCase();
@@ -104,11 +108,16 @@ async function reviewAccumulatedActivitySubmission({
     // Manual approval is the trusted reviewer decision, so clear automated suspicion metadata.
     update.suspiciousFlag = false;
     update.suspiciousFlagReason = '';
-  } else {
+  } else if (safeAction === 'reject') {
     const reason = resolveRejectionReason('run', rejectionCode, rejectionReason, { allowLegacyDetail: true });
     update.status = 'rejected';
     update.rejectionCode = reason.code;
     update.rejectionReason = reason.runnerMessage;
+  } else {
+    if (!safeReviewNotes) {
+      throw new Error('Explain what needs clarification so the runner knows what to fix.');
+    }
+    update.status = 'needs_clarification';
   }
 
   const reviewedActivity = await AccumulatedActivitySubmission.findOneAndUpdate(
@@ -117,23 +126,24 @@ async function reviewAccumulatedActivitySubmission({
     { new: true, runValidators: true }
   );
   if (!reviewedActivity) {
-    throw new Error(
-      safeAction === 'approve'
-        ? 'Only submitted or rejected activities can be approved.'
-        : 'Only submitted or approved activities can be rejected.'
-    );
+    throw new Error('This submission was already reviewed by someone else. Refresh and try again.');
   }
 
+  const auditActionByAction = {
+    approve: 'submission.approved',
+    reject: 'submission.rejected',
+    clarify: 'submission.needs_clarification'
+  };
   recordCriticalAuditEventInBackground({
     actorMongoUserId: organizerId,
-    action: safeAction === 'approve' ? 'submission.approved' : 'submission.rejected',
+    action: auditActionByAction[safeAction],
     targetType: 'accumulated_activity_submission',
     targetId: String(reviewedActivity._id),
     statusFrom: previousStatus,
     statusTo: reviewedActivity.status,
-    notes: safeAction === 'approve'
-      ? reviewedActivity.reviewNotes
-      : (reviewedActivity.rejectionReason || reviewedActivity.reviewNotes),
+    notes: safeAction === 'reject'
+      ? (reviewedActivity.rejectionReason || reviewedActivity.reviewNotes)
+      : reviewedActivity.reviewNotes,
     occurredAt: reviewedActivity.reviewedAt
   });
 
@@ -193,7 +203,7 @@ async function getRegistrationAccumulatedProgress(registrationId) {
   return buildAccumulatedProgress({
     activities,
     targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, event),
-    targetSteps: event.targetSteps,
+    targetSteps: resolveAccumulatedTargetSteps(registration, event),
     primaryMetric: resolveChallengeConfig(event).primaryMetric
   });
 }
@@ -264,6 +274,7 @@ function buildAccumulatedProgress({ activities = [], targetDistanceKm, targetSte
   const approved = activities.filter((item) => item.status === 'approved');
   const pending = activities.filter((item) => item.status === 'submitted');
   const rejected = activities.filter((item) => item.status === 'rejected');
+  const needsClarification = activities.filter((item) => item.status === 'needs_clarification');
   const approvedDistanceKm = sumDistance(approved);
   const pendingDistanceKm = sumDistance(pending);
   const rejectedDistanceKm = sumDistance(rejected);
@@ -272,7 +283,12 @@ function buildAccumulatedProgress({ activities = [], targetDistanceKm, targetSte
   const rejectedSteps = sumSteps(rejected);
   const approvedPrimaryValue = safePrimaryMetric === 'steps' ? approvedSteps : approvedDistanceKm;
   const pendingPrimaryValue = safePrimaryMetric === 'steps' ? pendingSteps : pendingDistanceKm;
-  const completed = primaryTarget > 0 && approvedPrimaryValue >= primaryTarget;
+  // A registration may carry both a distance goal and a steps goal at once
+  // (a "dual challenge" category) — completion requires every goal that is
+  // actually set to be met, not just the primary/ranking metric.
+  const completed = (distanceTarget > 0 || stepsTarget > 0) &&
+    (distanceTarget <= 0 || approvedDistanceKm >= distanceTarget) &&
+    (stepsTarget <= 0 || approvedSteps >= stepsTarget);
   const progressPercent = primaryTarget > 0 ? (approvedPrimaryValue / primaryTarget) * 100 : 0;
   const potentialDistanceKm = approvedDistanceKm + pendingDistanceKm;
   const potentialSteps = approvedSteps + pendingSteps;
@@ -316,6 +332,7 @@ function buildAccumulatedProgress({ activities = [], targetDistanceKm, targetSte
     approvedActivityCount: approved.length,
     pendingActivityCount: pending.length,
     rejectedActivityCount: rejected.length,
+    needsClarificationActivityCount: needsClarification.length,
     totalActivityCount: activities.length,
     completed,
     progressPercent,
@@ -458,14 +475,23 @@ async function sendActivityReviewNotifications({ activity, eventTitle, action, c
     if (!runner) return;
 
     const approved = action === 'approve';
+    const needsClarification = action === 'clarify';
+    const notificationTitle = approved
+      ? 'Activity Approved'
+      : (needsClarification ? 'Activity Needs Clarification' : 'Activity Needs Update');
+    const notificationMessage = approved
+      ? `Your activity for ${eventTitle} was approved.`
+      : (needsClarification
+        ? `An organizer needs more information about your activity for ${eventTitle}. ${activity.reviewNotes || ''}`.trim()
+        : `Your activity for ${eventTitle} was rejected. Please review and submit another activity.`);
+    // Needs-clarification does not yet have a dedicated email template, so it
+    // sends the in-app notification only until one is built.
     await notifyWithRetry(approved ? 'result.approved' : 'result.rejected', {
       notification: {
         userId: activity.runnerId,
-        type: approved ? 'result_approved' : 'result_rejected',
-        title: approved ? 'Activity Approved' : 'Activity Needs Update',
-        message: approved
-          ? `Your activity for ${eventTitle} was approved.`
-          : `Your activity for ${eventTitle} was rejected. Please review and submit another activity.`,
+        type: approved ? 'result_approved' : (needsClarification ? 'result_needs_clarification' : 'result_rejected'),
+        title: notificationTitle,
+        message: notificationMessage,
         href: '/my-registrations',
         metadata: {
           activityId: String(activity._id),
@@ -474,7 +500,7 @@ async function sendActivityReviewNotifications({ activity, eventTitle, action, c
           eventTitle
         }
       },
-      email: runner.email ? {
+      email: (runner.email && !needsClarification) ? {
         to: runner.email,
         firstName: runner.firstName || 'Runner',
         eventTitle,
@@ -490,7 +516,9 @@ async function sendActivityReviewNotifications({ activity, eventTitle, action, c
         }
       } : null
     }, {
-      source: approved ? 'accumulated_activity.review_approve' : 'accumulated_activity.review_reject'
+      source: approved
+        ? 'accumulated_activity.review_approve'
+        : (needsClarification ? 'accumulated_activity.review_clarify' : 'accumulated_activity.review_reject')
     });
 
     if (certificateWasIssued) {

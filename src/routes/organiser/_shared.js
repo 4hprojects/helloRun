@@ -56,6 +56,7 @@ const {
   getAccumulatedActivitiesForRegistrations,
   buildAccumulatedProgress
 } = require('../../services/accumulated-activity.service');
+const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('../../services/accumulated-target.service');
 const {
   buildSubmissionHubPath,
   listSubmissionHub,
@@ -634,8 +635,10 @@ function getRunProofReviewStatusQuery(status) {
     };
   }
   if (status === 'rejected') return { status: 'rejected' };
-  if (status === 'all') return { status: { $in: ['submitted', 'approved', 'rejected'] } };
-  return { status: 'submitted' };
+  if (status === 'all') return { status: { $in: ['submitted', 'approved', 'rejected', 'needs_clarification'] } };
+  // "Pending" includes needs-clarification activities too — they're still
+  // unresolved and waiting on the runner's response, not archived.
+  return { status: { $in: ['submitted', 'needs_clarification'] } };
 }
 
 async function buildRunProofReviewQuery(eventId, filters = {}) {
@@ -768,9 +771,11 @@ function buildRunProofReviewRow(submission, event, filters, submissionKind) {
   const isAutoApproved = submission.status === 'approved' && !submission.reviewedBy;
   const statusLabel = submission.status === 'submitted'
     ? 'Pending Review'
-    : isAutoApproved
-      ? 'Auto-approved'
-      : String(submission.status || 'N/A');
+    : submission.status === 'needs_clarification'
+      ? 'Needs Clarification'
+      : isAutoApproved
+        ? 'Auto-approved'
+        : String(submission.status || 'N/A');
 
   return {
     id: String(submission._id),
@@ -792,7 +797,11 @@ function buildRunProofReviewRow(submission, event, filters, submissionKind) {
     elapsedLabel: mappedSubmission.elapsedLabel || 'N/A',
     proofTypeLabel: String(submission.proofType || 'manual').toUpperCase(),
     sourceLabel: submission.source === 'strava' ? 'Strava' : 'Manual upload',
-    reviewSourceLabel: isAutoApproved ? 'Auto-approved by validation' : (submission.status === 'submitted' ? 'Awaiting organizer review' : 'Organizer reviewed'),
+    reviewSourceLabel: isAutoApproved
+      ? 'Auto-approved by validation'
+      : (submission.status === 'submitted' || submission.status === 'needs_clarification')
+        ? 'Awaiting organizer review'
+        : 'Organizer reviewed',
     proofUrl,
     isImageProof,
     suspiciousFlag: mappedSubmission.suspiciousFlag,
@@ -855,7 +864,7 @@ async function getSubmissionReviewContext(event, submissionId, queryParams = {})
   const basePopulate = [
     { path: 'reviewedBy', select: 'firstName lastName email' },
     { path: 'runnerId', select: 'firstName lastName email mobile country gender' },
-    { path: 'registrationId', select: 'participant confirmationCode raceDistance participationMode status paymentStatus registeredAt' }
+    { path: 'registrationId', select: 'participant confirmationCode raceDistance participationMode status paymentStatus registeredAt pricingSnapshot' }
   ];
 
   let submission = await Submission.findOne({ _id: submissionId, eventId })
@@ -919,8 +928,8 @@ async function getSubmissionReviewContext(event, submissionId, queryParams = {})
     accumulatedProgress: submissionKind === 'accumulated'
       ? buildAccumulatedProgress({
         activities: accumulatedActivities,
-        targetDistanceKm: event.targetDistanceKm,
-        targetSteps: event.targetSteps,
+        targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration || {}, event),
+        targetSteps: resolveAccumulatedTargetSteps(registration || {}, event),
         primaryMetric: event.primaryChallengeMetric
       })
       : null,

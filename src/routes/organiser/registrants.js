@@ -36,7 +36,7 @@ const {
   getRequestIpAddress,
   getRequestUserAgent
 } = require('./_shared');
-const { resolveAccumulatedTargetDistanceKm } = require('../../services/accumulated-target.service');
+const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('../../services/accumulated-target.service');
 
 function formatRegistrantDateTime(value) {
   if (!value) return '';
@@ -185,7 +185,7 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
         ? buildAccumulatedProgress({
           activities: accumulatedProgressActivitiesByRegistrationId.get(String(item._id)) || [],
           targetDistanceKm: resolveAccumulatedTargetDistanceKm(item, event),
-          targetSteps: resolveChallengeConfig(event).targetSteps,
+          targetSteps: resolveAccumulatedTargetSteps(item, event),
           primaryMetric: resolveChallengeConfig(event).primaryMetric
         })
         : null,

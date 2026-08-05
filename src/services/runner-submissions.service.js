@@ -7,13 +7,14 @@ const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubm
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const VALID_STATUSES = new Set(['submitted', 'approved', 'rejected']);
+const VALID_STATUSES = new Set(['submitted', 'approved', 'rejected', 'needs_clarification']);
 const VALID_ACTIVITY_TYPES = new Set(['run', 'walk', 'hike', 'trail_run']);
 const VALID_SORTS = new Set(['newest', 'oldest', 'eventDate', 'fastest', 'distance']);
 const PAGE_SIZE = 10;
 const STATUS_OPTIONS = Object.freeze([
   { value: '', label: 'All statuses' },
   { value: 'rejected', label: 'Needs correction' },
+  { value: 'needs_clarification', label: 'Needs clarification' },
   { value: 'submitted', label: 'Awaiting review' },
   { value: 'approved', label: 'Approved' }
 ]);
@@ -302,11 +303,13 @@ function formatSubmissionListItem(doc) {
     : (isAccumulatedActivity ? 'Challenge activity' : 'Event result');
   const primaryAction = status === 'rejected'
     ? { type: 'detail', label: 'Fix entry', href: `/runner/submissions/${String(doc._id)}` }
-    : status === 'submitted'
-      ? { type: 'detail', label: 'View review status', href: `/runner/submissions/${String(doc._id)}` }
-      : hasCertificate
-        ? { type: 'certificate', label: 'Download certificate', href: `/my-submissions/${String(doc._id)}/certificate` }
-        : { type: 'detail', label: 'View result', href: `/runner/submissions/${String(doc._id)}` };
+    : status === 'needs_clarification'
+      ? { type: 'detail', label: 'View clarification request', href: `/runner/submissions/${String(doc._id)}` }
+      : status === 'submitted'
+        ? { type: 'detail', label: 'View review status', href: `/runner/submissions/${String(doc._id)}` }
+        : hasCertificate
+          ? { type: 'certificate', label: 'Download certificate', href: `/my-submissions/${String(doc._id)}/certificate` }
+          : { type: 'detail', label: 'View result', href: `/runner/submissions/${String(doc._id)}` };
 
   return {
     submissionId: String(doc._id),
@@ -402,6 +405,7 @@ function formatSubmissionDetail(doc) {
 function getStatusPresentation(status) {
   if (status === 'approved') return { label: 'Approved', helper: 'This result has been reviewed and accepted.', tone: 'approved' };
   if (status === 'rejected') return { label: 'Needs correction', helper: 'Review the organizer feedback and correct this entry.', tone: 'rejected' };
+  if (status === 'needs_clarification') return { label: 'Needs clarification', helper: 'An organizer needs more information about this entry — check the notes below.', tone: 'needs_clarification' };
   return { label: 'Awaiting review', helper: 'The organizer has received this entry for review.', tone: 'submitted' };
 }
 
@@ -422,6 +426,8 @@ function buildRunnerSubmissionDetailPresentation(submission = {}) {
     primaryAction = correction.canUploadProof
       ? { type: 'resubmit', label: 'Upload new proof', registrationId: submission.registrationObjectId }
       : { type: 'correction', label: 'Correct activity details', href: '#correctionTitle' };
+  } else if (submission.status === 'needs_clarification') {
+    primaryAction = { type: 'link', label: 'Go to my registrations', href: '/my-registrations' };
   } else if (submission.hasCertificate) {
     primaryAction = submission.primaryAction;
   } else if (submission.status === 'approved' && submission.eventSlug) {

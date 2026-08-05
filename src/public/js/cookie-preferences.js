@@ -11,6 +11,7 @@
   const preferenceForms = Array.from(document.querySelectorAll('[data-cookie-preference-form]'));
   let returnFocus = null;
   let isSaving = false;
+  const SAVE_TIMEOUT_MS = 8000;
 
   const setBusy = (form, busy) => {
     form.setAttribute('aria-busy', busy ? 'true' : 'false');
@@ -52,16 +53,21 @@
     else body.delete('action');
     const status = getStatus(form);
     isSaving = true;
-    preferenceForms.forEach((preferenceForm) => setBusy(preferenceForm, true));
+    setBusy(form, true);
     document.querySelectorAll('[data-cookie-preference-status]').forEach((statusElement) => {
       statusElement.textContent = '';
     });
     if (status) status.textContent = 'Saving your choices…';
+
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timeoutId = controller ? window.setTimeout(() => controller.abort(), SAVE_TIMEOUT_MS) : null;
+
     try {
       const response = await fetch(form.action, {
         method: 'POST',
         headers: { Accept: 'application/json', 'x-csrf-token': String(body.get('_csrf') || '') },
-        body: new URLSearchParams(body)
+        body: new URLSearchParams(body),
+        signal: controller ? controller.signal : undefined
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.ok) throw new Error(payload.message || 'Unable to save cookie preferences.');
@@ -71,8 +77,13 @@
       window.setTimeout(() => window.location.reload(), 150);
     } catch (error) {
       isSaving = false;
-      preferenceForms.forEach((preferenceForm) => setBusy(preferenceForm, false));
-      if (status) status.textContent = error.message || 'Unable to save cookie preferences. Please try again.';
+      setBusy(form, false);
+      const message = error && error.name === 'AbortError'
+        ? 'Saving took too long. Please check your connection and try again.'
+        : (error.message || 'Unable to save cookie preferences. Please try again.');
+      if (status) status.textContent = message;
+    } finally {
+      if (timeoutId) window.clearTimeout(timeoutId);
     }
   };
 

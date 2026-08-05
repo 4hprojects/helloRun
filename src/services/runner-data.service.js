@@ -2,7 +2,7 @@ const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const { buildAccumulatedProgress } = require('./accumulated-activity.service');
-const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
+const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('./accumulated-target.service');
 const { getPlatformDateKey } = require('../utils/platform-date');
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
 
@@ -608,7 +608,7 @@ function buildAccumulatedProgressCard(base, activities, registration, event) {
   const progress = buildAccumulatedProgress({
     activities,
     targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, event),
-    targetSteps: challengeConfig.targetSteps,
+    targetSteps: resolveAccumulatedTargetSteps(registration, event),
     primaryMetric: challengeConfig.primaryMetric
   });
   const percent = progress.primaryTarget > 0 ? progress.progressPercent : 0;

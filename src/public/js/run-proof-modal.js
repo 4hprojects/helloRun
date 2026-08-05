@@ -114,6 +114,8 @@
     const submitReviewRows = document.getElementById('runProofSubmitReviewRows');
     const submitReviewEdit = document.getElementById('runProofSubmitReviewEdit');
     const submitReviewConfirm = document.getElementById('runProofSubmitReviewConfirm');
+    const honorSystemCheckbox = document.getElementById('runProofHonorSystemCheckbox');
+    const honorSystemConfirmedField = document.getElementById('runProofHonorSystemConfirmedField');
 
     const postSubmitOverlay = document.getElementById('runProofPostSubmit');
     const postSubmitAnother = document.getElementById('runProofPostSubmitAnother');
@@ -2942,9 +2944,12 @@
       setFlowPhase(FLOW_PHASES.CONFIRMATION);
       buildSubmitReview();
       appendIntegrityReviewWarnings();
+      if (honorSystemCheckbox) honorSystemCheckbox.checked = false;
+      if (honorSystemConfirmedField) honorSystemConfirmedField.value = '';
+      if (submitReviewConfirm) submitReviewConfirm.disabled = true;
       if (submitReviewOverlay) {
         submitReviewOverlay.hidden = false;
-        if (submitReviewConfirm) submitReviewConfirm.focus();
+        if (honorSystemCheckbox) honorSystemCheckbox.focus();
       }
     };
 
@@ -3034,8 +3039,16 @@
       submitReviewEdit.addEventListener('click', () => dismissSubmitReview({ restoreFocus: true }));
     }
 
+    if (honorSystemCheckbox) {
+      honorSystemCheckbox.addEventListener('change', () => {
+        if (honorSystemConfirmedField) honorSystemConfirmedField.value = honorSystemCheckbox.checked ? '1' : '';
+        if (submitReviewConfirm) submitReviewConfirm.disabled = !honorSystemCheckbox.checked;
+      });
+    }
+
     if (submitReviewConfirm) {
       submitReviewConfirm.addEventListener('click', () => {
+        if (honorSystemCheckbox && !honorSystemCheckbox.checked) return;
         dismissSubmitReview();
         void submitConfirmedRunProof();
       });

@@ -88,6 +88,7 @@ const eventSchema = new mongoose.Schema(
           },
           distanceLabel: { type: String, trim: true, maxlength: 30 },
           distanceKm: { type: Number, min: 0, default: null },
+          targetSteps: { type: Number, min: 0, max: 1000000000, default: null },
           slots: { type: Number, min: 0, default: null },
           cutoffTime: { type: String, trim: true, maxlength: 80, default: '' },
           ageGroup: { type: String, trim: true, maxlength: 80, default: '' },

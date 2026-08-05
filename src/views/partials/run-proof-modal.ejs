@@ -312,6 +312,7 @@
         </div>
 
         <p class="run-proof-message" id="runProofMessage" role="status" aria-live="polite"></p>
+        <input type="hidden" name="honorSystemConfirmed" id="runProofHonorSystemConfirmedField" value="">
       </form>
     </div>
   </section>
@@ -341,10 +342,13 @@
         </div>
       </div>
       <ul class="run-proof-submit-review-rows" id="runProofSubmitReviewRows" aria-label="Submission summary"></ul>
-      <p class="run-proof-submit-review-notice">I confirm that this activity is my own and that the submitted details are accurate. I understand that HelloRun may analyse the uploaded screenshot, use OCR-assisted reading, flag mismatches or suspicious entries, and share the submission with the event organiser for review.</p>
+      <label class="run-proof-honor-checkbox">
+        <input type="checkbox" id="runProofHonorSystemCheckbox">
+        <span>I confirm that this submission is accurate, belongs to me, and follows the event honor system. I understand that HelloRun may analyse the uploaded screenshot, use OCR-assisted reading, flag mismatches or suspicious entries, and share the submission with the event organiser for review.</span>
+      </label>
       <div class="run-proof-submit-review-actions">
         <button type="button" class="btn btn-outline" id="runProofSubmitReviewEdit">Edit Details</button>
-        <button type="button" class="btn btn-primary" id="runProofSubmitReviewConfirm">Submit Now</button>
+        <button type="button" class="btn btn-primary" id="runProofSubmitReviewConfirm" disabled>Submit Now</button>
       </div>
     </div>
   </div>

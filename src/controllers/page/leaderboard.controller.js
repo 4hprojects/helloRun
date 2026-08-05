@@ -114,6 +114,7 @@ exports.getEventLeaderboardPage = async (req, res) => {
       category: req.query.category,
       mode: req.query.mode,
       status: req.query.status,
+      metric: req.query.metric,
       search: req.query.search,
       page: req.query.page,
       limit: req.query.limit,
@@ -130,7 +131,8 @@ exports.getEventLeaderboardPage = async (req, res) => {
 
     const myStanding = req.session?.userId
       ? await getMyStanding(req.params.slug, req.session.userId, {
-          distance: data.activeDistance?.key
+          distance: data.activeDistance?.key,
+          metric: data.filters?.metric
         })
       : null;
     const presentation = buildEventLeaderboardPresentation(data, {
@@ -166,6 +168,7 @@ exports.getEventLeaderboardData = async (req, res) => {
       category: req.query.category,
       mode: req.query.mode,
       status: req.query.status,
+      metric: req.query.metric,
       search: req.query.search,
       page: req.query.page,
       limit: req.query.limit,

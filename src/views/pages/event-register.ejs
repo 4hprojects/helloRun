@@ -234,6 +234,47 @@
                   </div>
                 </div>
               <% } %>
+
+              <% if (requiresChallengeProfile) { %>
+                <div class="register-field-grid" id="challengeProfileFields">
+                  <div class="form-group <%= errors.department ? 'has-error' : '' %>">
+                    <label for="department">Department or office <span aria-hidden="true">*</span></label>
+                    <input id="department" name="department" type="text" value="<%= formData.department || '' %>" maxlength="120" <%= registrationWindowError ? 'disabled' : '' %> aria-describedby="<%= errors.department ? 'departmentError' : '' %>">
+                    <% if (errors.department) { %><small class="error-text" id="departmentError"><%= errors.department %></small><% } %>
+                  </div>
+                  <div class="form-group <%= errors.position ? 'has-error' : '' %>">
+                    <label for="position">Position or designation <span aria-hidden="true">*</span></label>
+                    <input id="position" name="position" type="text" value="<%= formData.position || '' %>" maxlength="120" <%= registrationWindowError ? 'disabled' : '' %> aria-describedby="<%= errors.position ? 'positionError' : '' %>">
+                    <% if (errors.position) { %><small class="error-text" id="positionError"><%= errors.position %></small><% } %>
+                  </div>
+                  <div class="form-group <%= errors.preferredFitnessApp ? 'has-error' : '' %>">
+                    <label for="preferredFitnessApp">Preferred fitness app <span aria-hidden="true">*</span></label>
+                    <input id="preferredFitnessApp" name="preferredFitnessApp" type="text" placeholder="e.g. Google Fit, Strava, Apple Health" value="<%= formData.preferredFitnessApp || '' %>" maxlength="80" <%= registrationWindowError ? 'disabled' : '' %> aria-describedby="preferredFitnessAppHelp <%= errors.preferredFitnessApp ? 'preferredFitnessAppError' : '' %>">
+                    <small id="preferredFitnessAppHelp">Any app that shows your distance or steps works. A smartwatch is not required — a smartphone is enough.</small>
+                    <% if (errors.preferredFitnessApp) { %><small class="error-text" id="preferredFitnessAppError"><%= errors.preferredFitnessApp %></small><% } %>
+                  </div>
+                </div>
+
+                <fieldset class="registration-choice-group <%= errors.leaderboardDisplayPreference ? 'has-error' : '' %>" id="leaderboardDisplayGroup">
+                  <legend>Leaderboard display preference</legend>
+                  <div class="registration-choice-cards">
+                    <label class="registration-choice-card" for="leaderboardDisplayFull">
+                      <input type="radio" id="leaderboardDisplayFull" name="leaderboardDisplayPreference" value="full_name" <%= formData.leaderboardDisplayPreference === 'full_name' ? 'checked' : '' %> <%= registrationWindowError ? 'disabled' : '' %>>
+                      <span><strong>Show my full name</strong></span>
+                    </label>
+                    <label class="registration-choice-card" for="leaderboardDisplayAbbreviated">
+                      <input type="radio" id="leaderboardDisplayAbbreviated" name="leaderboardDisplayPreference" value="abbreviated" <%= formData.leaderboardDisplayPreference === 'abbreviated' ? 'checked' : '' %> <%= registrationWindowError ? 'disabled' : '' %>>
+                      <span><strong>Show an abbreviated name</strong></span>
+                    </label>
+                    <label class="registration-choice-card" for="leaderboardDisplayHidden">
+                      <input type="radio" id="leaderboardDisplayHidden" name="leaderboardDisplayPreference" value="hidden" <%= formData.leaderboardDisplayPreference === 'hidden' ? 'checked' : '' %> <%= registrationWindowError ? 'disabled' : '' %>>
+                      <span><strong>Do not show me on the public leaderboard</strong></span>
+                    </label>
+                  </div>
+                  <small>Organizers can always see your full identity, even if you choose not to appear on the public leaderboard.</small>
+                  <% if (errors.leaderboardDisplayPreference) { %><small class="error-text"><%= errors.leaderboardDisplayPreference %></small><% } %>
+                </fieldset>
+              <% } %>
             </section>
 
             <section class="register-card registration-step-card <%= (errors.waiverAccepted || errors.waiverSignature) ? 'card-error' : '' %>" id="registrationWaiver" aria-labelledby="registrationWaiverTitle">

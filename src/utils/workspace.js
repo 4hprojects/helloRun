@@ -56,10 +56,11 @@ function getWorkspaceDashboard(workspace) {
   return '/runner/dashboard';
 }
 
-function isOwnOrganizerEvent(user = {}, event = {}) {
-  if (user.role !== 'organiser') return false;
+function isOwnOrganizerEvent(user, event = {}) {
+  const safeUser = user || {};
+  if (safeUser.role !== 'organiser') return false;
   const organizerId = event.organizerId?._id || event.organizerId;
-  return Boolean(user._id && organizerId && String(user._id) === String(organizerId));
+  return Boolean(safeUser._id && organizerId && String(safeUser._id) === String(organizerId));
 }
 
 module.exports = {

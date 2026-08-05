@@ -4,7 +4,7 @@ const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const { PLATFORM_TIME_ZONE, formatPlatformDate } = require('../utils/platform-date');
-const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
+const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('./accumulated-target.service');
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
@@ -153,11 +153,17 @@ async function loadAccumulatedOperations(event, dependencies = {}) {
       pendingSteps: 0
     };
     const targetDistanceKm = resolveAccumulatedTargetDistanceKm(registration, event);
-    const target = challengeConfig.primaryMetric === 'steps' ? challengeConfig.targetSteps : targetDistanceKm;
-    const approved = challengeConfig.primaryMetric === 'steps' ? progress.approvedSteps : progress.approvedDistanceKm;
-    if (approved > 0) participantsStarted += 1;
-    if (target > 0 && approved >= target) goalsReached += 1;
-    if (!(target > 0)) missingGoalCount += 1;
+    const targetSteps = resolveAccumulatedTargetSteps(registration, event) || 0;
+    const hasAnyTarget = targetDistanceKm > 0 || targetSteps > 0;
+    // A registration may carry both a distance goal and a steps goal at once
+    // (a "dual challenge" category) — the goal is reached only once every
+    // goal that's actually set for this registration is met.
+    const reachedGoal = hasAnyTarget &&
+      (targetDistanceKm <= 0 || progress.approvedDistanceKm >= targetDistanceKm) &&
+      (targetSteps <= 0 || progress.approvedSteps >= targetSteps);
+    if (progress.approvedDistanceKm > 0 || progress.approvedSteps > 0) participantsStarted += 1;
+    if (reachedGoal) goalsReached += 1;
+    if (!hasAnyTarget) missingGoalCount += 1;
   }
 
   return {

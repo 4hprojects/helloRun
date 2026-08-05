@@ -68,7 +68,7 @@ const {
   buildProofSubmissionIdempotencyKey
 } = require('../../services/submission-idempotency.service');
 
-const { resolveAccumulatedTargetDistanceKm } = require('../../services/accumulated-target.service');
+const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('../../services/accumulated-target.service');
 
 const {
   evaluateRegistrationAchievementsInBackground,
@@ -213,6 +213,7 @@ module.exports = {
   buildPaymentProofIdempotencyKey,
   buildProofSubmissionIdempotencyKey,
   resolveAccumulatedTargetDistanceKm,
+  resolveAccumulatedTargetSteps,
   evaluateRegistrationAchievementsInBackground,
   getRunnerEarnedBadges,
   loadPublicBadgeVerification,

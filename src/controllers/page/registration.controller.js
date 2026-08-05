@@ -41,6 +41,7 @@ const {
   buildPaymentProofIdempotencyKey,
   buildProofSubmissionIdempotencyKey,
   resolveAccumulatedTargetDistanceKm,
+  resolveAccumulatedTargetSteps,
   evaluateRegistrationAchievementsInBackground,
   getRunnerEarnedBadges,
   loadPublicBadgeVerification,
@@ -161,6 +162,7 @@ exports.getEventRegistrationForm = async (req, res) => {
       message: getPageMessage(req.query),
       formData,
       requiresEmergencyContact,
+      requiresChallengeProfile: isAccumulatedChallenge(event),
       collectEmergencyContact,
       waiverHtml: renderWaiverTemplate(event.waiverTemplate, {
         organizerName: event.organiserName,
@@ -233,6 +235,11 @@ exports.postEventRegistration = async (req, res) => {
       ...profileSnapshot,
       emergencyContactName,
       emergencyContactNumber,
+      department: req.body.department,
+      position: req.body.position,
+      preferredFitnessApp: req.body.preferredFitnessApp,
+      leaderboardDisplayPreference: req.body.leaderboardDisplayPreference,
+      consentToLeaderboard: req.body.consentToLeaderboard,
       participationMode: req.body.participationMode,
       raceDistance: req.body.raceDistance,
       customizedOptionId: req.body.customizedOptionId,
@@ -260,6 +267,7 @@ exports.postEventRegistration = async (req, res) => {
       registrationWindowError,
       {
         requiresEmergencyContact,
+        requiresChallengeProfile: isAccumulatedChallenge(event),
         expectedSignatureName: `${profileSnapshot.firstName} ${profileSnapshot.lastName}`
       }
     );
@@ -323,6 +331,7 @@ exports.postEventRegistration = async (req, res) => {
         message: null,
         formData,
         requiresEmergencyContact,
+        requiresChallengeProfile: isAccumulatedChallenge(event),
         collectEmergencyContact,
         waiverHtml: renderWaiverTemplate(event.waiverTemplate, {
           organizerName: event.organiserName,
@@ -361,8 +370,13 @@ exports.postEventRegistration = async (req, res) => {
         gender: formData.gender,
         emergencyContactName: formData.emergencyContactName,
         emergencyContactNumber: formData.emergencyContactNumber,
-        runningGroup: formData.runningGroup
+        runningGroup: formData.runningGroup,
+        department: formData.department,
+        position: formData.position,
+        preferredFitnessApp: formData.preferredFitnessApp
       },
+      leaderboardDisplayPreference: formData.leaderboardDisplayPreference,
+      consentToLeaderboard: formData.consentToLeaderboard,
       waiver: {
         accepted: true,
         version: Number(event.waiverVersion || 1),
@@ -580,7 +594,7 @@ exports.getMyRegistrations = async (req, res) => {
           ? buildAccumulatedProgress({
             activities,
             targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, registration.eventId),
-            targetSteps: challengeConfig.targetSteps,
+            targetSteps: resolveAccumulatedTargetSteps(registration, registration.eventId),
             primaryMetric: challengeConfig.primaryMetric
           })
           : null,
@@ -639,6 +653,13 @@ function getRegistrationFormData(body = {}) {
     emergencyContactNumber: String(body.emergencyContactNumber || '').trim(),
     runningGroups,
     runningGroup: runningGroups[0] || '',
+    department: String(body.department || '').trim(),
+    position: String(body.position || '').trim(),
+    preferredFitnessApp: String(body.preferredFitnessApp || '').trim(),
+    leaderboardDisplayPreference: ['full_name', 'abbreviated', 'hidden'].includes(body.leaderboardDisplayPreference)
+      ? body.leaderboardDisplayPreference
+      : 'full_name',
+    consentToLeaderboard: body.consentToLeaderboard === '1' || body.consentToLeaderboard === 'true' || body.consentToLeaderboard === true || body.consentToLeaderboard === 'on',
     participationMode: String(body.participationMode || '').trim(),
     raceDistance: String(body.raceDistance || '').trim().toUpperCase(),
     customizedOptionId: String(body.customizedOptionId || '').trim(),
@@ -1143,8 +1164,10 @@ function validateRegistrationForm(
 ) {
   const errors = {};
   const requiresEmergencyContact = !!options.requiresEmergencyContact;
+  const requiresChallengeProfile = !!options.requiresChallengeProfile;
   const expectedSignatureName = String(options.expectedSignatureName || '').trim();
   const allowedGenderValues = new Set(['', 'male', 'female', 'non_binary', 'prefer_not_to_say']);
+  const allowedLeaderboardDisplayValues = new Set(['full_name', 'abbreviated', 'hidden']);
 
   if (registrationWindowError) {
     errors.base = registrationWindowError;
@@ -1188,6 +1211,24 @@ function validateRegistrationForm(
   }
   if (formData.runningGroup.length > 120) {
     errors.runningGroup = 'Running group must be 120 characters or less.';
+  }
+  if (formData.department.length > 120) {
+    errors.department = 'Department or office must be 120 characters or less.';
+  } else if (requiresChallengeProfile && !formData.department) {
+    errors.department = 'Department or office is required for this event.';
+  }
+  if (formData.position.length > 120) {
+    errors.position = 'Position or designation must be 120 characters or less.';
+  } else if (requiresChallengeProfile && !formData.position) {
+    errors.position = 'Position or designation is required for this event.';
+  }
+  if (formData.preferredFitnessApp.length > 80) {
+    errors.preferredFitnessApp = 'Preferred fitness app must be 80 characters or less.';
+  } else if (requiresChallengeProfile && !formData.preferredFitnessApp) {
+    errors.preferredFitnessApp = 'Preferred fitness app is required for this event.';
+  }
+  if (!allowedLeaderboardDisplayValues.has(formData.leaderboardDisplayPreference)) {
+    errors.leaderboardDisplayPreference = 'Select a valid leaderboard display preference.';
   }
   if (formData.emergencyContactName && formData.emergencyContactName.length > 120) {
     errors.emergencyContactName = 'Emergency contact name must be 120 characters or less.';

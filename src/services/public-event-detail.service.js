@@ -3,7 +3,7 @@
 const Registration = require('../models/Registration');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const { buildAccumulatedProgress } = require('./accumulated-activity.service');
-const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
+const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('./accumulated-target.service');
 const {
   buildChallengeTimingDisplay,
   buildSubmissionTimingDisplay
@@ -46,7 +46,7 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
     ? buildAccumulatedProgress({
         activities,
         targetDistanceKm,
-        targetSteps: challengeConfig.targetSteps,
+        targetSteps: resolveAccumulatedTargetSteps(registration, event),
         primaryMetric: challengeConfig.primaryMetric
       })
     : null;

@@ -171,6 +171,12 @@
   color: #9f1239;
 }
 
+:where(.status-badge-needs_clarification) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
 :where(.ui-metric-grid, .dashboard-metrics, .admin-badge-metrics) {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
