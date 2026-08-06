@@ -90,6 +90,18 @@ test('organizer own-event conflicts compare stable user and event IDs', () => {
   assert.equal(isOwnOrganizerEvent({ _id: 'organizer-1', role: 'runner' }, { organizerId: 'organizer-1' }), false);
 });
 
+test('isOwnOrganizerEvent tolerates a null/undefined user (signed-out visitors)', () => {
+  // Regression: guests have res.locals.user === null. A default parameter only
+  // applies to `undefined`, so passing `null` previously reached `user.role`
+  // and threw, 500ing the public event-details page for every signed-out
+  // visitor. The contract is: no user => not their own event, never a throw.
+  assert.doesNotThrow(() => isOwnOrganizerEvent(null, { organizerId: 'organizer-1' }));
+  assert.equal(isOwnOrganizerEvent(null, { organizerId: 'organizer-1' }), false);
+  assert.equal(isOwnOrganizerEvent(undefined, { organizerId: 'organizer-1' }), false);
+  assert.equal(isOwnOrganizerEvent(null, null), false);
+  assert.equal(isOwnOrganizerEvent(null), false);
+});
+
 test('workspace switching UI uses CSRF-protected forms on desktop and mobile', () => {
   const nav = read('src/views/layouts/nav.ejs');
   assert.match(nav, /action="\/workspace\/runner" method="POST"/);

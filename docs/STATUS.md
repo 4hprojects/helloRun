@@ -2,7 +2,7 @@
 
 **Source of truth for delivery status**
 
-**Last reconciled:** August 3, 2026
+**Last reconciled:** August 6, 2026
 
 **Evidence window:** repository history through July 29, 2026
 
@@ -55,6 +55,13 @@ production services.
 
 ## Operational Work Pending
 
+- **Deploy `b70b50d` to production (guest event-page 500).** `GET /events/:slug`
+  currently returns 500 for every signed-out visitor because production is
+  serving the prior commit `f1f1b46`, whose `isOwnOrganizerEvent` call threw on
+  a null guest user. The fix is merged (`b70b50d`, code-only, no migration) with
+  regression tests; it needs the auto-deploy to roll out, then a signed-out
+  `HTTP 200` verification on a real event URL. See the
+  [August 6 changelog entry](changelog/2026-08-august.md).
 - Deploy the current revision and complete the AdSense crawl/review procedure.
 - Configure and verify production Redis plus Cloudflare/Render client-IP
   handling.

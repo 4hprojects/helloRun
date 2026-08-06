@@ -15,7 +15,7 @@
 
 | Period | File | Sessions |
 |--------|------|----------|
-| August 2026 | [changelog/2026-08-august.md](changelog/2026-08-august.md) | 2 |
+| August 2026 | [changelog/2026-08-august.md](changelog/2026-08-august.md) | 3 |
 | July 2026 | [changelog/2026-07-july.md](changelog/2026-07-july.md) | Commit-based reconciliation |
 | June 2026 | [changelog/2026-06-june.md](changelog/2026-06-june.md) | 10 |
 | May 2026 | [changelog/2026-05-may.md](changelog/2026-05-may.md) | 21 |
