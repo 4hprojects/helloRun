@@ -89,13 +89,9 @@ production services.
   been run. `FEATURE_STEP_COMPETITIONS_ENABLED` remains off.
 
 
-- **Deploy `b70b50d` to production (guest event-page 500).** `GET /events/:slug`
-  currently returns 500 for every signed-out visitor because production is
-  serving the prior commit `f1f1b46`, whose `isOwnOrganizerEvent` call threw on
-  a null guest user. The fix is merged (`b70b50d`, code-only, no migration) with
-  regression tests; it needs the auto-deploy to roll out, then a signed-out
-  `HTTP 200` verification on a real event URL. See the
-  [August 6 changelog entry](changelog/2026-08-august.md).
+- ~~Deploy `b70b50d` (guest event-page 500).~~ **Resolved August 7.** It shipped with
+  the onsite merge; a signed-out request to a real event URL now returns `HTTP 200`,
+  verified against production.
 - Deploy the current revision and complete the AdSense crawl/review procedure.
 - Configure and verify production Redis plus Cloudflare/Render client-IP
   handling.
