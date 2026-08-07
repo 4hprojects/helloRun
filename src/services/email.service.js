@@ -1358,6 +1358,85 @@ exports.sendEventPublishedEmailToOrganizer = async (
   }
 };
 
+/**
+ * Escape a free-text message and keep its line breaks.
+ *
+ * These two senders relay text written by one user to another, so escaping is not
+ * optional; converting newlines afterwards keeps the message readable without
+ * reintroducing markup.
+ */
+function escapeMessageBody(value) {
+  return escapeHtml(value).replace(/\r?\n/g, '<br>');
+}
+
+exports.sendRunnerContactEmailToOrganizer = async (
+  organizerEmail,
+  { senderName, senderEmail, eventTitle, subject, message, replyTo } = {}
+) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: organizerEmail,
+      // The whole point of the relay: the organiser replies to the runner, not to us.
+      reply_to: replyTo || senderEmail || undefined,
+      subject: subject || `Message about ${eventTitle || 'your event'}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#17623f;">Message from a runner</h2>
+          <p><strong>${escapeHtml(senderName || 'A HelloRun runner')}</strong> sent you a message about <strong>${escapeHtml(eventTitle || 'your event')}</strong>.</p>
+          <div style="background:#f4f8f5;border:1px solid #dfe7e2;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            ${escapeMessageBody(message)}
+          </div>
+          <p style="color:#627067;font-size:.9em;">Reply to this email to answer ${escapeHtml(senderName || 'the runner')} directly.</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send runner contact email');
+    }
+
+    return data;
+  } catch (error) {
+    logger.error('Email service error:', error);
+    throw error;
+  }
+};
+
+exports.sendOrganizerDirectMessageEmail = async (
+  runnerEmail,
+  { firstName, organiserName, eventTitle, subject, message, replyTo } = {}
+) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: runnerEmail,
+      reply_to: replyTo || undefined,
+      subject: subject || `Message about ${eventTitle || 'your event'}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#17623f;">Message from the organizer</h2>
+          <p>Hi ${escapeHtml(firstName || 'Runner')},</p>
+          <p><strong>${escapeHtml(organiserName || 'The event organizer')}</strong> sent you a message about <strong>${escapeHtml(eventTitle || 'your event')}</strong>.</p>
+          <div style="background:#f4f8f5;border:1px solid #dfe7e2;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            ${escapeMessageBody(message)}
+          </div>
+          <p style="color:#627067;font-size:.9em;">Reply to this email to answer the organizer directly.</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send organizer direct message email');
+    }
+
+    return data;
+  } catch (error) {
+    logger.error('Email service error:', error);
+    throw error;
+  }
+};
+
 exports.sendCancellationRequestedEmailToOrganizer = async (
   organizerEmail,
   organizerFirstName,

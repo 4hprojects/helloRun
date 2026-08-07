@@ -93,10 +93,9 @@ Verified against the code on August 7, 2026.
 
 ### D. Unrelated to onsite, found along the way
 
-- [ ] **`organiser.direct_message` and `organiser.runner_contact` have no email sender.**
-      Both declare `emailEnabled: true`, so `sendEventEmail` throws
-      "No email sender registered", `notify()` logs a failed send, and the public
-      "contact organiser" feature reports failure every time. Two email templates fixes it.
+- [x] **`organiser.direct_message` and `organiser.runner_contact` had no email sender.**
+      Fixed: both now send, with `reply_to` so replies reach the other person. A test now
+      fails if any registered event lacks a sender.
 
 ### Deferred
 
