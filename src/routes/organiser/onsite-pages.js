@@ -251,4 +251,27 @@ router.get('/events/:eventId/onsite-results', protectEventRead, async (req, res,
   }
 });
 
+// Results import
+router.get('/events/:eventId/onsite-results/import', protectEventRead, async (req, res, next) => {
+  try {
+    const { eventId } = req.params;
+    const event = await Event.findById(eventId).select('title').lean();
+    if (!event) {
+      return res.status(404).render('error', {
+        title: '404 - Event Not Found',
+        status: 404,
+        message: 'Event not found.'
+      });
+    }
+
+    return res.render('organizer/event-results-import', {
+      title: `Import results — ${event.title}`,
+      event,
+      eventId: String(eventId)
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 module.exports = router;

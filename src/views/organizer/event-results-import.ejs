@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+  <link rel="stylesheet" href="/css/organizer-check-in.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="checkin-page" id="main-content" data-results-import data-event-id="<%= eventId %>" data-csrf="<%= locals.csrfToken || '' %>">
+    <div class="checkin-shell">
+      <header class="checkin-header">
+        <div>
+          <p class="checkin-kicker">Import results</p>
+          <h1><%= event.title %></h1>
+        </div>
+        <nav class="checkin-header-actions" aria-label="Onsite actions">
+          <a href="/organizer/events/<%= eventId %>/onsite-results" class="nav-login-btn">Results</a>
+          <a href="/organizer/events/<%= eventId %>" class="nav-login-btn">Back to event</a>
+        </nav>
+      </header>
+
+      <section class="checkin-scanner" aria-labelledby="importFileTitle">
+        <h2 id="importFileTitle">Choose a file</h2>
+        <p class="checkin-note">
+          A <code>.csv</code> or <code>.xlsx</code> with a bib column and a finish-time
+          column. Times may be <code>HH:MM:SS</code> or <code>MM:SS</code>. Other columns
+          are ignored. Nothing is written until you confirm the preview.
+        </p>
+        <div class="checkin-search-row">
+          <label class="visually-hidden" for="resultsFile">Results file</label>
+          <input id="resultsFile" type="file" accept=".csv,.xlsx,.xls" data-import-file>
+          <button type="button" class="nav-signup-btn" data-import-preview>Check file</button>
+        </div>
+        <p class="checkin-scan-result" role="status" aria-live="polite" data-import-status></p>
+      </section>
+
+      <section class="checkin-scanner" aria-labelledby="importPreviewTitle" data-import-preview-panel hidden>
+        <h2 id="importPreviewTitle">Preview</h2>
+        <div class="checkin-counts" aria-label="Import preview totals">
+          <p class="checkin-count">
+            <span class="checkin-count-value" data-import-valid>0</span>
+            <span class="checkin-count-label">Ready</span>
+          </p>
+          <p class="checkin-count">
+            <span class="checkin-count-value" data-import-failed>0</span>
+            <span class="checkin-count-label">Rejected</span>
+          </p>
+          <p class="checkin-count">
+            <span class="checkin-count-value" data-import-total>0</span>
+            <span class="checkin-count-label">Rows read</span>
+          </p>
+        </div>
+
+        <p class="checkin-alert" data-import-truncated hidden role="alert"></p>
+        <p class="checkin-note" data-import-unmapped hidden></p>
+
+        <div class="checkin-bulk-result" data-import-errors hidden></div>
+        <p><a data-import-error-download hidden download="result-import-errors.csv" href="#">Download the rejected rows</a></p>
+
+        <p class="checkin-note">
+          Imported results are recorded but not approved. Approve them on the results page
+          when you are ready to place finishers on the leaderboard.
+        </p>
+        <button type="button" class="nav-signup-btn" data-import-commit>Import the ready rows</button>
+        <p class="checkin-scan-result" role="status" aria-live="polite" data-import-commit-status></p>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script src="/js/organizer-results-import.js"></script>
+</body>
+</html>

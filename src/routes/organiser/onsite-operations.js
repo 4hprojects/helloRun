@@ -12,6 +12,20 @@ const {
 const Registration = require('../../models/Registration');
 const { resolveScannedQr } = require('../../services/qr-code.service');
 const { findRegistrationByExactBib } = require('../../services/onsite-roster.service');
+const { uploadResultSheet } = require('../../services/upload.service');
+const { generateErrorCSV } = require('../../services/result-import-validation.service');
+const {
+  previewResultImport,
+  applyResultRows,
+  recordImportLog
+} = require('../../services/result-import.service');
+
+// Parsing a spreadsheet is heavier than a scan, so this is tighter.
+const resultImportLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 20,
+  message: 'Too many result imports. Please wait a few minutes and try again.'
+});
 const {
   protectEventMutation,
   protectEventRead
@@ -265,6 +279,72 @@ router.post('/events/:eventId/race-kits', protectEventMutation, async (req, res)
     return sendJsonServerError(res, 'Error creating race kit:', error);
   }
 });
+
+// Parse and validate a results file without writing anything.
+router.post(
+  '/events/:eventId/result-imports/preview',
+  protectEventMutation,
+  resultImportLimiter,
+  uploadResultSheet,
+  async (req, res) => {
+    try {
+      if (req.uploadError) {
+        return res.status(400).json({ error: req.uploadError });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: 'Choose a .csv or .xlsx results file.' });
+      }
+
+      const preview = await previewResultImport(req.file.buffer, req.file.originalname);
+      return res.json({
+        success: true,
+        fileName: req.file.originalname,
+        ...preview,
+        // Only the rows that passed validation are offered for import.
+        rows: preview.valid_rows_data,
+        errorCsv: preview.error_summary.total > 0
+          ? generateErrorCSV(Object.values(preview.error_summary.by_category).flat())
+          : ''
+      });
+    } catch (error) {
+      return res.status(400).json({ error: error.message || 'Could not read that file.' });
+    }
+  }
+);
+
+// Apply rows the organiser confirmed from the preview.
+router.post(
+  '/events/:eventId/result-imports/commit',
+  protectEventMutation,
+  resultImportLimiter,
+  async (req, res) => {
+    try {
+      const { rows, fileName } = req.body || {};
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return res.status(400).json({ error: 'No rows to import.' });
+      }
+
+      const result = await applyResultRows(req.params.eventId, rows, {
+        performedBy: req.user?.mongoUserId || req.session?.userId || null
+      });
+
+      await recordImportLog(req.params.eventId, req.user?.mongoUserId || req.session?.userId, {
+        fileName: fileName || 'results',
+        importedCount: result.imported.length,
+        failedCount: result.failed.length
+      });
+
+      return res.json({
+        success: result.failed.length === 0,
+        message: `${result.imported.length} imported, ${result.failed.length} failed`,
+        imported: result.imported.length,
+        failed: result.failed
+      });
+    } catch (error) {
+      return sendJsonServerError(res, 'Error importing results:', error);
+    }
+  }
+);
 
 // Log a result import file
 router.post('/events/:eventId/result-imports', protectEventMutation, async (req, res) => {

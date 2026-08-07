@@ -60,6 +60,32 @@ const resultProofUpload = multer({
   }
 });
 
+// Result imports. Kept separate from the image uploads: these are parsed in memory and
+// never stored, so the type list and size limit are their own.
+const RESULT_SHEET_MIMES = new Set([
+  'text/csv',
+  'application/csv',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/octet-stream'
+]);
+
+const resultSheetUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter(req, file, cb) {
+    // Browsers disagree on the CSV mime type, so the extension is the tiebreaker.
+    const hasSheetExtension = /\.(csv|xlsx|xls)$/i.test(file.originalname || '');
+    if (RESULT_SHEET_MIMES.has(file.mimetype) && hasSheetExtension) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('Upload a .csv or .xlsx results file.'), false);
+  },
+  limits: {
+    fileSize: MAX_UPLOAD_BYTES
+  }
+});
+
 const brandingUpload = multer({
   storage: multer.memoryStorage(),
   fileFilter(req, file, cb) {
@@ -262,6 +288,26 @@ exports.uploadResultProof = (req, res, next) => {
       req.uploadError = `Run result evidence exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`;
     } else {
       req.uploadError = err.message || 'Run result evidence upload failed.';
+    }
+    next();
+  });
+};
+
+exports.uploadResultSheet = (req, res, next) => {
+  const uploadSingle = resultSheetUpload.single('resultsFile');
+
+  uploadSingle(req, res, (err) => {
+    if (!err) {
+      req.uploadError = null;
+      req.uploadErrorField = null;
+      next();
+      return;
+    }
+    req.uploadErrorField = err.field || err.fieldName || 'resultsFile';
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      req.uploadError = `Results file exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`;
+    } else {
+      req.uploadError = err.message || 'Results file upload failed.';
     }
     next();
   });
