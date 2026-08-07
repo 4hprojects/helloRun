@@ -1369,6 +1369,44 @@ function escapeMessageBody(value) {
   return escapeHtml(value).replace(/\r?\n/g, '<br>');
 }
 
+exports.sendGuestRegistrationConfirmationEmail = async (
+  guestEmail,
+  { firstName, eventTitle, confirmationCode, manageUrl } = {}
+) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: guestEmail,
+      subject: `You are registered for ${eventTitle || 'your event'}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#17623f;">You are registered</h2>
+          <p>Hi ${escapeHtml(firstName || 'there')},</p>
+          <p>You are registered for <strong>${escapeHtml(eventTitle || 'your event')}</strong>.</p>
+          <div style="background:#f4f8f5;border:1px solid #dfe7e2;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            <p style="margin:0 0 8px;"><strong>Confirmation Code:</strong> ${escapeHtml(confirmationCode || 'N/A')}</p>
+          </div>
+          <p><a href="${escapeHtml(manageUrl || '')}" style="color:#17623f;font-weight:bold;">View your registration</a></p>
+          <p style="color:#627067;font-size:.9em;">
+            Keep this email. That link is the only way to reach your registration without a
+            HelloRun account, and we cannot resend the same one — we would have to issue a
+            new link. Do not forward it: anyone who has it can see your registration.
+          </p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send guest registration confirmation email');
+    }
+
+    return data;
+  } catch (error) {
+    logger.error('Email service error:', error);
+    throw error;
+  }
+};
+
 exports.sendRunnerContactEmailToOrganizer = async (
   organizerEmail,
   { senderName, senderEmail, eventTitle, subject, message, replyTo } = {}

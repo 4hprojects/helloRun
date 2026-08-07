@@ -128,3 +128,27 @@
   margin: 0;
   text-align: center;
 }
+
+/* Guest registration form and links. */
+.guest-form { display: flex; flex-direction: column; gap: 0.75rem; }
+.guest-form label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.9rem; }
+.guest-form input,
+.guest-form select {
+  padding: 0.7rem;
+  font-size: 1rem;
+  border: 1px solid rgba(128, 128, 128, 0.5);
+  border-radius: 0.5rem;
+}
+.guest-form button { align-self: flex-start; min-height: 2.75rem; }
+.guest-error { margin: 0; color: #b91c1c; font-size: 0.85rem; font-weight: 600; }
+.guest-waiver { border: 1px solid rgba(128,128,128,0.3); border-radius: 0.5rem; padding: 0.75rem; margin: 0; }
+.guest-waiver legend { padding: 0 0.35rem; font-size: 0.9rem; }
+.guest-waiver-body { max-height: 12rem; overflow-y: auto; font-size: 0.85rem; opacity: 0.9; margin-bottom: 0.6rem; }
+.guest-check { flex-direction: row !important; align-items: center; gap: 0.5rem; min-height: 2.75rem; }
+.guest-link-card {
+  padding: 1rem;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 0.75rem;
+}
+.guest-link-card h2 { margin: 0 0 0.5rem; font-size: 1rem; }
+.guest-link-value { overflow-wrap: anywhere; font-size: 0.8rem; }

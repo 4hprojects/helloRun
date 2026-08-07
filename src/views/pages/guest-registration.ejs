@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/race-pass.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="race-pass-page" id="main-content">
+    <div class="race-pass-shell">
+      <header class="race-pass-header">
+        <p class="race-pass-kicker">Your registration</p>
+        <h1><%= event && event.title ? event.title : 'Event' %></h1>
+        <% if (event && event.venueName) { %><p class="race-pass-venue"><%= event.venueName %></p><% } %>
+      </header>
+
+      <section class="race-pass-card">
+        <p class="race-pass-bib-label">Confirmation code</p>
+        <p class="race-pass-bib"><%= registration.confirmationCode %></p>
+        <% if (registration.status === 'cancelled') { %>
+          <p class="race-pass-status">This registration was cancelled.</p>
+        <% } %>
+      </section>
+
+      <section class="race-pass-details">
+        <h2>Details</h2>
+        <dl>
+          <div><dt>Name</dt><dd><%= [registration.participant.firstName, registration.participant.lastName].filter(Boolean).join(' ') %></dd></div>
+          <div><dt>Email</dt><dd><%= registration.participant.email %></dd></div>
+          <% if (registration.raceDistance) { %><div><dt>Category</dt><dd><%= registration.raceDistance %></dd></div><% } %>
+          <div><dt>Participation</dt><dd><%= registration.participationMode %></dd></div>
+          <% if (registration.paymentStatus && registration.paymentStatus !== 'paid') { %>
+            <div><dt>Payment</dt><dd><%= registration.paymentStatus %></dd></div>
+          <% } %>
+        </dl>
+      </section>
+
+      <section class="guest-link-card">
+        <h2>Claim this registration</h2>
+        <p>
+          Guest registrations cannot submit results, earn badges or download certificates.
+          Create an account with <strong><%= registration.participant.email %></strong>, or
+          sign in if you already have one, and this registration can move across to it.
+        </p>
+        <p><a class="nav-signup-btn" href="/signup">Create an account</a> <a class="nav-login-btn" href="/login">Sign in</a></p>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

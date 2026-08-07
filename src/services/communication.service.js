@@ -718,6 +718,9 @@ async function sendEventEmail(eventKey, payload = {}) {
       email.cancellationReason
     );
   }
+  if (eventKey === 'registration.guest_confirmed') {
+    return emailService.sendGuestRegistrationConfirmationEmail(email.to, email);
+  }
   if (eventKey === 'registration.cancelled') {
     return emailService.sendRegistrationCancelledEmailToRunner(
       email.to,
@@ -816,6 +819,7 @@ function getSubjectForEvent(eventKey, payload = {}) {
     'event.published': `Event Published: ${eventTitle}`,
     'registration.confirmed': `Registration Confirmed: ${eventTitle}`,
     'registration.cancelled': `Registration Cancelled: ${eventTitle}`,
+    'registration.guest_confirmed': `You are registered for ${eventTitle}`,
     'registration.cancellation_requested': `Cancellation Requested: ${eventTitle}`,
     'organiser.runner_contact': `Message about ${eventTitle}`,
     'organiser.direct_message': `Message about ${eventTitle}`,

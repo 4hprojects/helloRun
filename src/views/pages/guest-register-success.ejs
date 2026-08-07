@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/race-pass.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="race-pass-page" id="main-content">
+    <div class="race-pass-shell">
+      <header class="race-pass-header">
+        <p class="race-pass-kicker">You are registered</p>
+        <h1><%= event.title %></h1>
+      </header>
+
+      <section class="race-pass-card">
+        <p class="race-pass-bib-label">Confirmation code</p>
+        <p class="race-pass-bib"><%= registration.confirmationCode %></p>
+      </section>
+
+      <section class="guest-link-card" aria-labelledby="guestLinkTitle">
+        <h2 id="guestLinkTitle">Your private link</h2>
+        <p>
+          This is how you reach your registration without an account. We have emailed it to
+          <strong><%= registration.participant.email %></strong> as well.
+        </p>
+        <p class="guest-link-value"><code><%= `${locals.appUrl || ''}/guest/registrations/${manageToken}` %></code></p>
+        <p class="race-pass-hint">
+          <strong>Save it now.</strong> We only store a fingerprint of this link, so we
+          cannot show it again or resend the same one — a replacement would be a new link.
+          Anyone who has it can see your registration, so do not share it.
+        </p>
+        <p><a class="nav-signup-btn" href="/guest/registrations/<%= manageToken %>">Open my registration</a></p>
+      </section>
+
+      <section class="guest-link-card">
+        <% if (hasAccount) { %>
+          <h2>You already have a HelloRun account</h2>
+          <p>
+            That email belongs to an existing account. Sign in and you will be able to claim
+            this registration, so it sits with the rest of your events.
+          </p>
+          <p><a class="nav-login-btn" href="/login">Sign in</a></p>
+        <% } else { %>
+          <h2>Want to submit results?</h2>
+          <p>
+            A guest registration cannot submit results, earn badges or download a
+            certificate. Create an account with the same email and you can claim this
+            registration afterwards — you will not need to register again.
+          </p>
+          <p><a class="nav-login-btn" href="/signup">Create an account</a></p>
+        <% } %>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

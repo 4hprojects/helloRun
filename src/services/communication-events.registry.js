@@ -156,6 +156,19 @@ const COMMUNICATION_EVENTS = Object.freeze([
     displayOrder: 200
   },
   {
+    eventKey: 'registration.guest_confirmed',
+    name: 'Guest Registration Confirmed',
+    description: 'Confirms a registration made without a HelloRun account, and carries the management link.',
+    category: 'registration',
+    priority: 'critical',
+    required: false,
+    emailEnabled: true,
+    inAppEnabled: false,
+    locked: false,
+    recipientRoles: [],
+    displayOrder: 204
+  },
+  {
     eventKey: 'registration.cancelled',
     name: 'Registration Cancelled',
     description: 'Tells a runner their event registration was cancelled.',

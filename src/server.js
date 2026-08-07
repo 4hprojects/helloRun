@@ -244,6 +244,7 @@ const { populateAdLocals } = require('./middleware/ad.middleware');
 const { populateCookiePreferenceLocals } = require('./middleware/cookie-preference.middleware');
 const authRoutes = require('./routes/authRoutes');
 const pageRoutes = require('./routes/pageRoutes');
+const guestRoutes = require('./routes/guest.routes');
 const runnerRoutes = require('./routes/runner.routes');
 const blogRoutes = require('./routes/blog.routes');
 const organizerRoutes = require('./routes/organizer.routes');
@@ -266,6 +267,7 @@ app.use(populatePublicPageLocals);
 app.use('/', authRoutes);
 app.use('/', shopRoutes);
 // pageRoutes mounts before blogRoutes — pageController owns GET /blog and GET /blog/:slug
+app.use('/', guestRoutes);
 app.use('/', pageRoutes);
 app.use('/', runnerRoutes);
 app.use('/', stravaRoutes);
