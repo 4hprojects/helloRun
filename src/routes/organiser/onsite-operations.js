@@ -9,6 +9,9 @@ const {
   isValidTimeFormat,
   timeToMilliseconds
 } = require('../../services/result-import-validation.service');
+const Registration = require('../../models/Registration');
+const { resolveScannedQr } = require('../../services/qr-code.service');
+const { findRegistrationByExactBib } = require('../../services/onsite-roster.service');
 const {
   protectEventMutation,
   protectEventRead
@@ -63,6 +66,94 @@ router.post('/events/:eventId/bibs/assign', protectEventMutation, async (req, re
     });
   } catch (error) {
     return sendJsonServerError(res, 'Error assigning bib:', error);
+  }
+});
+
+// Scan a bib QR and check the runner in.
+//
+// Answers the cases staff actually hit at a start line: valid, already checked in,
+// cancelled, unpaid, wrong event, unknown bib, unreadable code. Each returns an
+// `outcome` the scanner can render without parsing prose.
+router.post('/events/:eventId/check-in/scan', protectEventMutation, checkInLimiter, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const scanned = String(req.body?.scanned || '').trim();
+
+    if (!scanned) {
+      return res.status(400).json({ outcome: 'invalid', message: 'Nothing was scanned.' });
+    }
+
+    const resolved = resolveScannedQr(scanned);
+    if (!resolved.success) {
+      return res.status(400).json({ outcome: 'invalid', message: 'That code is not a HelloRun bib.' });
+    }
+
+    if (String(resolved.eventId) !== String(eventId)) {
+      return res.status(409).json({
+        outcome: 'wrong_event',
+        message: 'That bib belongs to a different event.'
+      });
+    }
+
+    const match = await findRegistrationByExactBib(eventId, resolved.bibNumber);
+    if (!match) {
+      return res.status(404).json({
+        outcome: 'unknown_bib',
+        message: `No runner is holding bib ${resolved.bibNumber} for this event.`
+      });
+    }
+
+    const registration = await Registration.findById(match.registrationId)
+      .select('participant raceDistance status paymentStatus')
+      .lean();
+    if (!registration) {
+      return res.status(404).json({ outcome: 'unknown_bib', message: 'Registration not found.' });
+    }
+
+    const participantName =
+      [registration.participant?.firstName, registration.participant?.lastName]
+        .filter(Boolean)
+        .join(' ') || 'Unnamed participant';
+
+    if (registration.status === 'cancelled' || registration.status === 'refunded') {
+      return res.status(409).json({
+        outcome: 'cancelled',
+        message: `${participantName} has a ${registration.status} registration.`,
+        participant: { name: participantName, bibNumber: match.bibNumber }
+      });
+    }
+
+    const checkIn = await recordCheckIn(eventId, match.registrationId, {
+      participationMode: 'onsite',
+      verificationMethod: resolved.format === 'token' ? 'bib_scan' : 'bib_scan_legacy'
+    });
+
+    const alreadyCheckedIn = Boolean(checkIn.was_already_checked_in);
+    // Payment is a warning, not a block: plenty of events settle at the desk, and
+    // refusing entry over it would be the wrong call to make on the organiser's behalf.
+    const warnings = [];
+    if (registration.paymentStatus && registration.paymentStatus !== 'paid') {
+      warnings.push(`Payment is ${registration.paymentStatus}.`);
+    }
+    if (resolved.format === 'legacy') {
+      warnings.push('Scanned an older bib code.');
+    }
+
+    return res.json({
+      outcome: alreadyCheckedIn ? 'already_checked_in' : 'checked_in',
+      message: alreadyCheckedIn
+        ? `${participantName} was already checked in.`
+        : `${participantName} checked in.`,
+      warnings,
+      participant: {
+        name: participantName,
+        bibNumber: match.bibNumber,
+        raceDistance: registration.raceDistance || '',
+        paymentStatus: registration.paymentStatus || ''
+      }
+    });
+  } catch (error) {
+    return sendJsonServerError(res, 'Error scanning bib:', error);
   }
 });
 

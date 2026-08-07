@@ -123,6 +123,32 @@ test('the race pass renders a bib, a pending state, and a QR failure state', () 
   assert.match(qrFailed, /Checked in/);
 });
 
+test('scanning covers the outcomes staff actually hit', () => {
+  const routes = read('src/routes/organiser/onsite-operations.js');
+  ['invalid', 'wrong_event', 'unknown_bib', 'cancelled', 'already_checked_in', 'checked_in'].forEach(
+    (outcome) => {
+      assert.match(routes, new RegExp(`'${outcome}'`), `${outcome} should be a scan outcome`);
+    }
+  );
+  // Payment is a warning, not a refusal — many events settle at the desk.
+  assert.match(routes, /warnings\.push\(`Payment is/);
+  assert.match(routes, /findRegistrationByExactBib/);
+});
+
+test('the scanner degrades to manual entry where the browser cannot scan', () => {
+  const script = read('src/public/js/organizer-check-in-scan.js');
+  assert.match(script, /typeof window\.BarcodeDetector === 'function'/);
+  assert.match(script, /manual\.hidden = false/);
+  // Both paths post to the same endpoint so they cannot behave differently.
+  assert.match(script, /check-in\/scan/);
+  assert.match(script, /'x-csrf-token': csrfToken/);
+  // A code sits in frame for many frames; the same bib must not post repeatedly.
+  assert.match(script, /now - lastScannedAt < 4000/);
+  // The camera must be released, or it keeps running after the page goes away.
+  assert.match(script, /getTracks\(\)\.forEach/);
+  assert.match(script, /pagehide/);
+});
+
 test('the race-pass link appears only on onsite registrations', () => {
   assert.match(cardView, /registration\.participationMode === 'onsite'/);
   assert.match(cardView, /\/race-pass/);

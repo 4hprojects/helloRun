@@ -68,6 +68,40 @@ async function getOnsiteStateByRegistrationId(eventId, registrationIds) {
 }
 
 /**
+ * Exact bib lookup for scanning.
+ *
+ * Deliberately separate from findRegistrationIdsByBibNumber, which does a partial
+ * search for the roster filter box. A scan must match one bib exactly — resolving
+ * "10" to bib "101" at a start line would check in the wrong runner.
+ */
+async function findRegistrationByExactBib(eventId, bibNumber) {
+  const bib = String(bibNumber || '').trim();
+  if (!bib) return null;
+
+  const sql = getPostgresClient();
+  const rows = await sql`
+    SELECT
+      r.mongo_registration_id,
+      ba.bib_number,
+      ci.check_in_status
+    FROM bib_assignments ba
+    JOIN registrations r ON r.id = ba.registration_id
+    LEFT JOIN check_ins ci ON ci.registration_id = r.id
+    WHERE r.mongo_event_id = ${String(eventId)}
+      AND ba.assignment_status <> 'voided'
+      AND ba.bib_number = ${bib}
+    LIMIT 1
+  `;
+
+  if (rows.length === 0) return null;
+  return {
+    registrationId: rows[0].mongo_registration_id,
+    bibNumber: rows[0].bib_number,
+    isCheckedIn: rows[0].check_in_status === 'checked_in'
+  };
+}
+
+/**
  * Bib and check-in state for a runner's own registrations, keyed by registration id.
  *
  * Unlike the organiser roster this is not scoped to one event — a runner's list spans
@@ -304,6 +338,7 @@ async function getOnsiteRosterData(eventId, options = {}) {
 module.exports = {
   getOnsiteRosterData,
   getOnsiteStateForRegistrations,
+  findRegistrationByExactBib,
   getEventWideTotals,
   // exported for unit tests
   buildParticipantRow,

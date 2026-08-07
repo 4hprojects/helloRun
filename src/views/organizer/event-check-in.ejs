@@ -56,6 +56,30 @@
         </p>
       <% } %>
 
+      <section class="checkin-scanner" aria-labelledby="checkin-scan-title" data-scanner hidden>
+        <h2 id="checkin-scan-title">Scan a bib</h2>
+        <div class="checkin-scan-controls">
+          <button type="button" class="nav-signup-btn checkin-action" data-scan-start>Start camera</button>
+          <button type="button" class="nav-login-btn checkin-action" data-scan-stop hidden>Stop</button>
+        </div>
+        <video class="checkin-scan-video" data-scan-video playsinline muted hidden></video>
+        <p class="checkin-scan-result" role="status" aria-live="polite" data-scan-result></p>
+      </section>
+
+      <section class="checkin-scanner" aria-labelledby="checkin-manual-code-title" data-scan-manual hidden>
+        <h2 id="checkin-manual-code-title">Enter a bib code</h2>
+        <p class="checkin-note" data-scan-unsupported hidden>
+          This browser cannot use the camera scanner. Paste or type the code from the
+          runner's race pass instead, or find them by name below.
+        </p>
+        <div class="checkin-search-row">
+          <label class="visually-hidden" for="scanManualInput">Bib code</label>
+          <input id="scanManualInput" type="text" autocomplete="off" data-scan-manual-input>
+          <button type="button" class="nav-signup-btn" data-scan-manual-submit>Check in</button>
+        </div>
+        <p class="checkin-scan-result" role="status" aria-live="polite" data-scan-manual-result></p>
+      </section>
+
       <section aria-labelledby="checkin-search-title">
         <h2 class="visually-hidden" id="checkin-search-title">Find a participant</h2>
         <form method="GET" action="<%= basePath %>" class="checkin-search-form">
@@ -112,5 +136,6 @@
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
   <script src="/js/organizer-check-in.js"></script>
+  <script src="/js/organizer-check-in-scan.js"></script>
 </body>
 </html>
