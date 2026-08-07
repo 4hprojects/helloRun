@@ -68,13 +68,16 @@ production services.
 
 ## Operational Work Pending
 
-- **Apply onsite migration `023` before deploying the check-in console.**
-  `023_onsite_checkin_bib_uniqueness.sql` adds unique indexes on `check_ins` and
-  `bib_assignments` and reconciles pre-existing duplicates. The updated
-  `recordCheckIn`/`assignBib` upserts use those indexes as `ON CONFLICT` targets,
-  so deploying the code first would break check-in and bib assignment. The
-  migration has not been applied — no approved non-production database exists.
-  See the [August 7 changelog entry](changelog/2026-08-august.md).
+- **Migration `022_step_competition_events.sql` is still pending and was failing.**
+  Its `CREATE OR REPLACE VIEW v_event_leaderboards_accumulated` inserts
+  `primary_metric` ahead of `approved_distance_km`, and Postgres cannot rename or
+  reorder an existing view column that way, so the whole migration aborted — and
+  because the runner is strictly ordered, it blocked every later migration too.
+  A `DROP VIEW IF EXISTS` now precedes the create (safe: a view holds no data and
+  this one has no dependents), but **022 has deliberately not been applied**: it
+  alters `submissions_core`, `rankings`, and `certificates`, and still needs the
+  audit, legacy backfill, and step-only smoke workflows listed above before
+  `FEATURE_STEP_COMPETITIONS_ENABLED` is turned on.
 
 - **Deploy `b70b50d` to production (guest event-page 500).** `GET /events/:slug`
   currently returns 500 for every signed-out visitor because production is

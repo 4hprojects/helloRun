@@ -65,6 +65,14 @@ ALTER TABLE certificates
   ADD CONSTRAINT certificates_completion_metric_check
     CHECK (completion_metric IS NULL OR completion_metric IN ('distance', 'steps'));
 
+-- CREATE OR REPLACE VIEW can only append columns; it cannot rename or reorder existing
+-- ones. This revision inserts primary_metric ahead of approved_distance_km, so replacing
+-- in place fails with "cannot change name of view column approved_distance_km to
+-- primary_metric" and takes the whole migration — and every migration queued behind it —
+-- down with it. Dropping first is safe: a view holds no data, and this one has no
+-- dependent objects.
+DROP VIEW IF EXISTS v_event_leaderboards_accumulated;
+
 CREATE OR REPLACE VIEW v_event_leaderboards_accumulated AS
 SELECT
   r.event_core_id,

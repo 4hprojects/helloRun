@@ -18,7 +18,7 @@ The gap was that no organiser UI existed for any of it.
 
 | Item | State |
 |---|---|
-| Migration `023` — unique check-in and live-bib indexes | Written, **not applied** |
+| Migration `023` — unique check-in and live-bib indexes | **Applied to production August 7, 2026** |
 | `recordCheckIn` upsert; `assignBib` reassignment | Done, repository-verified |
 | Check-in console — search, check in, event-wide progress, CSV backup list | Done, repository-verified |
 | Bib assignment UI — per-row assign/update plus previewed sequential ranges | Done, repository-verified |
@@ -48,7 +48,11 @@ Verified against the code on August 7, 2026.
 
 ### A. Yours, not code. Everything else waits on this.
 
-- [ ] Apply migration `023_onsite_checkin_bib_uniqueness.sql`.
+- [x] Apply migration `023_onsite_checkin_bib_uniqueness.sql`. Dry run showed both
+      tables empty, so it added two indexes and changed no rows. It had to be applied with
+      `--only=` because migration `022` sits ahead of it in the queue and was failing; the
+      two are independent (023 touches `check_ins`/`bib_assignments`, 022 touches
+      `submissions_core`/`rankings`/`certificates`).
 - [ ] Deploy the `onsite-operations` branch together with the still-pending `b70b50d`.
 - [ ] Smoke-test on a draft event: check in, rescan (must say "already checked in", not
       create a second row), confirm event-wide totals, download the backup list.
@@ -100,9 +104,9 @@ and `npm test` can reach production data. The working rule so far has been: addi
 onsite-only migrations are acceptable one at a time; anything touching the live
 registration path or requiring a backfill waits.
 
-`023` is the first migration under that rule and has not been applied yet. **It must be
-applied before the current code deploys** — `recordCheckIn` and `assignBib` use its indexes
-as `ON CONFLICT` targets and will error without it.
+`023` was applied on August 7, 2026 after a read-only dry run confirmed it would change no
+existing rows. `022_step_competition_events.sql` remains pending on purpose — it alters core
+submission, ranking and certificate tables and carries its own backfill and smoke-test gate.
 
 ## Phase 1 — Land what exists
 

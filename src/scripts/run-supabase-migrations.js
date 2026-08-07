@@ -7,9 +7,27 @@ const { getPostgresClient, closePostgresClient } = require('../db/postgres');
 async function main() {
   const sql = getPostgresClient();
   const migrationsDir = path.resolve(__dirname, '..', 'db', 'migrations');
+
+  // `--only=<filename>` applies a single pending migration instead of the whole queue.
+  //
+  // Needed because the queue is strictly ordered: one migration that cannot apply blocks
+  // every later one, even when they are unrelated. Use this only when the migration is
+  // genuinely independent of what it is skipping — check which tables each one touches
+  // first, because applying out of order is otherwise how you get a broken schema.
+  const onlyArg = process.argv.slice(2).find((arg) => arg.startsWith('--only='));
+  const only = onlyArg ? onlyArg.slice('--only='.length).trim() : '';
+
   const files = fs.readdirSync(migrationsDir)
     .filter((file) => file.endsWith('.sql'))
+    .filter((file) => (only ? file === only : true))
     .sort();
+
+  if (only && files.length === 0) {
+    throw new Error(`No migration named ${only}`);
+  }
+  if (only) {
+    console.log(`Applying only ${only}; every other pending migration is left alone.`);
+  }
 
   await sql`
     create table if not exists schema_migrations (
