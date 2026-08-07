@@ -30,12 +30,14 @@ The gap was that no organiser UI existed for any of it.
 | Opaque encrypted bib QR token (no database ids in the code) | Done, repository-verified |
 | Bib scanning in the check-in console | Done, repository-verified |
 | Organiser-initiated registration cancellation | Done, repository-verified |
+| Results import from CSV/XLSX (preview then commit) | Done, repository-verified |
 | Onsite pages linked from event-details | Done, repository-verified |
 | Real Phase 7 test coverage (placebo files removed) | Done, repository-verified |
 | QR token *revocation* | Not started — the only part still needing a token store |
 | Atomic capacity reservation | Not started — needs a Mongo migration and a backfill |
 | Runner-initiated cancellation | Not started — needs an organiser-configurable policy |
-| Walk-in registration, result import, guest registration, staff roles, waitlist, inventory, transfers, form builder | Not started |
+| Walk-in registration | **Blocked** — needs guest registration (see below) |
+| Guest registration, staff roles, waitlist, inventory, transfers, form builder | Not started |
 
 Nothing is deployed. No work here has run against a real database.
 
@@ -117,7 +119,12 @@ deploy window.
   race-day check-in requires the organiser's own login on their own device. Worth telling
   pilot organisers explicitly.
 - **Waitlist, inventory, transfers** — none exist.
-- **Walk-in registration and result import** — next in the queue; both are code-only.
+- **Walk-in registration** — not code-only after all. `Registration.userId` is
+  `required: true`, and a genuine walk-in has no account, so this is blocked by exactly the
+  same constraint as guest registration. Only an account-holder variant could be built
+  today, which would be a confusing feature ("register a walk-in, but only if they already
+  have an account"), so it was skipped rather than half-built. Do it with guest
+  registration.
 - **Form builder** — largest item; its stated reuse source does not exist in this
   repository. Revisit only with evidence that fixed fields are insufficient.
 
