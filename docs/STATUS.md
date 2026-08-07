@@ -2,7 +2,7 @@
 
 **Source of truth for delivery status**
 
-**Last reconciled:** August 6, 2026
+**Last reconciled:** August 7, 2026
 
 **Evidence window:** repository history through July 29, 2026
 
@@ -19,6 +19,19 @@ core platform:
   achievement badges;
 - organiser dashboards, registrant/review queues, bulk actions, event
   promotion, analytics, audit workflows, and running groups;
+- organiser onsite operations surfaces added August 7 — race-day check-in
+  console, live check-in board, bib assignment with previewed sequential ranges,
+  race-kit release, bib scanning, and onsite results entry/approval — built over
+  the existing Phase 7 endpoints, which previously had no user interface;
+- the onsite participant loop, also August 7 — a runner race pass showing their
+  own bib and an opaque encrypted check-in QR, approved onsite results reaching
+  rankings/leaderboards/certificates through the existing submission pipeline,
+  and organiser-initiated registration cancellation that frees the slot and
+  releases the bib;
+- results import from a CSV or XLSX with preview-then-commit, and event-scoped
+  race-day staff who can be given `check_in`, `race_kit`, or `results` access to a
+  single event without touching the global `User.role`; and runner-initiated
+  cancellation requests that the organiser reviews rather than auto-cancelling;
 - shop, cart, registration add-ons, platform merchandise, reporting, and
   settings;
 - blog authoring/moderation, scheduled publishing, community comments,
@@ -54,6 +67,17 @@ production services.
   complete and the flag remains disabled by default.
 
 ## Operational Work Pending
+
+- **Migration `022_step_competition_events.sql` is still pending and was failing.**
+  Its `CREATE OR REPLACE VIEW v_event_leaderboards_accumulated` inserts
+  `primary_metric` ahead of `approved_distance_km`, and Postgres cannot rename or
+  reorder an existing view column that way, so the whole migration aborted — and
+  because the runner is strictly ordered, it blocked every later migration too.
+  A `DROP VIEW IF EXISTS` now precedes the create (safe: a view holds no data and
+  this one has no dependents), but **022 has deliberately not been applied**: it
+  alters `submissions_core`, `rankings`, and `certificates`, and still needs the
+  audit, legacy backfill, and step-only smoke workflows listed above before
+  `FEATURE_STEP_COMPETITIONS_ENABLED` is turned on.
 
 - **Deploy `b70b50d` to production (guest event-page 500).** `GET /events/:slug`
   currently returns 500 for every signed-out visitor because production is

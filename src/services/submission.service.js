@@ -417,9 +417,6 @@ async function reviewSubmission({
   }
 
   syncSubmissionShadowInBackground(reviewedSubmission);
-  if (safeAction === 'approve') {
-    invalidateLeaderboardCache(event.slug);
-  }
   recordCriticalAuditEventInBackground({
     actorMongoUserId: organizerId,
     action: safeAction === 'approve' ? 'submission.approved' : 'submission.rejected',
@@ -432,22 +429,40 @@ async function reviewSubmission({
       : (reviewedSubmission.rejectionReason || reviewedSubmission.reviewNotes),
     occurredAt: reviewedSubmission.reviewedAt
   });
-  const backgroundTask = attachCertAndNotifyInBackground(reviewedSubmission, safeAction, event.title || 'Event');
-  if (runSubmissionBackgroundTasksInline) {
-    await backgroundTask;
-  }
   if (safeAction === 'approve') {
-    evaluateSubmissionAchievementsSafe(reviewedSubmission, {
-      performedBy: organizerId
-    });
-    if (!reviewedSubmission.isPersonalRecord) {
-      refreshGlobalDistanceMilestonesSafe(reviewedSubmission.runnerId, {
-        performedBy: organizerId
-      });
-      syncEventRankingsInBackground(reviewedSubmission, event.slug);
+    await applyApprovedSubmissionEffects(reviewedSubmission, event, { performedBy: organizerId });
+  } else {
+    const backgroundTask = attachCertAndNotifyInBackground(reviewedSubmission, safeAction, event.title || 'Event');
+    if (runSubmissionBackgroundTasksInline) {
+      await backgroundTask;
     }
   }
   return reviewedSubmission;
+}
+
+/**
+ * Everything that must happen once a submission is approved: leaderboard cache,
+ * certificate and runner notification, achievements, milestones, and ranking sync.
+ *
+ * Shared so an approved onsite result and a reviewed virtual submission reach rankings
+ * and certificates through exactly one path. Shadow sync and audit recording stay with
+ * the caller, because both differ between the review flow and the onsite flow.
+ */
+async function applyApprovedSubmissionEffects(submission, event, options = {}) {
+  const { performedBy = null } = options;
+
+  invalidateLeaderboardCache(event?.slug);
+
+  const backgroundTask = attachCertAndNotifyInBackground(submission, 'approve', event?.title || 'Event');
+  if (runSubmissionBackgroundTasksInline) {
+    await backgroundTask;
+  }
+
+  evaluateSubmissionAchievementsSafe(submission, { performedBy });
+  if (!submission.isPersonalRecord) {
+    refreshGlobalDistanceMilestonesSafe(submission.runnerId, { performedBy });
+    syncEventRankingsInBackground(submission, event?.slug);
+  }
 }
 
 function syncSubmissionShadowInBackground(submission) {
@@ -1779,6 +1794,8 @@ function __setDisableSubmissionSyncBackgroundTasks(value) {
 }
 
 module.exports = {
+  applyApprovedSubmissionEffects,
+  syncSubmissionShadowInBackground,
   createSubmission,
   editRejectedSubmissionMetadata,
   applyAdminSubmissionCorrection,

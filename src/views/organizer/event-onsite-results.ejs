@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+  <link rel="stylesheet" href="/css/organizer-check-in.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <% const basePath = `/organizer/events/${eventId}/onsite-results`; %>
+  <main class="checkin-page" id="main-content" data-onsite-results data-event-id="<%= eventId %>" data-csrf="<%= locals.csrfToken || '' %>">
+    <div class="checkin-shell">
+      <header class="checkin-header">
+        <div>
+          <p class="checkin-kicker">Onsite results</p>
+          <h1><%= event.title %></h1>
+        </div>
+        <nav class="checkin-header-actions" aria-label="Onsite actions">
+          <a href="/organizer/events/<%= eventId %>/check-in" class="nav-login-btn">Check-in</a>
+          <a href="/organizer/events/<%= eventId %>/bibs" class="nav-login-btn">Bibs</a>
+          <a href="/organizer/events/<%= eventId %>/onsite-results/import" class="nav-login-btn">Import results</a>
+          <a href="/organizer/events/<%= eventId %>" class="nav-login-btn">Back to event</a>
+        </nav>
+      </header>
+
+      <section class="checkin-counts" aria-label="Results progress">
+        <p class="checkin-count">
+          <span class="checkin-count-value"><%= totals.resultsApproved === null ? '—' : totals.resultsApproved %></span>
+          <span class="checkin-count-label">Approved</span>
+        </p>
+        <p class="checkin-count">
+          <span class="checkin-count-value"><%= totals.resultsRecorded === null ? '—' : totals.resultsRecorded %></span>
+          <span class="checkin-count-label">Recorded</span>
+        </p>
+        <p class="checkin-count">
+          <span class="checkin-count-value"><%= totals.registered %></span>
+          <span class="checkin-count-label">Registered</span>
+        </p>
+      </section>
+      <p class="checkin-note">Totals cover the whole event, not just the rows below.</p>
+
+      <p class="checkin-note">
+        Approving a result records the finish, awards eligible badges, and enters the runner
+        into the event leaderboard, rankings and certificates. A result needs a finish time
+        and a known race distance before it can be approved.
+      </p>
+
+      <section aria-labelledby="results-search-title">
+        <h2 class="visually-hidden" id="results-search-title">Find a participant</h2>
+        <form method="GET" action="<%= basePath %>" class="checkin-search-form">
+          <label for="resultsSearch">Search by name, email, confirmation code, or bib</label>
+          <div class="checkin-search-row">
+            <input id="resultsSearch" name="q" type="search" value="<%= search || '' %>" autocomplete="off" enterkeyhint="search">
+            <button type="submit" class="nav-signup-btn">Search</button>
+          </div>
+        </form>
+      </section>
+
+      <% if (isTruncated) { %>
+        <p class="checkin-note">Showing the first <%= participants.length %> matches. Narrow the search to see more.</p>
+      <% } %>
+
+      <section aria-labelledby="results-list-title">
+        <h2 class="visually-hidden" id="results-list-title">Participants</h2>
+        <% if (participants.length === 0) { %>
+          <p class="checkin-empty">No onsite participants match this search.</p>
+        <% } else { %>
+          <ul class="checkin-list">
+            <% participants.forEach(function (participant) { %>
+              <li class="checkin-row<%= participant.isResultApproved ? ' is-checked-in' : '' %>" data-result-row data-registration-id="<%= participant.registrationId %>" data-result-id="<%= participant.resultId %>">
+                <div class="checkin-row-identity">
+                  <p class="checkin-row-name">
+                    <% if (participant.bibNumber) { %><span class="checkin-bib">#<%= participant.bibNumber %></span><% } %>
+                    <%= participant.fullName %>
+                  </p>
+                  <p class="checkin-row-meta">
+                    <%= participant.confirmationCode %><% if (participant.raceDistance) { %> · <%= participant.raceDistance %><% } %>
+                  </p>
+                  <% if (!participant.isCheckedIn) { %>
+                    <p class="checkin-row-warning">Not checked in</p>
+                  <% } %>
+                </div>
+                <div class="checkin-row-action">
+                  <% if (participant.isMissingShadowRecord) { %>
+                    <p class="checkin-row-status checkin-row-status-blocked">Not synced</p>
+                  <% } else { %>
+                    <label class="visually-hidden" for="time-<%= participant.registrationId %>">Finish time for <%= participant.fullName %></label>
+                    <input class="checkin-time-input" id="time-<%= participant.registrationId %>" type="text" inputmode="numeric" placeholder="HH:MM:SS" value="<%= participant.finishTime %>" data-result-time <%= participant.isResultApproved ? 'disabled' : '' %>>
+                    <div class="checkin-result-buttons">
+                      <% if (!participant.isResultApproved) { %>
+                        <button type="button" class="nav-login-btn checkin-action" data-result-save><%= participant.hasResult ? 'Update' : 'Record' %></button>
+                        <% if (participant.hasResult) { %>
+                          <button type="button" class="nav-signup-btn checkin-action" data-result-approve>Approve</button>
+                        <% } %>
+                      <% } %>
+                    </div>
+                    <p class="checkin-row-status<%= participant.isResultApproved ? ' checkin-row-status-done' : '' %>" data-result-status role="status"><%= participant.isResultApproved ? 'Approved' : (participant.isDisqualified ? 'Disqualified' : '') %></p>
+                  <% } %>
+                </div>
+              </li>
+            <% }); %>
+          </ul>
+        <% } %>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script src="/js/organizer-onsite-results.js"></script>
+</body>
+</html>

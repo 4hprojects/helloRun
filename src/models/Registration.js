@@ -189,6 +189,37 @@ const registrationSchema = new mongoose.Schema(
       type: Date,
       default: Date.now
     },
+    // Cancellation. `status` already carried 'cancelled', but nothing ever set it and
+    // there was nowhere to record why or by whom. Optional, so existing records are
+    // unaffected and no backfill is needed.
+    cancelledAt: {
+      type: Date,
+      default: null
+    },
+    cancelledBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    cancellationReason: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 500
+    },
+    // A runner asking to be cancelled. Deliberately a request rather than a direct
+    // cancellation: for a paid registration that would decide the refund on the
+    // organiser's behalf, which is not ours to decide.
+    cancellationRequestedAt: {
+      type: Date,
+      default: null
+    },
+    cancellationRequestReason: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 500
+    },
     accumulatedCertificateFinalization: {
       state: {
         type: String,

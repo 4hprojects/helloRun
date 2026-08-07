@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+  <link rel="stylesheet" href="/css/organizer-check-in.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <% const basePath = `/organizer/events/${eventId}/staff`; %>
+  <% const permissionLabels = { check_in: 'Check-in and bibs', race_kit: 'Race kits', results: 'Results' }; %>
+  <main class="checkin-page" id="main-content">
+    <div class="checkin-shell">
+      <header class="checkin-header">
+        <div>
+          <p class="checkin-kicker">Race-day staff</p>
+          <h1><%= event.title %></h1>
+        </div>
+        <nav class="checkin-header-actions" aria-label="Onsite actions">
+          <a href="/organizer/events/<%= eventId %>/check-in" class="nav-login-btn">Check-in</a>
+          <a href="/organizer/events/<%= eventId %>" class="nav-login-btn">Back to event</a>
+        </nav>
+      </header>
+
+      <% if (message) { %>
+        <p class="checkin-alert" role="status"><%= message.text %></p>
+      <% } %>
+
+      <p class="checkin-note">
+        Give a helper access to just the jobs they are doing, for this event only. They see
+        nothing else about the event and cannot manage staff themselves. Remove access when
+        the event is over.
+      </p>
+
+      <section class="checkin-scanner" aria-labelledby="addStaffTitle">
+        <h2 id="addStaffTitle">Add someone</h2>
+        <p class="checkin-note">They need a HelloRun account already — this grants access, it does not create accounts.</p>
+        <form method="POST" action="<%= basePath %>" class="checkin-staff-form">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <label for="staffEmail">Email address</label>
+          <input id="staffEmail" name="email" type="email" required autocomplete="off">
+
+          <fieldset class="checkin-staff-permissions">
+            <legend>What may they do?</legend>
+            <% permissions.forEach(function (permission) { %>
+              <label class="checkin-staff-permission">
+                <input type="checkbox" name="permissions" value="<%= permission %>">
+                <span><%= permissionLabels[permission] || permission %></span>
+              </label>
+            <% }); %>
+          </fieldset>
+
+          <button type="submit" class="nav-signup-btn">Give access</button>
+        </form>
+      </section>
+
+      <section aria-labelledby="staffListTitle">
+        <h2 id="staffListTitle" class="checkin-board-heading">Who has access</h2>
+        <% if (staff.length === 0) { %>
+          <p class="checkin-empty">Nobody else has access to this event yet.</p>
+        <% } else { %>
+          <ul class="checkin-list">
+            <% staff.forEach(function (member) { %>
+              <li class="checkin-row">
+                <div class="checkin-row-identity">
+                  <p class="checkin-row-name"><%= member.name %></p>
+                  <p class="checkin-row-meta"><%= member.email %></p>
+                  <p class="checkin-row-meta">
+                    <%= member.permissions.map(function (permission) { return permissionLabels[permission] || permission; }).join(' · ') %>
+                  </p>
+                </div>
+                <div class="checkin-row-action">
+                  <form method="POST" action="<%= basePath %>/<%= member.id %>/revoke" data-high-risk-confirm data-confirm-title="Remove access" data-confirm-target="<%= member.name %>" data-confirm-impact="They immediately lose access to this event's onsite screens." data-confirm-reversibility="You can give access again at any time." data-confirm-privilege="Event organiser" data-confirm-button="Remove access">
+                    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                    <button type="submit" class="nav-login-btn checkin-action">Remove</button>
+                  </form>
+                </div>
+              </li>
+            <% }); %>
+          </ul>
+        <% } %>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

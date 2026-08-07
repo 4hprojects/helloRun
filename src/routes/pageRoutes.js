@@ -85,6 +85,8 @@ router.get('/unsubscribe', requireAuth, async (req, res) => {
 
 router.get('/events', pageController.getEvents);
 router.get('/my-registrations', requireAuth, requireRunnerWorkspace, pageController.getMyRegistrations);
+router.get('/my-registrations/:registrationId/race-pass', requireAuth, requireRunnerWorkspace, pageController.getRacePass);
+router.post('/my-registrations/:registrationId/request-cancellation', requireAuth, requireRunnerWorkspace, requireCsrfProtection, pageController.postRequestCancellation);
 router.get('/events/:slug/register', requireAuth, requireRunnerWorkspace, pageController.getEventRegistrationForm);
 router.post('/events/:slug/register', requireAuth, requireRunnerWorkspace, requireCsrfProtection, pageController.postEventRegistration);
 router.get('/events/:slug/leaderboard', pageController.getEventLeaderboardPage);

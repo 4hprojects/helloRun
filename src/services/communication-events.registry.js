@@ -156,6 +156,32 @@ const COMMUNICATION_EVENTS = Object.freeze([
     displayOrder: 200
   },
   {
+    eventKey: 'registration.cancelled',
+    name: 'Registration Cancelled',
+    description: 'Tells a runner their event registration was cancelled.',
+    category: 'registration',
+    priority: 'high',
+    required: false,
+    emailEnabled: true,
+    inAppEnabled: true,
+    locked: false,
+    recipientRoles: ['runner'],
+    displayOrder: 205
+  },
+  {
+    eventKey: 'registration.cancellation_requested',
+    name: 'Cancellation Requested',
+    description: 'Tells an organiser a runner asked to cancel their registration.',
+    category: 'registration',
+    priority: 'high',
+    required: false,
+    emailEnabled: true,
+    inAppEnabled: true,
+    locked: false,
+    recipientRoles: ['organiser'],
+    displayOrder: 206
+  },
+  {
     eventKey: 'payment.receipt_submitted',
     name: 'Payment Receipt Submitted',
     description: 'Records runner payment receipt submission and optional organiser email.',

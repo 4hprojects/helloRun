@@ -116,6 +116,11 @@ const submissionReviewActionLimiter = createRateLimiter({
   maxRequests: 60,
   message: 'Too many submission review actions. Please wait before trying again.'
 });
+const registrantCancellationLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 30,
+  message: 'Too many cancellations. Please wait a few minutes and try again.'
+});
 const registrantExportLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   maxRequests: 10,
@@ -1735,6 +1740,7 @@ module.exports = {
   paymentReviewActionLimiter,
   submissionReviewActionLimiter,
   registrantExportLimiter,
+  registrantCancellationLimiter,
   directMessageLimiter,
   // Sync utilities
   syncRegistrationPaymentShadowInBackground,

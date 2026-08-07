@@ -1358,6 +1358,85 @@ exports.sendEventPublishedEmailToOrganizer = async (
   }
 };
 
+exports.sendCancellationRequestedEmailToOrganizer = async (
+  organizerEmail,
+  organizerFirstName,
+  runnerName,
+  eventTitle,
+  confirmationCode,
+  cancellationReason
+) => {
+  try {
+    const reasonText = escapeHtml(cancellationReason || '');
+
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: organizerEmail,
+      subject: `Cancellation Requested: ${eventTitle}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#92400e;">Cancellation Requested</h2>
+          <p>Hi ${escapeHtml(organizerFirstName || 'Organizer')},</p>
+          <p><strong>${escapeHtml(runnerName || 'A runner')}</strong> asked to cancel their registration for <strong>${escapeHtml(eventTitle || 'your event')}</strong>.</p>
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            <p style="margin:0 0 8px;"><strong>Confirmation Code:</strong> ${escapeHtml(confirmationCode || 'N/A')}</p>
+            ${reasonText ? `<p style="margin:0;"><strong>Reason:</strong> ${reasonText}</p>` : ''}
+          </div>
+          <p>Nothing has been cancelled yet. Review the request on your registrants page and decide, including anything owed back.</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send cancellation requested email');
+    }
+
+    return data;
+  } catch (error) {
+    logger.error('Email service error:', error);
+    throw error;
+  }
+};
+
+exports.sendRegistrationCancelledEmailToRunner = async (
+  runnerEmail,
+  runnerFirstName,
+  eventTitle,
+  confirmationCode,
+  cancellationReason
+) => {
+  try {
+    const reasonText = escapeHtml(cancellationReason || '');
+
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: runnerEmail,
+      subject: `Registration Cancelled: ${eventTitle}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#991b1b;">Registration Cancelled</h2>
+          <p>Hi ${escapeHtml(runnerFirstName || 'Runner')},</p>
+          <p>Your registration for <strong>${escapeHtml(eventTitle || 'your event')}</strong> has been cancelled by the organizer.</p>
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            <p style="margin:0 0 8px;"><strong>Confirmation Code:</strong> ${escapeHtml(confirmationCode || 'N/A')}</p>
+            ${reasonText ? `<p style="margin:0;"><strong>Reason:</strong> ${reasonText}</p>` : ''}
+          </div>
+          <p>If you believe this was a mistake, please contact the event organizer directly.</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send registration cancelled email');
+    }
+
+    return data;
+  } catch (error) {
+    logger.error('Email service error:', error);
+    throw error;
+  }
+};
+
 exports.sendPaymentRejectedEmailToRunner = async (
   runnerEmail,
   runnerFirstName,

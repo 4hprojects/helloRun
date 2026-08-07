@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+  <link rel="stylesheet" href="/css/organizer-check-in.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <% const basePath = `/organizer/events/${eventId}/check-in`; %>
+  <main class="checkin-page" id="main-content" data-checkin-console data-event-id="<%= eventId %>" data-csrf="<%= locals.csrfToken || '' %>">
+    <div class="checkin-shell">
+      <header class="checkin-header">
+        <div>
+          <p class="checkin-kicker">Race-day check-in</p>
+          <h1><%= event.title %></h1>
+          <% if (event.venueName) { %><p class="checkin-venue"><%= event.venueName %></p><% } %>
+        </div>
+        <nav class="checkin-header-actions" aria-label="Onsite actions">
+          <a href="/organizer/events/<%= eventId %>/bibs" class="nav-login-btn">Bibs</a>
+          <a href="/organizer/events/<%= eventId %>/race-kits" class="nav-login-btn">Race kits</a>
+          <a href="<%= basePath %>/backup-list" class="nav-login-btn">Download backup list</a>
+          <a href="/organizer/events/<%= eventId %>" class="nav-login-btn">Back to event</a>
+        </nav>
+      </header>
+
+      <section class="checkin-counts" aria-label="Event check-in progress">
+        <p class="checkin-count">
+          <span class="checkin-count-value"><%= totals.checkedIn === null ? '—' : totals.checkedIn %></span>
+          <span class="checkin-count-label">Checked in</span>
+        </p>
+        <p class="checkin-count">
+          <span class="checkin-count-value"><%= totals.awaiting === null ? '—' : totals.awaiting %></span>
+          <span class="checkin-count-label">Awaiting</span>
+        </p>
+        <p class="checkin-count">
+          <span class="checkin-count-value"><%= totals.registered %></span>
+          <span class="checkin-count-label">Registered</span>
+        </p>
+      </section>
+      <p class="checkin-note">Totals cover the whole event, not just the rows below.</p>
+
+      <% if (totals.checkedIn === null) { %>
+        <p class="checkin-alert" role="alert">
+          Live check-in totals are unavailable right now. Individual check-in still works,
+          and the counts will catch up once the connection recovers.
+        </p>
+      <% } %>
+
+      <% if (listCounts.missingShadowRecord > 0) { %>
+        <p class="checkin-alert" role="alert">
+          <%= listCounts.missingShadowRecord %> registration<%= listCounts.missingShadowRecord === 1 ? '' : 's' %>
+          shown below cannot be checked in yet because the onsite record has not finished
+          syncing. Use the backup list and record these manually.
+        </p>
+      <% } %>
+
+      <section class="checkin-scanner" aria-labelledby="checkin-scan-title" data-scanner hidden>
+        <h2 id="checkin-scan-title">Scan a bib</h2>
+        <div class="checkin-scan-controls">
+          <button type="button" class="nav-signup-btn checkin-action" data-scan-start>Start camera</button>
+          <button type="button" class="nav-login-btn checkin-action" data-scan-stop hidden>Stop</button>
+        </div>
+        <video class="checkin-scan-video" data-scan-video playsinline muted hidden></video>
+        <p class="checkin-scan-result" role="status" aria-live="polite" data-scan-result></p>
+      </section>
+
+      <section class="checkin-scanner" aria-labelledby="checkin-manual-code-title" data-scan-manual hidden>
+        <h2 id="checkin-manual-code-title">Enter a bib code</h2>
+        <p class="checkin-note" data-scan-unsupported hidden>
+          This browser cannot use the camera scanner. Paste or type the code from the
+          runner's race pass instead, or find them by name below.
+        </p>
+        <div class="checkin-search-row">
+          <label class="visually-hidden" for="scanManualInput">Bib code</label>
+          <input id="scanManualInput" type="text" autocomplete="off" data-scan-manual-input>
+          <button type="button" class="nav-signup-btn" data-scan-manual-submit>Check in</button>
+        </div>
+        <p class="checkin-scan-result" role="status" aria-live="polite" data-scan-manual-result></p>
+      </section>
+
+      <section aria-labelledby="checkin-search-title">
+        <h2 class="visually-hidden" id="checkin-search-title">Find a participant</h2>
+        <form method="GET" action="<%= basePath %>" class="checkin-search-form">
+          <label for="checkinSearch">Search by name, email, confirmation code, or bib</label>
+          <div class="checkin-search-row">
+            <input id="checkinSearch" name="q" type="search" value="<%= search || '' %>" autocomplete="off" enterkeyhint="search">
+            <button type="submit" class="nav-signup-btn">Search</button>
+          </div>
+        </form>
+      </section>
+
+      <% if (isTruncated) { %>
+        <p class="checkin-note">Showing the first <%= participants.length %> matches. Narrow the search to see more.</p>
+      <% } %>
+
+      <section aria-labelledby="checkin-list-title">
+        <h2 class="visually-hidden" id="checkin-list-title">Participants</h2>
+        <% if (participants.length === 0) { %>
+          <p class="checkin-empty">No onsite participants match this search.</p>
+        <% } else { %>
+          <ul class="checkin-list">
+            <% participants.forEach(function (participant) { %>
+              <li class="checkin-row<%= participant.isCheckedIn ? ' is-checked-in' : '' %>" data-checkin-row data-registration-id="<%= participant.registrationId %>">
+                <div class="checkin-row-identity">
+                  <p class="checkin-row-name">
+                    <% if (participant.bibNumber) { %><span class="checkin-bib">#<%= participant.bibNumber %></span><% } %>
+                    <%= participant.fullName %>
+                  </p>
+                  <p class="checkin-row-meta">
+                    <%= participant.confirmationCode %><% if (participant.raceDistance) { %> · <%= participant.raceDistance %><% } %>
+                  </p>
+                  <% if (participant.paymentStatus && participant.paymentStatus !== 'paid') { %>
+                    <p class="checkin-row-warning">Payment: <%= participant.paymentStatus %></p>
+                  <% } %>
+                </div>
+                <div class="checkin-row-action">
+                  <% if (participant.isMissingShadowRecord) { %>
+                    <p class="checkin-row-status checkin-row-status-blocked">Not synced</p>
+                  <% } else if (participant.isCheckedIn) { %>
+                    <p class="checkin-row-status checkin-row-status-done" data-checkin-status>Checked in</p>
+                  <% } else { %>
+                    <button type="button" class="nav-signup-btn checkin-action" data-checkin-button>Check in</button>
+                    <p class="checkin-row-status" data-checkin-status role="status"></p>
+                  <% } %>
+                </div>
+              </li>
+            <% }); %>
+          </ul>
+        <% } %>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script src="/js/organizer-check-in.js"></script>
+  <script src="/js/organizer-check-in-scan.js"></script>
+</body>
+</html>

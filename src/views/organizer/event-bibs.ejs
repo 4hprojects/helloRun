@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+  <link rel="stylesheet" href="/css/organizer-check-in.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <% const basePath = `/organizer/events/${eventId}/bibs`; %>
+  <main class="checkin-page" id="main-content" data-onsite-bibs data-event-id="<%= eventId %>" data-csrf="<%= locals.csrfToken || '' %>">
+    <div class="checkin-shell">
+      <header class="checkin-header">
+        <div>
+          <p class="checkin-kicker">Bib assignment</p>
+          <h1><%= event.title %></h1>
+        </div>
+        <nav class="checkin-header-actions" aria-label="Onsite actions">
+          <a href="/organizer/events/<%= eventId %>/check-in" class="nav-login-btn">Check-in</a>
+          <a href="/organizer/events/<%= eventId %>/race-kits" class="nav-login-btn">Race kits</a>
+          <a href="/organizer/events/<%= eventId %>" class="nav-login-btn">Back to event</a>
+        </nav>
+      </header>
+
+      <section class="checkin-counts" aria-label="Bib assignment progress">
+        <p class="checkin-count">
+          <span class="checkin-count-value"><%= totals.bibsAssigned === null ? '—' : totals.bibsAssigned %></span>
+          <span class="checkin-count-label">Bibs assigned</span>
+        </p>
+        <p class="checkin-count">
+          <span class="checkin-count-value"><%= totals.bibsAssigned === null ? '—' : Math.max(totals.registered - totals.bibsAssigned, 0) %></span>
+          <span class="checkin-count-label">Unassigned</span>
+        </p>
+        <p class="checkin-count">
+          <span class="checkin-count-value"><%= totals.registered %></span>
+          <span class="checkin-count-label">Registered</span>
+        </p>
+      </section>
+      <p class="checkin-note">Totals cover the whole event, not just the rows below.</p>
+
+      <section class="checkin-bulk" aria-labelledby="bulk-assign-title">
+        <h2 id="bulk-assign-title">Assign a sequential range</h2>
+        <p class="checkin-note">
+          Numbers are given to the listed participants who have no bib yet, in the order shown.
+          Nothing is assigned until you confirm the preview.
+        </p>
+        <div class="checkin-bulk-row">
+          <label for="bulkStart">Start number</label>
+          <input id="bulkStart" type="number" min="1" step="1" inputmode="numeric" value="1" data-bulk-start>
+          <label for="bulkPrefix">Prefix (optional)</label>
+          <input id="bulkPrefix" type="text" maxlength="8" placeholder="e.g. 5K-" data-bulk-prefix>
+          <button type="button" class="nav-login-btn" data-bulk-preview>Preview</button>
+        </div>
+        <div class="checkin-bulk-result" data-bulk-preview-output hidden></div>
+        <button type="button" class="nav-signup-btn" data-bulk-confirm hidden>Confirm assignment</button>
+        <p class="checkin-bulk-status" role="status" data-bulk-status></p>
+      </section>
+
+      <section aria-labelledby="bib-search-title">
+        <h2 class="visually-hidden" id="bib-search-title">Find a participant</h2>
+        <form method="GET" action="<%= basePath %>" class="checkin-search-form">
+          <label for="bibSearch">Search by name, email, confirmation code, or bib</label>
+          <div class="checkin-search-row">
+            <input id="bibSearch" name="q" type="search" value="<%= search || '' %>" autocomplete="off" enterkeyhint="search">
+            <button type="submit" class="nav-signup-btn">Search</button>
+          </div>
+        </form>
+      </section>
+
+      <% if (isTruncated) { %>
+        <p class="checkin-note">Showing the first <%= participants.length %> matches. Narrow the search to see more.</p>
+      <% } %>
+
+      <% if (listCounts.missingShadowRecord > 0) { %>
+        <p class="checkin-alert" role="alert">
+          <%= listCounts.missingShadowRecord %> registration<%= listCounts.missingShadowRecord === 1 ? '' : 's' %>
+          shown below cannot be assigned a bib yet because the onsite record has not
+          finished syncing.
+        </p>
+      <% } %>
+
+      <section aria-labelledby="bib-list-title">
+        <h2 class="visually-hidden" id="bib-list-title">Participants</h2>
+        <% if (participants.length === 0) { %>
+          <p class="checkin-empty">No onsite participants match this search.</p>
+        <% } else { %>
+          <ul class="checkin-list">
+            <% participants.forEach(function (participant) { %>
+              <li class="checkin-row<%= participant.hasBib ? ' is-checked-in' : '' %>" data-bib-row data-registration-id="<%= participant.registrationId %>" data-has-bib="<%= participant.hasBib ? '1' : '0' %>" data-missing-shadow="<%= participant.isMissingShadowRecord ? '1' : '0' %>">
+                <div class="checkin-row-identity">
+                  <p class="checkin-row-name"><%= participant.fullName %></p>
+                  <p class="checkin-row-meta">
+                    <%= participant.confirmationCode %><% if (participant.raceDistance) { %> · <%= participant.raceDistance %><% } %>
+                  </p>
+                </div>
+                <div class="checkin-row-action">
+                  <% if (participant.isMissingShadowRecord) { %>
+                    <p class="checkin-row-status checkin-row-status-blocked">Not synced</p>
+                  <% } else { %>
+                    <label class="visually-hidden" for="bib-<%= participant.registrationId %>">Bib number for <%= participant.fullName %></label>
+                    <input class="checkin-bib-input" id="bib-<%= participant.registrationId %>" type="text" inputmode="numeric" value="<%= participant.bibNumber %>" placeholder="Bib" data-bib-input>
+                    <button type="button" class="nav-signup-btn checkin-action" data-bib-save><%= participant.hasBib ? 'Update' : 'Assign' %></button>
+                    <p class="checkin-row-status" data-bib-status role="status"></p>
+                  <% } %>
+                </div>
+              </li>
+            <% }); %>
+          </ul>
+        <% } %>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script src="/js/organizer-onsite-bibs.js"></script>
+</body>
+</html>

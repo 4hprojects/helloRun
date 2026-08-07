@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+  <link rel="stylesheet" href="/css/organizer-check-in.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="checkin-page" id="main-content" data-checkin-board data-event-id="<%= eventId %>">
+    <div class="checkin-shell">
+      <header class="checkin-header">
+        <div>
+          <p class="checkin-kicker">Live check-in</p>
+          <h1><%= event.title %></h1>
+          <% if (event.venueName) { %><p class="checkin-venue"><%= event.venueName %></p><% } %>
+        </div>
+        <nav class="checkin-header-actions" aria-label="Onsite actions">
+          <a href="/organizer/events/<%= eventId %>/check-in" class="nav-login-btn">Check-in desk</a>
+          <a href="/organizer/events/<%= eventId %>/bibs" class="nav-login-btn">Bibs</a>
+          <a href="/organizer/events/<%= eventId %>" class="nav-login-btn">Back to event</a>
+        </nav>
+      </header>
+
+      <% if (!board) { %>
+        <p class="checkin-alert" role="alert">
+          Live figures are unavailable right now. Check-in itself is unaffected — use the
+          check-in desk. This board will recover on its own once the connection returns.
+        </p>
+      <% } else { %>
+        <section class="checkin-counts" aria-label="Check-in progress">
+          <p class="checkin-count">
+            <span class="checkin-count-value" data-board-checked-in><%= board.summary.checked_in_count %></span>
+            <span class="checkin-count-label">Checked in</span>
+          </p>
+          <p class="checkin-count">
+            <span class="checkin-count-value" data-board-remaining><%= board.estimate.remaining %></span>
+            <span class="checkin-count-label">Remaining</span>
+          </p>
+          <p class="checkin-count">
+            <span class="checkin-count-value" data-board-total><%= board.estimate.total_expected %></span>
+            <span class="checkin-count-label">Registered</span>
+          </p>
+        </section>
+
+        <section class="checkin-board-pace" aria-label="Check-in pace">
+          <p>
+            <strong data-board-percent><%= board.estimate.percentage_complete %></strong>% complete ·
+            <strong data-board-rate><%= board.estimate.check_ins_per_minute %></strong> per minute
+          </p>
+          <p data-board-eta>
+            <% if (board.estimate.estimated_minutes_remaining === null) { %>
+              Not enough recent arrivals to estimate a finish time.
+            <% } else { %>
+              About <%= board.estimate.estimated_minutes_remaining %> minute<%= board.estimate.estimated_minutes_remaining === 1 ? '' : 's' %> remaining at the current pace.
+            <% } %>
+          </p>
+          <p class="checkin-note" data-board-updated>Updated just now. Refreshes every 10 seconds.</p>
+        </section>
+
+        <section aria-labelledby="board-activity-title">
+          <h2 id="board-activity-title" class="checkin-board-heading">Recent arrivals</h2>
+          <% if (board.recent.length === 0) { %>
+            <p class="checkin-empty" data-board-empty>No one has checked in yet.</p>
+          <% } else { %>
+            <ul class="checkin-list" data-board-activity>
+              <% board.recent.forEach(function (entry) { %>
+                <li class="checkin-row">
+                  <div class="checkin-row-identity">
+                    <p class="checkin-row-name">
+                      <% if (entry.bib_number) { %><span class="checkin-bib">#<%= entry.bib_number %></span><% } %>
+                      <%= [entry.participant_first_name, entry.participant_last_name].filter(Boolean).join(' ') || 'Unnamed participant' %>
+                    </p>
+                    <p class="checkin-row-meta"><%= entry.verification_method || 'manual' %></p>
+                  </div>
+                  <div class="checkin-row-action">
+                    <p class="checkin-row-status"><%= entry.checked_in_at ? new Date(entry.checked_in_at).toLocaleTimeString() : '' %></p>
+                  </div>
+                </li>
+              <% }); %>
+            </ul>
+          <% } %>
+        </section>
+      <% } %>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script src="/js/organizer-check-in-board.js"></script>
+</body>
+</html>

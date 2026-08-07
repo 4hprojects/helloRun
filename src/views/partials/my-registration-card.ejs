@@ -20,6 +20,12 @@
       <div class="my-reg-card-status-line">
         <span class="my-reg-state my-reg-state-<%= item.stateTone %>"><%= item.stateLabel %></span>
         <span class="my-reg-confirmation"><i data-lucide="hash" aria-hidden="true"></i><span>Confirmation</span> <strong><%= item.confirmationCode %></strong></span>
+        <% if (registration.participationMode === 'onsite') { %>
+          <a class="my-reg-race-pass" href="/my-registrations/<%= item.registrationId %>/race-pass">
+            <i data-lucide="qr-code" aria-hidden="true"></i>
+            <span><% if (registration.onsite && registration.onsite.bibNumber) { %>Bib <%= registration.onsite.bibNumber %> · Race pass<% } else { %>Race pass<% } %></span>
+          </a>
+        <% } %>
       </div>
       <h3><% if (item.eventHref) { %><a href="<%= item.eventHref %>"><%= item.eventTitle %></a><% } else { %><%= item.eventTitle %><% } %></h3>
       <p class="my-reg-helper"><%= item.helperText %></p>
@@ -146,6 +152,18 @@
           <p><strong>Running group:</strong> <%= participant.runningGroup || 'N/A' %></p>
           <p><strong>Emergency contact:</strong> <%= participant.emergencyContactName || 'N/A' %></p>
         </div>
+        <% if (['pending_payment','paid','confirmed'].includes(registration.status)) { %>
+            <% if (registration.cancellationRequestedAt) { %>
+          <p class="my-reg-cancel-requested">You asked to cancel this registration. The organizer will be in touch.</p>
+          <% } else { %>
+          <form method="POST" action="/my-registrations/<%= item.registrationId %>/request-cancellation" class="my-reg-cancel-form" data-high-risk-confirm data-confirm-title="Ask to cancel" data-confirm-target="<%= item.eventTitle %>" data-confirm-impact="The organizer is told you want to cancel. Nothing is cancelled and no refund is issued automatically." data-confirm-reversibility="You can only ask once; talk to the organizer to change your mind." data-confirm-privilege="Runner" data-confirm-button="Send request">
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+            <label>Reason (optional)<input name="reason" maxlength="500"></label>
+            <button type="submit" class="nav-login-btn">Ask to cancel</button>
+          </form>
+          <% } %>
+        <% } %>
+
       </div>
     </details>
   </div>

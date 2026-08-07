@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/race-pass.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="race-pass-page" id="main-content">
+    <div class="race-pass-shell">
+      <header class="race-pass-header">
+        <p class="race-pass-kicker">Race pass</p>
+        <h1><%= event && event.title ? event.title : 'Your registration' %></h1>
+        <% if (event && event.venueName) { %><p class="race-pass-venue"><%= event.venueName %></p><% } %>
+      </header>
+
+      <% if (onsite && onsite.bibNumber) { %>
+        <section class="race-pass-card" aria-labelledby="racePassBibTitle">
+          <h2 class="visually-hidden" id="racePassBibTitle">Your bib and check-in code</h2>
+          <p class="race-pass-bib-label">Bib number</p>
+          <p class="race-pass-bib"><%= onsite.bibNumber %></p>
+
+          <% if (qrDataUrl) { %>
+            <img class="race-pass-qr" src="<%= qrDataUrl %>" alt="Check-in QR code for bib <%= onsite.bibNumber %>" width="260" height="260">
+            <p class="race-pass-hint">Show this to event staff at check-in.</p>
+          <% } else { %>
+            <p class="race-pass-hint">
+              Your check-in code could not be generated right now. Staff can still find you
+              by bib number or by the confirmation code below.
+            </p>
+          <% } %>
+
+          <% if (onsite.isCheckedIn) { %>
+            <p class="race-pass-status race-pass-status-done">Checked in</p>
+          <% } else { %>
+            <p class="race-pass-status">Not checked in yet</p>
+          <% } %>
+        </section>
+      <% } else { %>
+        <section class="race-pass-card">
+          <p class="race-pass-bib-label">Bib number</p>
+          <p class="race-pass-pending">Not assigned yet</p>
+          <p class="race-pass-hint">
+            Your bib and check-in code appear here once the organiser assigns them, usually
+            close to race day.
+          </p>
+        </section>
+      <% } %>
+
+      <section class="race-pass-details" aria-labelledby="racePassDetailsTitle">
+        <h2 id="racePassDetailsTitle">Registration</h2>
+        <dl>
+          <div><dt>Confirmation code</dt><dd><code><%= registration.confirmationCode || '—' %></code></dd></div>
+          <% if (registration.raceDistance) { %>
+            <div><dt>Category</dt><dd><%= registration.raceDistance %></dd></div>
+          <% } %>
+          <% if (registration.participant && registration.participant.firstName) { %>
+            <div><dt>Name</dt><dd><%= [registration.participant.firstName, registration.participant.lastName].filter(Boolean).join(' ') %></dd></div>
+          <% } %>
+          <% if (registration.paymentStatus && registration.paymentStatus !== 'paid') { %>
+            <div><dt>Payment</dt><dd><%= registration.paymentStatus %></dd></div>
+          <% } %>
+        </dl>
+      </section>
+
+      <p class="race-pass-back"><a href="/my-registrations">Back to my registrations</a></p>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>
