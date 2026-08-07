@@ -202,3 +202,13 @@ body.organizer-roster-dialog-open { overflow: hidden; }
   font-size: .8rem;
   color: #8a5a12;
 }
+
+.organizer-roster-cancel-requested {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  font-size: .75rem;
+  color: #8a5a12;
+}

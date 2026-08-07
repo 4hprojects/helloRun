@@ -80,6 +80,7 @@ const {
 
 const { buildRegistrationPagePresentation } = require('../../services/registration-page-presentation.service');
 const { getOnsiteStateForRegistrations } = require('../../services/onsite-roster.service');
+const { requestCancellation } = require('../../services/registration-cancellation.service');
 const { generateBibQRCode } = require('../../services/qr-code.service');
 const { getRunnerProfileCompleteness } = require('../../services/profile-completion.service');
 const {
@@ -635,6 +636,27 @@ exports.getMyRegistrations = async (req, res) => {
       status: 500,
       message: 'An error occurred while loading your registrations.'
     });
+  }
+};
+
+/**
+ * A runner asking to cancel. Records the ask and tells the organiser; it does not
+ * cancel, because cancelling a paid registration decides what happens to the money.
+ */
+exports.postRequestCancellation = async (req, res) => {
+  try {
+    await requestCancellation({
+      registrationId: req.params.registrationId,
+      userId: req.session.userId,
+      reason: req.body?.reason
+    });
+    return res.redirect(
+      `/my-registrations?msg=${encodeURIComponent('We let the organizer know. They will be in touch about anything owed back.')}`
+    );
+  } catch (error) {
+    return res.redirect(
+      `/my-registrations?type=error&msg=${encodeURIComponent(error.message || 'Could not send that request.')}`
+    );
   }
 };
 

@@ -207,6 +207,19 @@ const registrationSchema = new mongoose.Schema(
       default: '',
       maxlength: 500
     },
+    // A runner asking to be cancelled. Deliberately a request rather than a direct
+    // cancellation: for a paid registration that would decide the refund on the
+    // organiser's behalf, which is not ours to decide.
+    cancellationRequestedAt: {
+      type: Date,
+      default: null
+    },
+    cancellationRequestReason: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 500
+    },
     accumulatedCertificateFinalization: {
       state: {
         type: String,

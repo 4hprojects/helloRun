@@ -28,6 +28,10 @@ core platform:
   rankings/leaderboards/certificates through the existing submission pipeline,
   and organiser-initiated registration cancellation that frees the slot and
   releases the bib;
+- results import from a CSV or XLSX with preview-then-commit, and event-scoped
+  race-day staff who can be given `check_in`, `race_kit`, or `results` access to a
+  single event without touching the global `User.role`; and runner-initiated
+  cancellation requests that the organiser reviews rather than auto-cancelling;
 - shop, cart, registration add-ons, platform merchandise, reporting, and
   settings;
 - blog authoring/moderation, scheduled publishing, community comments,

@@ -702,6 +702,16 @@ async function sendEventEmail(eventKey, payload = {}) {
       email.renderedWaiver
     );
   }
+  if (eventKey === 'registration.cancellation_requested') {
+    return emailService.sendCancellationRequestedEmailToOrganizer(
+      email.to,
+      email.firstName,
+      email.runnerName,
+      email.eventTitle,
+      email.confirmationCode,
+      email.cancellationReason
+    );
+  }
   if (eventKey === 'registration.cancelled') {
     return emailService.sendRegistrationCancelledEmailToRunner(
       email.to,
@@ -800,6 +810,7 @@ function getSubjectForEvent(eventKey, payload = {}) {
     'event.published': `Event Published: ${eventTitle}`,
     'registration.confirmed': `Registration Confirmed: ${eventTitle}`,
     'registration.cancelled': `Registration Cancelled: ${eventTitle}`,
+    'registration.cancellation_requested': `Cancellation Requested: ${eventTitle}`,
     'payment.receipt_submitted': `Payment Receipt Submitted: ${eventTitle}`,
     'payment.approved': `Payment Approved: ${eventTitle}`,
     'payment.rejected': `Payment Rejected: ${eventTitle}`,

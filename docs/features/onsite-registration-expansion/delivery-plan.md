@@ -32,11 +32,11 @@ The gap was that no organiser UI existed for any of it.
 | Organiser-initiated registration cancellation | Done, repository-verified |
 | Results import from CSV/XLSX (preview then commit) | Done, repository-verified |
 | Event-scoped race-day staff with per-job permissions | Done, repository-verified — needed no migration |
+| Runner-initiated cancellation, as an organiser-approved request | Done, repository-verified — needed no migration |
 | Onsite pages linked from event-details | Done, repository-verified |
 | Real Phase 7 test coverage (placebo files removed) | Done, repository-verified |
 | QR token *revocation* | Not started — the only part still needing a token store |
 | Atomic capacity reservation | Not started — needs a Mongo migration and a backfill |
-| Runner-initiated cancellation | Not started — needs an organiser-configurable policy |
 | Walk-in registration | **Blocked** — needs guest registration (see below) |
 | Guest registration, waitlist, inventory, transfers, form builder | Not started |
 
@@ -131,7 +131,7 @@ deploy window.
 
 ## Verification standard
 
-Unit suite (`npm run test:unit`) must stay green — 1122/1122 as of August 7. New coverage
+Unit suite (`npm run test:unit`) must stay green — 1127/1127 as of August 7. New coverage
 goes in `*.unit.test.js`, since `test:unit` excludes `.integration.` and `.smoke.` files.
 Do not run the live-DB suites until an approved non-production database exists; treat
 everything until then as repository-verified, not production-verified.

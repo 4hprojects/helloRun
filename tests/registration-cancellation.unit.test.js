@@ -87,6 +87,49 @@ test('the route is CSRF-protected, rate limited, and permission checked', () => 
   assert.match(routes, /getRegistrantAccessibleEventOrNull/);
 });
 
+test('a runner asks to cancel rather than cancelling outright', () => {
+  // Cancelling a paid registration decides what happens to the money. That is the
+  // organiser's call, not something to infer from a runner tapping a button.
+  assert.match(service, /it does not cancel/);
+  assert.match(service, /organiser's call/);
+  assert.match(service, /cancellationRequestedAt = new Date\(\)/);
+  assert.doesNotMatch(
+    service.slice(service.indexOf('async function requestCancellation')),
+    /status = 'cancelled'/,
+    'requesting must never set the cancelled status'
+  );
+});
+
+test('a request is refused when it makes no sense, and cannot be repeated', () => {
+  assert.match(service, /already asked to cancel/);
+  assert.match(service, /findOne\(\{ _id: registrationId, userId \}\)/);
+});
+
+test('the runner request route is CSRF-protected and scoped to the runner', () => {
+  const pageRoutes = read('src/routes/pageRoutes.js');
+  assert.match(pageRoutes, /request-cancellation/);
+  assert.match(pageRoutes, /requireAuth, requireRunnerWorkspace, requireCsrfProtection/);
+
+  const card = read('src/views/partials/my-registration-card.ejs');
+  assert.match(card, /Ask to cancel/);
+  assert.match(card, /no refund is issued automatically/);
+  assert.match(card, /\['pending_payment','paid','confirmed'\]\.includes\(registration\.status\)/);
+});
+
+test('the organiser sees the request and is told nothing has happened yet', () => {
+  assert.match(rosterView, /asked to cancel/);
+  assert.match(rosterView, /Nothing is cancelled until you do it below/);
+});
+
+test('the cancellation-request event has an email sender and a subject', () => {
+  const communication = read('src/services/communication.service.js');
+  const emailService = read('src/services/email.service.js');
+  assert.match(registry, /eventKey: 'registration\.cancellation_requested'/);
+  assert.match(communication, /eventKey === 'registration\.cancellation_requested'/);
+  assert.match(communication, /'registration\.cancellation_requested': `Cancellation Requested/);
+  assert.match(emailService, /sendCancellationRequestedEmailToOrganizer/);
+});
+
 test('the roster offers cancelling only for live registrations, behind a confirmation', () => {
   assert.match(rosterView, /\['pending_payment', 'paid', 'confirmed'\]\.includes\(registration\.status\)/);
   assert.match(rosterView, /data-high-risk-confirm/);

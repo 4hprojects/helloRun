@@ -12,6 +12,7 @@
 const mongoose = require('mongoose');
 const Registration = require('../models/Registration');
 const Event = require('../models/Event');
+const User = require('../models/User');
 const { getPostgresClient } = require('../db/postgres');
 const communicationService = require('./communication.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
@@ -116,6 +117,107 @@ async function cancelRegistration({ registrationId, eventId, actorUserId, reason
   return { registration, onsite };
 }
 
+/**
+ * A runner asks to be cancelled.
+ *
+ * This records the ask and tells the organiser; it does not cancel. Cancelling a paid
+ * registration decides what happens to the money, and that is the organiser's call, not
+ * something to infer from a runner tapping a button.
+ *
+ * @param {Object} input
+ * @param {string} input.registrationId
+ * @param {string} input.userId - the signed-in runner; scopes the lookup to their own row
+ * @param {string} [input.reason]
+ */
+async function requestCancellation({ registrationId, userId, reason = '' }) {
+  if (!mongoose.Types.ObjectId.isValid(String(registrationId || ''))) {
+    throw new Error('Invalid registration reference.');
+  }
+
+  const registration = await Registration.findOne({ _id: registrationId, userId });
+  if (!registration) {
+    throw new Error('Registration not found.');
+  }
+
+  if (registration.status === 'cancelled') {
+    throw new Error('This registration is already cancelled.');
+  }
+  if (!CANCELLABLE_STATUSES.includes(registration.status)) {
+    throw new Error(`A ${registration.status} registration cannot be cancelled.`);
+  }
+  if (registration.cancellationRequestedAt) {
+    throw new Error('You have already asked to cancel this registration.');
+  }
+
+  registration.cancellationRequestedAt = new Date();
+  registration.cancellationRequestReason = String(reason || '').trim().slice(0, 500);
+  await registration.save();
+
+  recordCriticalAuditEventInBackground({
+    actorMongoUserId: userId,
+    action: 'registration.cancellation_requested',
+    targetType: 'registration',
+    targetId: String(registration._id),
+    statusFrom: registration.status,
+    statusTo: registration.status,
+    notes: registration.cancellationRequestReason,
+    occurredAt: registration.cancellationRequestedAt
+  });
+
+  notifyOrganiserInBackground(registration);
+
+  return registration;
+}
+
+function notifyOrganiserInBackground(registration) {
+  (async () => {
+    try {
+      const event = await Event.findById(registration.eventId)
+        .select('title organizerId')
+        .lean();
+      if (!event?.organizerId) return;
+
+      const organiser = await User.findById(event.organizerId).select('email firstName').lean();
+      if (!organiser?.email) return;
+
+      const runnerName =
+        [registration.participant?.firstName, registration.participant?.lastName]
+          .filter(Boolean)
+          .join(' ') || 'A runner';
+
+      await communicationService.notify('registration.cancellation_requested', {
+        notification: {
+          userId: event.organizerId,
+          type: 'registration_cancellation_requested',
+          title: 'Cancellation requested',
+          message: `${runnerName} asked to cancel their registration for ${event.title || 'your event'}.`,
+          href: `/organizer/events/${registration.eventId}/registrants`,
+          metadata: {
+            registrationId: String(registration._id),
+            eventId: String(registration.eventId)
+          }
+        },
+        email: {
+          to: organiser.email,
+          firstName: organiser.firstName || '',
+          eventTitle: event.title || 'your event',
+          runnerName,
+          confirmationCode: registration.confirmationCode || '',
+          cancellationReason: registration.cancellationRequestReason || '',
+          recipientUserId: event.organizerId,
+          metadata: {
+            registrationId: String(registration._id),
+            eventId: String(registration.eventId)
+          }
+        }
+      });
+    } catch (error) {
+      // A failed notification must not undo a recorded request.
+      logger.error(`[Cancellation] Organiser notification failed: ${error.message}`);
+    }
+  })();
+}
+
 function notifyRunnerInBackground(registration) {
   (async () => {
     try {
@@ -160,6 +262,7 @@ function notifyRunnerInBackground(registration) {
 
 module.exports = {
   cancelRegistration,
+  requestCancellation,
   releaseOnsiteArtefacts,
   CANCELLABLE_STATUSES
 };
