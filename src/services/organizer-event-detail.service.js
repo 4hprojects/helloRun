@@ -563,7 +563,8 @@ async function getOrganizerEventDetailPresentation({
         { label: 'Bibs', href: `/organizer/events/${id}/bibs`, icon: 'hash' },
         { label: 'Race kits', href: `/organizer/events/${id}/race-kits`, icon: 'package' },
         { label: 'Results', href: `/organizer/events/${id}/onsite-results`, icon: 'flag' },
-        { label: 'Import results', href: `/organizer/events/${id}/onsite-results/import`, icon: 'upload' }
+        { label: 'Import results', href: `/organizer/events/${id}/onsite-results/import`, icon: 'upload' },
+        { label: 'Race-day staff', href: `/organizer/events/${id}/staff`, icon: 'users-round' }
       ] }] : []),
       { group: 'Recognition', items: [
         { label: 'Certificates', href: `/organizer/events/${id}/certificate`, icon: 'award' },

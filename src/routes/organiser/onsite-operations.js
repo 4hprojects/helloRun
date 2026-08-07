@@ -28,7 +28,9 @@ const resultImportLimiter = createRateLimiter({
 });
 const {
   protectEventMutation,
-  protectEventRead
+  protectEventRead,
+  protectOnsiteRead,
+  protectOnsiteMutation
 } = require('./event-route-protection');
 
 // Generous enough for a busy start line, tight enough to bound abuse. Note that
@@ -62,7 +64,7 @@ const {
 } = require('../../services/onsite-operations.service');
 
 // Assign a bib number to a registration
-router.post('/events/:eventId/bibs/assign', protectEventMutation, async (req, res) => {
+router.post('/events/:eventId/bibs/assign', protectOnsiteMutation('check_in'), async (req, res) => {
   try {
     const { eventId } = req.params;
     const { registrationId, bibNumber, category } = req.body;
@@ -88,7 +90,7 @@ router.post('/events/:eventId/bibs/assign', protectEventMutation, async (req, re
 // Answers the cases staff actually hit at a start line: valid, already checked in,
 // cancelled, unpaid, wrong event, unknown bib, unreadable code. Each returns an
 // `outcome` the scanner can render without parsing prose.
-router.post('/events/:eventId/check-in/scan', protectEventMutation, checkInLimiter, async (req, res) => {
+router.post('/events/:eventId/check-in/scan', protectOnsiteMutation('check_in'), checkInLimiter, async (req, res) => {
   try {
     const { eventId } = req.params;
     const scanned = String(req.body?.scanned || '').trim();
@@ -172,7 +174,7 @@ router.post('/events/:eventId/check-in/scan', protectEventMutation, checkInLimit
 });
 
 // Assign bibs to many registrations at once
-router.post('/events/:eventId/bibs/assign-bulk', protectEventMutation, bulkBibLimiter, async (req, res) => {
+router.post('/events/:eventId/bibs/assign-bulk', protectOnsiteMutation('check_in'), bulkBibLimiter, async (req, res) => {
   try {
     const { eventId } = req.params;
     const { assignments } = req.body;
@@ -201,7 +203,7 @@ router.post('/events/:eventId/bibs/assign-bulk', protectEventMutation, bulkBibLi
 });
 
 // Mark a participant's race kit as released
-router.post('/events/:eventId/race-kits/release', protectEventMutation, async (req, res) => {
+router.post('/events/:eventId/race-kits/release', protectOnsiteMutation('race_kit'), async (req, res) => {
   try {
     const { eventId } = req.params;
     const { registrationId } = req.body;
@@ -223,7 +225,7 @@ router.post('/events/:eventId/race-kits/release', protectEventMutation, async (r
 });
 
 // Record a check-in
-router.post('/events/:eventId/check-ins', protectEventMutation, checkInLimiter, async (req, res) => {
+router.post('/events/:eventId/check-ins', protectOnsiteMutation('check_in'), checkInLimiter, async (req, res) => {
   try {
     const { eventId } = req.params;
     const { registrationId, participationMode, verificationMethod, notes } = req.body;
@@ -283,7 +285,7 @@ router.post('/events/:eventId/race-kits', protectEventMutation, async (req, res)
 // Parse and validate a results file without writing anything.
 router.post(
   '/events/:eventId/result-imports/preview',
-  protectEventMutation,
+  protectOnsiteMutation('results'),
   resultImportLimiter,
   uploadResultSheet,
   async (req, res) => {
@@ -315,7 +317,7 @@ router.post(
 // Apply rows the organiser confirmed from the preview.
 router.post(
   '/events/:eventId/result-imports/commit',
-  protectEventMutation,
+  protectOnsiteMutation('results'),
   resultImportLimiter,
   async (req, res) => {
     try {
@@ -373,7 +375,7 @@ router.post('/events/:eventId/result-imports', protectEventMutation, async (req,
 });
 
 // Record an onsite result
-router.post('/events/:eventId/onsite-results', protectEventMutation, async (req, res) => {
+router.post('/events/:eventId/onsite-results', protectOnsiteMutation('results'), async (req, res) => {
   try {
     const { eventId } = req.params;
     const { registrationId, category, distanceKm, elapsedMs, displayTime, pacePerKm, placeInCategory, dataSource, notes, resultStatus } = req.body;
@@ -419,7 +421,7 @@ router.post('/events/:eventId/onsite-results', protectEventMutation, async (req,
 });
 
 // Approve an onsite result and evaluate achievement badges
-router.post('/events/:eventId/onsite-results/:resultId/approve', protectEventMutation, async (req, res) => {
+router.post('/events/:eventId/onsite-results/:resultId/approve', protectOnsiteMutation('results'), async (req, res) => {
   try {
     const { eventId, resultId } = req.params;
     const approved = await approveOnsiteResult(eventId, resultId, {
@@ -443,7 +445,7 @@ router.post('/events/:eventId/onsite-results/:resultId/approve', protectEventMut
 });
 
 // Get event check-in summary
-router.get('/events/:eventId/check-in-summary', protectEventRead, async (req, res) => {
+router.get('/events/:eventId/check-in-summary', protectOnsiteRead('check_in'), async (req, res) => {
   try {
     const { eventId } = req.params;
 
@@ -459,7 +461,7 @@ router.get('/events/:eventId/check-in-summary', protectEventRead, async (req, re
 });
 
 // Get event bib assignment status
-router.get('/events/:eventId/bib-assignment-status', protectEventRead, async (req, res) => {
+router.get('/events/:eventId/bib-assignment-status', protectOnsiteRead('check_in'), async (req, res) => {
   try {
     const { eventId } = req.params;
 

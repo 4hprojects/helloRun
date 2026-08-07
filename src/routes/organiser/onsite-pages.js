@@ -11,13 +11,30 @@ const Event = require('../../models/Event');
 const logger = require('../../utils/logger');
 const { createRateLimiter } = require('../../middleware/rate-limit.middleware');
 const { buildCsvContent, buildExportFilename } = require('../../utils/tabular-export');
-const { protectEventRead } = require('./event-route-protection');
+const {
+  protectEventRead,
+  protectEventMutation,
+  protectOnsiteRead
+} = require('./event-route-protection');
+const {
+  listEventStaff,
+  assignStaffByEmail,
+  revokeStaff,
+  STAFF_PERMISSIONS
+} = require('../../services/event-staff.service');
 const { getOnsiteRosterData } = require('../../services/onsite-roster.service');
 const {
   getRealtimeCheckInSummary,
   getRecentCheckIns,
   estimateCheckInCompletion
 } = require('../../services/realtime-checkin.service');
+
+// Granting access is a privileged action; keep the window tight.
+const staffAssignmentLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 30,
+  message: 'Too many staff changes. Please wait a few minutes and try again.'
+});
 
 const checkInBackupListLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
@@ -26,7 +43,7 @@ const checkInBackupListLimiter = createRateLimiter({
 });
 
 // Check-in console
-router.get('/events/:eventId/check-in', protectEventRead, async (req, res, next) => {
+router.get('/events/:eventId/check-in', protectOnsiteRead('check_in'), async (req, res, next) => {
   try {
     const { eventId } = req.params;
     const event = await Event.findById(eventId)
@@ -61,7 +78,7 @@ router.get('/events/:eventId/check-in', protectEventRead, async (req, res, next)
 // and remains usable when the venue has no usable connectivity.
 router.get(
   '/events/:eventId/check-in/backup-list',
-  protectEventRead,
+  protectOnsiteRead('check_in'),
   checkInBackupListLimiter,
   async (req, res, next) => {
     try {
@@ -111,7 +128,7 @@ router.get(
 
 // Live check-in board. Renders a first paint server-side, then polls the existing
 // dashboard endpoints so a dropped connection degrades to a stale board, not a blank one.
-router.get('/events/:eventId/check-in/board', protectEventRead, async (req, res, next) => {
+router.get('/events/:eventId/check-in/board', protectOnsiteRead('check_in'), async (req, res, next) => {
   try {
     const { eventId } = req.params;
     const event = await Event.findById(eventId).select('title venueName').lean();
@@ -153,7 +170,7 @@ router.get('/events/:eventId/check-in/board', protectEventRead, async (req, res,
 });
 
 // Bib assignment
-router.get('/events/:eventId/bibs', protectEventRead, async (req, res, next) => {
+router.get('/events/:eventId/bibs', protectOnsiteRead('check_in'), async (req, res, next) => {
   try {
     const { eventId } = req.params;
     const event = await Event.findById(eventId).select('title raceCategories').lean();
@@ -186,7 +203,7 @@ router.get('/events/:eventId/bibs', protectEventRead, async (req, res, next) => 
 });
 
 // Race-kit release
-router.get('/events/:eventId/race-kits', protectEventRead, async (req, res, next) => {
+router.get('/events/:eventId/race-kits', protectOnsiteRead('race_kit'), async (req, res, next) => {
   try {
     const { eventId } = req.params;
     const event = await Event.findById(eventId).select('title').lean();
@@ -219,7 +236,7 @@ router.get('/events/:eventId/race-kits', protectEventRead, async (req, res, next
 });
 
 // Onsite results entry and approval
-router.get('/events/:eventId/onsite-results', protectEventRead, async (req, res, next) => {
+router.get('/events/:eventId/onsite-results', protectOnsiteRead('results'), async (req, res, next) => {
   try {
     const { eventId } = req.params;
     const event = await Event.findById(eventId).select('title').lean();
@@ -252,7 +269,7 @@ router.get('/events/:eventId/onsite-results', protectEventRead, async (req, res,
 });
 
 // Results import
-router.get('/events/:eventId/onsite-results/import', protectEventRead, async (req, res, next) => {
+router.get('/events/:eventId/onsite-results/import', protectOnsiteRead('results'), async (req, res, next) => {
   try {
     const { eventId } = req.params;
     const event = await Event.findById(eventId).select('title').lean();
@@ -271,6 +288,63 @@ router.get('/events/:eventId/onsite-results/import', protectEventRead, async (re
     });
   } catch (error) {
     return next(error);
+  }
+});
+
+// Race-day staff. Deliberately protectEventRead/Mutation, not protectOnsite*: staff must
+// never be able to grant access to themselves or anyone else.
+router.get('/events/:eventId/staff', protectEventRead, async (req, res, next) => {
+  try {
+    const { eventId } = req.params;
+    const event = await Event.findById(eventId).select('title').lean();
+    if (!event) {
+      return res.status(404).render('error', {
+        title: '404 - Event Not Found',
+        status: 404,
+        message: 'Event not found.'
+      });
+    }
+
+    return res.render('organizer/event-staff', {
+      title: `Race-day staff — ${event.title}`,
+      event,
+      eventId: String(eventId),
+      staff: await listEventStaff(eventId),
+      permissions: STAFF_PERMISSIONS,
+      message: req.query.msg ? { type: req.query.type === 'error' ? 'error' : 'success', text: String(req.query.msg).slice(0, 220) } : null
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post('/events/:eventId/staff', protectEventMutation, staffAssignmentLimiter, async (req, res) => {
+  const listPath = `/organizer/events/${req.params.eventId}/staff`;
+  try {
+    const { user } = await assignStaffByEmail({
+      eventId: req.params.eventId,
+      email: req.body?.email,
+      permissions: req.body?.permissions,
+      assignedBy: req.user?.mongoUserId || req.session?.userId
+    });
+    const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
+    return res.redirect(`${listPath}?msg=${encodeURIComponent(`${name} can now help on race day.`)}`);
+  } catch (error) {
+    return res.redirect(`${listPath}?type=error&msg=${encodeURIComponent(error.message)}`);
+  }
+});
+
+router.post('/events/:eventId/staff/:staffId/revoke', protectEventMutation, staffAssignmentLimiter, async (req, res) => {
+  const listPath = `/organizer/events/${req.params.eventId}/staff`;
+  try {
+    await revokeStaff({
+      eventId: req.params.eventId,
+      staffId: req.params.staffId,
+      revokedBy: req.user?.mongoUserId || req.session?.userId
+    });
+    return res.redirect(`${listPath}?msg=${encodeURIComponent('Access removed.')}`);
+  } catch (error) {
+    return res.redirect(`${listPath}?type=error&msg=${encodeURIComponent(error.message)}`);
   }
 });
 

@@ -31,13 +31,14 @@ The gap was that no organiser UI existed for any of it.
 | Bib scanning in the check-in console | Done, repository-verified |
 | Organiser-initiated registration cancellation | Done, repository-verified |
 | Results import from CSV/XLSX (preview then commit) | Done, repository-verified |
+| Event-scoped race-day staff with per-job permissions | Done, repository-verified — needed no migration |
 | Onsite pages linked from event-details | Done, repository-verified |
 | Real Phase 7 test coverage (placebo files removed) | Done, repository-verified |
 | QR token *revocation* | Not started — the only part still needing a token store |
 | Atomic capacity reservation | Not started — needs a Mongo migration and a backfill |
 | Runner-initiated cancellation | Not started — needs an organiser-configurable policy |
 | Walk-in registration | **Blocked** — needs guest registration (see below) |
-| Guest registration, staff roles, waitlist, inventory, transfers, form builder | Not started |
+| Guest registration, waitlist, inventory, transfers, form builder | Not started |
 
 Nothing is deployed. No work here has run against a real database.
 
@@ -115,9 +116,9 @@ deploy window.
 - **Guest registration** — relax `Registration.userId` and replace the unique
   `{eventId, userId}` index, *and* relax `runner_user_id NOT NULL` on `bib_assignments`,
   `check_ins` and `onsite_results`. Two migrations, both on live tables.
-- **Staff roles** — `User.role` is only `runner|organiser|admin`. Until this exists,
-  race-day check-in requires the organiser's own login on their own device. Worth telling
-  pilot organisers explicitly.
+- ~~**Staff roles**~~ — **done, without a migration.** `EventStaff` scopes a grant to one
+  event with named permissions, leaving the global `User.role` untouched. A new Mongo
+  collection needs no migration.
 - **Waitlist, inventory, transfers** — none exist.
 - **Walk-in registration** — not code-only after all. `Registration.userId` is
   `required: true`, and a genuine walk-in has no account, so this is blocked by exactly the
@@ -130,7 +131,7 @@ deploy window.
 
 ## Verification standard
 
-Unit suite (`npm run test:unit`) must stay green — 1102/1102 as of August 7. New coverage
+Unit suite (`npm run test:unit`) must stay green — 1122/1122 as of August 7. New coverage
 goes in `*.unit.test.js`, since `test:unit` excludes `.integration.` and `.smoke.` files.
 Do not run the live-DB suites until an approved non-production database exists; treat
 everything until then as repository-verified, not production-verified.
