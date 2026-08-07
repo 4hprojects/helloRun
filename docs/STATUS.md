@@ -72,21 +72,16 @@ production services.
 
 ## Operational Work Pending
 
-- **Investigate 420 unresolved `sync_failure_log` entries**, 411 of them submissions
-  reading "App user not found". The user and registration shadows were repaired on
-  August 7, so re-running the submission shadow backfill may now clear most of these;
-  they have not been retried since.
+- **Residual shadow gaps are orphaned data, not sync faults.** After repairing users,
+  events, registrations and submissions on August 7, what remains points at records
+  hard-deleted from Mongo: 48 of 108 onsite registrations reference deleted events, and
+  1,136 of 1,211 submissions reference deleted users or events. Decide whether to prune
+  those Mongo rows or leave them; no backfill can resolve them.
+- **Step-competition verification is still outstanding.** Migration `022` was applied on
+  August 7 because it was blocking the event and submission shadows, but its own audit,
+  legacy backfill, and step-only/legacy accumulated-distance smoke workflows have not
+  been run. `FEATURE_STEP_COMPETITIONS_ENABLED` remains off.
 
-- **Migration `022_step_competition_events.sql` is still pending and was failing.**
-  Its `CREATE OR REPLACE VIEW v_event_leaderboards_accumulated` inserts
-  `primary_metric` ahead of `approved_distance_km`, and Postgres cannot rename or
-  reorder an existing view column that way, so the whole migration aborted — and
-  because the runner is strictly ordered, it blocked every later migration too.
-  A `DROP VIEW IF EXISTS` now precedes the create (safe: a view holds no data and
-  this one has no dependents), but **022 has deliberately not been applied**: it
-  alters `submissions_core`, `rankings`, and `certificates`, and still needs the
-  audit, legacy backfill, and step-only smoke workflows listed above before
-  `FEATURE_STEP_COMPETITIONS_ENABLED` is turned on.
 
 - **Deploy `b70b50d` to production (guest event-page 500).** `GET /events/:slug`
   currently returns 500 for every signed-out visitor because production is
