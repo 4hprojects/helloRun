@@ -76,10 +76,11 @@ Verified against the code on August 7, 2026.
 - [x] **QR token revocation.** Done, and it needed no migration — a Mongo collection
       suffices. Identity is stable across renders so a runner's screenshot survives, and
       revocation fires on cancellation and on bib reassignment.
-- [ ] **Guest registration.** Unblocks three things at once — itself, walk-in
-      registration, and registrant import. Two migrations: `Registration.userId` is
-      `required` with a unique `{eventId, userId}` index, and `runner_user_id` is
-      `NOT NULL` on three Postgres tables.
+- [~] **Guest registration.** Foundation done and deployed: `participantType`, a
+      conditionally-required `userId`, a partial unique index, and migration `024`
+      relaxing the Postgres NOT NULLs. Still to do: drop the old Mongo index once the
+      schema change is live (the script refuses until then), then the guest flow itself
+      — registration without an account, a hashed management token, and the claim flow.
 
 ### C. Migration-free, available any time
 

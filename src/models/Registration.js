@@ -12,10 +12,22 @@ const registrationSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    // Who registered. Required for an account registration and absent for a guest, so
+    // the invariant still holds everywhere it held before: any registration that is not
+    // explicitly a guest must have a user.
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: function requiredForAccountRegistrations() {
+        return this.participantType !== 'guest';
+      },
+      default: null,
+      index: true
+    },
+    participantType: {
+      type: String,
+      enum: ['account', 'guest'],
+      default: 'account',
       index: true
     },
     participant: {
@@ -243,7 +255,19 @@ const registrationSchema = new mongoose.Schema(
   }
 );
 
-registrationSchema.index({ eventId: 1, userId: 1 }, { unique: true });
+// One registration per account per event. Partial so guest rows, which carry no user,
+// do not all collide on a single null. Named explicitly because the previous index used
+// the name Mongoose derives from this key; declaring both under one name would make
+// autoIndex fail on boot with an options conflict. Dropping the old one is a separate
+// migration, run after this ships — until then both exist and enforce the same rule.
+registrationSchema.index(
+  { eventId: 1, userId: 1 },
+  {
+    name: 'eventId_1_userId_1_account_unique',
+    unique: true,
+    partialFilterExpression: { userId: { $type: 'objectId' } }
+  }
+);
 registrationSchema.index({ userId: 1, registeredAt: -1 });
 registrationSchema.index({ eventId: 1, registeredAt: -1 });
 registrationSchema.index({ eventId: 1, paymentStatus: 1, registeredAt: -1 });
