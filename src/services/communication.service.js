@@ -702,6 +702,15 @@ async function sendEventEmail(eventKey, payload = {}) {
       email.renderedWaiver
     );
   }
+  if (eventKey === 'registration.cancelled') {
+    return emailService.sendRegistrationCancelledEmailToRunner(
+      email.to,
+      email.firstName,
+      email.eventTitle,
+      email.confirmationCode,
+      email.cancellationReason
+    );
+  }
   if (eventKey === 'payment.receipt_submitted') {
     return emailService.sendPaymentProofSubmittedEmailToOrganizer(
       email.to,
@@ -790,6 +799,7 @@ function getSubjectForEvent(eventKey, payload = {}) {
     'organiser.application_rejected': 'Update on Your Organizer Application - HelloRun',
     'event.published': `Event Published: ${eventTitle}`,
     'registration.confirmed': `Registration Confirmed: ${eventTitle}`,
+    'registration.cancelled': `Registration Cancelled: ${eventTitle}`,
     'payment.receipt_submitted': `Payment Receipt Submitted: ${eventTitle}`,
     'payment.approved': `Payment Approved: ${eventTitle}`,
     'payment.rejected': `Payment Rejected: ${eventTitle}`,

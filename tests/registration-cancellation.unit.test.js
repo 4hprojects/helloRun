@@ -67,6 +67,18 @@ test('the runner is told, through a registered communication event', () => {
   assert.match(service, /notify\('registration\.cancelled'/);
 });
 
+test('the cancellation event has an email sender and a subject', () => {
+  // sendEventEmail throws "No email sender registered" for an unknown key. Registering
+  // the event without wiring a sender would log an error on every cancellation while
+  // the registry advertised email as enabled.
+  const communication = read('src/services/communication.service.js');
+  const emailService = read('src/services/email.service.js');
+
+  assert.match(communication, /eventKey === 'registration\.cancelled'/);
+  assert.match(communication, /'registration\.cancelled': `Registration Cancelled/);
+  assert.match(emailService, /sendRegistrationCancelledEmailToRunner/);
+});
+
 test('the route is CSRF-protected, rate limited, and permission checked', () => {
   assert.match(routes, /registrants\/:registrationId\/cancel/);
   assert.match(routes, /requireCsrfProtection/);
