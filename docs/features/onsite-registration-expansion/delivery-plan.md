@@ -50,62 +50,57 @@ Verified against code and production on August 7, 2026.
 
 ### Done and deployed
 
-- [x] Onsite organiser surfaces: check-in console, live board, bibs, race kits, results.
-- [x] Approved onsite results reach rankings, leaderboard and certificates.
-- [x] Runner race pass; opaque, revocable bib QR tokens; bib scanning.
-- [x] Registration cancellation, organiser-initiated and runner-requested.
-- [x] Results import from CSV/XLSX; event-scoped race-day staff.
-- [x] Atomic race-category capacity — proven under concurrency.
-- [x] Migrations `022`, `023`, `024` applied; shadow repaired (events 353/353, users
-      599/599, registrations 1,957 synced).
-- [x] Guest registration **foundation and flow**: schema, partial index, tokens, the
-      registration form, the confirmation page, and the private management page.
+Onsite organiser surfaces · onsite results reaching rankings/leaderboard/certificates ·
+runner race pass · revocable QR tokens · bib scanning · cancellation both directions ·
+results import · race-day staff · atomic capacity · migrations `022`–`024` · shadow
+repaired · **guest registration complete** (foundation, flow, organiser toggle, claiming) ·
+critical audit writes fixed.
 
-### 1. Next code task — finish guest registration
+### 1. Unblocked by guest registration — do these next
 
-- [ ] **Claiming.** Nothing yet moves a guest registration onto an account. The claim
-      token type already exists (single-use, seven-day expiry); what is missing is the
-      flow: verify the email owns the registration, link it, mark the guest tokens
-      revoked, and fold it into the runner's registrations.
-- [ ] Expose `allowGuestRegistration` in the event builder. The field exists and defaults
-      off, but **no organiser can currently turn it on** — 0 events have it enabled, so
-      the flow is unreachable in production until this lands.
-- [ ] Link to the guest form from the public event page when it is enabled.
+Both were blocked *only* by the account requirement, which is now gone.
 
-### 2. Then — walk-in and registrant import
+- [ ] **Walk-in registration.** No organiser route creates a registration today (verified:
+      zero `new Registration(` under the organiser routes). An organiser registers someone
+      at the venue; reuse the guest service, marking the source as organiser-created.
+- [ ] **Registrant CSV/XLSX import.** Mirror the results import — preview, then commit,
+      with per-row outcomes. `exceljs` already reads both formats, and the guest path gives
+      it somewhere to put people who have no account.
 
-Both were blocked purely by the account requirement, which is now gone.
+### 2. Features with no existing foundation
 
-- [ ] Walk-in registration: an organiser registering someone at the venue.
-- [ ] Registrant CSV/XLSX import, mirroring the results import.
+- [ ] **Waitlist.** Confirmed absent — zero references anywhere. Needs event settings, a
+      waitlist state, promotion, and a deadline for the promoted runner to confirm.
+- [ ] **Per-size kit/shirt inventory.** Confirmed absent — no shirt-size field exists, so
+      this starts at registration, not at the kit table. `inventory_movements` is shop-only
+      and keyed on product variants; do not reuse it.
+- [ ] **Transfers.** Confirmed absent. Needs a policy decision first: who may transfer,
+      until when, and what happens to the money — the same shape as the refund question
+      that shaped runner cancellation.
 
-### 3. Yours, not code
+### 3. Operational hygiene — small, and each prevents a repeat
 
-- [ ] **Hands-on walkthrough on a draft event** — assign a bib, open the race pass, scan
-      it, release a kit, record and approve a result. Everything so far is automated tests
-      and synthetic probes; nobody has driven this in a browser.
-- [ ] **Step-competition verification.** `022` was applied because it blocked three
-      subsystems, but its own audit, legacy backfill and step-only smoke workflows were
-      never run. `FEATURE_STEP_COMPETITIONS_ENABLED` stays off until they pass.
-- [ ] **Decide on orphaned data.** 48 of 108 onsite registrations reference hard-deleted
-      events; 1,136 of 1,211 submissions reference deleted users or events. No backfill
-      can resolve these — prune the Mongo rows or leave them.
+- [ ] **`/healthz` should return the running commit.** There is no way to ask the app which
+      build it is. A whole debugging detour came from inferring it, wrongly, from a route
+      that 302s for every path.
+- [ ] **Make `postinstall` tessdata non-fatal.** It downloads from a third-party host on
+      every deploy. A missing OCR pack should degrade OCR, not block shipping the platform.
+- [ ] **Guard the live-DB test suites.** `npm test` still reaches production. Everything in
+      this work had to be run by hand with that risk held in mind.
 
-### 4. Remaining features
+### 4. Yours — verification and decisions I cannot make
 
-- [ ] Waitlist — nothing exists.
-- [ ] Per-size kit/shirt inventory — there is still no shirt-size field anywhere, so this
-      starts at registration. `inventory_movements` is shop-only; do not reuse it.
-- [ ] Transfers — needs a policy decision first: who may transfer, until when, and what
-      happens to the money.
-
-### 5. Operational hygiene
-
-- [ ] `postinstall` downloads tessdata from a third-party host on every deploy. A missing
-      OCR pack should degrade OCR, not block shipping the platform.
-- [ ] `/healthz` returns no build identifier. An entire debugging detour happened because
-      there was no way to ask the running app which commit it was, and the signal I
-      substituted was wrong.
+- [ ] **Hands-on walkthrough on a draft event.** Assign a bib, open the race pass, scan it,
+      release a kit, record and approve a result. Everything so far is automated tests and
+      synthetic probes; nobody has driven this in a browser.
+- [ ] **Step-competition smoke workflows.** `022` was applied because it blocked three
+      subsystems, but its own audit and step-only/legacy runs were never done.
+      `FEATURE_STEP_COMPETITIONS_ENABLED` stays off until they pass.
+- [ ] **Prune or keep orphaned data.** 48 of 108 onsite registrations reference
+      hard-deleted events; 1,136 of 1,211 submissions reference deleted users or events.
+      No backfill can resolve these.
+- [ ] **Accept the audit gap.** Every `audit_critical` write failed until August 7. Records
+      before then do not exist and cannot be reconstructed.
 
 ### Deferred
 
