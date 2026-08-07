@@ -82,6 +82,11 @@ const { buildRegistrationPagePresentation } = require('../../services/registrati
 const { getOnsiteStateForRegistrations } = require('../../services/onsite-roster.service');
 const { reserveCategorySlot, releaseCategorySlot } = require('../../services/category-capacity.service');
 const { requestCancellation } = require('../../services/registration-cancellation.service');
+const {
+  getClaimEligibilityError,
+  findClaimableRegistrations,
+  claimRegistration
+} = require('../../services/guest-registration-claim.service');
 const { renderBibQrCode } = require('../../services/bib-qr-token.service');
 const { getRunnerProfileCompleteness } = require('../../services/profile-completion.service');
 const {
@@ -644,6 +649,51 @@ exports.getMyRegistrations = async (req, res) => {
       status: 500,
       message: 'An error occurred while loading your registrations.'
     });
+  }
+};
+
+/**
+ * Guest registrations this account can take ownership of.
+ */
+exports.getClaimRegistrations = async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId)
+      .select('email emailVerified accountStatus firstName')
+      .lean();
+    if (!user) return res.redirect('/login');
+
+    return res.render('pages/claim-registrations', {
+      title: 'Claim a registration - HelloRun',
+      user,
+      eligibilityError: getClaimEligibilityError(user),
+      claimable: await findClaimableRegistrations(user),
+      message: getPageMessage(req.query)
+    });
+  } catch (error) {
+    logger.error('Error loading claimable registrations:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading your registrations.'
+    });
+  }
+};
+
+exports.postClaimRegistration = async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId)
+      .select('email emailVerified accountStatus')
+      .lean();
+    if (!user) return res.redirect('/login');
+
+    await claimRegistration({ registrationId: req.params.registrationId, user });
+    return res.redirect(
+      `/my-registrations?msg=${encodeURIComponent('That registration is now yours.')}`
+    );
+  } catch (error) {
+    return res.redirect(
+      `/my-registrations/claim?type=error&msg=${encodeURIComponent(error.message || 'Could not claim that registration.')}`
+    );
   }
 };
 

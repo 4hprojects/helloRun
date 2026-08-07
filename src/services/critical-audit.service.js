@@ -77,22 +77,14 @@ async function recordCriticalAuditEvents(inputs = [], options = {}) {
     };
   });
 
+  // No explicit column list before the helper. postgres.js picks which builder to use
+  // from the SQL immediately before it: with a `(...)` list in the way it fell through to
+  // its *select* builder and tried to escape each row object as a column name, failing
+  // with "str.replace is not a function". Every critical audit write threw here, and
+  // because the caller runs in the background the failure was only ever logged.
+  // `insert into t ${sql(rows, ...cols)}` emits the column list and the values together.
   const rows = await sql`
-    insert into audit_critical (
-      actor_user_id,
-      actor_mongo_user_id,
-      action,
-      target_type,
-      target_id,
-      status_from,
-      status_to,
-      notes,
-      ip_address,
-      user_agent,
-      idempotency_key,
-      created_at
-    )
-    ${sql(auditRows,
+    insert into audit_critical ${sql(auditRows,
       'actor_user_id',
       'actor_mongo_user_id',
       'action',

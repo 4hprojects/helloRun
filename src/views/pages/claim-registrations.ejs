@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/race-pass.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="race-pass-page" id="main-content">
+    <div class="race-pass-shell">
+      <header class="race-pass-header">
+        <p class="race-pass-kicker">Claim a registration</p>
+        <h1>Registrations made without an account</h1>
+      </header>
+
+      <% if (message) { %>
+        <p class="checkin-alert" role="status"><%= message.text %></p>
+      <% } %>
+
+      <% if (eligibilityError) { %>
+        <section class="guest-link-card">
+          <h2>Not available yet</h2>
+          <p><%= eligibilityError %></p>
+          <p class="race-pass-hint">
+            Claiming proves you own the email a registration was made with, so the address
+            on your account has to be verified first.
+          </p>
+        </section>
+      <% } else if (claimable.length === 0) { %>
+        <section class="guest-link-card">
+          <h2>Nothing to claim</h2>
+          <p>
+            We found no guest registrations made with <strong><%= user.email %></strong>.
+            If you registered with a different address, sign in with that one instead.
+          </p>
+          <p><a class="nav-login-btn" href="/my-registrations">Back to my registrations</a></p>
+        </section>
+      <% } else { %>
+        <p class="race-pass-hint">
+          These were registered with <strong><%= user.email %></strong>, which is verified on
+          your account. Claiming moves one across so you can submit results and receive a
+          certificate. Nothing moves until you choose it.
+        </p>
+
+        <ul class="checkin-list">
+          <% claimable.forEach(function (item) { %>
+            <li class="checkin-row">
+              <div class="checkin-row-identity">
+                <p class="checkin-row-name"><%= item.event ? item.event.title : 'Event unavailable' %></p>
+                <p class="checkin-row-meta">
+                  <%= item.confirmationCode %><% if (item.raceDistance) { %> · <%= item.raceDistance %><% } %> · <%= item.participationMode %>
+                </p>
+                <% if (item.blockedReason) { %>
+                  <p class="checkin-row-warning"><%= item.blockedReason %></p>
+                <% } %>
+              </div>
+              <div class="checkin-row-action">
+                <% if (item.blockedReason) { %>
+                  <p class="checkin-row-status checkin-row-status-blocked">Cannot claim</p>
+                <% } else { %>
+                  <form method="POST" action="/my-registrations/claim/<%= item.registrationId %>">
+                    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                    <button type="submit" class="nav-signup-btn checkin-action">Claim</button>
+                  </form>
+                <% } %>
+              </div>
+            </li>
+          <% }); %>
+        </ul>
+      <% } %>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

@@ -72,6 +72,12 @@ production services.
 
 ## Operational Work Pending
 
+- **Critical audit history has a gap.** Every `audit_critical` write failed until the
+  insert was fixed on August 7 — postgres.js was building a select rather than an
+  insert, and the background caller only logged it. Payment approvals, submission
+  reviews, cancellations and staff changes made before that date were not recorded and
+  cannot be reconstructed.
+
 - **Residual shadow gaps are orphaned data, not sync faults.** After repairing users,
   events, registrations and submissions on August 7, what remains points at records
   hard-deleted from Mongo: 48 of 108 onsite registrations reference deleted events, and

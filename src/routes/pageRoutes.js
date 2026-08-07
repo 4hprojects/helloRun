@@ -38,6 +38,12 @@ const resultSubmissionLimiter = createRateLimiter({
   message: 'Too many result submissions. Please wait a few minutes and try again.',
   keyFn: (req) => `result-submission|${req.session?.userId || req.ip || 'anon'}`
 });
+// Claiming moves a registration between owners, so it is worth bounding.
+const claimLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 20,
+  message: 'Too many claim attempts. Please wait a few minutes and try again.'
+});
 const quickProfileUpdateLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   maxRequests: 15,
@@ -85,6 +91,8 @@ router.get('/unsubscribe', requireAuth, async (req, res) => {
 
 router.get('/events', pageController.getEvents);
 router.get('/my-registrations', requireAuth, requireRunnerWorkspace, pageController.getMyRegistrations);
+router.get('/my-registrations/claim', requireAuth, requireRunnerWorkspace, pageController.getClaimRegistrations);
+router.post('/my-registrations/claim/:registrationId', requireAuth, requireRunnerWorkspace, requireCsrfProtection, claimLimiter, pageController.postClaimRegistration);
 router.get('/my-registrations/:registrationId/race-pass', requireAuth, requireRunnerWorkspace, pageController.getRacePass);
 router.post('/my-registrations/:registrationId/request-cancellation', requireAuth, requireRunnerWorkspace, requireCsrfProtection, pageController.postRequestCancellation);
 router.get('/events/:slug/register', requireAuth, requireRunnerWorkspace, pageController.getEventRegistrationForm);
