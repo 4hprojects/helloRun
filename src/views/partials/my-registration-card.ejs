@@ -20,6 +20,12 @@
       <div class="my-reg-card-status-line">
         <span class="my-reg-state my-reg-state-<%= item.stateTone %>"><%= item.stateLabel %></span>
         <span class="my-reg-confirmation"><i data-lucide="hash" aria-hidden="true"></i><span>Confirmation</span> <strong><%= item.confirmationCode %></strong></span>
+        <% if (registration.participationMode === 'onsite') { %>
+          <a class="my-reg-race-pass" href="/my-registrations/<%= item.registrationId %>/race-pass">
+            <i data-lucide="qr-code" aria-hidden="true"></i>
+            <span><% if (registration.onsite && registration.onsite.bibNumber) { %>Bib <%= registration.onsite.bibNumber %> · Race pass<% } else { %>Race pass<% } %></span>
+          </a>
+        <% } %>
       </div>
       <h3><% if (item.eventHref) { %><a href="<%= item.eventHref %>"><%= item.eventTitle %></a><% } else { %><%= item.eventTitle %><% } %></h3>
       <p class="my-reg-helper"><%= item.helperText %></p>

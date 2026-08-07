@@ -1,4 +1,5 @@
 'use strict';
+const mongoose = require('mongoose');
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../../utils/challenge-metrics');
 
 const {
@@ -78,6 +79,8 @@ const {
 } = require('./_shared');
 
 const { buildRegistrationPagePresentation } = require('../../services/registration-page-presentation.service');
+const { getOnsiteStateForRegistrations } = require('../../services/onsite-roster.service');
+const { generateBibQRCode } = require('../../services/qr-code.service');
 const { getRunnerProfileCompleteness } = require('../../services/profile-completion.service');
 const {
   MAX_RUNNING_GROUP_NAME_LENGTH,
@@ -601,6 +604,15 @@ exports.getMyRegistrations = async (req, res) => {
         submission: submissionsByRegistrationId.get(String(registration._id)) || null
       };
     });
+    // Bib and check-in state for onsite entries, so a runner can see their own race pass.
+    const onsiteRegistrationIds = enrichedRegistrations
+      .filter((registration) => registration.participationMode === 'onsite')
+      .map((registration) => String(registration._id));
+    const onsiteStateByRegistrationId = await getOnsiteStateForRegistrations(onsiteRegistrationIds);
+    for (const registration of enrichedRegistrations) {
+      registration.onsite = onsiteStateByRegistrationId.get(String(registration._id)) || null;
+    }
+
     const registrationPresentation = buildMyRegistrationsPresentation(enrichedRegistrations, {
       standardSubmissions: submissions,
       accumulatedActivities
@@ -622,6 +634,71 @@ exports.getMyRegistrations = async (req, res) => {
       title: 'Server Error',
       status: 500,
       message: 'An error occurred while loading your registrations.'
+    });
+  }
+};
+
+/**
+ * A runner's own race pass: bib number and the QR staff scan at check-in.
+ *
+ * The QR carries an opaque encrypted token, so a photo of it reveals nothing about the
+ * event or the runner and cannot be edited into a different bib.
+ */
+exports.getRacePass = async (req, res) => {
+  try {
+    const { registrationId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(String(registrationId || ''))) {
+      return res.status(404).render('error', {
+        title: '404 - Not Found',
+        status: 404,
+        message: 'Registration not found.'
+      });
+    }
+
+    // Scoped to the signed-in runner, so one race pass cannot be read from another.
+    const registration = await Registration.findOne({
+      _id: registrationId,
+      userId: req.session.userId
+    })
+      .select('eventId participationMode raceDistance confirmationCode participant paymentStatus')
+      .populate('eventId', 'title slug startDate venueName eventType eventTypesAllowed')
+      .lean();
+
+    if (!registration) {
+      return res.status(404).render('error', {
+        title: '404 - Not Found',
+        status: 404,
+        message: 'Registration not found.'
+      });
+    }
+
+    const onsiteState =
+      (await getOnsiteStateForRegistrations([String(registration._id)])).get(String(registration._id)) || null;
+
+    let qrDataUrl = '';
+    if (onsiteState?.bibNumber) {
+      try {
+        const qr = await generateBibQRCode(String(registration.eventId?._id || registration.eventId), onsiteState.bibNumber);
+        qrDataUrl = qr.data_url;
+      } catch (error) {
+        // The pass is still useful with the bib number alone.
+        logger.error('Race pass QR generation failed:', error);
+      }
+    }
+
+    return res.render('pages/race-pass', {
+      title: `Race pass - ${registration.eventId?.title || 'Event'}`,
+      registration,
+      event: registration.eventId || null,
+      onsite: onsiteState,
+      qrDataUrl
+    });
+  } catch (error) {
+    logger.error('Error loading race pass:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading your race pass.'
     });
   }
 };

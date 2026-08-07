@@ -68,6 +68,48 @@ async function getOnsiteStateByRegistrationId(eventId, registrationIds) {
 }
 
 /**
+ * Bib and check-in state for a runner's own registrations, keyed by registration id.
+ *
+ * Unlike the organiser roster this is not scoped to one event — a runner's list spans
+ * several. Returns an empty Map on failure so the registrations page still renders.
+ */
+async function getOnsiteStateForRegistrations(registrationIds) {
+  const ids = (registrationIds || []).map(String).filter(Boolean);
+  if (ids.length === 0) return new Map();
+
+  try {
+    const sql = getPostgresClient();
+    const rows = await sql`
+      SELECT
+        r.mongo_registration_id,
+        ba.bib_number,
+        ci.check_in_status,
+        ci.checked_in_at
+      FROM registrations r
+      LEFT JOIN bib_assignments ba
+        ON ba.registration_id = r.id AND ba.assignment_status <> 'voided'
+      LEFT JOIN check_ins ci
+        ON ci.registration_id = r.id
+      WHERE r.mongo_registration_id = ANY(${ids})
+    `;
+
+    return new Map(
+      rows.map((row) => [
+        row.mongo_registration_id,
+        {
+          bibNumber: row.bib_number || '',
+          isCheckedIn: row.check_in_status === 'checked_in',
+          checkedInAt: row.checked_in_at || null
+        }
+      ])
+    );
+  } catch (error) {
+    logger.error(`[Onsite] Runner onsite state lookup failed: ${error.message}`);
+    return new Map();
+  }
+}
+
+/**
  * Event-wide check-in progress, independent of the current search or page limit.
  * The list-scoped counts must never be shown as overall progress: on a 300-runner
  * event a 100-row page would otherwise report "checked in" for the page only.
@@ -261,6 +303,7 @@ async function getOnsiteRosterData(eventId, options = {}) {
 
 module.exports = {
   getOnsiteRosterData,
+  getOnsiteStateForRegistrations,
   getEventWideTotals,
   // exported for unit tests
   buildParticipantRow,

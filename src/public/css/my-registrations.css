@@ -275,6 +275,25 @@
 .my-reg-confirmation svg { width: 13px; height: 13px; }
 .my-reg-confirmation strong { color: #425148; font-family: "SFMono-Regular", Consolas, monospace; }
 
+/* Onsite entries carry a link to the runner's bib and check-in code. */
+.my-reg-race-pass {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: #17623f;
+  background: #e7f6ed;
+  font-size: .65rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.my-reg-race-pass:hover,
+.my-reg-race-pass:focus-visible { text-decoration: underline; }
+.my-reg-race-pass svg { width: 13px; height: 13px; }
+
 .my-reg-card h3 {
   margin: 0 0 4px;
   color: var(--reg-ink);
