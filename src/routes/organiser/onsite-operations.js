@@ -10,7 +10,7 @@ const {
   timeToMilliseconds
 } = require('../../services/result-import-validation.service');
 const Registration = require('../../models/Registration');
-const { resolveScannedQr } = require('../../services/qr-code.service');
+const { verifyScannedBibCode, revokeTokensForBib } = require('../../services/bib-qr-token.service');
 const { findRegistrationByExactBib } = require('../../services/onsite-roster.service');
 const { uploadResultSheet } = require('../../services/upload.service');
 const { generateErrorCSV } = require('../../services/result-import-validation.service');
@@ -73,6 +73,9 @@ router.post('/events/:eventId/bibs/assign', protectOnsiteMutation('check_in'), a
       return res.status(400).json({ error: 'registrationId and bibNumber required' });
     }
 
+    // The bib is changing hands or number, so any code already printed for it stops
+    // working — otherwise the previous holder's QR would still check someone in.
+    await revokeTokensForBib(eventId, bibNumber, 'Bib reassigned');
     const bibRecord = await assignBib(eventId, registrationId, bibNumber, { category });
 
     res.status(201).json({
@@ -99,15 +102,28 @@ router.post('/events/:eventId/check-in/scan', protectOnsiteMutation('check_in'),
       return res.status(400).json({ outcome: 'invalid', message: 'Nothing was scanned.' });
     }
 
-    const resolved = resolveScannedQr(scanned);
-    if (!resolved.success) {
+    const resolved = await verifyScannedBibCode(eventId, scanned);
+    if (resolved.outcome === 'invalid') {
       return res.status(400).json({ outcome: 'invalid', message: 'That code is not a HelloRun bib.' });
     }
-
-    if (String(resolved.eventId) !== String(eventId)) {
+    if (resolved.outcome === 'wrong_event') {
       return res.status(409).json({
         outcome: 'wrong_event',
         message: 'That bib belongs to a different event.'
+      });
+    }
+    if (resolved.outcome === 'revoked') {
+      return res.status(409).json({
+        outcome: 'revoked',
+        message: resolved.reason
+          ? `That code was withdrawn: ${resolved.reason}.`
+          : 'That code has been withdrawn. Issue the runner a new one.'
+      });
+    }
+    if (resolved.outcome === 'unknown') {
+      return res.status(409).json({
+        outcome: 'unknown',
+        message: 'That code is not recognised for this event.'
       });
     }
 
@@ -141,7 +157,7 @@ router.post('/events/:eventId/check-in/scan', protectOnsiteMutation('check_in'),
 
     const checkIn = await recordCheckIn(eventId, match.registrationId, {
       participationMode: 'onsite',
-      verificationMethod: resolved.format === 'token' ? 'bib_scan' : 'bib_scan_legacy'
+      verificationMethod: resolved.legacy ? 'bib_scan_legacy' : 'bib_scan'
     });
 
     const alreadyCheckedIn = Boolean(checkIn.was_already_checked_in);
@@ -151,8 +167,8 @@ router.post('/events/:eventId/check-in/scan', protectOnsiteMutation('check_in'),
     if (registration.paymentStatus && registration.paymentStatus !== 'paid') {
       warnings.push(`Payment is ${registration.paymentStatus}.`);
     }
-    if (resolved.format === 'legacy') {
-      warnings.push('Scanned an older bib code.');
+    if (resolved.legacy) {
+      warnings.push('Scanned an older bib code that predates revocation.');
     }
 
     return res.json({

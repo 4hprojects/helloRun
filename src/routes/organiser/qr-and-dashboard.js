@@ -8,11 +8,11 @@ const {
   protectEventMutation,
   protectEventRead
 } = require('./event-route-protection');
-const { 
-  generateBibQRCode, 
-  generateBatchQRCodes,
-  decodeQRData
-} = require('../../services/qr-code.service');
+const { generateBatchQRCodes } = require('../../services/qr-code.service');
+const {
+  renderBibQrCode,
+  verifyScannedBibCode
+} = require('../../services/bib-qr-token.service');
 const {
   getRealtimeCheckInSummary,
   getRecentCheckIns,
@@ -32,7 +32,7 @@ router.get('/events/:eventId/bibs/:bibNumber/qr', protectEventRead, async (req, 
       return res.status(400).json({ error: 'Missing eventId or bibNumber' });
     }
 
-    const qr = await generateBibQRCode(eventId, bibNumber);
+    const qr = await renderBibQrCode(eventId, bibNumber);
 
     res.json({
       success: true,
@@ -76,9 +76,8 @@ router.post('/events/:eventId/bibs/qr/batch', protectEventMutation, async (req, 
   }
 });
 
-// Decode QR code
+// Decode a scanned code, honouring revocation.
 // POST /organizer/events/:eventId/bibs/qr/decode
-// Body: { qr_data: 'EVENT:...|BIB:...|TIME:...' }
 router.post('/events/:eventId/bibs/qr/decode', protectEventMutation, async (req, res) => {
   try {
     const { eventId } = req.params;
@@ -88,22 +87,21 @@ router.post('/events/:eventId/bibs/qr/decode', protectEventMutation, async (req,
       return res.status(400).json({ error: 'Missing qr_data' });
     }
 
-    const decoded = decodeQRData(qr_data);
+    const verified = await verifyScannedBibCode(eventId, qr_data);
 
-    if (!decoded.success) {
-      return res.status(400).json({ error: decoded.error });
-    }
-
-    if (String(decoded.eventId) !== String(eventId)) {
-      return res.status(400).json({ error: 'QR code does not belong to this event' });
+    if (verified.outcome !== 'ok') {
+      return res.status(400).json({
+        error: describeQrOutcome(verified),
+        outcome: verified.outcome
+      });
     }
 
     res.json({
       success: true,
-      eventId: decoded.eventId,
-      bibNumber: decoded.bibNumber,
-      scanned_at: new Date(decoded.timestamp * 1000).toISOString(),
-      timestamp: decoded.timestamp
+      eventId,
+      bibNumber: verified.bibNumber,
+      legacy: verified.legacy,
+      scanned_at: new Date().toISOString()
     });
   } catch (error) {
     return sendJsonServerError(res, 'Error decoding QR:', error);
@@ -196,5 +194,19 @@ router.get('/events/:eventId/check-in-dashboard/poll', protectEventRead, async (
     return sendJsonServerError(res, 'Error polling dashboard:', error);
   }
 });
+
+/**
+ * Turn a verification outcome into something a person can act on.
+ */
+function describeQrOutcome(verified) {
+  if (verified.outcome === 'wrong_event') return 'That bib belongs to a different event.';
+  if (verified.outcome === 'revoked') {
+    return verified.reason
+      ? `That code was withdrawn: ${verified.reason}.`
+      : 'That code has been withdrawn.';
+  }
+  if (verified.outcome === 'unknown') return 'That code is not recognised for this event.';
+  return verified.error || 'That code could not be read.';
+}
 
 module.exports = router;

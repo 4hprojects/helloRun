@@ -24,11 +24,14 @@ function getQrSecret() {
  * photographed a bib learned a live database id, and nothing stopped them editing it.
  * This is encrypted and authenticated, so it reveals nothing and cannot be altered.
  */
-function createBibToken(eventId, bibNumber) {
+function createBibToken(eventId, bibNumber, tokenId = '') {
   const payload = JSON.stringify({
     e: String(eventId),
     b: String(bibNumber),
-    t: Math.floor(Date.now() / 1000)
+    t: Math.floor(Date.now() / 1000),
+    // Identity of the revocable token, when one has been issued. Absent for codes
+    // minted before revocation existed, which still decode and are reported as such.
+    ...(tokenId ? { j: String(tokenId) } : {})
   });
   return QR_TOKEN_PREFIX + encryptForPurpose(payload, {
     secret: getQrSecret(),
@@ -60,6 +63,7 @@ function readBibToken(token) {
       eventId: String(parsed.e),
       bibNumber: String(parsed.b),
       timestamp: Number.parseInt(parsed.t, 10) || 0,
+      tokenId: parsed.j ? String(parsed.j) : '',
       format: 'token'
     };
   } catch (_error) {
@@ -90,7 +94,7 @@ function resolveScannedQr(scanned) {
  */
 async function generateBibQRCode(eventId, bibNumber, options = {}) {
   const timestamp = Math.floor(Date.now() / 1000);
-  const qrData = createBibToken(eventId, bibNumber);
+  const qrData = createBibToken(eventId, bibNumber, options.tokenId);
 
   try {
     // Generate QR code as data URL
@@ -122,7 +126,7 @@ async function generateBibQRCode(eventId, bibNumber, options = {}) {
  */
 async function generateBibQRCodeBuffer(eventId, bibNumber, options = {}) {
   const timestamp = Math.floor(Date.now() / 1000);
-  const qrData = createBibToken(eventId, bibNumber);
+  const qrData = createBibToken(eventId, bibNumber, options.tokenId);
 
   try {
     const buffer = await QRCode.toBuffer(qrData, {
@@ -149,7 +153,7 @@ async function generateBibQRCodeBuffer(eventId, bibNumber, options = {}) {
  */
 async function generateBibQRCodeSVG(eventId, bibNumber, options = {}) {
   const timestamp = Math.floor(Date.now() / 1000);
-  const qrData = createBibToken(eventId, bibNumber);
+  const qrData = createBibToken(eventId, bibNumber, options.tokenId);
 
   try {
     const svgString = await QRCode.toString(qrData, {

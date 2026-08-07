@@ -30,6 +30,8 @@ core platform:
   releases the bib;
 - atomic race-category capacity reservation, replacing a count-then-insert that
   let two runners take the same last slot;
+- revocable bib QR codes, withdrawn on cancellation and bib reassignment, with
+  scanning distinguishing withdrawn from unrecognised and unreadable;
 - results import from a CSV or XLSX with preview-then-commit, and event-scoped
   race-day staff who can be given `check_in`, `race_kit`, or `results` access to a
   single event without touching the global `User.role`; and runner-initiated

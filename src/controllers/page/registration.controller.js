@@ -82,7 +82,7 @@ const { buildRegistrationPagePresentation } = require('../../services/registrati
 const { getOnsiteStateForRegistrations } = require('../../services/onsite-roster.service');
 const { reserveCategorySlot, releaseCategorySlot } = require('../../services/category-capacity.service');
 const { requestCancellation } = require('../../services/registration-cancellation.service');
-const { generateBibQRCode } = require('../../services/qr-code.service');
+const { renderBibQrCode } = require('../../services/bib-qr-token.service');
 const { getRunnerProfileCompleteness } = require('../../services/profile-completion.service');
 const {
   MAX_RUNNING_GROUP_NAME_LENGTH,
@@ -708,7 +708,11 @@ exports.getRacePass = async (req, res) => {
     let qrDataUrl = '';
     if (onsiteState?.bibNumber) {
       try {
-        const qr = await generateBibQRCode(String(registration.eventId?._id || registration.eventId), onsiteState.bibNumber);
+        const qr = await renderBibQrCode(
+          String(registration.eventId?._id || registration.eventId),
+          onsiteState.bibNumber,
+          registration._id
+        );
         qrDataUrl = qr.data_url;
       } catch (error) {
         // The pass is still useful with the bib number alone.

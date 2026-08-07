@@ -35,7 +35,7 @@ The gap was that no organiser UI existed for any of it.
 | Runner-initiated cancellation, as an organiser-approved request | Done, repository-verified — needed no migration |
 | Onsite pages linked from event-details | Done, repository-verified |
 | Real Phase 7 test coverage (placebo files removed) | Done, repository-verified |
-| QR token *revocation* | Not started — the only part still needing a token store |
+| QR token *revocation* | **Done, deployed August 7, 2026** — needed no migration |
 | Atomic capacity reservation | **Done, deployed August 7, 2026** — proven under concurrency |
 | Walk-in registration | **Blocked** — needs guest registration (see below) |
 | Guest registration, waitlist, inventory, transfers, form builder | Not started |
@@ -73,9 +73,9 @@ Verified against the code on August 7, 2026.
       takes the slot, so the check and the claim cannot come apart; verified live with 20
       concurrent attempts at 3 slots giving exactly 3 winners. No event currently uses a
       slot limit, so the change had zero production exposure and the backfill was a no-op.
-- [ ] **QR token revocation.** The token is already opaque and tamper-evident; only
-      revocation is missing, and it needs somewhere to store token hashes. Confirmed: no
-      token store exists today.
+- [x] **QR token revocation.** Done, and it needed no migration — a Mongo collection
+      suffices. Identity is stable across renders so a runner's screenshot survives, and
+      revocation fires on cancellation and on bib reassignment.
 - [ ] **Guest registration.** Unblocks three things at once — itself, walk-in
       registration, and registrant import. Two migrations: `Registration.userId` is
       `required` with a unique `{eventId, userId}` index, and `runner_user_id` is
