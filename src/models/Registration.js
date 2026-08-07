@@ -189,6 +189,24 @@ const registrationSchema = new mongoose.Schema(
       type: Date,
       default: Date.now
     },
+    // Cancellation. `status` already carried 'cancelled', but nothing ever set it and
+    // there was nowhere to record why or by whom. Optional, so existing records are
+    // unaffected and no backfill is needed.
+    cancelledAt: {
+      type: Date,
+      default: null
+    },
+    cancelledBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    cancellationReason: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 500
+    },
     accumulatedCertificateFinalization: {
       state: {
         type: String,

@@ -163,3 +163,42 @@ body.organizer-roster-dialog-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .organizer-roster-filter-chevron, .organizer-roster-icon-action > span, .organizer-roster-icon-action svg { transition: none; }
 }
+
+/* Registration cancellation. Kept inside the details disclosure and behind the
+   shared high-risk confirm, so it is never a one-tap action from the roster row. */
+.organizer-roster-cancel-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e4e9e5;
+}
+
+.organizer-roster-cancel-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: .75rem;
+  color: #55645b;
+}
+
+.organizer-roster-cancel-form input {
+  padding: 8px;
+  border: 1px solid #d5ded8;
+  border-radius: 6px;
+  font-size: .8rem;
+}
+
+.organizer-roster-cancel-form button {
+  align-self: flex-start;
+  min-height: 44px;
+}
+
+.organizer-roster-cancelled-note {
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid #e4e9e5;
+  font-size: .8rem;
+  color: #8a5a12;
+}

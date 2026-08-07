@@ -11,7 +11,9 @@ const {
   AccumulatedActivitySubmission,
   ExcelJS,
   requireAuth,
+  requireCsrfProtection,
   registrantExportLimiter,
+  registrantCancellationLimiter,
   getCountryName,
   buildAccumulatedProgress,
   getAccumulatedActivitiesForRegistrations,
@@ -37,6 +39,7 @@ const {
   getRequestUserAgent
 } = require('./_shared');
 const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('../../services/accumulated-target.service');
+const { cancelRegistration } = require('../../services/registration-cancellation.service');
 
 function formatRegistrantDateTime(value) {
   if (!value) return '';
@@ -303,6 +306,57 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
 /* ==========================================
    GET: Export Registrants (CSV)
    ========================================== */
+
+// Cancel a registration. Frees the category slot (the capacity check counts confirmed
+// registrations), voids the bib so it can be reissued, and stops any check-in counting.
+router.post(
+  '/events/:id/registrants/:registrationId/cancel',
+  requireAuth,
+  requireCsrfProtection,
+  registrantCancellationLimiter,
+  async (req, res) => {
+    const listPath = `/organizer/events/${req.params.id}/registrants`;
+    try {
+      const user = await User.findById(req.session.userId);
+      if (!user || !canAccessRegistrantReview(user)) {
+        return res.status(403).render('error', {
+          title: '403 - Access Denied',
+          status: 403,
+          message: 'Only approved organizers or admins can cancel a registration.'
+        });
+      }
+
+      const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
+      if (!event) {
+        return res.status(404).render('error', {
+          title: '404 - Event Not Found',
+          status: 404,
+          message: 'Event not found.'
+        });
+      }
+
+      const { registration, onsite } = await cancelRegistration({
+        registrationId: req.params.registrationId,
+        eventId: event._id,
+        actorUserId: user._id,
+        reason: req.body?.reason
+      });
+
+      const name = [registration.participant?.firstName, registration.participant?.lastName]
+        .filter(Boolean)
+        .join(' ') || 'The registration';
+      const suffix = onsite.released ? ' The bib is free to reissue.' : '';
+      return res.redirect(
+        `${listPath}?msg=${encodeURIComponent(`${name} was cancelled.${suffix}`)}`
+      );
+    } catch (error) {
+      logger.error('Error cancelling registration:', error);
+      return res.redirect(
+        `${listPath}?type=error&msg=${encodeURIComponent(error.message || 'Could not cancel that registration.')}`
+      );
+    }
+  }
+);
 
 router.get('/events/:id/registrants/export', requireAuth, registrantExportLimiter, async (req, res) => {
   try {
