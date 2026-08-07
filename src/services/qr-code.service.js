@@ -95,28 +95,32 @@ async function generateBibQRCodeSVG(eventId, bibNumber, options = {}) {
  * Decode and validate QR code data
  */
 function decodeQRData(qrData) {
-  try {
-    const parts = qrData.split('|');
-    const decoded = {};
-
-    for (const part of parts) {
-      const [key, value] = part.split(':');
-      decoded[key] = value;
-    }
-
-    return {
-      success: true,
-      eventId: decoded.EVENT,
-      bibNumber: decoded.BIB,
-      timestamp: parseInt(decoded.TIME),
-      raw: decoded
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: `Invalid QR data format: ${error.message}`
-    };
+  if (typeof qrData !== 'string' || qrData.trim() === '') {
+    return { success: false, error: 'Invalid QR data format: empty payload' };
   }
+
+  const decoded = {};
+  for (const part of qrData.split('|')) {
+    // Split on the first colon only, so a value containing one is preserved.
+    const separatorIndex = part.indexOf(':');
+    if (separatorIndex === -1) continue;
+    decoded[part.slice(0, separatorIndex)] = part.slice(separatorIndex + 1);
+  }
+
+  // Every field must be present. Without this the function reported success for any
+  // input that merely failed to throw, handing callers undefined ids and a NaN time.
+  const timestamp = Number.parseInt(decoded.TIME, 10);
+  if (!decoded.EVENT || !decoded.BIB || !Number.isFinite(timestamp)) {
+    return { success: false, error: 'Invalid QR data format: expected EVENT, BIB and TIME' };
+  }
+
+  return {
+    success: true,
+    eventId: decoded.EVENT,
+    bibNumber: decoded.BIB,
+    timestamp,
+    raw: decoded
+  };
 }
 
 /**

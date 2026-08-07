@@ -15,19 +15,20 @@ async function getRealtimeCheckInSummary(eventId) {
   const sql = getPostgresClient();
 
   try {
+    // Onsite-only, matching the check-in console and the completion estimate.
     const result = await sql`
-      SELECT 
-        COUNT(*) as total_registrations,
-        COUNT(CASE WHEN ci.check_in_status = 'checked_in' THEN 1 END) as checked_in_count,
-        COUNT(CASE WHEN ci.check_in_status = 'no_show' THEN 1 END) as no_show_count,
-        COUNT(CASE WHEN ci.check_in_status = 'deferred' THEN 1 END) as deferred_count,
-        COUNT(CASE WHEN ci.check_in_status IS NULL THEN 1 END) as pending_count,
-        MAX(ci.checked_in_at) as last_checkin,
-        COUNT(DISTINCT ci.participation_mode) as participation_modes
+      SELECT
+        COUNT(*)::int as total_registrations,
+        COUNT(CASE WHEN ci.check_in_status = 'checked_in' THEN 1 END)::int as checked_in_count,
+        COUNT(CASE WHEN ci.check_in_status = 'no_show' THEN 1 END)::int as no_show_count,
+        COUNT(CASE WHEN ci.check_in_status = 'deferred' THEN 1 END)::int as deferred_count,
+        COUNT(CASE WHEN ci.check_in_status IS NULL THEN 1 END)::int as pending_count,
+        MAX(ci.checked_in_at) as last_checkin
       FROM registrations r
       LEFT JOIN check_ins ci ON r.id = ci.registration_id
       LEFT JOIN events_core e ON r.event_core_id = e.id
       WHERE e.mongo_event_id = ${eventId}
+        AND r.participation_mode = 'onsite'
     `;
 
     return {
@@ -39,8 +40,7 @@ async function getRealtimeCheckInSummary(eventId) {
         no_show_count: 0,
         deferred_count: 0,
         pending_count: 0,
-        last_checkin: null,
-        participation_modes: 0
+        last_checkin: null
       }
     };
   } catch (error) {
@@ -153,21 +153,24 @@ async function getCheckInVelocity(eventId, windowMinutes = 5) {
   const sql = getPostgresClient();
 
   try {
+    // make_interval takes a bound parameter. An INTERVAL '...' literal cannot:
+    // the placeholder would sit inside the string and Postgres would reject it.
     const result = await sql`
-      SELECT 
-        COUNT(*) as check_in_count,
-        COUNT(*) / ${windowMinutes} as per_minute
+      SELECT
+        COUNT(*)::int as check_in_count
       FROM check_ins ci
       LEFT JOIN events_core e ON ci.event_core_id = e.id
       WHERE e.mongo_event_id = ${eventId}
-        AND ci.checked_in_at > CURRENT_TIMESTAMP - INTERVAL '${windowMinutes} minutes'
+        AND ci.checked_in_at > CURRENT_TIMESTAMP - make_interval(mins => ${windowMinutes})
     `;
+
+    const checkInCount = result[0]?.check_in_count || 0;
 
     return {
       success: true,
       window_minutes: windowMinutes,
-      check_in_count: result[0]?.check_in_count || 0,
-      check_ins_per_minute: parseFloat(result[0]?.per_minute || 0).toFixed(2)
+      check_in_count: checkInCount,
+      check_ins_per_minute: (checkInCount / windowMinutes).toFixed(2)
     };
   } catch (error) {
     throw new Error(`Failed to get check-in velocity: ${error.message}`);
@@ -181,46 +184,53 @@ async function estimateCheckInCompletion(eventId) {
   const sql = getPostgresClient();
 
   try {
-    // Get total registered
+    // Scoped to onsite registrations so the board agrees with the check-in console,
+    // which also counts only onsite participants.
     const totalRows = await sql`
-      SELECT COUNT(*) as total FROM registrations r
+      SELECT COUNT(*)::int as total FROM registrations r
       JOIN events_core e ON r.event_core_id = e.id
       WHERE e.mongo_event_id = ${eventId}
+        AND r.participation_mode = 'onsite'
     `;
     const totalExpected = totalRows[0]?.total || 0;
 
-    // Get current checked-in
     const checkedRows = await sql`
-      SELECT COUNT(*) as checked_in FROM check_ins ci
+      SELECT COUNT(*)::int as checked_in FROM check_ins ci
       JOIN events_core e ON ci.event_core_id = e.id
       WHERE e.mongo_event_id = ${eventId} AND ci.check_in_status = 'checked_in'
     `;
     const checkedIn = checkedRows[0]?.checked_in || 0;
 
-    // Get check-in velocity (last 5 minutes)
+    const velocityWindowMinutes = 5;
     const velocityRows = await sql`
-      SELECT COUNT(*) as recent_count
+      SELECT COUNT(*)::int as recent_count
       FROM check_ins ci
       JOIN events_core e ON ci.event_core_id = e.id
       WHERE e.mongo_event_id = ${eventId}
-        AND ci.checked_in_at > CURRENT_TIMESTAMP - INTERVAL '5 minutes'
+        AND ci.checked_in_at > CURRENT_TIMESTAMP - make_interval(mins => ${velocityWindowMinutes})
     `;
-    const recentCount = velocityRows[0]?.recent_count || 1;
-    const checkInsPerMinute = recentCount / 5 || 0.1; // Avoid division by zero
+    const recentCount = velocityRows[0]?.recent_count || 0;
+    const checkInsPerMinute = recentCount / velocityWindowMinutes;
 
-    // Estimate remaining time
-    const remaining = totalExpected - checkedIn;
-    const estimatedMinutesRemaining = checkInsPerMinute > 0 ? remaining / checkInsPerMinute : 0;
+    const remaining = Math.max(totalExpected - checkedIn, 0);
+
+    // With no recent arrivals there is no basis for an estimate. Reporting null is
+    // honest; the previous code defaulted the window to one arrival and produced a
+    // confident-looking completion time out of nothing.
+    const canEstimate = checkInsPerMinute > 0 && remaining > 0;
+    const estimatedMinutesRemaining = canEstimate ? Math.ceil(remaining / checkInsPerMinute) : null;
 
     return {
       success: true,
       total_expected: totalExpected,
       checked_in: checkedIn,
-      remaining: remaining,
-      percentage_complete: totalExpected > 0 ? ((checkedIn / totalExpected) * 100).toFixed(1) : 0,
-      check_ins_per_minute: parseFloat(checkInsPerMinute).toFixed(2),
-      estimated_minutes_remaining: Math.ceil(estimatedMinutesRemaining),
-      estimated_completion_time: new Date(Date.now() + estimatedMinutesRemaining * 60000).toISOString()
+      remaining,
+      percentage_complete: totalExpected > 0 ? ((checkedIn / totalExpected) * 100).toFixed(1) : '0.0',
+      check_ins_per_minute: checkInsPerMinute.toFixed(2),
+      estimated_minutes_remaining: estimatedMinutesRemaining,
+      estimated_completion_time: estimatedMinutesRemaining === null
+        ? null
+        : new Date(Date.now() + estimatedMinutesRemaining * 60000).toISOString()
     };
   } catch (error) {
     throw new Error(`Failed to estimate completion: ${error.message}`);

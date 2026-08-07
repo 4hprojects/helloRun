@@ -42,7 +42,8 @@ async function assignBib(eventId, registrationId, bibNumber, options = {}) {
       throw new Error(`Bib number ${bibNumber} already assigned for this event`);
     }
 
-    // Insert or update bib assignment
+    // Insert or reassign. The conflict target is the partial unique index added in
+    // migration 023; a voided bib is excluded, so voiding then reassigning works.
     const result = await sql`
       INSERT INTO bib_assignments (
         event_core_id, registration_id, runner_user_id, bib_number, category,
@@ -51,8 +52,10 @@ async function assignBib(eventId, registrationId, bibNumber, options = {}) {
         ${eventCoreId}, ${registrationCoreId}, ${runnerUserId}, ${bibNumber}, ${options.category || null},
         'assigned', CURRENT_TIMESTAMP
       )
-      ON CONFLICT (mongo_bib_assignment_id) DO UPDATE SET
+      ON CONFLICT (event_core_id, registration_id) WHERE assignment_status <> 'voided'
+      DO UPDATE SET
         bib_number = EXCLUDED.bib_number,
+        category = COALESCE(EXCLUDED.category, bib_assignments.category),
         updated_at = CURRENT_TIMESTAMP
       RETURNING *
     `;
@@ -63,6 +66,80 @@ async function assignBib(eventId, registrationId, bibNumber, options = {}) {
     return result[0];
   } catch (error) {
     logger.error(`[Onsite] Error assigning bib: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Assign bibs to several registrations in one operation.
+ * Each row is attempted independently so one bad row cannot discard the rest; the
+ * caller gets a per-row outcome to show a result summary.
+ *
+ * @param {string} eventId - MongoDB event ID
+ * @param {Array<{registrationId: string, bibNumber: string, category?: string}>} assignments
+ * @returns {Promise<{assigned: Array, failed: Array}>}
+ */
+async function assignBibsInBulk(eventId, assignments) {
+  const assigned = [];
+  const failed = [];
+
+  for (const assignment of assignments) {
+    const registrationId = String(assignment?.registrationId || '').trim();
+    const bibNumber = String(assignment?.bibNumber || '').trim();
+
+    if (!registrationId || !bibNumber) {
+      failed.push({ registrationId, bibNumber, error: 'registrationId and bibNumber required' });
+      continue;
+    }
+
+    try {
+      const record = await assignBib(eventId, registrationId, bibNumber, {
+        category: assignment.category
+      });
+      assigned.push({ registrationId, bibNumber: record.bib_number });
+    } catch (error) {
+      failed.push({ registrationId, bibNumber, error: error.message });
+    }
+  }
+
+  return { assigned, failed };
+}
+
+/**
+ * Mark a participant's race kit as released.
+ * The Phase 7 schema has no per-participant kit record, so pickup is tracked on the
+ * bib assignment. A bib must exist first.
+ *
+ * @param {string} eventId - MongoDB event ID
+ * @param {string} registrationId - MongoDB registration ID
+ * @returns {Promise<Object>} Updated bib assignment
+ */
+async function markRaceKitReleased(eventId, registrationId) {
+  const sql = getPostgresClient();
+
+  try {
+    const result = await sql`
+      UPDATE bib_assignments ba
+      SET assignment_status = 'picked_up',
+          picked_up_at = COALESCE(ba.picked_up_at, CURRENT_TIMESTAMP),
+          updated_at = CURRENT_TIMESTAMP
+      FROM registrations r, events_core e
+      WHERE ba.registration_id = r.id
+        AND ba.event_core_id = e.id
+        AND r.mongo_registration_id = ${String(registrationId)}
+        AND e.mongo_event_id = ${String(eventId)}
+        AND ba.assignment_status <> 'voided'
+      RETURNING ba.*
+    `;
+
+    if (result.length === 0) {
+      throw new Error('No live bib assignment found for this registration. Assign a bib first.');
+    }
+
+    logger.debug(`[Onsite] Race kit released for registration ${registrationId} at event ${eventId}`);
+    return result[0];
+  } catch (error) {
+    logger.error(`[Onsite] Error releasing race kit: ${error.message}`);
     throw error;
   }
 }
@@ -100,7 +177,11 @@ async function recordCheckIn(eventId, registrationId, options = {}) {
     `;
     const bibAssignmentId = bibRows.length > 0 ? bibRows[0].id : null;
 
-    // Insert check-in
+    // Upsert against the unique index added in migration 023, so a repeated scan
+    // updates the existing row instead of creating a second check-in. The original
+    // checked_in_at is preserved — the first scan is the meaningful arrival time.
+    // xmax is non-zero only when this statement updated an existing row, which is how
+    // we distinguish a repeat scan from a first one without a separate racy read.
     const result = await sql`
       INSERT INTO check_ins (
         event_core_id, registration_id, runner_user_id, bib_assignment_id,
@@ -110,7 +191,14 @@ async function recordCheckIn(eventId, registrationId, options = {}) {
         ${options.participationMode || 'onsite'}, 'checked_in', CURRENT_TIMESTAMP,
         ${options.verificationMethod || 'manual'}, ${options.notes || null}
       )
-      RETURNING *
+      ON CONFLICT (event_core_id, registration_id) DO UPDATE SET
+        check_in_status = 'checked_in',
+        checked_in_at = COALESCE(check_ins.checked_in_at, EXCLUDED.checked_in_at),
+        bib_assignment_id = COALESCE(EXCLUDED.bib_assignment_id, check_ins.bib_assignment_id),
+        verification_method = EXCLUDED.verification_method,
+        notes = COALESCE(EXCLUDED.notes, check_ins.notes),
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING *, (xmax <> 0) AS was_already_checked_in
     `;
 
     if (result.length === 0) throw new Error('Failed to record check-in');
@@ -264,6 +352,14 @@ async function recordOnsiteResult(eventId, registrationId, resultData) {
         performedBy: resultData.performedBy || null,
         sql
       });
+      // Recording straight to approved (the timing-system webhook does this) must reach
+      // rankings and certificates the same way an explicit approval does.
+      const submissionOutcome = await materialiseResultAsSubmission(result[0], {
+        sql,
+        eventId,
+        performedBy: resultData.performedBy || null
+      });
+      Object.assign(result[0], submissionOutcome);
     }
 
     logger.debug(`[Onsite] Result recorded for registration ${registrationId} at event ${eventId}`);
@@ -271,6 +367,42 @@ async function recordOnsiteResult(eventId, registrationId, resultData) {
   } catch (error) {
     logger.error(`[Onsite] Error recording onsite result: ${error.message}`);
     throw error;
+  }
+}
+
+/**
+ * Turn an approved onsite result into an approved Submission so it reaches rankings,
+ * the leaderboard and certificates.
+ *
+ * The approval itself is already committed in Postgres by the time this runs, so a
+ * failure here must not throw — but it must not be silent either, or staff would think
+ * a finisher is ranked when they are not. The reason is returned for display.
+ */
+async function materialiseResultAsSubmission(resultRow, { sql, eventId, performedBy }) {
+  try {
+    const rows = await sql`
+      SELECT r.mongo_registration_id
+      FROM registrations r
+      WHERE r.id = ${resultRow.registration_id}
+      LIMIT 1
+    `;
+    if (rows.length === 0) {
+      return { submissionCreated: false, submissionError: 'Registration record not found.' };
+    }
+
+    const { materialiseApprovedOnsiteResult } = require('./onsite-result-submission.service');
+    const submission = await materialiseApprovedOnsiteResult({
+      mongoEventId: eventId,
+      mongoRegistrationId: rows[0].mongo_registration_id,
+      elapsedMs: resultRow.elapsed_ms,
+      distanceKm: resultRow.race_distance_km,
+      performedBy
+    });
+
+    return { submissionCreated: true, submissionId: String(submission._id) };
+  } catch (error) {
+    logger.error(`[Onsite] Could not materialise result ${resultRow?.id} as a submission: ${error.message}`);
+    return { submissionCreated: false, submissionError: error.message };
   }
 }
 
@@ -299,9 +431,16 @@ async function approveOnsiteResult(eventId, onsiteResultId, options = {}) {
       sql
     });
 
+    const submissionOutcome = await materialiseResultAsSubmission(result[0], {
+      sql,
+      eventId,
+      performedBy: options.performedBy || null
+    });
+
     return {
       result: result[0],
-      awards
+      awards,
+      ...submissionOutcome
     };
   } catch (error) {
     logger.error(`[Onsite] Error approving onsite result: ${error.message}`);
@@ -353,6 +492,8 @@ async function getEventBibAssignmentStatus(eventId) {
 
 module.exports = {
   assignBib,
+  assignBibsInBulk,
+  markRaceKitReleased,
   recordCheckIn,
   createRaceKit,
   logResultImport,

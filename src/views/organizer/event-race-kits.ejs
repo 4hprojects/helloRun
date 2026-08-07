@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+  <link rel="stylesheet" href="/css/organizer-check-in.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <% const basePath = `/organizer/events/${eventId}/race-kits`; %>
+  <main class="checkin-page" id="main-content" data-onsite-kits data-event-id="<%= eventId %>" data-csrf="<%= locals.csrfToken || '' %>">
+    <div class="checkin-shell">
+      <header class="checkin-header">
+        <div>
+          <p class="checkin-kicker">Race kit release</p>
+          <h1><%= event.title %></h1>
+        </div>
+        <nav class="checkin-header-actions" aria-label="Onsite actions">
+          <a href="/organizer/events/<%= eventId %>/check-in" class="nav-login-btn">Check-in</a>
+          <a href="/organizer/events/<%= eventId %>/bibs" class="nav-login-btn">Bibs</a>
+          <a href="/organizer/events/<%= eventId %>" class="nav-login-btn">Back to event</a>
+        </nav>
+      </header>
+
+      <section class="checkin-counts" aria-label="Race kit progress">
+        <p class="checkin-count">
+          <span class="checkin-count-value"><%= totals.kitsReleased === null ? '—' : totals.kitsReleased %></span>
+          <span class="checkin-count-label">Kits released</span>
+        </p>
+        <p class="checkin-count">
+          <span class="checkin-count-value"><%= totals.kitsReleased === null ? '—' : Math.max(totals.registered - totals.kitsReleased, 0) %></span>
+          <span class="checkin-count-label">Outstanding</span>
+        </p>
+        <p class="checkin-count">
+          <span class="checkin-count-value"><%= totals.registered %></span>
+          <span class="checkin-count-label">Registered</span>
+        </p>
+      </section>
+      <p class="checkin-note">Totals cover the whole event, not just the rows below.</p>
+
+      <p class="checkin-note">
+        Kit pickup is recorded against the participant's bib, so a bib must be assigned
+        before a kit can be released.
+      </p>
+
+      <section aria-labelledby="kit-search-title">
+        <h2 class="visually-hidden" id="kit-search-title">Find a participant</h2>
+        <form method="GET" action="<%= basePath %>" class="checkin-search-form">
+          <label for="kitSearch">Search by name, email, confirmation code, or bib</label>
+          <div class="checkin-search-row">
+            <input id="kitSearch" name="q" type="search" value="<%= search || '' %>" autocomplete="off" enterkeyhint="search">
+            <button type="submit" class="nav-signup-btn">Search</button>
+          </div>
+        </form>
+      </section>
+
+      <% if (isTruncated) { %>
+        <p class="checkin-note">Showing the first <%= participants.length %> matches. Narrow the search to see more.</p>
+      <% } %>
+
+      <section aria-labelledby="kit-list-title">
+        <h2 class="visually-hidden" id="kit-list-title">Participants</h2>
+        <% if (participants.length === 0) { %>
+          <p class="checkin-empty">No onsite participants match this search.</p>
+        <% } else { %>
+          <ul class="checkin-list">
+            <% participants.forEach(function (participant) { %>
+              <li class="checkin-row<%= participant.isKitReleased ? ' is-checked-in' : '' %>" data-kit-row data-registration-id="<%= participant.registrationId %>">
+                <div class="checkin-row-identity">
+                  <p class="checkin-row-name">
+                    <% if (participant.bibNumber) { %><span class="checkin-bib">#<%= participant.bibNumber %></span><% } %>
+                    <%= participant.fullName %>
+                  </p>
+                  <p class="checkin-row-meta">
+                    <%= participant.confirmationCode %><% if (participant.raceDistance) { %> · <%= participant.raceDistance %><% } %>
+                  </p>
+                  <% if (participant.paymentStatus && participant.paymentStatus !== 'paid') { %>
+                    <p class="checkin-row-warning">Payment: <%= participant.paymentStatus %></p>
+                  <% } %>
+                </div>
+                <div class="checkin-row-action">
+                  <% if (participant.isMissingShadowRecord) { %>
+                    <p class="checkin-row-status checkin-row-status-blocked">Not synced</p>
+                  <% } else if (participant.isKitReleased) { %>
+                    <p class="checkin-row-status checkin-row-status-done" data-kit-status>Kit released</p>
+                  <% } else if (!participant.hasBib) { %>
+                    <p class="checkin-row-status checkin-row-status-blocked">Needs a bib</p>
+                  <% } else { %>
+                    <button type="button" class="nav-signup-btn checkin-action" data-kit-button>Release kit</button>
+                    <p class="checkin-row-status" data-kit-status role="status"></p>
+                  <% } %>
+                </div>
+              </li>
+            <% }); %>
+          </ul>
+        <% } %>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script src="/js/organizer-onsite-kits.js"></script>
+</body>
+</html>

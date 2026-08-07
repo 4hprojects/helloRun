@@ -332,6 +332,14 @@ function resolveEventFormat(event = {}) {
   return 'Virtual';
 }
 
+// Onsite tooling is only meaningful for events that actually run in person.
+// Mirrors the allowed-mode resolution used by the registrant roster.
+function supportsOnsiteOperations(event = {}) {
+  const allowed = Array.isArray(event.eventTypesAllowed) ? event.eventTypesAllowed.filter(Boolean) : [];
+  if (allowed.length) return allowed.includes('onsite');
+  return event.eventType === 'onsite' || event.eventType === 'hybrid';
+}
+
 function resolveLocation(event = {}, formatLabel = resolveEventFormat(event)) {
   const place = [event.venueName, event.city, event.province, event.country].filter(Boolean).join(', ');
   if (place) return place;
@@ -549,6 +557,13 @@ async function getOrganizerEventDetailPresentation({
     mediaItems,
     galleryItems: (event.galleryImageUrls || []).map((url, index) => ({ url, label: `Gallery image ${index + 1}` })),
     tools: [
+      ...(supportsOnsiteOperations(event) ? [{ group: 'Onsite operations', items: [
+        { label: 'Check-in', href: `/organizer/events/${id}/check-in`, icon: 'check-circle' },
+        { label: 'Live check-in board', href: `/organizer/events/${id}/check-in/board`, icon: 'activity' },
+        { label: 'Bibs', href: `/organizer/events/${id}/bibs`, icon: 'hash' },
+        { label: 'Race kits', href: `/organizer/events/${id}/race-kits`, icon: 'package' },
+        { label: 'Results', href: `/organizer/events/${id}/onsite-results`, icon: 'flag' }
+      ] }] : []),
       { group: 'Recognition', items: [
         { label: 'Certificates', href: `/organizer/events/${id}/certificate`, icon: 'award' },
         { label: 'Badges', href: `/organizer/events/${id}/badges/manage`, icon: 'badge-check' }
@@ -571,6 +586,7 @@ async function getOrganizerEventDetailPresentation({
 }
 
 module.exports = {
+  supportsOnsiteOperations,
   formatPlatformDateTime,
   normalizeCountRows,
   loadEventOperationalCounts,

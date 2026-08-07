@@ -49,6 +49,11 @@ Detailed plan:
 
 After the deployment and safety gates are complete:
 
+- complete the onsite event lifecycle. The organiser operations surfaces landed on
+  August 7; the remaining sequenced work — onsite results reaching rankings,
+  leaderboards and certificates, the runner-facing bib/QR surface, QR token
+  hardening and scanning, and the last-slot capacity race — is tracked in
+  [`features/onsite-registration-expansion/delivery-plan.md`](features/onsite-registration-expansion/delivery-plan.md);
 - deepen platform analytics and reporting;
 - prioritize backlog items using production usage and support evidence;
 - evaluate mobile-app integration without duplicating unstable web workflows.

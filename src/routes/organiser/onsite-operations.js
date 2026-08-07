@@ -4,12 +4,37 @@
 const express = require('express');
 const router = express.Router();
 const { sendJsonServerError } = require('../../utils/json-error-response');
+const { createRateLimiter } = require('../../middleware/rate-limit.middleware');
+const {
+  isValidTimeFormat,
+  timeToMilliseconds
+} = require('../../services/result-import-validation.service');
 const {
   protectEventMutation,
   protectEventRead
 } = require('./event-route-protection');
+
+// Generous enough for a busy start line, tight enough to bound abuse. Note that
+// Redis is not configured in production, so this is currently per-process.
+const checkInLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 120,
+  message: 'Too many check-in requests. Please wait a moment and try again.'
+});
+
+// Bulk assignment is one request per batch, so this is deliberately tighter.
+const bulkBibLimiter = createRateLimiter({
+  windowMs: 5 * 60 * 1000,
+  maxRequests: 20,
+  message: 'Too many bulk bib assignments. Please wait a few minutes and try again.'
+});
+
+// Bounds a single request's work; the roster page itself caps at 500 rows.
+const MAX_BULK_BIB_ASSIGNMENTS = 500;
 const {
   assignBib,
+  assignBibsInBulk,
+  markRaceKitReleased,
   recordCheckIn,
   createRaceKit,
   logResultImport,
@@ -41,8 +66,59 @@ router.post('/events/:eventId/bibs/assign', protectEventMutation, async (req, re
   }
 });
 
+// Assign bibs to many registrations at once
+router.post('/events/:eventId/bibs/assign-bulk', protectEventMutation, bulkBibLimiter, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { assignments } = req.body;
+
+    if (!Array.isArray(assignments) || assignments.length === 0) {
+      return res.status(400).json({ error: 'assignments array required' });
+    }
+
+    if (assignments.length > MAX_BULK_BIB_ASSIGNMENTS) {
+      return res.status(400).json({
+        error: `Assign at most ${MAX_BULK_BIB_ASSIGNMENTS} bibs at a time.`
+      });
+    }
+
+    const result = await assignBibsInBulk(eventId, assignments);
+
+    res.status(result.failed.length > 0 && result.assigned.length === 0 ? 422 : 200).json({
+      success: result.failed.length === 0,
+      message: `${result.assigned.length} assigned, ${result.failed.length} failed`,
+      assigned: result.assigned,
+      failed: result.failed
+    });
+  } catch (error) {
+    return sendJsonServerError(res, 'Error assigning bibs in bulk:', error);
+  }
+});
+
+// Mark a participant's race kit as released
+router.post('/events/:eventId/race-kits/release', protectEventMutation, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { registrationId } = req.body;
+
+    if (!registrationId) {
+      return res.status(400).json({ error: 'registrationId required' });
+    }
+
+    const record = await markRaceKitReleased(eventId, registrationId);
+
+    res.json({
+      success: true,
+      message: 'Race kit released',
+      bib: record
+    });
+  } catch (error) {
+    return sendJsonServerError(res, 'Error releasing race kit:', error);
+  }
+});
+
 // Record a check-in
-router.post('/events/:eventId/check-ins', protectEventMutation, async (req, res) => {
+router.post('/events/:eventId/check-ins', protectEventMutation, checkInLimiter, async (req, res) => {
   try {
     const { eventId } = req.params;
     const { registrationId, participationMode, verificationMethod, notes } = req.body;
@@ -57,9 +133,12 @@ router.post('/events/:eventId/check-ins', protectEventMutation, async (req, res)
       notes
     });
 
+    const wasAlreadyCheckedIn = Boolean(checkInRecord.was_already_checked_in);
+
     res.status(201).json({
       success: true,
-      message: 'Check-in recorded',
+      message: wasAlreadyCheckedIn ? 'Participant was already checked in' : 'Check-in recorded',
+      alreadyCheckedIn: wasAlreadyCheckedIn,
       checkIn: checkInRecord
     });
   } catch (error) {
@@ -132,10 +211,23 @@ router.post('/events/:eventId/onsite-results', protectEventMutation, async (req,
       return res.status(400).json({ error: 'registrationId required' });
     }
 
+    // Derive milliseconds from the entered finish time so the stored value and the
+    // display string cannot disagree. Rejecting here keeps bad times out of results
+    // that later feed rankings.
+    let resolvedElapsedMs = elapsedMs;
+    if (displayTime) {
+      if (!isValidTimeFormat(String(displayTime))) {
+        return res.status(400).json({
+          error: 'Finish time must be HH:MM:SS or MM:SS.'
+        });
+      }
+      resolvedElapsedMs = timeToMilliseconds(String(displayTime));
+    }
+
     const resultRecord = await recordOnsiteResult(eventId, registrationId, {
       category,
       distanceKm,
-      elapsedMs,
+      elapsedMs: resolvedElapsedMs,
       displayTime,
       pacePerKm,
       placeInCategory,
@@ -166,9 +258,13 @@ router.post('/events/:eventId/onsite-results/:resultId/approve', protectEventMut
 
     res.json({
       success: true,
-      message: 'Onsite result approved',
+      message: approved.submissionCreated
+        ? 'Onsite result approved'
+        : 'Result approved, but it has not entered the results yet',
       result: approved.result,
-      awardsCreated: approved.awards.length
+      awardsCreated: approved.awards.length,
+      submissionCreated: Boolean(approved.submissionCreated),
+      submissionError: approved.submissionError || null
     });
   } catch (error) {
     return sendJsonServerError(res, 'Error approving onsite result:', error);

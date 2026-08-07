@@ -2,7 +2,7 @@
 
 **Source of truth for delivery status**
 
-**Last reconciled:** August 6, 2026
+**Last reconciled:** August 7, 2026
 
 **Evidence window:** repository history through July 29, 2026
 
@@ -19,6 +19,10 @@ core platform:
   achievement badges;
 - organiser dashboards, registrant/review queues, bulk actions, event
   promotion, analytics, audit workflows, and running groups;
+- organiser onsite operations surfaces added August 7 — race-day check-in
+  console, live check-in board, bib assignment with previewed sequential ranges,
+  race-kit release, and onsite results entry/approval — built over the existing
+  Phase 7 endpoints, which previously had no user interface;
 - shop, cart, registration add-ons, platform merchandise, reporting, and
   settings;
 - blog authoring/moderation, scheduled publishing, community comments,
@@ -54,6 +58,14 @@ production services.
   complete and the flag remains disabled by default.
 
 ## Operational Work Pending
+
+- **Apply onsite migration `023` before deploying the check-in console.**
+  `023_onsite_checkin_bib_uniqueness.sql` adds unique indexes on `check_ins` and
+  `bib_assignments` and reconciles pre-existing duplicates. The updated
+  `recordCheckIn`/`assignBib` upserts use those indexes as `ON CONFLICT` targets,
+  so deploying the code first would break check-in and bib assignment. The
+  migration has not been applied — no approved non-production database exists.
+  See the [August 7 changelog entry](changelog/2026-08-august.md).
 
 - **Deploy `b70b50d` to production (guest event-page 500).** `GET /events/:slug`
   currently returns 500 for every signed-out visitor because production is
