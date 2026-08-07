@@ -123,6 +123,16 @@ test('approval side effects are shared between the virtual and onsite paths', ()
   assert.match(submissionService, /await applyApprovedSubmissionEffects\(reviewedSubmission, event/);
 });
 
+test('nothing after the committed approval can fail the approval', () => {
+  // The UPDATE commits first. Badge evaluation used to throw straight out of
+  // approveOnsiteResult, leaving the result approved in Postgres while the caller was
+  // told it failed — and staff with no way to tell which had happened.
+  assert.match(onsiteService, /let awardsError = null/);
+  assert.match(onsiteService, /Badge evaluation failed for result/);
+  assert.match(onsiteService, /already committed/);
+  assert.match(onsiteService, /reported, never thrown/);
+});
+
 test('a failed materialisation is reported, not swallowed', () => {
   // The Postgres approval is already committed, so this must not throw — but staff
   // must not be told a finisher is ranked when they are not.

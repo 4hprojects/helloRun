@@ -40,7 +40,9 @@ The gap was that no organiser UI existed for any of it.
 | Walk-in registration | **Blocked** — needs guest registration (see below) |
 | Guest registration, waitlist, inventory, transfers, form builder | Not started |
 
-Nothing is deployed. No work here has run against a real database.
+Deployed to production on August 7, 2026, with migration `023` applied first. The onsite
+integration suite has now run against the real database (15/15). A hands-on organiser
+walkthrough on a draft event is still outstanding.
 
 ## What's next — checklist
 
@@ -53,12 +55,17 @@ Verified against the code on August 7, 2026.
       `--only=` because migration `022` sits ahead of it in the queue and was failing; the
       two are independent (023 touches `check_ins`/`bib_assignments`, 022 touches
       `submissions_core`/`rankings`/`certificates`).
-- [ ] Deploy the `onsite-operations` branch together with the still-pending `b70b50d`.
-- [ ] Smoke-test on a draft event: check in, rescan (must say "already checked in", not
-      create a second row), confirm event-wide totals, download the backup list.
-- [ ] Run `tests/onsite-operations.service.integration.test.js` — it carries regression
-      tests for upsert, reassignment, bulk assignment and kit release that have never
-      executed.
+- [x] Deploy. Merged to `main` and pushed on August 7, 2026; Render auto-deployed. This
+      also carried the pending `b70b50d`, and the signed-out `/events/:slug` 500 is now
+      resolved — a real event URL returns 200 while logged out.
+- [x] Production smoke: `/healthz` 200, `/readyz` reports mongo ready, `/events` 200, and
+      the new onsite routes redirect to login rather than erroring.
+- [x] Ran `tests/onsite-operations.service.integration.test.js` against production —
+      **15/15**, including the two tests that prove the new indexes work: a repeated
+      check-in updates the existing row rather than duplicating, and reassigning a bib
+      updates the live row. Verified afterwards that the suite left no orphan rows.
+- [ ] Still worth doing by hand: a real organiser walkthrough on a draft event — assign a
+      bib, open the race pass, scan it, release a kit, record and approve a result.
 
 ### B. Unblocked by A, in priority order
 

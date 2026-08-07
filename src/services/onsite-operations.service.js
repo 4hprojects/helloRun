@@ -426,10 +426,21 @@ async function approveOnsiteResult(eventId, onsiteResultId, options = {}) {
     `;
     if (result.length === 0) throw new Error('Onsite result not found or cannot be approved');
 
-    const awards = await evaluateOnsiteResultAchievements(result[0].id, {
-      performedBy: options.performedBy || null,
-      sql
-    });
+    // The approval above is already committed. Anything after it is a consequence of
+    // the approval, not a condition of it — so a failure here is reported, never thrown.
+    // Previously a badge-evaluation error took the whole call down, leaving the result
+    // approved in Postgres while the caller was told it had failed.
+    let awards = [];
+    let awardsError = null;
+    try {
+      awards = await evaluateOnsiteResultAchievements(result[0].id, {
+        performedBy: options.performedBy || null,
+        sql
+      });
+    } catch (error) {
+      awardsError = error.message;
+      logger.error(`[Onsite] Badge evaluation failed for result ${result[0].id}: ${error.message}`);
+    }
 
     const submissionOutcome = await materialiseResultAsSubmission(result[0], {
       sql,
@@ -440,6 +451,7 @@ async function approveOnsiteResult(eventId, onsiteResultId, options = {}) {
     return {
       result: result[0],
       awards,
+      awardsError,
       ...submissionOutcome
     };
   } catch (error) {
