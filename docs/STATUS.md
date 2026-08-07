@@ -21,8 +21,13 @@ core platform:
   promotion, analytics, audit workflows, and running groups;
 - organiser onsite operations surfaces added August 7 — race-day check-in
   console, live check-in board, bib assignment with previewed sequential ranges,
-  race-kit release, and onsite results entry/approval — built over the existing
-  Phase 7 endpoints, which previously had no user interface;
+  race-kit release, bib scanning, and onsite results entry/approval — built over
+  the existing Phase 7 endpoints, which previously had no user interface;
+- the onsite participant loop, also August 7 — a runner race pass showing their
+  own bib and an opaque encrypted check-in QR, approved onsite results reaching
+  rankings/leaderboards/certificates through the existing submission pipeline,
+  and organiser-initiated registration cancellation that frees the slot and
+  releases the bib;
 - shop, cart, registration add-ons, platform merchandise, reporting, and
   settings;
 - blog authoring/moderation, scheduled publishing, community comments,

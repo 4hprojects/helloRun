@@ -26,11 +26,16 @@ The gap was that no organiser UI existed for any of it.
 | Live check-in board | Done, repository-verified |
 | Onsite results entry + approval UI | Done, repository-verified |
 | Approved onsite results reach rankings, leaderboard, certificates | Done, repository-verified — needed no migration |
+| Runner race pass (own bib + check-in QR) | Done, repository-verified |
+| Opaque encrypted bib QR token (no database ids in the code) | Done, repository-verified |
+| Bib scanning in the check-in console | Done, repository-verified |
+| Organiser-initiated registration cancellation | Done, repository-verified |
 | Onsite pages linked from event-details | Done, repository-verified |
 | Real Phase 7 test coverage (placebo files removed) | Done, repository-verified |
-| QR scanning | Not started — blocked on token work below |
-| Atomic capacity reservation | Not started — needs a Mongo migration |
-| Guest registration, staff roles, waitlist, inventory, transfers, CSV import, form builder | Not started |
+| QR token *revocation* | Not started — the only part still needing a token store |
+| Atomic capacity reservation | Not started — needs a Mongo migration and a backfill |
+| Runner-initiated cancellation | Not started — needs an organiser-configurable policy |
+| Walk-in registration, result import, guest registration, staff roles, waitlist, inventory, transfers, form builder | Not started |
 
 Nothing is deployed. No work here has run against a real database.
 
@@ -74,19 +79,16 @@ already carried `'onsite'` and `leaderboard.service.js` already filtered on it. 
 alternative — teaching three services to read `onsite_results` directly — was rejected
 because every future consumer would have had to remember both sources.
 
-The console is currently manual-search only, so the bib QR codes the platform already
-generates have no reader. That is now the largest remaining functional gap.
+The race-day loop now runs end to end: a runner gets a bib and a race pass, staff scan or
+search to check them in, release the kit, record a finish, and approving it reaches the
+leaderboard and certificates.
 
-1. **QR token** — replace the plaintext `EVENT:{mongoId}|BIB:{n}|TIME:{ts}` in
-   [qr-code.service.js](../../../src/services/qr-code.service.js) with a random token whose
-   hash is stored, verified server-side, and revocable on cancellation or bib reassignment.
-   Additive onsite-only migration for the token store. Keep the legacy decode path behind a
-   flag until printed codes are known to be out of circulation.
-2. **Scanner** — camera capture in the check-in console, resolving a token to the existing
-   check-in action. Must handle the pack's response cases: valid, already checked in,
-   cancelled, unpaid, wrong event, invalid, revoked.
-Steps 3 and 4 below are **done** and needed no migration:
-
+1. ~~**QR token**~~ — **done, without a migration.** The plaintext payload is replaced by
+   an opaque AES-256-GCM token, so the code carries no database id and cannot be edited.
+   Only *revocation* needs stored token hashes, and that alone remains queued.
+2. ~~**Scanner**~~ — **done.** Uses the browser's `BarcodeDetector`, with manual code entry
+   where that is unavailable. Handles valid, already checked in, cancelled, wrong event,
+   unknown bib, and unreadable; payment is a warning, not a refusal.
 3. ~~**Bib assignment UI**~~ — per-row assign/update plus a preview-then-confirm sequential
    range, over the existing `POST /events/:eventId/bibs/assign` and a new bounded,
    rate-limited `assign-bulk` endpoint that returns per-row outcomes.
@@ -114,13 +116,14 @@ deploy window.
 - **Staff roles** — `User.role` is only `runner|organiser|admin`. Until this exists,
   race-day check-in requires the organiser's own login on their own device. Worth telling
   pilot organisers explicitly.
-- **Waitlist, inventory, transfers, CSV import** — none exist.
+- **Waitlist, inventory, transfers** — none exist.
+- **Walk-in registration and result import** — next in the queue; both are code-only.
 - **Form builder** — largest item; its stated reuse source does not exist in this
   repository. Revisit only with evidence that fixed fields are insufficient.
 
 ## Verification standard
 
-Unit suite (`npm run test:unit`) must stay green — 1086/1086 as of August 7. New coverage
+Unit suite (`npm run test:unit`) must stay green — 1102/1102 as of August 7. New coverage
 goes in `*.unit.test.js`, since `test:unit` excludes `.integration.` and `.smoke.` files.
 Do not run the live-DB suites until an approved non-production database exists; treat
 everything until then as repository-verified, not production-verified.
