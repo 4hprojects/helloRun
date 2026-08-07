@@ -80,6 +80,7 @@ const {
 
 const { buildRegistrationPagePresentation } = require('../../services/registration-page-presentation.service');
 const { getOnsiteStateForRegistrations } = require('../../services/onsite-roster.service');
+const { reserveCategorySlot, releaseCategorySlot } = require('../../services/category-capacity.service');
 const { requestCancellation } = require('../../services/registration-cancellation.service');
 const { generateBibQRCode } = require('../../services/qr-code.service');
 const { getRunnerProfileCompleteness } = require('../../services/profile-completion.service');
@@ -195,6 +196,11 @@ exports.getEventRegistrationForm = async (req, res) => {
 };
 
 exports.postEventRegistration = async (req, res) => {
+  // Held outside the try so the catch can give a reserved slot back. A slot taken by a
+  // registration that then failed would otherwise be lost until someone recounted.
+  let reservedCategoryId = '';
+  let reservedEventId = null;
+
   try {
     const [event, user] = await Promise.all([
       getPublishedEventBySlug(req.params.slug),
@@ -292,21 +298,18 @@ exports.postEventRegistration = async (req, res) => {
       }
     }
 
-    // Capacity check: enforce race category slots if configured
+    // Capacity: take the slot atomically rather than counting and hoping.
+    //
+    // This must be the last thing before the registration is written, because from here
+    // on a slot is held and every failure path has to give it back.
     if (Object.keys(validationErrors).length === 0 && resolvedPrice.raceCategoryId) {
-      const selectedCategory = (event.raceCategories || []).find(
-        (cat) => String(cat.categoryId || '') === String(resolvedPrice.raceCategoryId)
-      );
-      if (selectedCategory && Number.isFinite(selectedCategory.slots) && selectedCategory.slots > 0) {
-        const filledSlots = await Registration.countDocuments({
-          eventId: event._id,
-          'pricingSnapshot.raceCategoryId': resolvedPrice.raceCategoryId,
-          status: { $in: ['confirmed'] },
-          paymentStatus: { $nin: ['refunded'] }
-        });
-        if (filledSlots >= selectedCategory.slots) {
-          validationErrors.raceDistance = `The ${selectedCategory.distanceLabel || selectedCategory.name || 'selected'} category is now full (${selectedCategory.slots} slots). Please choose a different distance.`;
-        }
+      const reservation = await reserveCategorySlot(event._id, resolvedPrice.raceCategoryId);
+      if (reservation.limited && !reservation.reserved) {
+        const category = reservation.category || {};
+        validationErrors.raceDistance = `The ${category.distanceLabel || category.name || 'selected'} category is now full (${reservation.slots} slots). Please choose a different distance.`;
+      } else if (reservation.reserved) {
+        reservedCategoryId = String(resolvedPrice.raceCategoryId);
+        reservedEventId = event._id;
       }
     }
 
@@ -474,6 +477,11 @@ exports.postEventRegistration = async (req, res) => {
     });
     return res.redirect(`/events/${event.slug}/register?${query.toString()}`);
   } catch (error) {
+    // The registration did not complete, so any slot it was holding goes back.
+    if (reservedCategoryId && reservedEventId) {
+      await releaseCategorySlot(reservedEventId, reservedCategoryId);
+    }
+
     // Handle duplicate key race safely
     if (error && error.code === 11000) {
       const event = await getPublishedEventBySlug(req.params.slug);

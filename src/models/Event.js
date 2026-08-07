@@ -90,6 +90,11 @@ const eventSchema = new mongoose.Schema(
           distanceKm: { type: Number, min: 0, default: null },
           targetSteps: { type: Number, min: 0, max: 1000000000, default: null },
           slots: { type: Number, min: 0, default: null },
+          // Slots taken. Incremented inside the same atomic update that enforces the
+          // `slots` bound, so the check and the claim cannot come apart. Deliberately has
+          // no default: an absent value means "never tracked" and is read as zero, which
+          // keeps categories created before this existed working untouched.
+          reserved: { type: Number, min: 0 },
           cutoffTime: { type: String, trim: true, maxlength: 80, default: '' },
           ageGroup: { type: String, trim: true, maxlength: 80, default: '' },
           rewardsDescription: { type: String, trim: true, maxlength: 500, default: '' }

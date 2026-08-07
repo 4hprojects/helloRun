@@ -36,7 +36,7 @@ The gap was that no organiser UI existed for any of it.
 | Onsite pages linked from event-details | Done, repository-verified |
 | Real Phase 7 test coverage (placebo files removed) | Done, repository-verified |
 | QR token *revocation* | Not started — the only part still needing a token store |
-| Atomic capacity reservation | Not started — needs a Mongo migration and a backfill |
+| Atomic capacity reservation | **Done, deployed August 7, 2026** — proven under concurrency |
 | Walk-in registration | **Blocked** — needs guest registration (see below) |
 | Guest registration, waitlist, inventory, transfers, form builder | Not started |
 
@@ -69,11 +69,10 @@ Verified against the code on August 7, 2026.
 
 ### B. Unblocked by A, in priority order
 
-- [ ] **Atomic capacity reservation.** Still live:
-      `registration.controller.js` does `countDocuments()` then inserts, so two people can
-      take the last slot. Needs a `reserved` counter on `Event.raceCategories` plus a
-      backfill. First change touching the live registration path — do it with a rehearsed
-      backup, ideally once an isolated environment exists.
+- [x] **Atomic capacity reservation.** Done. The bound is enforced inside the update that
+      takes the slot, so the check and the claim cannot come apart; verified live with 20
+      concurrent attempts at 3 slots giving exactly 3 winners. No event currently uses a
+      slot limit, so the change had zero production exposure and the backfill was a no-op.
 - [ ] **QR token revocation.** The token is already opaque and tamper-evident; only
       revocation is missing, and it needs somewhere to store token hashes. Confirmed: no
       token store exists today.

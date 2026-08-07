@@ -16,6 +16,7 @@ const User = require('../models/User');
 const { getPostgresClient } = require('../db/postgres');
 const communicationService = require('./communication.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
+const { releaseCategorySlot } = require('./category-capacity.service');
 const logger = require('../utils/logger');
 
 const CANCELLABLE_STATUSES = ['pending_payment', 'paid', 'confirmed'];
@@ -100,6 +101,13 @@ async function cancelRegistration({ registrationId, eventId, actorUserId, reason
   await registration.save();
 
   const onsite = await releaseOnsiteArtefacts(registration._id);
+
+  // Give the category slot back. The old count-based check did this implicitly by no
+  // longer counting a cancelled row; with an explicit counter it has to be explicit too.
+  const categoryId = registration.pricingSnapshot?.raceCategoryId;
+  if (categoryId) {
+    await releaseCategorySlot(registration.eventId, categoryId);
+  }
 
   recordCriticalAuditEventInBackground({
     actorMongoUserId: actorUserId,

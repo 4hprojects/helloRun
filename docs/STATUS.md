@@ -28,6 +28,8 @@ core platform:
   rankings/leaderboards/certificates through the existing submission pipeline,
   and organiser-initiated registration cancellation that frees the slot and
   releases the bib;
+- atomic race-category capacity reservation, replacing a count-then-insert that
+  let two runners take the same last slot;
 - results import from a CSV or XLSX with preview-then-commit, and event-scoped
   race-day staff who can be given `check_in`, `race_kit`, or `results` access to a
   single event without touching the global `User.role`; and runner-initiated
