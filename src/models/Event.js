@@ -104,6 +104,11 @@ const eventSchema = new mongoose.Schema(
     },
     registrationOpenAt: Date,
     registrationCloseAt: Date,
+    // Whether someone without a HelloRun account may register for this event.
+    // Off unless an organiser turns it on: guest entries cannot submit results, earn
+    // badges or receive certificates until they are claimed, so it is a deliberate
+    // trade the organiser makes, not a default.
+    allowGuestRegistration: { type: Boolean, default: false },
     publicListingAvailableAt: {
       type: Date,
       default: null
