@@ -72,6 +72,11 @@ production services.
 
 ## Operational Work Pending
 
+- **Investigate 420 unresolved `sync_failure_log` entries**, 411 of them submissions
+  reading "App user not found". The user and registration shadows were repaired on
+  August 7, so re-running the submission shadow backfill may now clear most of these;
+  they have not been retried since.
+
 - **Migration `022_step_competition_events.sql` is still pending and was failing.**
   Its `CREATE OR REPLACE VIEW v_event_leaderboards_accumulated` inserts
   `primary_metric` ahead of `approved_distance_km`, and Postgres cannot rename or
