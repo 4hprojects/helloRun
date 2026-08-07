@@ -46,57 +46,66 @@ walkthrough on a draft event is still outstanding.
 
 ## What's next — checklist
 
-Verified against the code on August 7, 2026.
+Verified against code and production on August 7, 2026.
 
-### A. Yours, not code. Everything else waits on this.
+### Done and deployed
 
-- [x] Apply migration `023_onsite_checkin_bib_uniqueness.sql`. Dry run showed both
-      tables empty, so it added two indexes and changed no rows. It had to be applied with
-      `--only=` because migration `022` sits ahead of it in the queue and was failing; the
-      two are independent (023 touches `check_ins`/`bib_assignments`, 022 touches
-      `submissions_core`/`rankings`/`certificates`).
-- [x] Deploy. Merged to `main` and pushed on August 7, 2026; Render auto-deployed. This
-      also carried the pending `b70b50d`, and the signed-out `/events/:slug` 500 is now
-      resolved — a real event URL returns 200 while logged out.
-- [x] Production smoke: `/healthz` 200, `/readyz` reports mongo ready, `/events` 200, and
-      the new onsite routes redirect to login rather than erroring.
-- [x] Ran `tests/onsite-operations.service.integration.test.js` against production —
-      **15/15**, including the two tests that prove the new indexes work: a repeated
-      check-in updates the existing row rather than duplicating, and reassigning a bib
-      updates the live row. Verified afterwards that the suite left no orphan rows.
-- [ ] Still worth doing by hand: a real organiser walkthrough on a draft event — assign a
-      bib, open the race pass, scan it, release a kit, record and approve a result.
+- [x] Onsite organiser surfaces: check-in console, live board, bibs, race kits, results.
+- [x] Approved onsite results reach rankings, leaderboard and certificates.
+- [x] Runner race pass; opaque, revocable bib QR tokens; bib scanning.
+- [x] Registration cancellation, organiser-initiated and runner-requested.
+- [x] Results import from CSV/XLSX; event-scoped race-day staff.
+- [x] Atomic race-category capacity — proven under concurrency.
+- [x] Migrations `022`, `023`, `024` applied; shadow repaired (events 353/353, users
+      599/599, registrations 1,957 synced).
+- [x] Guest registration **foundation and flow**: schema, partial index, tokens, the
+      registration form, the confirmation page, and the private management page.
 
-### B. Unblocked by A, in priority order
+### 1. Next code task — finish guest registration
 
-- [x] **Atomic capacity reservation.** Done. The bound is enforced inside the update that
-      takes the slot, so the check and the claim cannot come apart; verified live with 20
-      concurrent attempts at 3 slots giving exactly 3 winners. No event currently uses a
-      slot limit, so the change had zero production exposure and the backfill was a no-op.
-- [x] **QR token revocation.** Done, and it needed no migration — a Mongo collection
-      suffices. Identity is stable across renders so a runner's screenshot survives, and
-      revocation fires on cancellation and on bib reassignment.
-- [~] **Guest registration.** Foundation done and deployed: `participantType`, a
-      conditionally-required `userId`, a partial unique index, and migration `024`
-      relaxing the Postgres NOT NULLs. Still to do: drop the old Mongo index once the
-      schema change is live (the script refuses until then), then the guest flow itself
-      — registration without an account, a hashed management token, and the claim flow.
+- [ ] **Claiming.** Nothing yet moves a guest registration onto an account. The claim
+      token type already exists (single-use, seven-day expiry); what is missing is the
+      flow: verify the email owns the registration, link it, mark the guest tokens
+      revoked, and fold it into the runner's registrations.
+- [ ] Expose `allowGuestRegistration` in the event builder. The field exists and defaults
+      off, but **no organiser can currently turn it on** — 0 events have it enabled, so
+      the flow is unreachable in production until this lands.
+- [ ] Link to the guest form from the public event page when it is enabled.
 
-### C. Migration-free, available any time
+### 2. Then — walk-in and registrant import
 
-- [ ] **Waitlist.** Confirmed absent — zero references anywhere. Needs event settings plus
-      a waitlist state, and touches the event builder.
-- [ ] **Per-size kit/shirt inventory.** Confirmed absent — there is no shirt-size field
-      anywhere in the codebase, so this starts with capturing the size at registration.
-      `inventory_movements` is shop-only and keyed on product variants; do not reuse it.
-- [ ] **Registration transfers.** Confirmed absent. Needs a policy decision first: who may
-      transfer, until when, and what happens to the money.
+Both were blocked purely by the account requirement, which is now gone.
 
-### D. Unrelated to onsite, found along the way
+- [ ] Walk-in registration: an organiser registering someone at the venue.
+- [ ] Registrant CSV/XLSX import, mirroring the results import.
 
-- [x] **`organiser.direct_message` and `organiser.runner_contact` had no email sender.**
-      Fixed: both now send, with `reply_to` so replies reach the other person. A test now
-      fails if any registered event lacks a sender.
+### 3. Yours, not code
+
+- [ ] **Hands-on walkthrough on a draft event** — assign a bib, open the race pass, scan
+      it, release a kit, record and approve a result. Everything so far is automated tests
+      and synthetic probes; nobody has driven this in a browser.
+- [ ] **Step-competition verification.** `022` was applied because it blocked three
+      subsystems, but its own audit, legacy backfill and step-only smoke workflows were
+      never run. `FEATURE_STEP_COMPETITIONS_ENABLED` stays off until they pass.
+- [ ] **Decide on orphaned data.** 48 of 108 onsite registrations reference hard-deleted
+      events; 1,136 of 1,211 submissions reference deleted users or events. No backfill
+      can resolve these — prune the Mongo rows or leave them.
+
+### 4. Remaining features
+
+- [ ] Waitlist — nothing exists.
+- [ ] Per-size kit/shirt inventory — there is still no shirt-size field anywhere, so this
+      starts at registration. `inventory_movements` is shop-only; do not reuse it.
+- [ ] Transfers — needs a policy decision first: who may transfer, until when, and what
+      happens to the money.
+
+### 5. Operational hygiene
+
+- [ ] `postinstall` downloads tessdata from a third-party host on every deploy. A missing
+      OCR pack should degrade OCR, not block shipping the platform.
+- [ ] `/healthz` returns no build identifier. An entire debugging detour happened because
+      there was no way to ask the running app which commit it was, and the signal I
+      substituted was wrong.
 
 ### Deferred
 
