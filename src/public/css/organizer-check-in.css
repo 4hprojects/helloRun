@@ -389,3 +389,18 @@
   align-self: flex-start;
   min-height: 2.75rem;
 }
+
+/* Walk-in registration panel. */
+.checkin-walkin-form { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.75rem; }
+.checkin-walkin-form label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; }
+.checkin-walkin-form input[type="text"],
+.checkin-walkin-form input[type="email"],
+.checkin-walkin-form input:not([type]),
+.checkin-walkin-form select {
+  padding: 0.7rem;
+  font-size: 1rem;
+  border: 1px solid rgba(128, 128, 128, 0.5);
+  border-radius: 0.5rem;
+}
+.checkin-walkin-check { flex-direction: row !important; align-items: center; gap: 0.5rem; min-height: 2.75rem; }
+.checkin-walkin-form button[type="submit"] { align-self: flex-start; }

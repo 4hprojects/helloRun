@@ -60,9 +60,9 @@ critical audit writes fixed.
 
 Both were blocked *only* by the account requirement, which is now gone.
 
-- [ ] **Walk-in registration.** No organiser route creates a registration today (verified:
-      zero `new Registration(` under the organiser routes). An organiser registers someone
-      at the venue; reuse the guest service, marking the source as organiser-created.
+- [x] **Walk-in registration.** Done. On the check-in console, over the guest service, with
+      the shadow sync awaited so a bib can be assigned immediately, a duplicate guard across
+      both registration types, and opt-in payment capture.
 - [ ] **Registrant CSV/XLSX import.** Mirror the results import — preview, then commit,
       with per-row outcomes. `exceljs` already reads both formats, and the guest path gives
       it somewhere to put people who have no account.

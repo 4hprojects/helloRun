@@ -30,6 +30,21 @@ const registrationSchema = new mongoose.Schema(
       default: 'account',
       index: true
     },
+    // How the registration came about. participantType says whether there is an account
+    // behind it; this says who put it there. Deliberately Mongo-only — the Postgres
+    // shadow has an explicit column list, and adding to it would need a migration for
+    // provenance nothing downstream reads yet.
+    registrationSource: {
+      type: String,
+      enum: ['self_serve', 'organiser_walk_in'],
+      default: 'self_serve',
+      index: true
+    },
+    createdByUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
     participant: {
       firstName: { type: String, required: true, trim: true, maxlength: 60 },
       lastName: { type: String, required: true, trim: true, maxlength: 60 },

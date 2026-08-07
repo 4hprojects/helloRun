@@ -12,6 +12,9 @@ const {
 const Registration = require('../../models/Registration');
 const { verifyScannedBibCode, revokeTokensForBib } = require('../../services/bib-qr-token.service');
 const { findRegistrationByExactBib } = require('../../services/onsite-roster.service');
+const Event = require('../../models/Event');
+const { validateGuestForm } = require('../../services/guest-registration.service');
+const { createWalkInRegistration } = require('../../services/walk-in-registration.service');
 const { uploadResultSheet } = require('../../services/upload.service');
 const { generateErrorCSV } = require('../../services/result-import-validation.service');
 const {
@@ -46,6 +49,13 @@ const bulkBibLimiter = createRateLimiter({
   windowMs: 5 * 60 * 1000,
   maxRequests: 20,
   message: 'Too many bulk bib assignments. Please wait a few minutes and try again.'
+});
+
+// A desk registers a handful of walk-ins, not hundreds.
+const walkInLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 40,
+  message: 'Too many walk-in registrations. Please wait a few minutes and try again.'
 });
 
 // Bounds a single request's work; the roster page itself caps at 500 rows.
@@ -85,6 +95,49 @@ router.post('/events/:eventId/bibs/assign', protectOnsiteMutation('check_in'), a
     });
   } catch (error) {
     return sendJsonServerError(res, 'Error assigning bib:', error);
+  }
+});
+
+// Register a walk-in: someone who turned up on the day.
+//
+// Deliberately does NOT consult event.allowGuestRegistration. That setting governs whether
+// the public may self-register without an account; an organiser adding somebody standing in
+// front of them at their own event is a different decision.
+router.post('/events/:eventId/walk-ins', protectOnsiteMutation('check_in'), walkInLimiter, async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.eventId)
+      .select('title waiverTemplate waiverVersion organiserName feeMode feeCurrency pricingMode distancePricing pricingPeriods customizedOptions registrationPackages raceCategories raceDistances')
+      .lean();
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found.' });
+    }
+
+    const { form, errors } = validateGuestForm(req.body);
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({ error: 'Some details are missing.', errors });
+    }
+
+    const { registration, shadowReady } = await createWalkInRegistration({
+      event,
+      form,
+      organiser: req.user,
+      paymentCollected: req.body.paymentCollected === 'on' || req.body.paymentCollected === true
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: `${form.firstName} ${form.lastName} registered.`,
+      confirmationCode: registration.confirmationCode,
+      paymentStatus: registration.paymentStatus,
+      // Tells the desk whether a bib can be assigned right now.
+      readyForBib: shadowReady,
+      registrationId: String(registration._id)
+    });
+  } catch (error) {
+    if (error.code === 'ALREADY_REGISTERED' || error.code === 'CAPACITY' || error.code === 'PRICING') {
+      return res.status(409).json({ error: error.message, code: error.code });
+    }
+    return sendJsonServerError(res, 'Error registering walk-in:', error);
   }
 });
 

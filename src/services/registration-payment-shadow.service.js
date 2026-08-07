@@ -16,7 +16,12 @@ function normalizeMongoRegistration(registration) {
   return {
     mongoRegistrationId: String(registration._id),
     mongoEventId: registration.eventId ? String(registration.eventId) : '',
-    mongoUserId: registration.userId ? String(registration.userId) : '',
+    // null, not '', when there is no account behind the registration.
+    // `registrations_unique_mongo_event_user_idx` is a plain UNIQUE (mongo_event_id,
+    // mongo_user_id). Postgres treats NULLs as distinct, so any number of guests can
+    // share an event — but two empty strings collide, which silently stopped the second
+    // guest on an event from ever reaching the shadow, and with it check-in and bibs.
+    mongoUserId: registration.userId ? String(registration.userId) : null,
     confirmationCode: String(registration.confirmationCode || '').trim().toUpperCase(),
     participantFirstName: String(participant.firstName || '').trim(),
     participantLastName: String(participant.lastName || '').trim(),

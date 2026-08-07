@@ -56,6 +56,41 @@
         </p>
       <% } %>
 
+      <section class="checkin-scanner" aria-labelledby="checkin-walkin-title">
+        <h2 id="checkin-walkin-title">Register a walk-in</h2>
+        <p class="checkin-note">Someone who turned up on the day. They get a confirmation code and a private link by email, and can claim the registration to an account later.</p>
+        <button type="button" class="nav-login-btn checkin-action" data-walkin-toggle>Add a walk-in</button>
+
+        <form class="checkin-walkin-form" data-walkin-form hidden>
+          <label for="walkinFirstName">First name<input id="walkinFirstName" name="firstName" required maxlength="80"></label>
+          <label for="walkinLastName">Last name<input id="walkinLastName" name="lastName" required maxlength="80"></label>
+          <label for="walkinEmail">Email<input id="walkinEmail" name="email" type="email" required maxlength="200"></label>
+          <label for="walkinMobile">Contact number<input id="walkinMobile" name="mobile" required maxlength="40"></label>
+          <label for="walkinDistance">Category
+            <select id="walkinDistance" name="raceDistance">
+              <% (event.raceDistances || []).forEach(function (distance) { %>
+                <option value="<%= distance %>"><%= distance %></option>
+              <% }); %>
+            </select>
+          </label>
+          <label for="walkinEmergencyName">Emergency contact name<input id="walkinEmergencyName" name="emergencyContactName" maxlength="120"></label>
+          <label for="walkinEmergencyNumber">Emergency contact number<input id="walkinEmergencyNumber" name="emergencyContactNumber" maxlength="40"></label>
+          <label for="walkinSignature">Waiver signed by (type their name)<input id="walkinSignature" name="waiverSignature" required maxlength="120"></label>
+
+          <label class="checkin-walkin-check">
+            <input type="checkbox" name="waiverAccepted" checked>
+            <span>They accepted the event waiver</span>
+          </label>
+          <label class="checkin-walkin-check">
+            <input type="checkbox" name="paymentCollected">
+            <span>Payment collected at the desk</span>
+          </label>
+
+          <button type="submit" class="nav-signup-btn checkin-action">Register</button>
+          <p class="checkin-scan-result" role="status" aria-live="polite" data-walkin-result></p>
+        </form>
+      </section>
+
       <section class="checkin-scanner" aria-labelledby="checkin-scan-title" data-scanner hidden>
         <h2 id="checkin-scan-title">Scan a bib</h2>
         <div class="checkin-scan-controls">
@@ -137,5 +172,6 @@
   <script src="/js/main.js"></script>
   <script src="/js/organizer-check-in.js"></script>
   <script src="/js/organizer-check-in-scan.js"></script>
+  <script src="/js/organizer-walk-in.js"></script>
 </body>
 </html>

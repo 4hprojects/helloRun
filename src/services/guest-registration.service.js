@@ -15,6 +15,7 @@ const { resolveRegistrationPrice } = require('./registration-price.service');
 const { reserveCategorySlot, releaseCategorySlot } = require('./category-capacity.service');
 const { issueToken } = require('./guest-registration-token.service');
 const { renderWaiverTemplate } = require('../utils/waiver');
+const { getInitialRegistrationPaymentStatus } = require('../utils/payment-workflow');
 const communicationService = require('./communication.service');
 const logger = require('../utils/logger');
 
@@ -185,7 +186,7 @@ async function createGuestRegistration({ event, form, requestMeta = {} }) {
       participationMode: form.participationMode,
       raceDistance: form.raceDistance || resolvedPrice?.raceDistance || '',
       status: 'confirmed',
-      paymentStatus: String(event.feeMode || '').toLowerCase() === 'paid' ? 'unpaid' : 'paid',
+      paymentStatus: getInitialRegistrationPaymentStatus(event),
       paymentAmountDue: resolvedPrice?.amount ?? 0,
       paymentCurrency: resolvedPrice?.currency || 'PHP',
       pricingSnapshot: {
