@@ -134,7 +134,7 @@ function generateConfirmationCode() {
  *
  * @returns {Promise<{registration: Object, manageToken: string, hasAccount: boolean}>}
  */
-async function createGuestRegistration({ event, form, requestMeta = {} }) {
+async function createGuestRegistration({ event, form, requestMeta = {}, skipConfirmationEmail = false }) {
   const existing = await findExistingGuestRegistration(event._id, form.email);
   if (existing) {
     const error = new Error('That email is already registered for this event.');
@@ -214,7 +214,11 @@ async function createGuestRegistration({ event, form, requestMeta = {} }) {
     const { token } = await issueToken(registration._id, event._id, 'manage');
     const hasAccount = await emailBelongsToAccount(form.email);
 
-    notifyGuestInBackground({ registration, event, manageToken: token, requestMeta });
+    // A bulk import would otherwise mail hundreds of people at once, against a daily
+    // budget shared with password resets and payment notices.
+    if (!skipConfirmationEmail) {
+      notifyGuestInBackground({ registration, event, manageToken: token, requestMeta });
+    }
 
     return { registration, manageToken: token, hasAccount };
   } catch (error) {

@@ -15,6 +15,11 @@ const { findRegistrationByExactBib } = require('../../services/onsite-roster.ser
 const Event = require('../../models/Event');
 const { validateGuestForm } = require('../../services/guest-registration.service');
 const { createWalkInRegistration } = require('../../services/walk-in-registration.service');
+const {
+  previewRegistrantImport,
+  applyRegistrantRows
+} = require('../../services/registrant-import.service');
+const { buildCsvContent } = require('../../utils/tabular-export');
 const { uploadResultSheet } = require('../../services/upload.service');
 const { generateErrorCSV } = require('../../services/result-import-validation.service');
 const {
@@ -49,6 +54,13 @@ const bulkBibLimiter = createRateLimiter({
   windowMs: 5 * 60 * 1000,
   maxRequests: 20,
   message: 'Too many bulk bib assignments. Please wait a few minutes and try again.'
+});
+
+// Importing a list is heavier than a single registration, and organiser-only.
+const registrantImportLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 15,
+  message: 'Too many registrant imports. Please wait a few minutes and try again.'
 });
 
 // A desk registers a handful of walk-ins, not hundreds.
@@ -97,6 +109,75 @@ router.post('/events/:eventId/bibs/assign', protectOnsiteMutation('check_in'), a
     return sendJsonServerError(res, 'Error assigning bib:', error);
   }
 });
+
+// Read a registrant list without writing anything.
+router.post(
+  '/events/:eventId/registrant-imports/preview',
+  protectEventMutation,
+  registrantImportLimiter,
+  uploadResultSheet,
+  async (req, res) => {
+    try {
+      if (req.uploadError) return res.status(400).json({ error: req.uploadError });
+      if (!req.file) return res.status(400).json({ error: 'Choose a .csv or .xlsx file.' });
+
+      const event = await Event.findById(req.params.eventId)
+        .select('eventType eventTypesAllowed')
+        .lean();
+      const preview = await previewRegistrantImport(req.file.buffer, req.file.originalname, {
+        eventId: req.params.eventId,
+        event
+      });
+
+      return res.json({
+        success: true,
+        fileName: req.file.originalname,
+        ...preview,
+        errorCsv: preview.rejected.length
+          ? buildCsvContent(['Row', 'Email', 'Reason'], preview.rejected.map((r) => [r.row, r.email, r.error]))
+          : ''
+      });
+    } catch (error) {
+      return res.status(400).json({ error: error.message || 'Could not read that file.' });
+    }
+  }
+);
+
+// Create the registrations the organiser confirmed from the preview.
+router.post(
+  '/events/:eventId/registrant-imports/commit',
+  protectEventMutation,
+  registrantImportLimiter,
+  async (req, res) => {
+    try {
+      const { rows, sendEmails } = req.body || {};
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return res.status(400).json({ error: 'No rows to import.' });
+      }
+
+      const event = await Event.findById(req.params.eventId)
+        .select('title waiverTemplate waiverVersion organiserName feeMode feeCurrency pricingMode distancePricing pricingPeriods customizedOptions registrationPackages raceCategories raceDistances')
+        .lean();
+      if (!event) return res.status(404).json({ error: 'Event not found.' });
+
+      const result = await applyRegistrantRows({
+        event,
+        rows,
+        organiser: req.user,
+        sendEmails: sendEmails === true
+      });
+
+      return res.json({
+        success: result.failed.length === 0,
+        message: `${result.imported.length} imported, ${result.failed.length} failed`,
+        imported: result.imported.length,
+        failed: result.failed
+      });
+    } catch (error) {
+      return sendJsonServerError(res, 'Error importing registrants:', error);
+    }
+  }
+);
 
 // Register a walk-in: someone who turned up on the day.
 //

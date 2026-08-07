@@ -36,7 +36,7 @@ const registrationSchema = new mongoose.Schema(
     // provenance nothing downstream reads yet.
     registrationSource: {
       type: String,
-      enum: ['self_serve', 'organiser_walk_in'],
+      enum: ['self_serve', 'organiser_walk_in', 'organiser_import'],
       default: 'self_serve',
       index: true
     },

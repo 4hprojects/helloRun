@@ -291,6 +291,24 @@ router.get('/events/:eventId/onsite-results/import', protectOnsiteRead('results'
   }
 });
 
+// Registrant import. Organiser-only: it creates registrations in bulk, which is not a
+// race-day check-in job.
+router.get('/events/:eventId/registrants/import', protectEventRead, async (req, res, next) => {
+  try {
+    const event = await Event.findById(req.params.eventId).select('title raceDistances').lean();
+    if (!event) {
+      return res.status(404).render('error', { title: '404 - Event Not Found', status: 404, message: 'Event not found.' });
+    }
+    return res.render('organizer/event-registrant-import', {
+      title: `Import registrants — ${event.title}`,
+      event,
+      eventId: String(req.params.eventId)
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 // Race-day staff. Deliberately protectEventRead/Mutation, not protectOnsite*: staff must
 // never be able to grant access to themselves or anyone else.
 router.get('/events/:eventId/staff', protectEventRead, async (req, res, next) => {

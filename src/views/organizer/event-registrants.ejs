@@ -28,6 +28,7 @@
           <% if (!isAdminViewer && capabilities.supportsOnsite) { %>
             <a href="<%= basePath %>?fieldMode=1" class="nav-login-btn"><i data-lucide="smartphone" aria-hidden="true"></i><span>Field mode</span></a>
             <a href="/organizer/events/<%= event._id %>/check-in" class="nav-login-btn"><i data-lucide="check-circle" aria-hidden="true"></i><span>Check-in</span></a>
+            <a href="/organizer/events/<%= event._id %>/registrants/import" class="nav-login-btn"><i data-lucide="upload" aria-hidden="true"></i><span>Import</span></a>
           <% } %>
           <details class="organizer-roster-export" data-export-menu>
             <summary class="nav-login-btn"><i data-lucide="download" aria-hidden="true"></i><span>Export</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>

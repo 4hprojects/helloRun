@@ -32,6 +32,11 @@ core platform:
   let two runners take the same last slot;
 - revocable bib QR codes, withdrawn on cancellation and bib reassignment, with
   scanning distinguishing withdrawn from unrecognised and unreadable;
+- guest registration without an account, with hashed manage/claim links, plus
+  organiser walk-in registration at the check-in desk and bulk registrant import
+  from a CSV or XLSX — all three sharing one guest path, so a person with no
+  HelloRun account can be entered by any route and later claim the entry with a
+  verified email;
 - results import from a CSV or XLSX with preview-then-commit, and event-scoped
   race-day staff who can be given `check_in`, `race_kit`, or `results` access to a
   single event without touching the global `User.role`; and runner-initiated

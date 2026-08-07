@@ -63,9 +63,11 @@ Both were blocked *only* by the account requirement, which is now gone.
 - [x] **Walk-in registration.** Done. On the check-in console, over the guest service, with
       the shadow sync awaited so a bib can be assigned immediately, a duplicate guard across
       both registration types, and opt-in payment capture.
-- [ ] **Registrant CSV/XLSX import.** Mirror the results import — preview, then commit,
+- [x] **Registrant CSV/XLSX import.** Mirror the results import — preview, then commit,
       with per-row outcomes. `exceljs` already reads both formats, and the guest path gives
-      it somewhere to put people who have no account.
+      it somewhere to put people who have no account. Shipped August 7: shared sheet
+      reader with the results import, confirmation emails off by default, emergency
+      contact still required for onsite, and a missing category settled at preview.
 
 ### 2. Features with no existing foundation
 
