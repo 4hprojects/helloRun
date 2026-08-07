@@ -715,6 +715,12 @@
             <% } else { %>
               <button type="button" class="btn btn-outline btn-block" disabled><%= details.primaryCta?.label || 'Registration Unavailable' %></button>
             <% } %>
+            <% if (event.allowGuestRegistration && details.primaryCta && !details.primaryCta.disabled) { %>
+              <p class="event-guest-register">
+                <a href="/events/<%= event.slug %>/register/guest">Register without an account</a>
+              </p>
+              <small class="event-guest-hint">You will need an account later to submit results or get a certificate.</small>
+            <% } %>
           </section>
 
           <section class="event-side-card event-timeline-card">

@@ -779,6 +779,14 @@
               </div>
               <small class="field-hint">Uses the event-promotion preference and sends once on or after the public posting date. Current state: <%= formData.autoEmailPromotionStatus || 'disabled' %>.</small>
             </div>
+            <div class="form-group form-group-full">
+              <div class="toggle-section-label">
+                <input type="hidden" name="allowGuestRegistration" value="0">
+                <input type="checkbox" id="allowGuestRegistration" name="allowGuestRegistration" value="1" <%= formData.allowGuestRegistration ? 'checked' : '' %>>
+                <label for="allowGuestRegistration" class="toggle-label-text">Let people register without a HelloRun account</label>
+              </div>
+              <small class="field-hint">Guests register with their name, email and contact number, and get a private link to their registration. They cannot submit results, earn badges or download a certificate until they create an account and claim it, so leave this off for events where finishing matters.</small>
+            </div>
             <div class="form-group">
               <label for="registrationOpenAt">Registration Open *</label>
               <div class="input-with-button">

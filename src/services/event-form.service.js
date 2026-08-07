@@ -618,6 +618,7 @@ function getBlankCreateEventDefaults() {
     digitalBadgeEnabled: '1',
     digitalCertificateEnabled: '1',
     autoEmailPromotionEnabled: '0',
+    allowGuestRegistration: '0',
     requiresDeliveryAddress: '1',
     requiresPhilippineDeliveryAddress: '1',
     internationalRunnersAllowed: '0'
@@ -785,6 +786,7 @@ function getCreateEventFormData(body = {}) {
     registrationCloseAt: body.registrationCloseAt || '',
     publicListingAvailableAt: body.publicListingAvailableAt || '',
     autoEmailPromotionEnabled: normalizeBoolean(body.autoEmailPromotionEnabled),
+    allowGuestRegistration: normalizeBoolean(body.allowGuestRegistration),
     hasHomePromotionFields,
     homeFeatured: normalizeBoolean(body.homeFeatured),
     homeFeaturedRank: parseOptionalNonNegativeInteger(body.homeFeaturedRank),
@@ -939,6 +941,7 @@ function getCreateEventFormDataFromEvent(event) {
     registrationCloseAt: formatDateForInput(event.registrationCloseAt),
     publicListingAvailableAt: formatDateForInput(event.publicListingAvailableAt),
     autoEmailPromotionEnabled: Boolean(event.autoEmailPromotionEnabled),
+    allowGuestRegistration: Boolean(event.allowGuestRegistration),
     autoEmailPromotionStatus: String(event.autoEmailPromotionStatus || 'disabled'),
     hasHomePromotionFields: false,
     homeFeatured: Boolean(event.homeFeatured),
@@ -1816,6 +1819,7 @@ function applyEventFormData(event, formData, user) {
   event.description = formData.description;
   event.eventDetailsMarkdown = formData.eventDetailsMarkdown || '';
   event.eventType = formData.eventType || undefined;
+  event.allowGuestRegistration = Boolean(formData.allowGuestRegistration);
   event.eventTypesAllowed = getEventTypesAllowed(formData.eventType);
   event.raceDistances = formData.raceDistances;
   // The create/edit-event form has no field for per-category step goals, so a
