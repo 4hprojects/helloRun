@@ -42,6 +42,57 @@ The gap was that no organiser UI existed for any of it.
 
 Nothing is deployed. No work here has run against a real database.
 
+## What's next — checklist
+
+Verified against the code on August 7, 2026.
+
+### A. Yours, not code. Everything else waits on this.
+
+- [ ] Apply migration `023_onsite_checkin_bib_uniqueness.sql`.
+- [ ] Deploy the `onsite-operations` branch together with the still-pending `b70b50d`.
+- [ ] Smoke-test on a draft event: check in, rescan (must say "already checked in", not
+      create a second row), confirm event-wide totals, download the backup list.
+- [ ] Run `tests/onsite-operations.service.integration.test.js` — it carries regression
+      tests for upsert, reassignment, bulk assignment and kit release that have never
+      executed.
+
+### B. Unblocked by A, in priority order
+
+- [ ] **Atomic capacity reservation.** Still live:
+      `registration.controller.js` does `countDocuments()` then inserts, so two people can
+      take the last slot. Needs a `reserved` counter on `Event.raceCategories` plus a
+      backfill. First change touching the live registration path — do it with a rehearsed
+      backup, ideally once an isolated environment exists.
+- [ ] **QR token revocation.** The token is already opaque and tamper-evident; only
+      revocation is missing, and it needs somewhere to store token hashes. Confirmed: no
+      token store exists today.
+- [ ] **Guest registration.** Unblocks three things at once — itself, walk-in
+      registration, and registrant import. Two migrations: `Registration.userId` is
+      `required` with a unique `{eventId, userId}` index, and `runner_user_id` is
+      `NOT NULL` on three Postgres tables.
+
+### C. Migration-free, available any time
+
+- [ ] **Waitlist.** Confirmed absent — zero references anywhere. Needs event settings plus
+      a waitlist state, and touches the event builder.
+- [ ] **Per-size kit/shirt inventory.** Confirmed absent — there is no shirt-size field
+      anywhere in the codebase, so this starts with capturing the size at registration.
+      `inventory_movements` is shop-only and keyed on product variants; do not reuse it.
+- [ ] **Registration transfers.** Confirmed absent. Needs a policy decision first: who may
+      transfer, until when, and what happens to the money.
+
+### D. Unrelated to onsite, found along the way
+
+- [ ] **`organiser.direct_message` and `organiser.runner_contact` have no email sender.**
+      Both declare `emailEnabled: true`, so `sendEventEmail` throws
+      "No email sender registered", `notify()` logs a failed send, and the public
+      "contact organiser" feature reports failure every time. Two email templates fixes it.
+
+### Deferred
+
+- **Dynamic form builder.** Largest item in the pack; its stated reuse source does not
+  exist in this repository. Revisit only with evidence that fixed fields are insufficient.
+
 ## Operating constraint
 
 There is still no isolated database environment, so every migration is a production event
