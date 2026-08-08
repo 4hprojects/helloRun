@@ -116,8 +116,11 @@ Both were blocked *only* by the account requirement, which is now gone.
 
 ### Deferred
 
-- **Dynamic form builder.** Largest item in the pack; its stated reuse source does not
-  exist in this repository. Revisit only with evidence that fixed fields are insufficient.
+- **Dynamic form builder — the rest of it.** The useful subset shipped August 8 as
+  organiser-defined questions. Still deferred: file upload, conditional routing,
+  profile-linked fields, sections, repeating groups and address composites. Its stated
+  reuse source does not exist in this repository. Revisit only with evidence that a short
+  answer, a pick from a list and an agreement are insufficient.
 
 ## Operating constraint
 
