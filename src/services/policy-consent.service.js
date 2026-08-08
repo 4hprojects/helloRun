@@ -110,20 +110,6 @@ async function syncPolicyConsentsForMongoUser(user, options = {}) {
   return synced;
 }
 
-function syncPolicyConsentsInBackground(user, options = {}) {
-  syncPolicyConsentsForMongoUser(user, options)
-    .catch((error) => {
-      logger.error('Supabase policy consent sync failed:', {
-        userId: String(user?._id || ''),
-        source: options.source || 'live_sync',
-        error: error.message
-      });
-      recordSyncFailureInBackground('policy_consent', String(user?._id || ''), error, {
-        source: options.source || 'live_sync'
-      });
-    });
-}
-
 function stringOrEmpty(value) {
   return String(value || '').trim();
 }
@@ -140,5 +126,4 @@ module.exports = {
   POLICY_TYPES,
   buildPolicyConsentRecords,
   syncPolicyConsentsForMongoUser,
-  syncPolicyConsentsInBackground
 };

@@ -17,34 +17,3 @@ exports.generateToken = (length = 32) => {
 exports.hashToken = (token) => {
   return crypto.createHash('sha256').update(token).digest('hex');
 };
-
-/**
- * Generate email verification token and expiry
- * @returns {Object} - { token, expires }
- */
-exports.generateEmailVerificationToken = () => {
-  const token = this.generateToken();
-  const expires = new Date(Date.now() + parseInt(process.env.EMAIL_VERIFICATION_EXPIRY));
-  
-  return { token, expires };
-};
-
-/**
- * Generate password reset token and expiry
- * @returns {Object} - { token, expires }
- */
-exports.generatePasswordResetToken = () => {
-  const token = this.generateToken();
-  const expires = new Date(Date.now() + require('./password.service').getResetTokenTtlMs());
-
-  return { token, expires };
-};
-
-/**
- * Check if token is expired
- * @param {Date} expiryDate - Token expiry date
- * @returns {Boolean} - True if expired
- */
-exports.isTokenExpired = (expiryDate) => {
-  return new Date() > new Date(expiryDate);
-};

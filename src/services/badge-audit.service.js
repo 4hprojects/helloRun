@@ -75,17 +75,6 @@ async function listRecentBadgeAuditLogs(options = {}) {
   }));
 }
 
-function logBadgeAuditInBackground(input = {}) {
-  logBadgeAudit(input).catch((error) => {
-    logger.error('Badge audit write failed:', {
-      action: input.action,
-      badgeDefinitionId: input.badgeDefinitionId,
-      userBadgeId: input.userBadgeId,
-      error: error.message
-    });
-  });
-}
-
 function stringOrNull(value) {
   const safe = String(value || '').trim();
   return safe || null;
@@ -99,7 +88,6 @@ function normalizeBadgeScope(value) {
 module.exports = {
   logBadgeAudit,
   listRecentBadgeAuditLogs,
-  logBadgeAuditInBackground
 };
 
 function clampInt(value, min, max, fallback) {

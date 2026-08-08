@@ -172,11 +172,6 @@ async function resolveAutomaticPublishPromotionRecipients() {
   return filterEventPromotionOptOutRecipients(recipients);
 }
 
-async function resolveAdminSelectedEmailRecipients(input, options = {}) {
-  const parsed = await hydrateSelectedPromotionRecipients(input, options);
-  return parsed.recipients;
-}
-
 function getCampaignStatus(summary) {
   const selectedCount = Number(summary.selectedCount || 0);
   if (selectedCount <= 0) return 'failed';
@@ -312,7 +307,6 @@ module.exports = {
   resolveOrganizerPromotionRecipients,
   resolveAdminPromotionRecipients,
   resolveAutomaticPublishPromotionRecipients,
-  resolveAdminSelectedEmailRecipients,
   dispatchEventPromotionCampaign,
   dispatchAndFinalizeEventPromotionCampaign,
   dispatchEventPromotionCampaignInBackground

@@ -208,16 +208,6 @@ async function getRegistrationAccumulatedProgress(registrationId) {
   });
 }
 
-async function getRunnerAccumulatedActivities(runnerId, options = {}) {
-  const limit = clampInt(options.limit, 1, 500, 100);
-  return AccumulatedActivitySubmission.find({ runnerId })
-    .sort({ submittedAt: -1 })
-    .limit(limit)
-    .populate({ path: 'eventId', select: 'title slug eventStartAt targetDistanceKm targetSteps challengeMetrics primaryChallengeMetric virtualCompletionMode' })
-    .populate({ path: 'registrationId', select: 'confirmationCode raceDistance participationMode' })
-    .lean();
-}
-
 async function getAccumulatedActivitiesForRegistrations(registrationIds = [], options = {}) {
   const ids = registrationIds.map((item) => String(item || '').trim()).filter(Boolean);
   if (!ids.length) return [];
@@ -227,15 +217,6 @@ async function getAccumulatedActivitiesForRegistrations(registrationIds = [], op
     .sort({ submittedAt: -1, createdAt: -1 })
     .populate('reviewedBy', 'firstName lastName')
     .lean();
-}
-
-async function getEventAccumulatedActivityCounts(eventId) {
-  const [submitted, approved, rejected] = await Promise.all([
-    AccumulatedActivitySubmission.countDocuments({ eventId, status: 'submitted' }),
-    AccumulatedActivitySubmission.countDocuments({ eventId, status: 'approved' }),
-    AccumulatedActivitySubmission.countDocuments({ eventId, status: 'rejected' })
-  ]);
-  return { submitted, approved, rejected };
 }
 
 async function getAccumulatedLeaderboardRows(filters = {}) {
@@ -583,9 +564,7 @@ module.exports = {
   createAccumulatedActivitySubmission,
   reviewAccumulatedActivitySubmission,
   getRegistrationAccumulatedProgress,
-  getRunnerAccumulatedActivities,
   getAccumulatedActivitiesForRegistrations,
-  getEventAccumulatedActivityCounts,
   getAccumulatedLeaderboardRows,
   buildAccumulatedProgress
 };

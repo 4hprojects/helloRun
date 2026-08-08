@@ -62,24 +62,6 @@ async function resolveToken(rawToken, purpose = 'manage') {
   return { ok: true, registrationId: record.registrationId, eventId: record.eventId, record };
 }
 
-/**
- * Mark a claim token spent. Conditional on it still being unused, so two requests racing
- * the same link cannot both succeed.
- */
-async function consumeClaimToken(rawToken) {
-  const resolved = await resolveToken(rawToken, 'claim');
-  if (!resolved.ok) return resolved;
-
-  const updated = await GuestRegistrationToken.findOneAndUpdate(
-    { _id: resolved.record._id, usedAt: null },
-    { $set: { usedAt: new Date() } },
-    { new: true }
-  ).lean();
-
-  if (!updated) return { ok: false, reason: 'used' };
-  return { ok: true, registrationId: updated.registrationId, eventId: updated.eventId };
-}
-
 async function touchLastUsed(tokenId) {
   try {
     await GuestRegistrationToken.updateOne({ _id: tokenId }, { $set: { lastUsedAt: new Date() } });
@@ -122,7 +104,6 @@ function referenceMatches(expected, provided) {
 module.exports = {
   issueToken,
   resolveToken,
-  consumeClaimToken,
   touchLastUsed,
   revokeTokensForRegistration,
   referenceMatches,

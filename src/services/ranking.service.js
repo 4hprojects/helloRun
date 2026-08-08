@@ -231,30 +231,6 @@ async function evaluatePublishedRankingAchievementsSafe(input = {}, options = {}
 }
 
 /**
- * Get current ranking for a specific submission
- * @param {string} mongoSubmissionId MongoDB submission ID
- * @param {Object} options { sql? }
- * @returns {Promise<Object|null>} ranking row or null
- */
-async function getRankingForSubmission(mongoSubmissionId, options = {}) {
-  const sql = options.sql || getPostgresClient();
-
-  try {
-    const result = await sql`
-      SELECT * FROM rankings
-      WHERE mongo_submission_id = ${mongoSubmissionId}
-      AND published_at IS NOT NULL
-      LIMIT 1
-    `;
-
-    return result.length > 0 ? result[0] : null;
-  } catch (error) {
-    logger.error('Get ranking error:', error.message);
-    return null;
-  }
-}
-
-/**
  * Get event leaderboard from Supabase
  * @param {string} eventSlug event slug
  * @param {Object} filter { leaderboardType?, raceDistance?, participationMode? }
@@ -290,42 +266,11 @@ async function getEventLeaderboard(eventSlug, filter = {}, options = {}) {
   }
 }
 
-/**
- * Get runner certification count from materialized view
- * @param {string} appUserId Supabase app_users ID
- * @param {Object} options { sql? }
- * @returns {Promise<Object>} certification counts
- */
-async function getRunnerCertifications(appUserId, options = {}) {
-  const sql = options.sql || getPostgresClient();
-
-  try {
-    const result = await sql`
-      SELECT * FROM v_runner_certifications
-      WHERE runner_user_id = ${appUserId}
-      LIMIT 1
-    `;
-
-    return result.length > 0 ? result[0] : {
-      runner_user_id: appUserId,
-      finisher_count: 0,
-      personal_record_count: 0,
-      total_certificates: 0,
-      most_recent_certificate_at: null
-    };
-  } catch (error) {
-    logger.error('Get runner certifications error:', error.message);
-    return null;
-  }
-}
-
 module.exports = {
   normalizeSingleActivityRanking,
   normalizeAccumulatedRanking,
   buildRankingChecksum,
   syncRankingEntry,
   publishRankings,
-  getRankingForSubmission,
   getEventLeaderboard,
-  getRunnerCertifications
 };

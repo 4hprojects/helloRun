@@ -53,11 +53,14 @@ Removal only, no behaviour change, each independently revertable.
       kept — the consolidation was deliberate and they are the reason not to
       reintroduce them. All 158 views still compile, so no include was left
       dangling.
-- [ ] **26 dead service exports.** Notably `token.service.js` (3 of 5),
-      `badge-template.service.js` (whose live exports have no `src/` consumer at
-      all — the service is test-only), the unfinished pub/sub half of
-      `realtime-checkin.service.js`, and the `list*` entry point of four shop
-      services.
+- [x] **Dead service exports.** 25 removed August 8 across 17 files, ~370 lines.
+      The 26th, `getPasswordStrength`, turned out **not** to be dead — it is called
+      internally by `validatePassword`, and removing it broke password validation
+      until the check caught it. Removing `consumeClaimToken` also surfaced a real
+      fact: nothing has ever issued a `claim` token, because claiming is proved by
+      a verified email instead. `badge-template.service.js` survives but has no
+      `src/` consumer at all — it is reachable only from its test, which is a
+      separate decision from dead exports.
 - [ ] **11 never-queried Postgres objects** — 10 views plus `shop_platform_fees`,
       including all five Phase-6 reporting views. **Needs a migration and
       explicit approval before it is applied.**

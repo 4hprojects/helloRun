@@ -1,24 +1,5 @@
 const { getPostgresClient } = require('../../db/postgres');
 
-async function listProducts(options = {}) {
-  const sql = getPostgresClient();
-  const eventId = String(options.eventId || '').trim();
-  const limit = normalizeLimit(options.limit, 50);
-
-  if (!eventId) return [];
-
-  const rows = await sql`
-    select id, event_id, organiser_id, name, slug, product_type, base_price, currency, status,
-           is_visible, show_during_registration, show_in_event_shop, created_at, updated_at
-    from products_core
-    where event_id::text = ${eventId}
-    order by created_at desc
-    limit ${limit}
-  `;
-
-  return rows;
-}
-
 async function listProductsByMongoEventId(mongoEventId, options = {}) {
   const sql = getPostgresClient();
   const safeMongoEventId = String(mongoEventId || '').trim();
@@ -464,7 +445,6 @@ function normalizeLimit(value, fallback) {
 }
 
 module.exports = {
-  listProducts,
   listProductsByMongoEventId,
   listPublicProductsAcrossEvents,
   getPublicProductByEventSlugAndProductSlug,

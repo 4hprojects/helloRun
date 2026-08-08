@@ -122,31 +122,6 @@ async function getCheckInsByMode(eventId) {
 }
 
 /**
- * Broadcast check-in update to all connected clients
- * Used by server to emit real-time updates via polling or WebSocket
- */
-function broadcastCheckInUpdate(eventId, checkIn) {
-  checkInEmitter.emit(`event:${eventId}:check-in`, {
-    timestamp: new Date().toISOString(),
-    eventId,
-    checkIn
-  });
-}
-
-/**
- * Subscribe to check-in updates for an event
- */
-function subscribeToCheckIns(eventId, callback) {
-  const listener = (data) => callback(data);
-  checkInEmitter.on(`event:${eventId}:check-in`, listener);
-
-  // Return unsubscribe function
-  return () => {
-    checkInEmitter.off(`event:${eventId}:check-in`, listener);
-  };
-}
-
-/**
  * Get check-in velocity (check-ins per minute)
  */
 async function getCheckInVelocity(eventId, windowMinutes = 5) {
@@ -241,8 +216,6 @@ module.exports = {
   getRealtimeCheckInSummary,
   getRecentCheckIns,
   getCheckInsByMode,
-  broadcastCheckInUpdate,
-  subscribeToCheckIns,
   getCheckInVelocity,
   estimateCheckInCompletion,
   checkInEmitter

@@ -2,42 +2,6 @@ const BadgeTemplate = require('../models/BadgeTemplate');
 
 const VALID_SCOPES = new Set(['global', 'event', 'challenge', 'organiser']);
 
-async function upsertBadgeTemplate(payload = {}) {
-  const normalized = normalizeBadgeTemplatePayload(payload);
-  if (!normalized.templateCode) {
-    throw new Error('Badge template code is required.');
-  }
-  if (!normalized.titlePattern) {
-    throw new Error('Badge template title pattern is required.');
-  }
-  if (!normalized.badgeType) {
-    throw new Error('Badge template badge type is required.');
-  }
-  if (!normalized.requirementType) {
-    throw new Error('Badge template requirement type is required.');
-  }
-
-  return BadgeTemplate.findOneAndUpdate(
-    { templateCode: normalized.templateCode },
-    { $set: normalized },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
-  );
-}
-
-async function getDefaultBadgeTemplates(scope = 'event') {
-  const normalizedScope = normalizeScope(scope);
-  return BadgeTemplate.find({
-    scope: normalizedScope,
-    isDefault: true
-  }).sort({ badgeType: 1, templateCode: 1 });
-}
-
-async function getBadgeTemplateByCode(templateCode) {
-  const normalizedCode = normalizeTemplateCode(templateCode);
-  if (!normalizedCode) return null;
-  return BadgeTemplate.findOne({ templateCode: normalizedCode });
-}
-
 function renderBadgeTemplate(template = {}, variables = {}) {
   return {
     title: renderTemplateString(template.titlePattern, variables),
@@ -93,9 +57,6 @@ function getTemplateVariable(variables, key) {
 }
 
 module.exports = {
-  upsertBadgeTemplate,
-  getDefaultBadgeTemplates,
-  getBadgeTemplateByCode,
   renderBadgeTemplate,
   renderTemplateString,
   normalizeBadgeTemplatePayload

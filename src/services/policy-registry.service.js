@@ -125,14 +125,6 @@ function getPolicyByKey(key) {
   return POLICY_BY_KEY.get(key) || null;
 }
 
-function getPolicyBySlug(slug) {
-  return POLICY_BY_SLUG.get(slug) || null;
-}
-
-function getPolicyByPublicPath(publicPath) {
-  return POLICY_BY_PUBLIC_PATH.get(publicPath) || null;
-}
-
 function getPolicyByAdminPath(adminPath) {
   return POLICY_BY_ADMIN_PATH.get(String(adminPath || '').replace(/^\/+/, '')) || null;
 }
@@ -141,7 +133,5 @@ module.exports = {
   POLICY_DOCUMENTS,
   listPolicyDocuments,
   getPolicyByKey,
-  getPolicyBySlug,
-  getPolicyByPublicPath,
   getPolicyByAdminPath
 };

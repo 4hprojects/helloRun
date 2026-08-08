@@ -1,22 +1,5 @@
 const { getPostgresClient } = require('../../db/postgres');
 
-async function listOrdersByUserId(userId, options = {}) {
-  const sql = getPostgresClient();
-  const safeUserId = String(userId || '').trim();
-  const limit = normalizeLimit(options.limit, 50);
-  if (!safeUserId) return [];
-
-  return sql`
-    select id, order_number, buyer_user_id, event_id, organiser_id,
-           subtotal, delivery_fee, platform_fee, total_amount, currency,
-           payment_status, fulfilment_status, created_at, updated_at
-    from orders
-    where buyer_user_id::text = ${safeUserId}
-    order by created_at desc
-    limit ${limit}
-  `;
-}
-
 async function listOrdersByMongoUserId(mongoUserId, options = {}) {
   const sql = getPostgresClient();
   const safeMongoUserId = String(mongoUserId || '').trim();
@@ -319,7 +302,6 @@ function normalizeLimit(value, fallback) {
 }
 
 module.exports = {
-  listOrdersByUserId,
   listOrdersByMongoUserId,
   listOrdersByMongoEventId,
   listOrdersForAdmin,

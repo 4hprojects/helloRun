@@ -187,26 +187,6 @@ exports.uploadCertificateAssets = (req, res, next) => {
   });
 };
 
-exports.uploadBlogCover = (req, res, next) => {
-  const uploadSingle = brandingUpload.single('coverImageFile');
-
-  uploadSingle(req, res, (err) => {
-    if (!err) {
-      req.uploadError = null;
-      req.uploadErrorField = null;
-      next();
-      return;
-    }
-    req.uploadErrorField = err.field || err.fieldName || 'coverImageFile';
-    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-      req.uploadError = `Cover image exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`;
-    } else {
-      req.uploadError = err.message || 'Cover upload failed.';
-    }
-    next();
-  });
-};
-
 exports.uploadBlogAssets = (req, res, next) => {
   const uploadFields = brandingUpload.fields([
     { name: 'coverImageFile', maxCount: 1 },

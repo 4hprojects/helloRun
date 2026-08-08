@@ -3,25 +3,6 @@ const { getPostgresClient } = require('../../db/postgres');
 const REVIEWABLE_STATUSES = new Set(['pending_review', 'correction_required']);
 const TERMINAL_STATUSES = new Set(['paid', 'rejected', 'cancelled']);
 
-async function listPendingPaymentReviews(options = {}) {
-  const sql = getPostgresClient();
-  const eventId = String(options.eventId || '').trim();
-  const limit = normalizeLimit(options.limit, 50);
-
-  if (!eventId) return [];
-
-  return sql`
-    select sp.id, sp.order_id, sp.payment_method, sp.payment_reference, sp.proof_image_url,
-           sp.amount_paid, sp.status, sp.created_at, o.order_number, o.total_amount, o.currency
-    from shop_payments sp
-    join orders o on o.id = sp.order_id
-    where o.event_id::text = ${eventId}
-      and sp.status in ('pending_review', 'correction_required')
-    order by sp.created_at asc
-    limit ${limit}
-  `;
-}
-
 async function listPendingPaymentReviewsByMongoEventId(mongoEventId, options = {}) {
   const sql = getPostgresClient();
   const safeMongoEventId = String(mongoEventId || '').trim();
@@ -210,7 +191,6 @@ function normalizeLimit(value, fallback) {
 }
 
 module.exports = {
-  listPendingPaymentReviews,
   listPendingPaymentReviewsByMongoEventId,
   listPendingPlatformPaymentReviews,
   getPlatformPaymentReviewById,

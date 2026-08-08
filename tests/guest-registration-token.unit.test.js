@@ -56,10 +56,26 @@ test('a claim link expires; a manage link does not', () => {
   assert.match(service, /purpose === 'claim' \? new Date\(Date\.now\(\) \+ CLAIM_TOKEN_TTL_MS\) : null/);
 });
 
-test('two requests racing the same claim link cannot both win', () => {
-  // The update is conditional on the token still being unused, so the loser gets nothing.
-  assert.match(service, /\{ _id: resolved\.record\._id, usedAt: null \}/);
-  assert.match(service, /return \{ ok: false, reason: 'used' \}/);
+test('claiming is by verified email, not by a claim link', () => {
+  // A claim-link design existed and was superseded: ownership is proved by a verified
+  // email address instead. Verified August 8 — every issueToken call uses 'manage', and
+  // nothing anywhere mints a 'claim' token, so consumeClaimToken was unreachable and has
+  // been removed. This test is what fails if a claim link is reintroduced without the
+  // single-use consume logic that made it safe.
+  const claim = read('src/services/guest-registration-claim.service.js');
+  assert.match(claim, /The proof of ownership is a verified email/);
+  assert.doesNotMatch(service, /consumeClaimToken/);
+
+  const issued = [...read('src/services/guest-registration.service.js').matchAll(/issueToken\([^)]*\)/g)]
+    .concat([...read('src/services/registration-transfer.service.js').matchAll(/issueToken\([^)]*\)/g)]);
+  assert.ok(issued.length > 0, 'manage links are still issued');
+  for (const [call] of issued) {
+    assert.match(call, /'manage'/, `issueToken must not mint a claim token: ${call}`);
+  }
+
+  // The defensive guard in resolveToken stays: it costs nothing and is correct if a claim
+  // token ever exists again.
+  assert.match(service, /record\.usedAt && purpose === 'claim'/);
 });
 
 test('the registration reference is compared without leaking how far it matched', () => {

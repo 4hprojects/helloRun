@@ -122,60 +122,6 @@ async function generateBibQRCode(eventId, bibNumber, options = {}) {
 }
 
 /**
- * Generate QR code as buffer (for file save)
- */
-async function generateBibQRCodeBuffer(eventId, bibNumber, options = {}) {
-  const timestamp = Math.floor(Date.now() / 1000);
-  const qrData = createBibToken(eventId, bibNumber, options.tokenId);
-
-  try {
-    const buffer = await QRCode.toBuffer(qrData, {
-      errorCorrectionLevel: 'H',
-      type: 'image/png',
-      width: options.width || 300,
-      margin: options.margin || 1
-    });
-
-    return {
-      success: true,
-      buffer,
-      encoded_data: qrData,
-      mime_type: 'image/png',
-      timestamp
-    };
-  } catch (error) {
-    throw new Error(`Failed to generate QR code buffer: ${error.message}`);
-  }
-}
-
-/**
- * Generate QR code as SVG
- */
-async function generateBibQRCodeSVG(eventId, bibNumber, options = {}) {
-  const timestamp = Math.floor(Date.now() / 1000);
-  const qrData = createBibToken(eventId, bibNumber, options.tokenId);
-
-  try {
-    const svgString = await QRCode.toString(qrData, {
-      errorCorrectionLevel: 'H',
-      type: 'svg',
-      width: options.width || 300,
-      margin: options.margin || 1
-    });
-
-    return {
-      success: true,
-      svg: svgString,
-      encoded_data: qrData,
-      mime_type: 'image/svg+xml',
-      timestamp
-    };
-  } catch (error) {
-    throw new Error(`Failed to generate QR code SVG: ${error.message}`);
-  }
-}
-
-/**
  * Decode the legacy plaintext QR payload.
  * Retained only for codes printed before the token format; prefer resolveScannedQr.
  */
@@ -244,8 +190,6 @@ module.exports = {
   readBibToken,
   resolveScannedQr,
   generateBibQRCode,
-  generateBibQRCodeBuffer,
-  generateBibQRCodeSVG,
   decodeQRData,
   generateBatchQRCodes
 };
