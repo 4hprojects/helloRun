@@ -92,16 +92,15 @@ Both were blocked *only* by the account requirement, which is now gone.
 
 ### 3. Operational hygiene — small, and each prevents a repeat
 
-- [ ] **`/healthz` should return the running commit.** There is no way to ask the app which
+- [x] **`/healthz` should return the running commit.** There is no way to ask the app which
       build it is. A whole debugging detour came from inferring it, wrongly, from a route
-      that 302s for every path.
-- [ ] **Make `postinstall` tessdata non-fatal.** It downloads from a third-party host on
-      every deploy. A missing OCR pack should degrade OCR, not block shipping the platform.
-- [ ] **Guard the live-DB test suites.** `npm test` still reaches production. Everything in
+      that 302s for every path. **Shipped August 8** in `c06e2fe`; confirmed live in production.
+- [x] **Make `postinstall` tessdata non-fatal.** It downloads from a third-party host on
+      every deploy. A missing OCR pack should degrade OCR, not block shipping the platform. **Shipped August 8.** Also gained request and overall timeouts — it had none, so a host that accepted the connection and never answered would hang `npm install` until the build platform gave up.
+- [x] **Guard the live-DB test suites.** `npm test` still reaches production. Everything in
       this work had to be run by hand with that risk held in mind.
 
-### 4. Yours — verification and decisions I cannot make
-
+### 4. Yours — verification and decisions I cannot make **Shipped August 8.** Any group that is not DB-free unit tests is refused unless the databases are local, with an explicit `ALLOW_REMOTE_TEST_DB=1` override.
 - [ ] **Hands-on walkthrough on a draft event.** Assign a bib, open the race pass, scan it,
       release a kit, record and approve a result. Everything so far is automated tests and
       synthetic probes; nobody has driven this in a browser.
