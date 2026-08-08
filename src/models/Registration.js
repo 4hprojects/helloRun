@@ -64,6 +64,14 @@ const registrationSchema = new mongoose.Schema(
       position: { type: String, trim: true, default: '', maxlength: 120 },
       preferredFitnessApp: { type: String, trim: true, default: '', maxlength: 80 }
     },
+
+    // The race-kit size this person chose. Empty when the event does not track sizes, so
+    // every registration written before this existed stays valid.
+    kitSize: { type: String, trim: true, uppercase: true, default: '', maxlength: 12 },
+    // The size actually handed over, recorded at the kit table. Usually the same as
+    // `kitSize`, but a desk that substitutes when a size runs out has to be able to say so
+    // — otherwise the stock count and what people are wearing drift apart.
+    kitSizeReleased: { type: String, trim: true, uppercase: true, default: '', maxlength: 12 },
     leaderboardDisplayPreference: {
       type: String,
       enum: ['full_name', 'abbreviated', 'hidden'],

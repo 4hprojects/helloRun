@@ -168,6 +168,24 @@
                 <% if (errors.pricing) { %><small class="error-text" id="registrationPricingError"><%= errors.pricing %></small><% } %>
               </fieldset>
 
+              <% if ((event.kitInventory || []).length) { %>
+                <fieldset class="registration-choice-group <%= errors.kitSize ? 'has-error' : '' %>" id="kitSizeGroup">
+                  <legend>Race kit size <% if (event.kitSizeRequired) { %><span aria-hidden="true">*</span><% } %></legend>
+                  <p class="choice-helper">The size is recorded now and handed over at the kit table. A size with none left is shown as unavailable.</p>
+                  <label class="form-group" for="kitSize">
+                    <span class="sr-only">Race kit size</span>
+                    <select id="kitSize" name="kitSize" <%= event.kitSizeRequired ? 'required' : '' %> aria-invalid="<%= errors.kitSize ? 'true' : 'false' %>">
+                      <option value="" <%= formData.kitSize ? '' : 'selected' %>><%= event.kitSizeRequired ? 'Select a size' : 'No preference' %></option>
+                      <% (event.kitInventory || []).forEach(function (entry) {
+                           var left = Math.max(0, (Number(entry.stock) || 0) - (Number(entry.released) || 0)); %>
+                        <option value="<%= entry.size %>" <%= formData.kitSize === entry.size ? 'selected' : '' %> <%= left > 0 ? '' : 'disabled' %>><%= entry.size %><%= left > 0 ? '' : ' — none left' %></option>
+                      <% }); %>
+                    </select>
+                  </label>
+                  <% if (errors.kitSize) { %><small class="error-text"><%= errors.kitSize %></small><% } %>
+                </fieldset>
+              <% } %>
+
               <% if (visibleCustomizedOptions.length) { %>
                 <fieldset class="registration-choice-group <%= errors.customizedOptionId ? 'has-error' : '' %>" id="customizedOptionGroup">
                   <legend>Signup option <span aria-hidden="true">*</span></legend>

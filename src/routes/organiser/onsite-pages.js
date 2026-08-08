@@ -23,6 +23,7 @@ const {
   STAFF_PERMISSIONS
 } = require('../../services/event-staff.service');
 const { getOnsiteRosterData } = require('../../services/onsite-roster.service');
+const { getInventorySummary } = require('../../services/kit-inventory.service');
 const {
   getRealtimeCheckInSummary,
   getRecentCheckIns,
@@ -206,7 +207,7 @@ router.get('/events/:eventId/bibs', protectOnsiteRead('check_in'), async (req, r
 router.get('/events/:eventId/race-kits', protectOnsiteRead('race_kit'), async (req, res, next) => {
   try {
     const { eventId } = req.params;
-    const event = await Event.findById(eventId).select('title').lean();
+    const event = await Event.findById(eventId).select('title kitInventory kitSizeRequired').lean();
     if (!event) {
       return res.status(404).render('error', {
         title: '404 - Event Not Found',
@@ -223,6 +224,7 @@ router.get('/events/:eventId/race-kits', protectOnsiteRead('race_kit'), async (r
     return res.render('organizer/event-race-kits', {
       title: `Race kits — ${event.title}`,
       event,
+      inventory: getInventorySummary(event),
       eventId: String(eventId),
       participants: rosterData.participants,
       totals: rosterData.totals,

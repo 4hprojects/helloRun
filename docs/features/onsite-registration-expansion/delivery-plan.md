@@ -79,9 +79,11 @@ Both were blocked *only* by the account requirement, which is now gone.
       promotion goes through the ordinary registration paths instead. An offer holds a real
       slot through the same atomic reservation, so `createGuestRegistration` gained
       `skipCapacityReservation`, and a worker expires stale offers and passes the slot on.
-- [ ] **Per-size kit/shirt inventory.** Confirmed absent — no shirt-size field exists, so
-      this starts at registration, not at the kit table. `inventory_movements` is shop-only
-      and keyed on product variants; do not reuse it.
+- [x] **Per-size kit/shirt inventory.** Shipped August 8. Started at registration, as
+      predicted — no shirt-size field existed anywhere. `inventory_movements` was not
+      reused, and neither were the Postgres `race_kits` quantity columns: nothing has ever
+      written those. The counter is on the event in Mongo, mirroring `raceCategories.reserved`,
+      and counts kits as they leave the table rather than reserving at registration.
 - [ ] **Transfers.** Confirmed absent. Needs a policy decision first: who may transfer,
       until when, and what happens to the money — the same shape as the refund question
       that shaped runner cancellation.
@@ -192,7 +194,8 @@ deploy window.
 - ~~**Staff roles**~~ — **done, without a migration.** `EventStaff` scopes a grant to one
   event with named permissions, leaving the global `User.role` untouched. A new Mongo
   collection needs no migration.
-- **Inventory and transfers** — neither exists. The waitlist shipped August 8.
+- **Transfers** — still absent, and blocked on a policy decision about the money. The
+  waitlist and per-size kit inventory both shipped August 8.
 - **Walk-in registration** — not code-only after all. `Registration.userId` is
   `required: true`, and a genuine walk-in has no account, so this is blocked by exactly the
   same constraint as guest registration. Only an account-holder variant could be built

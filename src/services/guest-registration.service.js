@@ -13,6 +13,7 @@ const Event = require('../models/Event');
 const User = require('../models/User');
 const { resolveRegistrationPrice } = require('./registration-price.service');
 const { reserveCategorySlot, releaseCategorySlot } = require('./category-capacity.service');
+const { isTrackingSizes, isOfferedSize, normaliseSize } = require('./kit-inventory.service');
 const { issueToken } = require('./guest-registration-token.service');
 const { renderWaiverTemplate } = require('../utils/waiver');
 const { getInitialRegistrationPaymentStatus } = require('../utils/payment-workflow');
@@ -35,7 +36,12 @@ function normaliseEmail(value) {
  * An account registration can fall back to the profile for anything missing. A guest has
  * no profile, so everything needed to identify them on race day has to come from the form.
  */
-function validateGuestForm(body = {}) {
+/**
+ * @param {Object} body
+ * @param {Object} [event] - needed only to check the kit size against what is stocked.
+ *   Optional so every existing caller keeps working unchanged.
+ */
+function validateGuestForm(body = {}, event = null) {
   const errors = {};
   const form = {
     firstName: clean(body.firstName, 80),
@@ -47,7 +53,8 @@ function validateGuestForm(body = {}) {
     emergencyContactName: clean(body.emergencyContactName, 120),
     emergencyContactNumber: clean(body.emergencyContactNumber, 40),
     waiverAccepted: body.waiverAccepted === 'on' || body.waiverAccepted === true,
-    waiverSignature: clean(body.waiverSignature, 120)
+    waiverSignature: clean(body.waiverSignature, 120),
+    kitSize: normaliseSize(body.kitSize)
   };
 
   if (!form.firstName) errors.firstName = 'Enter your first name.';
@@ -58,6 +65,19 @@ function validateGuestForm(body = {}) {
   if (!form.mobile) errors.mobile = 'Enter a contact number.';
   if (!form.waiverAccepted) errors.waiverAccepted = 'You must accept the waiver to register.';
   if (!form.waiverSignature) errors.waiverSignature = 'Type your name to sign the waiver.';
+
+  // Kit size, only when the event actually stocks sizes. An event with no shirt must not
+  // start demanding one.
+  if (event && isTrackingSizes(event)) {
+    if (!form.kitSize && event.kitSizeRequired) {
+      errors.kitSize = 'Choose a kit size.';
+    } else if (form.kitSize && !isOfferedSize(event, form.kitSize)) {
+      errors.kitSize = 'Choose one of the sizes this event offers.';
+    }
+  } else {
+    // Nothing to stock it against, so do not carry an arbitrary string onto the record.
+    form.kitSize = '';
+  }
 
   // Onsite means someone has to be reachable if this person gets hurt.
   if (form.participationMode === 'onsite') {
@@ -200,6 +220,7 @@ async function createGuestRegistration({
       },
       participationMode: form.participationMode,
       raceDistance: form.raceDistance || resolvedPrice?.raceDistance || '',
+      kitSize: form.kitSize || '',
       status: 'confirmed',
       paymentStatus: getInitialRegistrationPaymentStatus(event),
       paymentAmountDue: resolvedPrice?.amount ?? 0,

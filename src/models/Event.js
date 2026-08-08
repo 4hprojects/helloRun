@@ -117,6 +117,32 @@ const eventSchema = new mongoose.Schema(
     // released to the next in line. An offer holds a real slot, so this cannot be
     // unbounded — an unclaimed offer would take capacity out of circulation for good.
     waitlistOfferHours: { type: Number, min: 1, max: 336, default: 48 },
+    // Per-size race-kit stock.
+    //
+    // Kept here in Mongo rather than in the Postgres `race_kits` table: that table's
+    // quantity_available/quantity_reserved pair has never been written by anything but the
+    // insert that creates the row, so building on it would mean adopting a counter nothing
+    // maintains. This mirrors `raceCategories.reserved` instead, which is a counter that is
+    // already proven under an atomic claim.
+    //
+    // Empty means the organiser is not tracking sizes, and everything behaves as before.
+    kitInventory: {
+      type: [
+        {
+          size: { type: String, trim: true, uppercase: true, maxlength: 12, required: true },
+          // How many exist. Zero is meaningful — a size that is offered but sold out.
+          stock: { type: Number, min: 0, default: 0 },
+          // How many have been handed over. Deliberately has no default, for the same
+          // reason as `raceCategories.reserved`: absent means "never tracked", reads as
+          // zero, and leaves rows written before this existed untouched.
+          released: { type: Number, min: 0 }
+        }
+      ],
+      default: []
+    },
+    // Whether a participant must choose a size when registering. Off unless the organiser
+    // turns it on: an event with no shirt should not ask.
+    kitSizeRequired: { type: Boolean, default: false },
     publicListingAvailableAt: {
       type: Date,
       default: null

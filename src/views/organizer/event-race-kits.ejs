@@ -59,6 +59,22 @@
         <p class="checkin-note">Showing the first <%= participants.length %> matches. Narrow the search to see more.</p>
       <% } %>
 
+      <% if ((inventory || []).length) { %>
+        <section class="checkin-scanner" aria-labelledby="kit-stock-title">
+          <h2 id="kit-stock-title">Stock</h2>
+          <ul class="checkin-count-list">
+            <% inventory.forEach(function (row) { %>
+              <li><strong><%= row.size %></strong> <%= row.remaining %> left <span class="checkin-note">of <%= row.stock %></span></li>
+            <% }); %>
+          </ul>
+          <p class="checkin-note">
+            Counted as kits leave this table, not as people register — an event routinely
+            registers more people than it has shirts. Releasing a size with none left is
+            refused; substitute another size instead so the count stays true.
+          </p>
+        </section>
+      <% } %>
+
       <section aria-labelledby="kit-list-title">
         <h2 class="visually-hidden" id="kit-list-title">Participants</h2>
         <% if (participants.length === 0) { %>
@@ -75,6 +91,13 @@
                   <p class="checkin-row-meta">
                     <%= participant.confirmationCode %><% if (participant.raceDistance) { %> · <%= participant.raceDistance %><% } %>
                   </p>
+                  <% if (participant.kitSizeReleased) { %>
+                    <p class="checkin-row-meta">Handed over: <strong><%= participant.kitSizeReleased %></strong><% if (participant.kitSize && participant.kitSize !== participant.kitSizeReleased) { %> (chose <%= participant.kitSize %>)<% } %></p>
+                  <% } else if (participant.kitSize) { %>
+                    <p class="checkin-row-meta">Size: <strong><%= participant.kitSize %></strong></p>
+                  <% } else if ((inventory || []).length) { %>
+                    <p class="checkin-row-warning">No size chosen — pick one to hand over.</p>
+                  <% } %>
                   <% if (participant.paymentStatus && participant.paymentStatus !== 'paid') { %>
                     <p class="checkin-row-warning">Payment: <%= participant.paymentStatus %></p>
                   <% } %>
@@ -87,6 +110,15 @@
                   <% } else if (!participant.hasBib) { %>
                     <p class="checkin-row-status checkin-row-status-blocked">Needs a bib</p>
                   <% } else { %>
+                    <% if ((inventory || []).length) { %>
+                      <label class="visually-hidden" for="size-<%= participant.registrationId %>">Size to hand over</label>
+                      <select id="size-<%= participant.registrationId %>" data-kit-size>
+                        <option value="">As chosen<%= participant.kitSize ? ' (' + participant.kitSize + ')' : '' %></option>
+                        <% inventory.forEach(function (row) { %>
+                          <option value="<%= row.size %>" <%= row.remaining > 0 ? '' : 'disabled' %>><%= row.size %> — <%= row.remaining %> left</option>
+                        <% }); %>
+                      </select>
+                    <% } %>
                     <button type="button" class="nav-signup-btn checkin-action" data-kit-button>Release kit</button>
                     <p class="checkin-row-status" data-kit-status role="status"></p>
                   <% } %>

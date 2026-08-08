@@ -81,6 +81,7 @@ const {
 const { buildRegistrationPagePresentation } = require('../../services/registration-page-presentation.service');
 const { getOnsiteStateForRegistrations } = require('../../services/onsite-roster.service');
 const { reserveCategorySlot, releaseCategorySlot } = require('../../services/category-capacity.service');
+const { isTrackingSizes, isOfferedSize } = require('../../services/kit-inventory.service');
 const { requestCancellation } = require('../../services/registration-cancellation.service');
 const {
   getClaimEligibilityError,
@@ -261,7 +262,8 @@ exports.postEventRegistration = async (req, res) => {
       registrationPackageId: req.body.registrationPackageId || defaultRegistrationPackage?.id || '',
       addOnProductIds: req.body.addOnProductIds,
       waiverAccepted: req.body.waiverAccepted,
-      waiverSignature: req.body.waiverSignature
+      waiverSignature: req.body.waiverSignature,
+      kitSize: req.body.kitSize
     });
 
     const existingRegistration = await Registration.findOne({ eventId: event._id, userId: user._id })
@@ -301,6 +303,18 @@ exports.postEventRegistration = async (req, res) => {
       } else {
         validationErrors[resolvedPrice.errorField || 'pricing'] = resolvedPrice.error || 'Select a valid registration price option.';
       }
+    }
+
+    // Kit size, only when the event stocks sizes. Checked before capacity so a bad size
+    // does not take a slot and immediately give it back.
+    if (isTrackingSizes(event)) {
+      if (!formData.kitSize && event.kitSizeRequired) {
+        validationErrors.kitSize = 'Choose a kit size.';
+      } else if (formData.kitSize && !isOfferedSize(event, formData.kitSize)) {
+        validationErrors.kitSize = 'Choose one of the sizes this event offers.';
+      }
+    } else {
+      formData.kitSize = '';
     }
 
     // Capacity: take the slot atomically rather than counting and hoping.
@@ -399,6 +413,7 @@ exports.postEventRegistration = async (req, res) => {
       },
       participationMode: formData.participationMode,
       raceDistance: formData.raceDistance,
+      kitSize: formData.kitSize || '',
       status: 'confirmed',
       paymentStatus: getInitialRegistrationPaymentStatus(event),
       pricingSnapshot: {
@@ -827,7 +842,8 @@ function getRegistrationFormData(body = {}) {
     registrationPackageId: String(body.registrationPackageId || '').trim(),
     addOnProductIds: normalizeRegistrationAddOnIds(body.addOnProductIds),
     waiverAccepted: body.waiverAccepted === '1' || body.waiverAccepted === 'true' || body.waiverAccepted === true || body.waiverAccepted === 'on',
-    waiverSignature: String(body.waiverSignature || '').trim()
+    waiverSignature: String(body.waiverSignature || '').trim(),
+    kitSize: String(body.kitSize || '').trim().toUpperCase().slice(0, 12)
   };
 }
 

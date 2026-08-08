@@ -11,6 +11,7 @@ const {
 } = require('../../services/result-import-validation.service');
 const Registration = require('../../models/Registration');
 const { verifyScannedBibCode, revokeTokensForBib } = require('../../services/bib-qr-token.service');
+const { releaseRaceKit } = require('../../services/race-kit-release.service');
 const { findRegistrationByExactBib } = require('../../services/onsite-roster.service');
 const Event = require('../../models/Event');
 const { validateGuestForm } = require('../../services/guest-registration.service');
@@ -156,7 +157,7 @@ router.post(
       }
 
       const event = await Event.findById(req.params.eventId)
-        .select('title waiverTemplate waiverVersion organiserName feeMode feeCurrency pricingMode distancePricing pricingPeriods customizedOptions registrationPackages raceCategories raceDistances')
+        .select('title waiverTemplate waiverVersion organiserName feeMode feeCurrency pricingMode distancePricing pricingPeriods customizedOptions registrationPackages raceCategories raceDistances kitInventory kitSizeRequired')
         .lean();
       if (!event) return res.status(404).json({ error: 'Event not found.' });
 
@@ -193,7 +194,7 @@ router.post('/events/:eventId/walk-ins', protectOnsiteMutation('check_in'), walk
       return res.status(404).json({ error: 'Event not found.' });
     }
 
-    const { form, errors } = validateGuestForm(req.body);
+    const { form, errors } = validateGuestForm(req.body, event);
     if (Object.keys(errors).length > 0) {
       return res.status(400).json({ error: 'Some details are missing.', errors });
     }
@@ -362,14 +363,33 @@ router.post('/events/:eventId/race-kits/release', protectOnsiteMutation('race_ki
       return res.status(400).json({ error: 'registrationId required' });
     }
 
-    const record = await markRaceKitReleased(eventId, registrationId);
+    const { bib, size, remaining, substituted } = await releaseRaceKit({
+      eventId,
+      registrationId,
+      // A size sent by the desk is a deliberate substitution — usually because the size
+      // this person chose has run out.
+      size: req.body.size || ''
+    });
 
     res.json({
       success: true,
-      message: 'Race kit released',
-      bib: record
+      message: size
+        ? `Race kit released (${size})${substituted ? ' — substituted' : ''}.`
+        : 'Race kit released',
+      bib,
+      size,
+      remaining,
+      substituted
     });
   } catch (error) {
+    // Running out of a size is an ordinary Saturday, not a server fault, and the desk has
+    // to be able to act on it rather than see a 500.
+    if (error.code === 'NO_STOCK' || error.code === 'ALREADY_RELEASED') {
+      return res.status(409).json({ success: false, error: error.message, reason: error.reason || error.code });
+    }
+    if (error.code === 'NOT_FOUND') {
+      return res.status(404).json({ success: false, error: error.message });
+    }
     return sendJsonServerError(res, 'Error releasing race kit:', error);
   }
 });

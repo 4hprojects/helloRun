@@ -128,6 +128,18 @@ async function cancelRegistration({ registrationId, eventId, actorUserId, reason
   const onsite = await releaseOnsiteArtefacts(registration._id);
   await revokeTokensForRegistration(registration._id, 'Registration cancelled');
 
+  // Put a collected kit back on the books. Nothing physically returns, but this person is
+  // no longer a participant, and leaving the count down would have the organiser short a
+  // shirt on paper that is still in the box.
+  if (registration.kitSizeReleased) {
+    try {
+      const { returnKitForRegistration } = require('./race-kit-release.service');
+      await returnKitForRegistration(registration);
+    } catch (error) {
+      logger.error(`[Cancellation] Could not return kit size for ${registration._id}: ${error.message}`);
+    }
+  }
+
   // Give the category slot back. The old count-based check did this implicitly by no
   // longer counting a cancelled row; with an explicit counter it has to be explicit too.
   const categoryId = registration.pricingSnapshot?.raceCategoryId;

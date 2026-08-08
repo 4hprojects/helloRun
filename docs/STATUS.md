@@ -41,6 +41,9 @@ core platform:
   race-day staff who can be given `check_in`, `race_kit`, or `results` access to a
   single event without touching the global `User.role`; and runner-initiated
   cancellation requests that the organiser reviews rather than auto-cancelling;
+- per-size race-kit stock, added August 8 — sizes chosen at registration by every
+  route, atomic claim at the kit table, substitution recorded, and stock returned
+  when a registration is cancelled;
 - a waitlist for full categories, added August 8 — joining, organiser-managed and
   automatic promotion, offers that hold a real slot and expire, and a worker that
   passes a lapsed slot to the next person in line;

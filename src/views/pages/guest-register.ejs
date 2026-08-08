@@ -64,6 +64,19 @@
           </label>
         <% } %>
 
+
+        <% if ((event.kitInventory || []).length) { %>
+          <label for="kitSize">Race kit size<% if (event.kitSizeRequired) { %> *<% } %>
+            <select id="kitSize" name="kitSize" <%= event.kitSizeRequired ? 'required' : '' %>>
+              <option value=""><%= event.kitSizeRequired ? 'Select a size' : 'No preference' %></option>
+              <% (event.kitInventory || []).forEach(function (entry) {
+                   var left = Math.max(0, (Number(entry.stock) || 0) - (Number(entry.released) || 0)); %>
+                <option value="<%= entry.size %>" <%= form.kitSize === entry.size ? 'selected' : '' %> <%= left > 0 ? '' : 'disabled' %>><%= entry.size %><%= left > 0 ? '' : ' — none left' %></option>
+              <% }); %>
+            </select>
+          </label>
+          <% if (errors.kitSize) { %><p class="guest-error"><%= errors.kitSize %></p><% } %>
+        <% } %>
         <label for="emergencyContactName">Emergency contact name
           <input id="emergencyContactName" name="emergencyContactName" value="<%= form.emergencyContactName || '' %>" maxlength="120">
         </label>

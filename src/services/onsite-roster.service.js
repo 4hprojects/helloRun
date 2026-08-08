@@ -231,6 +231,8 @@ function buildParticipantRow(registration, onsiteState) {
     emergencyContactName: participant.emergencyContactName || '',
     emergencyContactNumber: participant.emergencyContactNumber || '',
     raceDistance: registration.raceDistance || '',
+    kitSize: registration.kitSize || '',
+    kitSizeReleased: registration.kitSizeReleased || '',
     participationMode: registration.participationMode || '',
     paymentStatus: registration.paymentStatus || '',
     registrationStatus: registration.status || '',
@@ -304,7 +306,7 @@ async function getOnsiteRosterData(eventId, options = {}) {
   }
 
   const registrations = await Registration.find(query)
-    .select('confirmationCode participant raceDistance participationMode paymentStatus status registeredAt')
+    .select('confirmationCode participant raceDistance participationMode paymentStatus status registeredAt kitSize kitSizeReleased')
     .sort({ 'participant.lastName': 1, 'participant.firstName': 1 })
     .limit(limit)
     .lean();

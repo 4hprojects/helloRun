@@ -277,6 +277,50 @@ function parseWaitlistOfferHours(value) {
   return Math.min(336, Math.max(1, parsed));
 }
 
+// The sizes the form offers. A fixed list keeps the setting a few number inputs rather
+// than a dynamic row editor; nothing stops a custom size existing in the data.
+const KIT_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'];
+
+/**
+ * Read per-size stock off the form.
+ *
+ * Blank means the size is not offered at all. Zero is different and deliberate: the size
+ * is offered but sold out, which is what a participant needs to see rather than a size
+ * that silently vanishes from the list.
+ */
+function parseKitInventoryFields(body = {}) {
+  const rows = [];
+  for (const size of KIT_SIZES) {
+    const raw = String(body[`kitStock${size}`] ?? '').trim();
+    if (!raw) continue;
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isInteger(parsed) || parsed < 0) continue;
+    rows.push({ size, stock: parsed });
+  }
+  return rows;
+}
+
+/**
+ * Merge submitted stock with what has already been handed over.
+ *
+ * `released` is never on the form and must survive a save — overwriting it would reset
+ * every count at the kit table the moment an organiser edited anything else on the event.
+ */
+function mergeKitInventory(submitted, existing = []) {
+  const releasedBySize = new Map(
+    (existing || []).map((entry) => [
+      String(entry.size || '').toUpperCase(),
+      Number(entry.released) || 0
+    ])
+  );
+
+  return (submitted || []).map((entry) => {
+    const size = String(entry.size || '').toUpperCase();
+    const released = releasedBySize.get(size) || 0;
+    return released > 0 ? { size, stock: entry.stock, released } : { size, stock: entry.stock };
+  });
+}
+
 function hasOwnValue(body, key) {
   return Object.prototype.hasOwnProperty.call(body || {}, key);
 }
@@ -634,6 +678,8 @@ function getBlankCreateEventDefaults() {
     allowGuestRegistration: '0',
     waitlistEnabled: '0',
     waitlistOfferHours: '48',
+    kitSizeRequired: '0',
+    kitInventory: [],
     requiresDeliveryAddress: '1',
     requiresPhilippineDeliveryAddress: '1',
     internationalRunnersAllowed: '0'
@@ -804,6 +850,8 @@ function getCreateEventFormData(body = {}) {
     allowGuestRegistration: normalizeBoolean(body.allowGuestRegistration),
     waitlistEnabled: normalizeBoolean(body.waitlistEnabled),
     waitlistOfferHours: parseWaitlistOfferHours(body.waitlistOfferHours),
+    kitSizeRequired: normalizeBoolean(body.kitSizeRequired),
+    kitInventory: parseKitInventoryFields(body),
     hasHomePromotionFields,
     homeFeatured: normalizeBoolean(body.homeFeatured),
     homeFeaturedRank: parseOptionalNonNegativeInteger(body.homeFeaturedRank),
@@ -961,6 +1009,12 @@ function getCreateEventFormDataFromEvent(event) {
     allowGuestRegistration: Boolean(event.allowGuestRegistration),
     waitlistEnabled: Boolean(event.waitlistEnabled),
     waitlistOfferHours: parseWaitlistOfferHours(event.waitlistOfferHours),
+    kitSizeRequired: Boolean(event.kitSizeRequired),
+    kitInventory: (event.kitInventory || []).map((entry) => ({
+      size: String(entry.size || '').toUpperCase(),
+      stock: Number(entry.stock) || 0,
+      released: Number(entry.released) || 0
+    })),
     autoEmailPromotionStatus: String(event.autoEmailPromotionStatus || 'disabled'),
     hasHomePromotionFields: false,
     homeFeatured: Boolean(event.homeFeatured),
@@ -1841,6 +1895,9 @@ function applyEventFormData(event, formData, user) {
   event.allowGuestRegistration = Boolean(formData.allowGuestRegistration);
   event.waitlistEnabled = Boolean(formData.waitlistEnabled);
   event.waitlistOfferHours = parseWaitlistOfferHours(formData.waitlistOfferHours);
+  event.kitSizeRequired = Boolean(formData.kitSizeRequired);
+  // Merged, not overwritten: `released` is not on the form and must survive every save.
+  event.kitInventory = mergeKitInventory(formData.kitInventory, event.kitInventory);
   event.eventTypesAllowed = getEventTypesAllowed(formData.eventType);
   event.raceDistances = formData.raceDistances;
   // The create/edit-event form has no field for per-category step goals, so a
@@ -2006,6 +2063,9 @@ async function generateUniqueSlug(title) {
 }
 
 module.exports = {
+  KIT_SIZES,
+  parseKitInventoryFields,
+  mergeKitInventory,
   countries,
   DEFAULT_WAIVER_TEMPLATE,
   MAX_GALLERY_IMAGES,

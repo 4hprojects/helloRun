@@ -298,6 +298,29 @@
               <input type="number" id="waitlistOfferHours" name="waitlistOfferHours" min="1" max="336" value="<%= formData.waitlistOfferHours || 48 %>">
               <small class="field-hint">How long someone has to take an offered slot before it passes to the next person. The slot is held for them the whole time, so a long window keeps capacity out of circulation.</small>
             </div>
+            <div class="form-group form-group-full">
+              <div class="toggle-section-label">
+                <input type="hidden" name="kitSizeRequired" value="0">
+                <input type="checkbox" id="kitSizeRequired" name="kitSizeRequired" value="1" <%= formData.kitSizeRequired ? 'checked' : '' %>>
+                <label for="kitSizeRequired" class="toggle-label-text">Require a race kit size when registering</label>
+              </div>
+              <small class="field-hint">Only ask when there is actually a shirt. Leave the stock boxes below empty for any size you do not offer — a size left blank is not shown at all, while a zero is shown as offered but sold out.</small>
+            </div>
+            <div class="form-group form-group-full">
+              <label>Race kit stock per size</label>
+              <div class="kit-inventory-grid">
+                <% (typeof kitSizes !== 'undefined' ? kitSizes : ['XS','S','M','L','XL','2XL','3XL']).forEach(function (size) {
+                     var row = (formData.kitInventory || []).find(function (entry) { return entry.size === size; }); %>
+                  <label class="kit-inventory-cell" for="kitStock<%= size %>">
+                    <span><%= size %></span>
+                    <input type="number" id="kitStock<%= size %>" name="kitStock<%= size %>" min="0" max="100000"
+                           value="<%= row ? row.stock : '' %>" placeholder="—">
+                    <% if (row && row.released) { %><small><%= row.released %> handed over</small><% } %>
+                  </label>
+                <% }); %>
+              </div>
+              <small class="field-hint">Stock is what you have. The count of what has been handed over is maintained at the kit table and is never reset by editing this — lowering stock below it simply shows none left.</small>
+            </div>
             <div class="form-group">
               <label for="registrationOpenAt">Registration Opens *</label>
               <div class="input-with-button">

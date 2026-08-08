@@ -2699,3 +2699,27 @@
   cursor: pointer;
   accent-color: #f97316;
 }
+
+/* Race kit stock, one number box per size. A plain grid rather than a row editor:
+   the size list is fixed, so there is nothing to add or remove. */
+.kit-inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+  gap: .5rem;
+  margin-top: .5rem;
+}
+
+.kit-inventory-cell {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  padding: .5rem;
+  border: 1px solid #dfe7e2;
+  border-radius: 8px;
+  background: #f9fbfa;
+  font-size: .9rem;
+}
+
+.kit-inventory-cell span { font-weight: 600; }
+.kit-inventory-cell input { width: 100%; }
+.kit-inventory-cell small { color: #627067; font-size: .8em; }

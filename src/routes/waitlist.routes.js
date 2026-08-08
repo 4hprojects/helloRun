@@ -190,10 +190,13 @@ router.post(
 
       // The waitlist collected only enough to reach the person; a registration needs the
       // waiver, the emergency contact and the rest, which is what this form supplies.
-      const { form, errors } = validateGuestForm({
-        ...req.body,
-        email: resolved.entry.participant.email // fixed: the offer belongs to this address
-      });
+      const { form, errors } = validateGuestForm(
+        {
+          ...req.body,
+          email: resolved.entry.participant.email // fixed: the offer belongs to this address
+        },
+        event
+      );
 
       if (Object.keys(errors).length > 0) {
         return res.status(400).render('pages/waitlist-offer', {

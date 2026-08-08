@@ -26,7 +26,8 @@ const COLUMN_ALIASES = {
   race_distance: ['category', 'distance', 'race category', 'race distance'],
   participation_mode: ['mode', 'participation', 'participation mode'],
   emergency_contact_name: ['emergency contact', 'emergency contact name', 'emergency name'],
-  emergency_contact_number: ['emergency number', 'emergency contact number', 'emergency phone']
+  emergency_contact_number: ['emergency number', 'emergency contact number', 'emergency phone'],
+  kit_size: ['size', 'kit size', 'shirt size', 'shirt', 'singlet size', 'tshirt size', 't-shirt size']
 };
 
 /**
@@ -70,7 +71,8 @@ function toGuestForm(row, defaults = {}) {
     emergencyContactName: row.emergency_contact_name || '',
     emergencyContactNumber: row.emergency_contact_number || '',
     waiverAccepted: true,
-    waiverSignature: `Imported by organiser (${row.first_name || ''} ${row.last_name || ''})`.trim()
+    waiverSignature: `Imported by organiser (${row.first_name || ''} ${row.last_name || ''})`.trim(),
+    kitSize: row.kit_size || ''
   };
 }
 
@@ -101,7 +103,7 @@ async function previewRegistrantImport(buffer, filename, { eventId, event = null
     // Use the form the validator hands back, not the one passed in: it trims and
     // lowercases the email, and the duplicate check below depends on that. Keeping the
     // raw one let "ANA@Example.com" and "ana@example.com" through as two people.
-    const { form, errors } = validateGuestForm(toGuestForm(row, resolvedDefaults));
+    const { form, errors } = validateGuestForm(toGuestForm(row, resolvedDefaults), event);
 
     if (Object.keys(errors).length > 0) {
       rejected.push({ row: rowNumber, email: form.email, error: Object.values(errors)[0] });

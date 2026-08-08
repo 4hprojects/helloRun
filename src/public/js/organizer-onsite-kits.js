@@ -23,11 +23,18 @@
       const response = await fetch(`/organizer/events/${eventId}/race-kits/release`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
-        body: JSON.stringify({ registrationId: row.dataset.registrationId })
+        // An explicit size is a substitution the desk is making on purpose, usually
+        // because the size this person chose has run out.
+        body: JSON.stringify({
+          registrationId: row.dataset.registrationId,
+          size: (row.querySelector('[data-kit-size]') || {}).value || ''
+        })
       });
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
+        // Running out of a size is an ordinary Saturday: leave the button live so the desk
+        // can pick another size rather than being stuck on an error.
         setStatus(row, payload.error || 'Could not release this kit.', 'checkin-row-status-error');
         button.disabled = false;
         return;
@@ -35,7 +42,15 @@
 
       row.classList.add('is-checked-in');
       button.remove();
-      setStatus(row, 'Kit released', 'checkin-row-status-done');
+      const picker = row.querySelector('[data-kit-size]');
+      if (picker) picker.remove();
+      setStatus(
+        row,
+        payload.size
+          ? `Kit released — ${payload.size}${payload.remaining === null ? '' : ` (${payload.remaining} left)`}`
+          : 'Kit released',
+        'checkin-row-status-done'
+      );
     } catch (error) {
       setStatus(row, 'Network error. Check connection and retry.', 'checkin-row-status-error');
       button.disabled = false;

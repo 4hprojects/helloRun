@@ -93,7 +93,7 @@ router.post(
         });
       }
 
-      const { form, errors } = validateGuestForm(req.body);
+      const { form, errors } = validateGuestForm(req.body, event);
 
       if (isTurnstileConfigured()) {
         const verified = await verifyTurnstileToken({
@@ -127,7 +127,7 @@ router.post(
     } catch (error) {
       if (error.code === 'DUPLICATE_GUEST' || error.code === 'CAPACITY' || error.code === 'PRICING') {
         const event = await loadPublicEvent(req.params.slug);
-        const { form } = validateGuestForm(req.body);
+        const { form } = validateGuestForm(req.body, event);
         return renderForm(res, {
           event,
           form,
