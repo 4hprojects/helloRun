@@ -98,7 +98,7 @@
     "download-tessdata": "node src/scripts/download-tessdata.js",
     "postinstall": "npm run setup && npm run copy-tesseract-assets && npm run download-tessdata",
     "test": "node src/scripts/run-test-group.js",
-    "test:parallel": "node -e \"const { spawnSync } = require('node:child_process'); const env = { ...process.env, CSRF_PROTECTION: '0' }; const result = spawnSync(process.execPath, ['--test', 'tests/*.test.js'], { stdio: 'inherit', env }); process.exit(result.status ?? 1);\"",
+    "test:parallel": "node src/scripts/run-test-group.js --parallel tests/*.test.js",
     "test:audit": "npm audit --omit=dev",
     "test:unit": "node src/scripts/run-test-group.js tests/*.unit.test.js",
     "test:integration": "node src/scripts/run-test-group.js tests/*.integration.test.js",

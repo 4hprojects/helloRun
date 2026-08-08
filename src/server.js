@@ -110,8 +110,11 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false, limit: '256kb', parameterLimit: 1000 }));
 
+// Reports the running commit, so "did the deploy land?" is a question with an answer
+// rather than something inferred from a route that 302s whatever is deployed.
 app.get('/healthz', (req, res) => {
-  res.status(200).json({ ok: true });
+  const { getBuildInfo } = require('./utils/build-info');
+  res.status(200).json({ ok: true, build: getBuildInfo() });
 });
 
 app.get('/readyz', async (req, res) => {
