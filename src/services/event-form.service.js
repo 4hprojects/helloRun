@@ -679,6 +679,9 @@ function getBlankCreateEventDefaults() {
     waitlistEnabled: '0',
     waitlistOfferHours: '48',
     kitSizeRequired: '0',
+    transfersEnabled: '0',
+    transferRequiresApproval: '1',
+    transferDeadlineAt: '',
     kitInventory: [],
     requiresDeliveryAddress: '1',
     requiresPhilippineDeliveryAddress: '1',
@@ -851,6 +854,9 @@ function getCreateEventFormData(body = {}) {
     waitlistEnabled: normalizeBoolean(body.waitlistEnabled),
     waitlistOfferHours: parseWaitlistOfferHours(body.waitlistOfferHours),
     kitSizeRequired: normalizeBoolean(body.kitSizeRequired),
+    transfersEnabled: normalizeBoolean(body.transfersEnabled),
+    transferRequiresApproval: normalizeBoolean(body.transferRequiresApproval),
+    transferDeadlineAt: body.transferDeadlineAt || '',
     kitInventory: parseKitInventoryFields(body),
     hasHomePromotionFields,
     homeFeatured: normalizeBoolean(body.homeFeatured),
@@ -1010,6 +1016,9 @@ function getCreateEventFormDataFromEvent(event) {
     waitlistEnabled: Boolean(event.waitlistEnabled),
     waitlistOfferHours: parseWaitlistOfferHours(event.waitlistOfferHours),
     kitSizeRequired: Boolean(event.kitSizeRequired),
+    transfersEnabled: Boolean(event.transfersEnabled),
+    transferRequiresApproval: event.transferRequiresApproval !== false,
+    transferDeadlineAt: formatDateForInput(event.transferDeadlineAt),
     kitInventory: (event.kitInventory || []).map((entry) => ({
       size: String(entry.size || '').toUpperCase(),
       stock: Number(entry.stock) || 0,
@@ -1896,6 +1905,9 @@ function applyEventFormData(event, formData, user) {
   event.waitlistEnabled = Boolean(formData.waitlistEnabled);
   event.waitlistOfferHours = parseWaitlistOfferHours(formData.waitlistOfferHours);
   event.kitSizeRequired = Boolean(formData.kitSizeRequired);
+  event.transfersEnabled = Boolean(formData.transfersEnabled);
+  event.transferRequiresApproval = Boolean(formData.transferRequiresApproval);
+  event.transferDeadlineAt = formData.transferDeadlineAt ? new Date(formData.transferDeadlineAt) : null;
   // Merged, not overwritten: `released` is not on the form and must survive every save.
   event.kitInventory = mergeKitInventory(formData.kitInventory, event.kitInventory);
   event.eventTypesAllowed = getEventTypesAllowed(formData.eventType);

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/race-pass.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="race-pass-page" id="main-content">
+    <div class="race-pass-shell">
+      <header class="race-pass-header">
+        <p class="race-pass-kicker"><%= heading %></p>
+        <h1><%= event.title %></h1>
+      </header>
+
+      <p class="race-pass-hint"><%= message %></p>
+
+      <% if (registration) { %>
+        <p class="race-pass-hint">
+          Confirmation code: <strong><%= registration.confirmationCode %></strong>
+        </p>
+      <% } %>
+
+      <% if (manageToken) { %>
+        <p class="race-pass-hint">
+          <a href="/guest/registrations/<%= manageToken %>">Your registration</a>
+        </p>
+        <small class="event-guest-hint">
+          Keep this link. It is the only way to reach your registration without a HelloRun
+          account, and it cannot be resent — a new one would have to be issued. Do not
+          forward it: anyone who has it can see your registration.
+        </small>
+      <% } %>
+
+      <p class="race-pass-back"><a href="/events/<%= event.slug %>">Back to event</a></p>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

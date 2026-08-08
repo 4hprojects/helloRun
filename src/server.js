@@ -249,6 +249,7 @@ const authRoutes = require('./routes/authRoutes');
 const pageRoutes = require('./routes/pageRoutes');
 const guestRoutes = require('./routes/guest.routes');
 const waitlistRoutes = require('./routes/waitlist.routes');
+const transferRoutes = require('./routes/transfer.routes');
 const runnerRoutes = require('./routes/runner.routes');
 const blogRoutes = require('./routes/blog.routes');
 const organizerRoutes = require('./routes/organizer.routes');
@@ -273,6 +274,7 @@ app.use('/', shopRoutes);
 // pageRoutes mounts before blogRoutes — pageController owns GET /blog and GET /blog/:slug
 app.use('/', guestRoutes);
 app.use('/', waitlistRoutes);
+app.use('/', transferRoutes);
 app.use('/', pageRoutes);
 app.use('/', runnerRoutes);
 app.use('/', stravaRoutes);

@@ -570,7 +570,8 @@ async function getOrganizerEventDetailPresentation({
       // Always shown, not gated on waitlistEnabled: an organiser who switches the waitlist
       // off still has people on the list, and hiding the link would strand them.
       { group: 'Registration', items: [
-        { label: 'Waitlist', href: `/organizer/events/${id}/waitlist`, icon: 'list-ordered' }
+        { label: 'Waitlist', href: `/organizer/events/${id}/waitlist`, icon: 'list-ordered' },
+        { label: 'Transfers', href: `/organizer/events/${id}/transfers`, icon: 'arrow-right-left' }
       ] },
       { group: 'Recognition', items: [
         { label: 'Certificates', href: `/organizer/events/${id}/certificate`, icon: 'award' },

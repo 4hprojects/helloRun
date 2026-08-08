@@ -275,6 +275,21 @@ const COMMUNICATION_EVENTS = Object.freeze([
     displayOrder: 255
   },
   {
+    eventKey: 'registration.transfer_invited',
+    name: 'Registration Transfer Invite',
+    description: 'Tells someone that a participant wants to transfer their entry to them.',
+    category: 'registration',
+    priority: 'critical',
+    // The link is the only way to act on it and it expires. Opting out would mean the
+    // transfer silently failing for both people.
+    required: true,
+    emailEnabled: true,
+    inAppEnabled: false,
+    locked: true,
+    recipientRoles: [],
+    displayOrder: 256
+  },
+  {
     eventKey: 'certificate.issued',
     name: 'Certificate Issued',
     description: 'Notifies a runner that a certificate is available.',

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/race-pass.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="race-pass-page" id="main-content">
+    <div class="race-pass-shell">
+      <header class="race-pass-header">
+        <p class="race-pass-kicker">An entry is being transferred to you</p>
+        <h1><%= event.title %></h1>
+        <% if (event.venueName) { %><p class="race-pass-venue"><%= event.venueName %></p><% } %>
+      </header>
+
+      <p class="race-pass-hint">
+        <strong><%= [transfer.fromParticipant.firstName, transfer.fromParticipant.lastName].filter(Boolean).join(' ') || 'Someone' %></strong>
+        would like to hand you their entry. Confirm your details and sign the waiver below to take it.
+      </p>
+
+      <p class="race-pass-hint">
+        <strong>HelloRun does not move any payment as part of a transfer.</strong> Whatever was
+        already paid stays with the entry — settle anything owed between yourselves.
+      </p>
+
+      <% if (transfer.kitAlreadyReleased) { %>
+        <p class="checkin-alert" role="alert">
+          The race kit for this entry has already been collected, so there is no second kit
+          to give out. Arrange that with the person transferring it to you.
+        </p>
+      <% } %>
+
+      <% if (errors.form) { %><p class="checkin-alert" role="alert"><%= errors.form %></p><% } %>
+
+      <form method="POST" action="/transfers/<%= token %>" class="guest-form">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+
+        <label for="firstName">First name
+          <input id="firstName" name="firstName" value="<%= form.firstName || '' %>" required maxlength="60">
+        </label>
+        <% if (errors.firstName) { %><p class="guest-error"><%= errors.firstName %></p><% } %>
+
+        <label for="lastName">Last name
+          <input id="lastName" name="lastName" value="<%= form.lastName || '' %>" required maxlength="60">
+        </label>
+        <% if (errors.lastName) { %><p class="guest-error"><%= errors.lastName %></p><% } %>
+
+        <label for="email">Email
+          <input id="email" type="email" value="<%= transfer.toEmail %>" readonly>
+        </label>
+        <p class="race-pass-hint">The transfer was sent to this address, so it cannot be changed here.</p>
+
+        <label for="mobile">Contact number
+          <input id="mobile" name="mobile" value="<%= form.mobile || '' %>" required maxlength="40">
+        </label>
+        <% if (errors.mobile) { %><p class="guest-error"><%= errors.mobile %></p><% } %>
+
+        <label for="emergencyContactName">Emergency contact name
+          <input id="emergencyContactName" name="emergencyContactName" value="<%= form.emergencyContactName || '' %>" maxlength="120">
+        </label>
+        <label for="emergencyContactNumber">Emergency contact number
+          <input id="emergencyContactNumber" name="emergencyContactNumber" value="<%= form.emergencyContactNumber || '' %>" maxlength="40">
+        </label>
+
+        <% if ((event.kitInventory || []).length) { %>
+          <label for="kitSize">Race kit size<% if (event.kitSizeRequired) { %> *<% } %>
+            <select id="kitSize" name="kitSize" <%= event.kitSizeRequired ? 'required' : '' %>>
+              <option value=""><%= event.kitSizeRequired ? 'Select a size' : 'No preference' %></option>
+              <% (event.kitInventory || []).forEach(function (entry) {
+                   var left = Math.max(0, (Number(entry.stock) || 0) - (Number(entry.released) || 0)); %>
+                <option value="<%= entry.size %>" <%= form.kitSize === entry.size ? 'selected' : '' %> <%= left > 0 ? '' : 'disabled' %>><%= entry.size %><%= left > 0 ? '' : ' — none left' %></option>
+              <% }); %>
+            </select>
+          </label>
+          <% if (errors.kitSize) { %><p class="guest-error"><%= errors.kitSize %></p><% } %>
+        <% } %>
+
+        <fieldset class="guest-waiver">
+          <legend>Waiver</legend>
+          <p class="race-pass-hint">A waiver is about your own health and risk, so it cannot be handed on — you sign it yourself.</p>
+          <div class="guest-waiver-body"><%= event.waiverTemplate || 'By taking this entry you accept the event waiver.' %></div>
+          <label class="guest-check">
+            <input type="checkbox" name="waiverAccepted" <%= form.waiverAccepted ? 'checked' : '' %>>
+            <span>I accept the event waiver.</span>
+          </label>
+          <% if (errors.waiverAccepted) { %><p class="guest-error"><%= errors.waiverAccepted %></p><% } %>
+          <label for="waiverSignature">Type your full name to sign
+            <input id="waiverSignature" name="waiverSignature" value="<%= form.waiverSignature || '' %>" maxlength="120">
+          </label>
+          <% if (errors.waiverSignature) { %><p class="guest-error"><%= errors.waiverSignature %></p><% } %>
+        </fieldset>
+
+        <button type="submit" class="nav-signup-btn">Take this entry</button>
+      </form>
+
+      <form method="POST" action="/transfers/<%= token %>" class="guest-form">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+        <input type="hidden" name="decline" value="1">
+        <button type="submit" class="nav-login-btn">No thanks, decline</button>
+        <p class="race-pass-hint">Declining frees the entry so it can be offered to somebody else.</p>
+      </form>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

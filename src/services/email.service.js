@@ -1452,6 +1452,48 @@ exports.sendWaitlistOfferEmail = async (
   }
 };
 
+exports.sendRegistrationTransferInviteEmail = async (
+  recipientEmail,
+  { firstName, fromName, eventTitle, transferUrl, expiresAt } = {}
+) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: recipientEmail,
+      subject: `${fromName || 'Someone'} wants to transfer their ${eventTitle || 'event'} entry to you`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#17623f;">An entry is being transferred to you</h2>
+          <p>Hi ${escapeHtml(firstName || 'there')},</p>
+          <p>
+            <strong>${escapeHtml(fromName || 'Someone')}</strong> would like to transfer their entry for
+            <strong>${escapeHtml(eventTitle || 'an event')}</strong> to you. To take it, confirm your
+            details and sign the event waiver yourself — a waiver cannot be handed on.
+          </p>
+          <div style="background:#f4f8f5;border:1px solid #dfe7e2;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            <p style="margin:0;"><a href="${escapeHtml(transferUrl || '')}" style="color:#17623f;font-weight:bold;">Take this entry</a></p>
+          </div>
+          <p style="color:#627067;font-size:.9em;">
+            ${expiresAt ? `This link expires on <strong>${escapeHtml(expiresAt)}</strong>.` : 'This link expires.'}
+            HelloRun does not move any payment as part of a transfer — settle anything owed
+            directly with ${escapeHtml(fromName || 'them')}. Do not forward this link: anyone
+            who has it can take the entry.
+          </p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send registration transfer invite email');
+    }
+
+    return data;
+  } catch (error) {
+    logger.error('Email service error:', error);
+    throw error;
+  }
+};
+
 exports.sendRunnerContactEmailToOrganizer = async (
   organizerEmail,
   { senderName, senderEmail, eventTitle, subject, message, replyTo } = {}

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+  <link rel="stylesheet" href="/css/organizer-check-in.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="checkin-page" id="main-content" data-transfers data-event-id="<%= eventId %>" data-csrf="<%= locals.csrfToken || '' %>">
+    <div class="checkin-shell">
+      <header class="checkin-header">
+        <div>
+          <p class="checkin-kicker">Transfers</p>
+          <h1><%= event.title %></h1>
+        </div>
+        <nav class="checkin-header-actions" aria-label="Transfer actions">
+          <a href="/organizer/events/<%= eventId %>/registrants" class="nav-login-btn">Registrants</a>
+          <a href="/organizer/events/<%= eventId %>" class="nav-login-btn">Back to event</a>
+        </nav>
+      </header>
+
+      <% if (!block.allowed) { %>
+        <p class="checkin-alert" role="alert">
+          <%= block.message %> Existing transfers are still listed, but no new one can complete.
+        </p>
+      <% } %>
+
+      <section class="checkin-scanner" aria-labelledby="transferPolicyTitle">
+        <h2 id="transferPolicyTitle">What a transfer does</h2>
+        <p class="checkin-note">
+          A transfer moves <strong>who is running</strong> and nothing else. HelloRun does
+          not move, refund or re-charge any payment — whatever was paid stays with the
+          entry, and the two people settle between themselves. Any transfer fee you want to
+          charge is arranged outside HelloRun.
+        </p>
+        <p class="checkin-note">
+          The recipient signs the waiver themselves, because a waiver is about their own
+          health and risk. The bib number stays with the entry, but its QR code is reissued
+          so the previous participant's screenshot cannot be scanned in.
+          <% if (event.transferRequiresApproval) { %>
+            You approve every transfer before the entry moves.
+          <% } else { %>
+            Transfers complete without your approval — change that in the event settings if
+            you would rather see them.
+          <% } %>
+        </p>
+        <p class="checkin-status" data-transfer-status role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="checkin-scanner" aria-labelledby="transferListTitle">
+        <h2 id="transferListTitle">Transfers</h2>
+        <% if (!transfers.length) { %>
+          <p class="checkin-note">No transfers have been started for this event.</p>
+        <% } else { %>
+          <table class="checkin-table">
+            <thead>
+              <tr>
+                <th scope="col">From</th><th scope="col">To</th>
+                <th scope="col">Status</th><th scope="col">Started</th><th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% transfers.forEach(function (transfer) { %>
+                <tr data-transfer-row="<%= transfer._id %>">
+                  <td>
+                    <%= [transfer.fromParticipant.firstName, transfer.fromParticipant.lastName].filter(Boolean).join(' ') || '—' %><br>
+                    <span class="checkin-note"><%= transfer.fromParticipant.email %></span>
+                  </td>
+                  <td>
+                    <%= [transfer.toParticipant && transfer.toParticipant.firstName, transfer.toParticipant && transfer.toParticipant.lastName].filter(Boolean).join(' ') || 'Not yet accepted' %><br>
+                    <span class="checkin-note"><%= transfer.toEmail %></span>
+                  </td>
+                  <td>
+                    <%= transfer.status.replace(/_/g, ' ') %>
+                    <% if (transfer.kitAlreadyReleased) { %><br><span class="checkin-row-warning">Kit already collected</span><% } %>
+                  </td>
+                  <td><%= new Date(transfer.createdAt).toLocaleDateString('en-PH', { dateStyle: 'medium' }) %></td>
+                  <td>
+                    <% if (transfer.status === 'pending_approval') { %>
+                      <button type="button" class="nav-signup-btn" data-transfer-approve="<%= transfer._id %>">Approve</button>
+                    <% } %>
+                    <% if (['pending_recipient', 'pending_approval'].includes(transfer.status)) { %>
+                      <button type="button" class="nav-login-btn" data-transfer-decline="<%= transfer._id %>">Decline</button>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        <% } %>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script src="/js/organizer-transfers.js"></script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 'use strict';
 
-// Offers expire on a clock, and nothing else is watching it.
+// Offers and transfer links expire on a clock, and nothing else is watching it.
 //
 // An offer holds a real slot. Without this worker an unclaimed offer holds it forever, so
 // the capacity an organiser thought they had quietly disappears one abandoned offer at a
@@ -9,6 +9,7 @@
 
 const logger = require('../utils/logger');
 const { processExpiredOffers } = require('../services/waitlist.service');
+const { expireStaleTransfers } = require('../services/registration-transfer.service');
 
 function startWaitlistOfferWorker(options = {}) {
   // Five minutes: offer windows are measured in hours, so a tighter loop would only add
@@ -21,6 +22,14 @@ function startWaitlistOfferWorker(options = {}) {
       // Silent when there is nothing to do, so the log stays readable.
       if (expired > 0) {
         logger.info(`[waitlist-offer-worker] Expired ${expired} offer(s), re-offered ${reoffered}`);
+      }
+
+      // Transfers ride along on the same sweep rather than getting a worker of their own:
+      // the interval that suits an offer window suits a transfer link, and a stale pending
+      // transfer blocks its registration from ever being transferred again.
+      const transfers = await expireStaleTransfers();
+      if (transfers.expired > 0) {
+        logger.info(`[waitlist-offer-worker] Expired ${transfers.expired} transfer(s)`);
       }
     } catch (error) {
       logger.error('[waitlist-offer-worker] Batch failed:', error.message);

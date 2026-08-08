@@ -41,6 +41,9 @@ core platform:
   race-day staff who can be given `check_in`, `race_kit`, or `results` access to a
   single event without touching the global `User.role`; and runner-initiated
   cancellation requests that the organiser reviews rather than auto-cancelling;
+- registration transfers, added August 8 — emailed invite, recipient signs their own
+  waiver, organiser approval by default, reissued bib QR, and a policy that moves the
+  person without touching any payment;
 - per-size race-kit stock, added August 8 — sizes chosen at registration by every
   route, atomic claim at the kit table, substitution recorded, and stock returned
   when a registration is cancelled;

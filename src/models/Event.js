@@ -117,6 +117,20 @@ const eventSchema = new mongoose.Schema(
     // released to the next in line. An offer holds a real slot, so this cannot be
     // unbounded — an unclaimed offer would take capacity out of circulation for good.
     waitlistOfferHours: { type: Number, min: 1, max: 336, default: 48 },
+    // Whether a registration may be handed to somebody else. Off by default.
+    //
+    // The policy deliberately stops at the person. A transfer moves who is running; it
+    // never moves, refunds or re-charges money, because deciding that on the organiser's
+    // behalf is exactly what the cancellation flow already refuses to do. Whatever was
+    // paid stays with the registration, and the two people settle between themselves.
+    transfersEnabled: { type: Boolean, default: false },
+    // Last moment a transfer may complete. Null falls back to registrationCloseAt, and
+    // failing that the event start — a transfer after the gun is meaningless.
+    transferDeadlineAt: { type: Date, default: null },
+    // Whether the organiser has to agree. On by default: handing over a paid entry is the
+    // sort of thing an organiser usually wants to see.
+    transferRequiresApproval: { type: Boolean, default: true },
+
     // Per-size race-kit stock.
     //
     // Kept here in Mongo rather than in the Postgres `race_kits` table: that table's

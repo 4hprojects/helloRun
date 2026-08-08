@@ -84,9 +84,11 @@ Both were blocked *only* by the account requirement, which is now gone.
       reused, and neither were the Postgres `race_kits` quantity columns: nothing has ever
       written those. The counter is on the event in Mongo, mirroring `raceCategories.reserved`,
       and counts kits as they leave the table rather than reserving at registration.
-- [ ] **Transfers.** Confirmed absent. Needs a policy decision first: who may transfer,
-      until when, and what happens to the money — the same shape as the refund question
-      that shaped runner cancellation.
+- [x] **Transfers.** Shipped August 8. The policy question was answered by making it
+      explicit rather than guessed: transfers are off by default, the deadline falls back to
+      registration close and then event start, organiser approval is on by default, and a
+      transfer moves the person while touching no money at all — the same rule the
+      cancellation flow already follows, since deciding a refund is not ours to decide.
 
 ### 3. Operational hygiene — small, and each prevents a repeat
 
@@ -194,8 +196,7 @@ deploy window.
 - ~~**Staff roles**~~ — **done, without a migration.** `EventStaff` scopes a grant to one
   event with named permissions, leaving the global `User.role` untouched. A new Mongo
   collection needs no migration.
-- **Transfers** — still absent, and blocked on a policy decision about the money. The
-  waitlist and per-size kit inventory both shipped August 8.
+- **Waitlist, per-size kit inventory and transfers** all shipped August 8.
 - **Walk-in registration** — not code-only after all. `Registration.userId` is
   `required: true`, and a genuine walk-in has no account, so this is blocked by exactly the
   same constraint as guest registration. Only an account-holder variant could be built

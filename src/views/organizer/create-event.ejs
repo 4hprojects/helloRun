@@ -321,6 +321,27 @@
               </div>
               <small class="field-hint">Stock is what you have. The count of what has been handed over is maintained at the kit table and is never reset by editing this — lowering stock below it simply shows none left.</small>
             </div>
+            <div class="form-group form-group-full">
+              <div class="toggle-section-label">
+                <input type="hidden" name="transfersEnabled" value="0">
+                <input type="checkbox" id="transfersEnabled" name="transfersEnabled" value="1" <%= formData.transfersEnabled ? 'checked' : '' %>>
+                <label for="transfersEnabled" class="toggle-label-text">Let a registration be handed to somebody else</label>
+              </div>
+              <small class="field-hint">A transfer moves who is running and nothing else. HelloRun never moves, refunds or re-charges a payment — whatever was paid stays with the entry and the two people settle between themselves. The recipient signs the waiver themselves, and the bib QR is reissued so the previous participant's screenshot stops working.</small>
+            </div>
+            <div class="form-group form-group-full">
+              <div class="toggle-section-label">
+                <input type="hidden" name="transferRequiresApproval" value="0">
+                <input type="checkbox" id="transferRequiresApproval" name="transferRequiresApproval" value="1" <%= formData.transferRequiresApproval ? 'checked' : '' %>>
+                <label for="transferRequiresApproval" class="toggle-label-text">Approve every transfer before the entry moves</label>
+              </div>
+              <small class="field-hint">On by default. Turn it off only if you are happy for entries to change hands without you seeing them.</small>
+            </div>
+            <div class="form-group">
+              <label for="transferDeadlineAt">Transfer deadline</label>
+              <input type="datetime-local" id="transferDeadlineAt" name="transferDeadlineAt" value="<%= formData.transferDeadlineAt || '' %>">
+              <small class="field-hint">Leave blank to fall back to the registration close date, then the event start. A transfer after the gun is meaningless, so there is always a limit.</small>
+            </div>
             <div class="form-group">
               <label for="registrationOpenAt">Registration Opens *</label>
               <div class="input-with-button">
