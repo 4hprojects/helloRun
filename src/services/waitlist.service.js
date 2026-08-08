@@ -74,11 +74,36 @@ function getWaitlistBlock(event, categoryId) {
     return { allowed: false, reason: 'not_published', message: 'This event is not open.' };
   }
 
+  // A blank categoryId used to skip both checks below, because each was guarded
+  // `if (categoryId && ...)`. Since the value comes from a hidden form field, omitting it
+  // was a one-line bypass of the fullness rule — and the resulting entry could never be
+  // promoted, because the organiser's promote buttons are built per category.
+  const cappedCategories = (event.raceCategories || []).filter((candidate) => {
+    const slots = Number(candidate.slots);
+    return Number.isFinite(slots) && slots > 0;
+  });
+
+  if (!categoryId) {
+    if (cappedCategories.length > 0) {
+      return {
+        allowed: false,
+        reason: 'category_required',
+        message: 'Choose which category you want to wait for.'
+      };
+    }
+    // No capped category anywhere: nothing can fill up, so there is nothing to wait for.
+    return {
+      allowed: false,
+      reason: 'not_full',
+      message: 'This event has no category that can fill up — you can register now.'
+    };
+  }
+
   const category = findCategory(event, categoryId);
-  if (categoryId && !category) {
+  if (!category) {
     return { allowed: false, reason: 'unknown_category', message: 'That category no longer exists.' };
   }
-  if (categoryId && !categoryIsFull(category)) {
+  if (!categoryIsFull(category)) {
     return {
       allowed: false,
       reason: 'not_full',

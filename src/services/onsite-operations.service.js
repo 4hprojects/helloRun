@@ -25,10 +25,18 @@ async function assignBib(eventId, registrationId, bibNumber, options = {}) {
     if (eventRows.length === 0) throw new Error(`Event not found for ID: ${eventId}`);
     const eventCoreId = eventRows[0].id;
 
+    // Scoped to this event, not just to the id. The route guard checks the organiser owns
+    // the *event*; without this the registration could belong to somebody else's event
+    // entirely, and a bib, a check-in or an approved result would be written against
+    // another organiser's runner. markRaceKitReleased below already joins this way.
     const regRows = await sql`
-      SELECT id, app_user_id FROM registrations WHERE mongo_registration_id = ${registrationId} LIMIT 1
+      SELECT id, app_user_id FROM registrations
+      WHERE mongo_registration_id = ${registrationId} AND event_core_id = ${eventCoreId}
+      LIMIT 1
     `;
-    if (regRows.length === 0) throw new Error(`Registration not found for ID: ${registrationId}`);
+    if (regRows.length === 0) {
+      throw new Error(`Registration not found for ID: ${registrationId} on this event`);
+    }
     const registrationCoreId = regRows[0].id;
     const runnerUserId = regRows[0].app_user_id;
 
@@ -162,10 +170,18 @@ async function recordCheckIn(eventId, registrationId, options = {}) {
     if (eventRows.length === 0) throw new Error(`Event not found for ID: ${eventId}`);
     const eventCoreId = eventRows[0].id;
 
+    // Scoped to this event, not just to the id. The route guard checks the organiser owns
+    // the *event*; without this the registration could belong to somebody else's event
+    // entirely, and a bib, a check-in or an approved result would be written against
+    // another organiser's runner. markRaceKitReleased below already joins this way.
     const regRows = await sql`
-      SELECT id, app_user_id FROM registrations WHERE mongo_registration_id = ${registrationId} LIMIT 1
+      SELECT id, app_user_id FROM registrations
+      WHERE mongo_registration_id = ${registrationId} AND event_core_id = ${eventCoreId}
+      LIMIT 1
     `;
-    if (regRows.length === 0) throw new Error(`Registration not found for ID: ${registrationId}`);
+    if (regRows.length === 0) {
+      throw new Error(`Registration not found for ID: ${registrationId} on this event`);
+    }
     const registrationCoreId = regRows[0].id;
     const runnerUserId = regRows[0].app_user_id;
 
@@ -315,10 +331,18 @@ async function recordOnsiteResult(eventId, registrationId, resultData) {
     if (eventRows.length === 0) throw new Error(`Event not found for ID: ${eventId}`);
     const eventCoreId = eventRows[0].id;
 
+    // Scoped to this event, not just to the id. The route guard checks the organiser owns
+    // the *event*; without this the registration could belong to somebody else's event
+    // entirely, and a bib, a check-in or an approved result would be written against
+    // another organiser's runner. markRaceKitReleased below already joins this way.
     const regRows = await sql`
-      SELECT id, app_user_id FROM registrations WHERE mongo_registration_id = ${registrationId} LIMIT 1
+      SELECT id, app_user_id FROM registrations
+      WHERE mongo_registration_id = ${registrationId} AND event_core_id = ${eventCoreId}
+      LIMIT 1
     `;
-    if (regRows.length === 0) throw new Error(`Registration not found for ID: ${registrationId}`);
+    if (regRows.length === 0) {
+      throw new Error(`Registration not found for ID: ${registrationId} on this event`);
+    }
     const registrationCoreId = regRows[0].id;
     const runnerUserId = regRows[0].app_user_id;
 

@@ -133,7 +133,10 @@ test('joining asks for less than registering, because it might come to nothing',
 test('an offer takes the slot, and claiming it must not take a second', () => {
   // Reserving again on claim would count one slot twice and close the category early.
   assert.match(service, /const reservation = await reserveCategorySlot\(event\._id, categoryId\)/);
-  assert.match(routes, /skipCapacityReservation: true/);
+  // Conditional, not unconditional: an entry with no category never reserved anything, so
+  // skipping would have let it register with no capacity check at all.
+  assert.match(routes, /skipCapacityReservation: Boolean\(resolved\.entry\.slotHeld\)/);
+  assert.doesNotMatch(routes, /skipCapacityReservation: true/);
   assert.match(guest, /skipCapacityReservation = false/);
   assert.match(guest, /raceCategoryId && !skipCapacityReservation/);
   // And the failure paths must not hand back a slot the offer still owns.
@@ -204,10 +207,48 @@ test('only the hash of an offer token is stored, and the raw token is returned o
 });
 
 test('an expired link and an invented one are answered the same way', () => {
-  // A stranger guessing tokens must learn nothing from the difference.
-  assert.match(routes, /a stranger\n\s*\/\/ guessing tokens learns nothing/);
-  const messages = routes.match(/This link is no longer valid\./g) || [];
-  assert.ok(messages.length >= 2, 'both the GET and the POST must answer alike');
+  // A stranger guessing tokens must learn nothing from the difference. One helper now,
+  // so the GET and the POST cannot drift apart.
+  assert.match(routes, /function offerRejectionMessage/);
+  assert.match(routes, /a stranger guessing tokens learns\n\/\/ nothing/);
+  const uses = routes.match(/offerRejectionMessage\(resolved\.reason\)/g) || [];
+  assert.equal(uses.length, 2, 'both the GET and the POST must answer alike');
+});
+
+test('the claim is bound to the category the offer was made for', () => {
+  // The offer form used to be a free select over every distance, so somebody offered a
+  // 10K slot could register into 21K: 21K oversold, and the 10K slot stranded for good
+  // because markPromoted clears slotHeld.
+  assert.match(routes, /function offeredRaceDistance/);
+  assert.match(routes, /\.\.\.\(offeredDistance \? \{ raceDistance: offeredDistance \} : \{\}\)/);
+  const view = read('src/views/pages/waitlist-offer.ejs');
+  // Not [^>]* — the EJS tag in the value attribute contains a '>' of its own.
+  assert.match(view, /id="offeredCategory"[\s\S]*?readonly/);
+  // The free select survives only behind `entry.categoryId` being absent — an entry with a
+  // category must never be offered a choice.
+  const readonlyAt = view.indexOf('id="offeredCategory"');
+  const selectAt = view.indexOf('<select id="raceDistance"');
+  assert.ok(readonlyAt > -1 && selectAt > readonlyAt, 'the fixed category must come before the fallback select');
+  assert.match(view, /<% if \(entry\.categoryId\) \{ %>/);
+  // The free select survives only for legacy entries with no category, which hold no slot.
+  assert.match(view, /\} else if \(\(event\.raceDistances \|\| \[\]\)\.length\) \{/);
+});
+
+test("the claim honours the event's own registration rules", () => {
+  // An offer window runs up to 336 hours, so registration can close — or guest entry be
+  // switched off — while the link sits unread. The waitlist was a way around both.
+  assert.match(routes, /getGuestRegistrationBlock/);
+  const uses = routes.match(/getGuestRegistrationBlock\(event\)/g) || [];
+  assert.equal(uses.length, 2, 'the GET and the POST must both check');
+});
+
+test('a claim that cannot complete is answered, not 500d', () => {
+  // Their offer is still live and on a clock, so a generic error page is the worst answer.
+  assert.match(routes, /\['DUPLICATE_GUEST', 'CAPACITY', 'PRICING'\]\.includes\(error\.code\)/);
+  // A failure to mark the entry promoted must not fail a completed registration.
+  assert.match(routes, /not marked promoted/);
+  // The claim limiter keys on the token, not on a :slug this route does not have.
+  assert.match(routes, /waitlist-claim\|\$\{req\.ip \|\| 'unknown-ip'\}\|\$\{req\.params\.token/);
 });
 
 test('the offer belongs to one address and cannot be redirected', () => {

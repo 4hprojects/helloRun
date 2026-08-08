@@ -54,7 +54,16 @@
           </select>
         </label>
 
-        <% if ((event.raceDistances || []).length) { %>
+        <% if (entry.categoryId) { %>
+          <label for="offeredCategory">Category
+            <input id="offeredCategory" value="<%= entry.categoryLabel %>" readonly>
+          </label>
+          <p class="race-pass-hint">
+            The slot being held for you is in this category, so it cannot be changed here.
+          </p>
+        <% } else if ((event.raceDistances || []).length) { %>
+          <%# A legacy entry with no category. It holds no slot, so the claim reserves one
+              normally and the choice is genuinely open. %>
           <label for="raceDistance">Category
             <select id="raceDistance" name="raceDistance">
               <% event.raceDistances.forEach(function (distance) {

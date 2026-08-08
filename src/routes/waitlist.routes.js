@@ -27,7 +27,11 @@ const {
   markPromoted,
   positionOf
 } = require('../services/waitlist.service');
-const { validateGuestForm, createGuestRegistration } = require('../services/guest-registration.service');
+const {
+  validateGuestForm,
+  createGuestRegistration,
+  getGuestRegistrationBlock
+} = require('../services/guest-registration.service');
 const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
 
 const waitlistJoinLimiter = createRateLimiter({
@@ -35,6 +39,16 @@ const waitlistJoinLimiter = createRateLimiter({
   maxRequests: 5,
   message: 'Too many attempts. Please wait a few minutes and try again.',
   keyFn: (req) => `waitlist-join|${req.ip || 'unknown-ip'}|${req.params.slug || ''}`
+});
+
+// Separate from the join limiter: that one keys on `:slug`, which this route does not
+// have, so every claim from one IP collapsed into a single bucket and two people behind one
+// office IP could lock each other out of a time-limited slot.
+const waitlistClaimLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 10,
+  message: 'Too many attempts. Please wait a few minutes and try again.',
+  keyFn: (req) => `waitlist-claim|${req.ip || 'unknown-ip'}|${req.params.token || ''}`
 });
 
 const waitlistLookupLimiter = createRateLimiter({
@@ -56,6 +70,28 @@ function renderJoinForm(res, { event, form = {}, errors = {}, status = 200 }) {
     errors,
     turnstileSiteKey: isTurnstileConfigured() ? getTurnstileSiteKey() : ''
   });
+}
+
+// The same answer for "never existed" and "expired": a stranger guessing tokens learns
+// nothing from the difference.
+function offerRejectionMessage(reason) {
+  return reason === 'expired'
+    ? 'This offer has expired and the slot has gone to the next person in line.'
+    : 'This link is no longer valid.';
+}
+
+/**
+ * The category this offer is for, as the registration form's `raceDistance` value.
+ *
+ * Derived from the entry, never from the post: the offer was made for one category and
+ * reserved a slot in it. Letting the claimant pick another would oversell that one and
+ * strand the held slot in this one forever.
+ */
+function offeredRaceDistance(event, entry) {
+  const category = (event.raceCategories || []).find(
+    (candidate) => String(candidate.categoryId || '') === String(entry.categoryId || '')
+  );
+  return String(category?.distanceLabel || category?.name || entry.categoryLabel || '').trim();
 }
 
 function unavailable(res, message, status) {
@@ -124,6 +160,9 @@ router.post(
     } catch (error) {
       if (['ALREADY_WAITING', 'ALREADY_REGISTERED', 'WAITLIST_UNAVAILABLE'].includes(error.code)) {
         const event = await loadPublicEvent(req.params.slug);
+        // The event can be unpublished between the two reads; renderJoinForm dereferences
+        // event.title, so re-rendering with null would turn a handled 409 into a 500.
+        if (!event) return unavailable(res, 'Event not found.', 404);
         const { form } = validateWaitlistForm(req.body);
         return renderJoinForm(res, {
           event,
@@ -142,18 +181,16 @@ router.post(
 router.get('/waitlist/offers/:token', waitlistLookupLimiter, async (req, res, next) => {
   try {
     const resolved = await resolveOfferToken(req.params.token);
-    if (!resolved.ok) {
-      // Deliberately the same message for "never existed" and "expired": a stranger
-      // guessing tokens learns nothing from the difference.
-      const message =
-        resolved.reason === 'expired'
-          ? 'This offer has expired and the slot has gone to the next person in line.'
-          : 'This link is no longer valid.';
-      return unavailable(res, message, 410);
-    }
+    if (!resolved.ok) return unavailable(res, offerRejectionMessage(resolved.reason), 410);
 
     const event = await Event.findById(resolved.entry.eventId).lean();
     if (!event) return unavailable(res, 'Event not found.', 404);
+
+    // The event's own rules still apply. An offer window runs up to 336 hours, so
+    // registration can close — or the organiser can turn guest entry off — while the link
+    // sits unread. Without this the waitlist was a way around both.
+    const block = getGuestRegistrationBlock(event);
+    if (block) return unavailable(res, block, 410);
 
     return res.render('pages/waitlist-offer', {
       title: `A slot is available - ${event.title}`,
@@ -168,32 +205,35 @@ router.get('/waitlist/offers/:token', waitlistLookupLimiter, async (req, res, ne
   }
 });
 
-// Taking the offer. The slot is already held by the offer, so this must not reserve again.
+// Taking the offer.
 router.post(
   '/waitlist/offers/:token',
-  waitlistJoinLimiter,
+  waitlistClaimLimiter,
   requireCsrfProtection,
   async (req, res, next) => {
     let resolved;
+    let event;
     try {
       resolved = await resolveOfferToken(req.params.token);
-      if (!resolved.ok) {
-        const message =
-          resolved.reason === 'expired'
-            ? 'This offer has expired and the slot has gone to the next person in line.'
-            : 'This link is no longer valid.';
-        return unavailable(res, message, 410);
-      }
+      if (!resolved.ok) return unavailable(res, offerRejectionMessage(resolved.reason), 410);
 
-      const event = await Event.findById(resolved.entry.eventId).lean();
+      event = await Event.findById(resolved.entry.eventId).lean();
       if (!event) return unavailable(res, 'Event not found.', 404);
+
+      const block = getGuestRegistrationBlock(event);
+      if (block) return unavailable(res, block, 410);
 
       // The waitlist collected only enough to reach the person; a registration needs the
       // waiver, the emergency contact and the rest, which is what this form supplies.
+      const offeredDistance = offeredRaceDistance(event, resolved.entry);
       const { form, errors } = validateGuestForm(
         {
           ...req.body,
-          email: resolved.entry.participant.email // fixed: the offer belongs to this address
+          email: resolved.entry.participant.email, // fixed: the offer belongs to this address
+          // Fixed for the same reason. The offer reserved a slot in one category; a posted
+          // value could otherwise register into a different one, overselling that category
+          // and stranding this one's slot for good.
+          ...(offeredDistance ? { raceDistance: offeredDistance } : {})
         },
         event
       );
@@ -213,12 +253,22 @@ router.post(
         event,
         form,
         requestMeta: { ipAddress: req.ip, userAgent: req.get('user-agent') },
-        // The offer took the slot when it was made. Reserving again would count one slot
-        // twice and close the category a place early.
-        skipCapacityReservation: true
+        // Skip only when this offer actually holds a slot. An entry with no category — or
+        // one in an uncapped category — never reserved anything, so skipping would let it
+        // register with no capacity check at all.
+        skipCapacityReservation: Boolean(resolved.entry.slotHeld)
       });
 
-      await markPromoted(resolved.entry, registration._id);
+      try {
+        await markPromoted(resolved.entry, registration._id);
+      } catch (error) {
+        // The registration exists and is correct. If this fails the entry stays `offered`
+        // with slotHeld true, and the expiry sweep would later release a slot the new
+        // registration occupies — so say so loudly rather than failing a completed claim.
+        logger.error(
+          `[Waitlist] Registration ${registration._id} created but entry ${resolved.entry._id} not marked promoted: ${error.message}`
+        );
+      }
 
       return res.render('pages/guest-register-success', {
         title: `You are registered - ${event.title}`,
@@ -228,6 +278,19 @@ router.post(
         hasAccount
       });
     } catch (error) {
+      // A duplicate, a category that filled, or a distance with no price are all things the
+      // claimant can act on — and their offer is still live and on a clock, so a 500 page
+      // would be the worst possible answer.
+      if (['DUPLICATE_GUEST', 'CAPACITY', 'PRICING'].includes(error.code) && event && resolved?.entry) {
+        return res.status(409).render('pages/waitlist-offer', {
+          title: `A slot is available - ${event.title}`,
+          event,
+          entry: resolved.entry,
+          token: req.params.token,
+          form: {},
+          errors: { form: error.message }
+        });
+      }
       logger.error('Waitlist offer claim failed:', error);
       return next(error);
     }

@@ -140,16 +140,12 @@ router.post(
         });
       }
 
+      // No form is passed: completeTransfer reads what the recipient actually supplied off
+      // the transfer record. Synthesising one here wiped their emergency contact and stored
+      // a waiver signature they never typed.
       const result = await completeTransfer({
         transfer,
         event,
-        form: {
-          waiverSignature: transfer.toParticipant?.firstName
-            ? `${transfer.toParticipant.firstName} ${transfer.toParticipant.lastName || ''}`.trim()
-            : '',
-          emergencyContactName: '',
-          emergencyContactNumber: ''
-        },
         approvedByUserId: req.session?.userId || null
       });
 

@@ -67,6 +67,20 @@ const registrationTransferSchema = new mongoose.Schema(
       default: null
     },
 
+    // What the recipient actually supplied when they accepted.
+    //
+    // Held here rather than applied straight to the registration, because approval can come
+    // later — and it must be the *only* source at completion. The approval route used to
+    // synthesise this, which silently wiped the emergency contact, stored a waiver
+    // signature the signer never typed, and left the departing participant's kit size in
+    // place. One record, read by both the approval and auto-approve paths.
+    acceptedDetails: {
+      emergencyContactName: { type: String, trim: true, maxlength: 120, default: '' },
+      emergencyContactNumber: { type: String, trim: true, maxlength: 40, default: '' },
+      waiverSignature: { type: String, trim: true, maxlength: 120, default: '' },
+      kitSize: { type: String, trim: true, uppercase: true, maxlength: 12, default: '' }
+    },
+
     status: {
       type: String,
       enum: TRANSFER_STATUSES,

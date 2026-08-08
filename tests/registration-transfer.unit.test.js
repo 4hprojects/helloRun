@@ -158,9 +158,24 @@ test('the recipient signs their own waiver', () => {
   assert.match(read('src/views/pages/transfer-accept.ejs'), /cannot be handed on/);
 });
 
-test("the previous person's emergency contact does not carry over", () => {
+test("the recipient's own details are used, not a form synthesised at approval", () => {
+  // The approval route used to pass `emergencyContactName: ''` and a made-up signature,
+  // so the default path left the runner with no emergency contact on race day, a waiver
+  // bearing a signature they never typed, and the departing person's kit size.
   assert.match(service, /The old person's emergency contact is not the new person's/);
-  assert.match(service, /registration\.participant\.emergencyContactName = form\?\.emergencyContactName \|\| ''/);
+  assert.match(service, /const accepted = transfer\.acceptedDetails \|\| \{\}/);
+  assert.match(service, /registration\.participant\.emergencyContactName = accepted\.emergencyContactName/);
+  assert.match(service, /signature: accepted\.waiverSignature/);
+  assert.match(service, /registration\.kitSize = accepted\.kitSize \|\| ''/);
+
+  // acceptTransfer is the only place it is captured, and the model has somewhere to put it.
+  assert.match(service, /transfer\.acceptedDetails = \{/);
+  assert.match(model, /acceptedDetails: \{/);
+
+  // Both completion paths must read the record — neither may pass a form.
+  assert.doesNotMatch(organiserRoutes, /waiverSignature:/, 'the approval route must not synthesise a signature');
+  assert.match(organiserRoutes, /No form is passed/);
+  assert.match(service, /completeTransfer\(\{ transfer, event, approvedByUserId: null \}\)/);
 });
 
 test('every credential the previous participant held stops working', () => {

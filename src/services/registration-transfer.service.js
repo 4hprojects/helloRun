@@ -191,6 +191,15 @@ async function acceptTransfer({ transfer, event, form, acceptedByUserId = null }
     email: transfer.toEmail, // fixed at initiation; the link is bound to it
     mobile: form.mobile
   };
+  // Everything else the recipient supplied. This is the only place it is captured, and
+  // completeTransfer reads it back rather than being handed a form — approval can arrive
+  // hours later, from an organiser who has none of this.
+  transfer.acceptedDetails = {
+    emergencyContactName: form.emergencyContactName || '',
+    emergencyContactNumber: form.emergencyContactNumber || '',
+    waiverSignature: form.waiverSignature || '',
+    kitSize: form.kitSize || ''
+  };
   transfer.toUserId = acceptedByUserId || transfer.toUserId || null;
   transfer.acceptedAt = new Date();
   // One status either way: completion has a single path, and auto-approval is an explicit
@@ -201,7 +210,7 @@ async function acceptTransfer({ transfer, event, form, acceptedByUserId = null }
   // Auto-approve when the organiser has said they do not need to see these. Done as an
   // explicit second step rather than a different status, so completion has one path.
   if (!event?.transferRequiresApproval) {
-    return completeTransfer({ transfer, event, form, approvedByUserId: null });
+    return completeTransfer({ transfer, event, approvedByUserId: null });
   }
 
   return { transfer, completed: false };
@@ -214,7 +223,11 @@ async function acceptTransfer({ transfer, event, form, acceptedByUserId = null }
  * that identifies the new one arrives — a half-done swap is somebody running under another
  * person's name and waiver.
  */
-async function completeTransfer({ transfer, event, form, approvedByUserId = null }) {
+async function completeTransfer({ transfer, event, approvedByUserId = null }) {
+  // Read from the transfer, never from a caller-supplied form. The approval route used to
+  // pass a synthesised one, which wiped the emergency contact, stored a signature the
+  // recipient never typed, and kept the previous participant's kit size.
+  const accepted = transfer.acceptedDetails || {};
   const registration = await Registration.findById(transfer.registrationId).exec();
   if (!registration) {
     const error = new Error('That registration no longer exists.');
@@ -242,8 +255,8 @@ async function completeTransfer({ transfer, event, form, approvedByUserId = null
   registration.participant.email = transfer.toEmail;
   registration.participant.mobile = transfer.toParticipant.mobile || '';
   // The old person's emergency contact is not the new person's.
-  registration.participant.emergencyContactName = form?.emergencyContactName || '';
-  registration.participant.emergencyContactNumber = form?.emergencyContactNumber || '';
+  registration.participant.emergencyContactName = accepted.emergencyContactName || '';
+  registration.participant.emergencyContactNumber = accepted.emergencyContactNumber || '';
 
   // A transferred entry becomes a guest entry unless the recipient already has an account.
   // Asserting an identity from an address typed into a form is the same thing the walk-in
@@ -255,7 +268,7 @@ async function completeTransfer({ transfer, event, form, approvedByUserId = null
   registration.waiver = {
     accepted: true,
     version: event?.waiverVersion || registration.waiver?.version || 1,
-    signature: form?.waiverSignature || '',
+    signature: accepted.waiverSignature || '',
     acceptedAt: new Date(),
     templateSnapshot: String(event?.waiverTemplate || registration.waiver?.templateSnapshot || ''),
     renderedSnapshot: renderWaiverTemplate(event?.waiverTemplate || '', {
@@ -266,9 +279,8 @@ async function completeTransfer({ transfer, event, form, approvedByUserId = null
 
   // Their size, not the previous person's. The kit that already went out, if any, is
   // recorded on the transfer rather than pretended away.
-  if (form && Object.prototype.hasOwnProperty.call(form, 'kitSize')) {
-    registration.kitSize = form.kitSize || '';
-  }
+  // Their size, not the previous person's — including when they chose not to give one.
+  registration.kitSize = accepted.kitSize || '';
 
   await registration.save();
 

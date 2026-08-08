@@ -82,7 +82,13 @@
                     <%= entry.participant.firstName %> <%= entry.participant.lastName %><br>
                     <span class="checkin-note"><%= entry.participant.email %></span>
                   </td>
-                  <td><%= entry.categoryLabel || 'Any' %></td>
+                  <td>
+                    <% if (entry.categoryId) { %>
+                      <%= entry.categoryLabel || entry.categoryId %>
+                    <% } else { %>
+                      <span class="checkin-row-warning">No category — cannot be promoted</span>
+                    <% } %>
+                  </td>
                   <td>
                     <%= entry.status %><% if (entry.status === 'offered' && entry.offerExpiresAt) { %>
                       <br><span class="checkin-note">expires <%= new Date(entry.offerExpiresAt).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }) %></span>
