@@ -32,17 +32,17 @@ Completion requires recorded production observations, not repository tests.
 
 ## 2. Live behaviour that is wrong
 
-- [ ] **Guest cancellation files a false failure every time.**
-      `services/registration-cancellation.service.js` passes a null `userId` to
-      the in-app notification, which throws, is caught, and writes a
-      `status: 'failed'` communication-log row. Harmless to the participant —
-      the cancellation persists and the email still sends — but it is exactly
-      the noise that hides a real failure.
-- [ ] **`FEATURE_STEP_COMPETITIONS_ENABLED` gates the form, not the feature.**
-      It is read only when building organiser form data, so it hides the
-      controls; `applyEventFormData` still normalises and writes
-      `challengeMetrics`, `primaryChallengeMetric` and `targetSteps` from any
-      posted body. Enforce it server-side, and correct the claim in STATUS.md.
+- [x] **Guest cancellation files a false failure every time.** Fixed August 8.
+      A guest has no in-app inbox, so the notification is now requested only when
+      there is an account, and `notify` treats a missing recipient as
+      not-applicable rather than as a delivery failure — which also protects the
+      payment-approval and shop call sites that pass the same field. Probed live:
+      cancellation recorded, zero `failed` rows written.
+- [x] **`FEATURE_STEP_COMPETITIONS_ENABLED` gates the form, not the feature.**
+      Fixed August 8. Enforced in `applyEventFormData`: steps cannot be
+      *introduced* while the flag is off, but an event that already has them keeps
+      them — the form replays existing values on every save, so stripping them
+      would silently downgrade a configured event. STATUS.md corrected.
 
 ## 3. Dead code
 

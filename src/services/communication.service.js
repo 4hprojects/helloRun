@@ -4,6 +4,7 @@ const CommunicationLog = require('../models/CommunicationLog');
 const CommunicationRetry = require('../models/CommunicationRetry');
 const User = require('../models/User');
 const emailService = require('./email.service');
+const logger = require('../utils/logger');
 const { createNotificationSafe } = require('./notification.service');
 const {
   COMMUNICATION_EVENTS,
@@ -145,18 +146,26 @@ async function notify(eventKey, payload = {}) {
   };
 
   if (settings.inAppNotificationsEnabled && eventSetting.inAppEnabled && payload.notification) {
-    result.inApp = await createNotificationSafe(payload.notification, `${eventKey} notification`);
-    await recordCommunicationLog({
-      eventKey,
-      channel: 'in_app',
-      recipientUserId: payload.notification.userId || null,
-      status: result.inApp ? 'sent' : 'failed',
-      statusReason: result.inApp ? '' : 'In-app notification creation failed.',
-      priority: eventSetting.priority,
-      metadata: payload.notification.metadata || {}
-    });
-    if (!result.inApp && payload.throwOnInAppFailure) {
-      throw new Error('In-app notification creation failed.');
+    // A guest has no account, so there is no in-app recipient. That is not a delivery
+    // failure and must not be logged as one: createNotification throws on a null userId,
+    // and recording that as `failed` filed a false failure for every guest cancellation —
+    // exactly the noise that buries a real one. The email below is how a guest is told.
+    if (!payload.notification.userId) {
+      logger.debug(`[Communication] ${eventKey}: no account to notify in-app; email only.`);
+    } else {
+      result.inApp = await createNotificationSafe(payload.notification, `${eventKey} notification`);
+      await recordCommunicationLog({
+        eventKey,
+        channel: 'in_app',
+        recipientUserId: payload.notification.userId,
+        status: result.inApp ? 'sent' : 'failed',
+        statusReason: result.inApp ? '' : 'In-app notification creation failed.',
+        priority: eventSetting.priority,
+        metadata: payload.notification.metadata || {}
+      });
+      if (!result.inApp && payload.throwOnInAppFailure) {
+        throw new Error('In-app notification creation failed.');
+      }
     }
   }
 

@@ -1940,7 +1940,24 @@ function applyEventFormData(event, formData, user) {
   const organiserNameFromUser = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
   const isVirtualMode = formData.eventType === 'virtual' || formData.eventType === 'hybrid';
   const isAccumulated = isVirtualMode && isAccumulatedChallenge(formData.virtualCompletionMode);
-  const challengeMetrics = normalizeChallengeMetrics(formData.challengeMetrics, { accumulated: isAccumulated });
+  // The feature flag is enforced here, not only on the form.
+  //
+  // It used to be read only when building form data, so it hid the Competition Metrics
+  // controls while this function still wrote whatever was posted — a body with
+  // challengeMetrics=steps configured a steps competition with the flag off.
+  //
+  // Stripping steps outright would be the wrong correction: the form's hidden inputs
+  // deliberately replay an already-configured event's values so a save with the flag off
+  // does not silently downgrade it. So the rule is that steps cannot be *introduced* while
+  // the flag is off, and an event that already has them keeps them.
+  const stepsAllowed = isStepCompetitionsEnabled() || (event.challengeMetrics || []).includes('steps');
+  const requestedMetrics = normalizeChallengeMetrics(formData.challengeMetrics, { accumulated: isAccumulated });
+  const challengeMetrics = stepsAllowed
+    ? requestedMetrics
+    : normalizeChallengeMetrics(
+        requestedMetrics.filter((metric) => metric !== 'steps'),
+        { accumulated: isAccumulated }
+      );
   const primaryChallengeMetric = normalizePrimaryChallengeMetric(formData.primaryChallengeMetric, challengeMetrics);
   event.title = formData.title;
   event.organiserName = formData.organiserName || organiserNameFromUser || 'HelloRun Organizer';

@@ -279,7 +279,9 @@ function notifyRunnerInBackground(registration) {
         : '';
 
       await communicationService.notify('registration.cancelled', {
-        notification: {
+        // Only when there is an account to notify. A guest is reached by email alone,
+        // the same way the guest confirmation is sent.
+        notification: registration.userId ? {
           userId: registration.userId,
           type: 'registration_cancelled',
           title: 'Registration cancelled',
@@ -290,7 +292,7 @@ function notifyRunnerInBackground(registration) {
             eventId: String(registration.eventId),
             eventTitle
           }
-        },
+        } : null,
         email: {
           to: registration.participant?.email || '',
           firstName: registration.participant?.firstName || '',
