@@ -39,13 +39,15 @@ test('cards and status callouts do not use colored left-edge accents', () => {
 test('status remains visible through badges, text, and background treatments', () => {
   const registrations = read('src/public/css/my-registrations.css');
   const submissions = read('src/public/css/runner-submissions.css');
-  const dashboard = read('src/views/runner/partials/dashboard-next-action.ejs');
+  // dashboard-active-journey is the partial the dashboard actually renders; the old
+  // dashboard-next-action was one of 14 unreachable partials removed August 8.
+  const dashboard = read('src/views/runner/partials/dashboard-active-journey.ejs');
 
   assert.match(registrations, /\.my-reg-state-rejected\s*\{[^}]*background:/);
   assert.match(registrations, /\.my-reg-state-approved\s*\{[^}]*background:/);
   assert.match(submissions, /\.sub-review-state-rejected\s*\{[^}]*background:/);
   assert.match(submissions, /\.sub-review-state-approved\s*\{[^}]*background:/);
-  assert.match(dashboard, /class="badge badge-<%= item\.stateTone %>"/);
+  assert.match(dashboard, /class="badge badge-<%= journey\.stateTone %>"/);
 });
 
 test('neutral structural separators and navigation indicators remain intact', () => {

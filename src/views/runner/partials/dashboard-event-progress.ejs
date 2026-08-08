@@ -1,3 +1,0 @@
-<section class="card runner-event-progress-card" data-dashboard-fragment="eventProgress">
-  <div class="card-content runner-event-progress-content"><% const eventProgressCards = cards.eventProgress || []; %><% if (eventProgressCards.length) { %><ul class="dashboard-event-progress-list" aria-label="Active registered event progress"><% eventProgressCards.forEach((item) => { %><%- include('event-progress-row', { item }) %><% }) %></ul><% } else { %><div class="empty-state"><p class="empty-message">You have not joined an event yet. Choose a distance, register, and start tracking your progress.</p><a href="/events" class="btn btn-primary btn-sm">Browse Active Events</a></div><% } %></div>
-</section>

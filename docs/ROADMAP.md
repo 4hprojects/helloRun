@@ -48,10 +48,11 @@ Completion requires recorded production observations, not repository tests.
 
 Removal only, no behaviour change, each independently revertable.
 
-- [ ] **14 unreachable partials** in `views/runner/partials/`. The dashboard
-      includes four and the AJAX refresh is restricted to the same four by a
-      whitelist. Two existing tests deliberately assert these are *not* rendered —
-      the consolidation was intentional and those assertions stay.
+- [x] **14 unreachable partials** in `views/runner/partials/`. Removed August 8,
+      24 files down to 10. The two tests that assert these are *not* rendered were
+      kept — the consolidation was deliberate and they are the reason not to
+      reintroduce them. All 158 views still compile, so no include was left
+      dangling.
 - [ ] **26 dead service exports.** Notably `token.service.js` (3 of 5),
       `badge-template.service.js` (whose live exports have no `src/` consumer at
       all — the service is test-only), the unfinished pub/sub half of
