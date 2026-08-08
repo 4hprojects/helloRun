@@ -1,5 +1,12 @@
 # HelloRun Homepage Hero Leaderboard
 
+**Status: Implemented and repository-verified**
+
+**Last reconciled:** August 8, 2026 · **Delivery state:** [STATUS.md](../STATUS.md)
+
+This is a record of work that shipped. It describes the feature as built, not
+forward-looking plans — those live in [ROADMAP.md](../ROADMAP.md).
+
 ## Purpose
 
 The homepage hero pairs the acquisition message with a compact, real leaderboard from an eligible public event. It provides current community proof without presenting a platform-wide rank or exposing private runner information.

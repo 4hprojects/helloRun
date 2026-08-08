@@ -1,5 +1,12 @@
 # HelloRun Certificate Template Workflow Implementation
 
+**Status: Implemented and repository-verified**
+
+**Last reconciled:** August 8, 2026 · **Delivery state:** [STATUS.md](../STATUS.md)
+
+This is a record of work that shipped. It describes the feature as built, not
+forward-looking plans — those live in [ROADMAP.md](../ROADMAP.md).
+
 ## Purpose
 
 Implement organiser-managed certificate templates on top of HelloRun's existing certificate issuing flow.

@@ -62,8 +62,15 @@ Removal only, no behaviour change, each independently revertable.
       `src/` consumer at all — it is reachable only from its test, which is a
       separate decision from dead exports.
 - [ ] **11 never-queried Postgres objects** — 10 views plus `shop_platform_fees`,
-      including all five Phase-6 reporting views. **Needs a migration and
-      explicit approval before it is applied.**
+      including all five Phase-6 reporting views. Verified August 8 as unused by
+      the application: no `src/` code references any of them, and the only test
+      mentions are schema-existence assertions. **Deliberately not dropped.**
+      Views are exactly what a Supabase dashboard query, a BI tool or an ad-hoc
+      report would use, and none of that is visible from the repository — so
+      dropping them is a silent breakage no test here could catch. Removable once
+      it is confirmed nothing outside the app reads them. A twelfth,
+      `v_runner_certifications`, became unreachable when its only caller was
+      removed as dead code.
 
 ## 4. Environment and test isolation
 
@@ -106,11 +113,16 @@ Detailed plan:
 
 ## 7. Documentation hygiene
 
-- [ ] 14 files in `features/` carry no status header, and 8 have not been touched
-      since May–June. Add the label
-      [`DOCUMENTATION-CONVENTIONS.md`](DOCUMENTATION-CONVENTIONS.md) requires, or
-      move superseded ones to `archive/`.
+- [x] **Status headers on `features/`.** Added August 8 to the 14 files that had
+      none. Each was checked against the code first — all describe shipped work,
+      so all are labelled implemented rather than blanket-stamped. They stay where
+      they are rather than moving to `implementation/`: 11 of them are linked from
+      other documents, and relocating would break those links for a filing tidy-up.
 - [ ] `ux-improvement-plan.md` and `PRD.md` declare dates behind their own edits.
+      **Deliberately not bumped.** Moving a reconciliation date without actually
+      reconciling the content is the precise false signal the date exists to
+      prevent. These need their content read against the current system, which is
+      a real review, not a date edit.
 
 ## 8. Product expansion
 

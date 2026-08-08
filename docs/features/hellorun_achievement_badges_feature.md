@@ -1,5 +1,12 @@
 # HelloRun Achievement Badges Feature
 
+**Status: Implemented and repository-verified**
+
+**Last reconciled:** August 8, 2026 · **Delivery state:** [STATUS.md](../STATUS.md)
+
+This is a record of work that shipped. It describes the feature as built, not
+forward-looking plans — those live in [ROADMAP.md](../ROADMAP.md).
+
 ## 1. Feature Summary
 
 The Achievement Badges feature allows HelloRun to recognise verified runner, organiser, and event achievements through digital badges.

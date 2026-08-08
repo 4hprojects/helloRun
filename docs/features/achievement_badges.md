@@ -1,5 +1,12 @@
 # HelloRun Achievement Badges
 
+**Status: Implemented and repository-verified**
+
+**Last reconciled:** August 8, 2026 · **Delivery state:** [STATUS.md](../STATUS.md)
+
+This is a record of work that shipped. It describes the feature as built, not
+forward-looking plans — those live in [ROADMAP.md](../ROADMAP.md).
+
 This is the implementation handoff for the current achievement badge system. The full planning source remains `docs/features/hellorun_achievement_badges_feature.md`.
 
 ## Current Status

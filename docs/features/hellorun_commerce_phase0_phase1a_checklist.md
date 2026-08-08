@@ -1,5 +1,12 @@
 # HelloRun Commerce: Phase 0 and Phase 1A Engineering Checklist
 
+**Status: Implemented and repository-verified**
+
+**Last reconciled:** August 8, 2026 · **Delivery state:** [STATUS.md](../STATUS.md)
+
+This is a record of work that shipped. It describes the feature as built, not
+forward-looking plans — those live in [ROADMAP.md](../ROADMAP.md).
+
 This checklist maps implementation work to exact files in the current repository.
 
 ## Scope

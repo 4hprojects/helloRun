@@ -1,5 +1,12 @@
 # Event Promotion — "Queued" Emails Diagnosis & Fix (July 5, 2026)
 
+**Status: Implemented and repository-verified**
+
+**Last reconciled:** August 8, 2026 · **Delivery state:** [STATUS.md](../STATUS.md)
+
+This is a record of work that shipped. It describes the feature as built, not
+forward-looking plans — those live in [ROADMAP.md](../ROADMAP.md).
+
 ## Symptom
 
 Admin promotion sends report most recipients as **queued** instead of sent, and the queued

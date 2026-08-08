@@ -1,5 +1,12 @@
 # HelloRun Leaderboard Improvement Specification
 
+**Status: Implemented and repository-verified**
+
+**Last reconciled:** August 8, 2026 · **Delivery state:** [STATUS.md](../STATUS.md)
+
+This is a record of work that shipped. It describes the feature as built, not
+forward-looking plans — those live in [ROADMAP.md](../ROADMAP.md).
+
 ## Purpose
 
 Improve the HelloRun leaderboard into a user-friendly results, progress, and verification system.

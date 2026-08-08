@@ -2,6 +2,8 @@
 
 **Status:** Initial profile and dashboard slice implemented
 
+**Last reconciled:** August 8, 2026 · **Delivery state:** [STATUS.md](../STATUS.md)
+
 **Audience:** Product, design, and engineering
 
 **Related policy:** `../architecture/time-and-timezone-policy.md`

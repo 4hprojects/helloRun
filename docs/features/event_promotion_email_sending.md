@@ -1,5 +1,12 @@
 # Event Promotion Email Sending — Flow Analysis & Grayed-Button Diagnosis
 
+**Status: Implemented and repository-verified**
+
+**Last reconciled:** August 8, 2026 · **Delivery state:** [STATUS.md](../STATUS.md)
+
+This is a record of work that shipped. It describes the feature as built, not
+forward-looking plans — those live in [ROADMAP.md](../ROADMAP.md).
+
 _Date: July 4, 2026 · Trigger: after a successful "Selected Emails" test send from `/admin/promote`, the Send Promotion button stayed grayed out on retry, while the platform email quota barely moved._
 
 Related historical doc: `docs/improvement-plan/event-promotion-follow-ups.md` (pre-refinement analysis, Jul 3).

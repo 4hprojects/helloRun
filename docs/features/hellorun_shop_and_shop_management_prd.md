@@ -1,5 +1,12 @@
 # HelloRun Shop and Shop Management Feature PRD
 
+**Status: Implemented and repository-verified**
+
+**Last reconciled:** August 8, 2026 · **Delivery state:** [STATUS.md](../STATUS.md)
+
+This is a record of work that shipped. It describes the feature as built, not
+forward-looking plans — those live in [ROADMAP.md](../ROADMAP.md).
+
 ## Document Purpose
 
 This document defines the proposed **Shop and Shop Management** feature for HelloRun. It is written as an implementation-ready reference for Codex or any development agent working on the HelloRun codebase.
