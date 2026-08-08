@@ -2,9 +2,11 @@
 
 **Source of truth for delivery status**
 
-**Last reconciled:** August 7, 2026
+**Last reconciled:** August 8, 2026
 
-**Evidence window:** repository history through July 29, 2026
+**Evidence window:** repository history through August 8, 2026
+
+**Forward priorities and the tracked checklist:** [ROADMAP.md](ROADMAP.md)
 
 ## Implemented and Repository-Verified
 
@@ -91,7 +93,8 @@ production services.
 - Apply and audit the additive step-competition migration and legacy backfill,
   run the step-only and legacy accumulated-distance smoke workflows, then
   enable `FEATURE_STEP_COMPETITIONS_ENABLED`. The repository implementation is
-  complete and the flag remains disabled by default.
+  complete and the flag is off by default — but see the correction below: the
+  flag hides the organiser controls rather than disabling the feature.
 
 ## Operational Work Pending
 
@@ -109,7 +112,14 @@ production services.
 - **Step-competition verification is still outstanding.** Migration `022` was applied on
   August 7 because it was blocking the event and submission shadows, but its own audit,
   legacy backfill, and step-only/legacy accumulated-distance smoke workflows have not
-  been run. `FEATURE_STEP_COMPETITIONS_ENABLED` remains off.
+  been run.
+- **`FEATURE_STEP_COMPETITIONS_ENABLED` does less than this document previously implied.**
+  Verified August 8: it is read only when building organiser form data, so it hides the
+  Competition Metrics controls on the create/edit event forms. `applyEventFormData` still
+  normalises and writes `challengeMetrics`, `primaryChallengeMetric` and `targetSteps`
+  from any posted body, with no flag check. "The flag is off" therefore means the controls
+  are hidden, not that the feature is disabled. Tracked as a fix in
+  [ROADMAP.md](ROADMAP.md).
 
 
 - ~~Deploy `b70b50d` (guest event-page 500).~~ **Resolved August 7.** It shipped with
