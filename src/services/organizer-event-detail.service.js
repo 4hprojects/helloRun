@@ -567,6 +567,11 @@ async function getOrganizerEventDetailPresentation({
         { label: 'Race-day staff', href: `/organizer/events/${id}/staff`, icon: 'users-round' },
         { label: 'Import registrants', href: `/organizer/events/${id}/registrants/import`, icon: 'user-plus' }
       ] }] : []),
+      // Always shown, not gated on waitlistEnabled: an organiser who switches the waitlist
+      // off still has people on the list, and hiding the link would strand them.
+      { group: 'Registration', items: [
+        { label: 'Waitlist', href: `/organizer/events/${id}/waitlist`, icon: 'list-ordered' }
+      ] },
       { group: 'Recognition', items: [
         { label: 'Certificates', href: `/organizer/events/${id}/certificate`, icon: 'award' },
         { label: 'Badges', href: `/organizer/events/${id}/badges/manage`, icon: 'badge-check' }

@@ -248,6 +248,7 @@ const { populateCookiePreferenceLocals } = require('./middleware/cookie-preferen
 const authRoutes = require('./routes/authRoutes');
 const pageRoutes = require('./routes/pageRoutes');
 const guestRoutes = require('./routes/guest.routes');
+const waitlistRoutes = require('./routes/waitlist.routes');
 const runnerRoutes = require('./routes/runner.routes');
 const blogRoutes = require('./routes/blog.routes');
 const organizerRoutes = require('./routes/organizer.routes');
@@ -271,6 +272,7 @@ app.use('/', authRoutes);
 app.use('/', shopRoutes);
 // pageRoutes mounts before blogRoutes — pageController owns GET /blog and GET /blog/:slug
 app.use('/', guestRoutes);
+app.use('/', waitlistRoutes);
 app.use('/', pageRoutes);
 app.use('/', runnerRoutes);
 app.use('/', stravaRoutes);
@@ -368,6 +370,7 @@ const { startCommunicationRetryWorker } = require('./workers/communication-retry
 const { startAccumulatedCertificateWorker } = require('./workers/accumulated-certificate-worker');
 const { startPolicyNoticeWorker } = require('./workers/policy-notice-worker');
 const { startEventPromotionWorker } = require('./workers/event-promotion-worker');
+const { startWaitlistOfferWorker } = require('./workers/waitlist-offer-worker');
 
 async function startServer() {
   await connectToDatabase();
@@ -377,6 +380,7 @@ async function startServer() {
   startAccumulatedCertificateWorker();
   startPolicyNoticeWorker();
   startEventPromotionWorker();
+  startWaitlistOfferWorker();
 
   app.listen(PORT, () => {
     logger.info(`Server running on http://localhost:${PORT}`);

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/race-pass.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="race-pass-page" id="main-content">
+    <div class="race-pass-shell">
+      <header class="race-pass-header">
+        <p class="race-pass-kicker">Join the waitlist</p>
+        <h1><%= event.title %></h1>
+        <% if (event.venueName) { %><p class="race-pass-venue"><%= event.venueName %></p><% } %>
+      </header>
+
+      <p class="race-pass-hint">
+        This category is full. Join the waitlist and you will be emailed if a slot opens.
+        Only your name and contact details are needed now — the waiver and the rest come
+        later, if a slot actually reaches you.
+      </p>
+
+      <% if (errors.form) { %><p class="checkin-alert" role="alert"><%= errors.form %></p><% } %>
+
+      <form method="POST" action="/events/<%= event.slug %>/waitlist" class="guest-form">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+        <input type="hidden" name="categoryId" value="<%= form.categoryId || '' %>">
+
+        <label for="firstName">First name
+          <input id="firstName" name="firstName" value="<%= form.firstName || '' %>" required maxlength="60">
+        </label>
+        <% if (errors.firstName) { %><p class="guest-error"><%= errors.firstName %></p><% } %>
+
+        <label for="lastName">Last name
+          <input id="lastName" name="lastName" value="<%= form.lastName || '' %>" required maxlength="60">
+        </label>
+        <% if (errors.lastName) { %><p class="guest-error"><%= errors.lastName %></p><% } %>
+
+        <label for="email">Email
+          <input id="email" name="email" type="email" value="<%= form.email || '' %>" required maxlength="160">
+        </label>
+        <p class="race-pass-hint">A slot offer is sent here, and it expires — so use an address you read.</p>
+        <% if (errors.email) { %><p class="guest-error"><%= errors.email %></p><% } %>
+
+        <label for="mobile">Contact number
+          <input id="mobile" name="mobile" value="<%= form.mobileNumber || '' %>" required maxlength="40">
+        </label>
+        <% if (errors.mobileNumber) { %><p class="guest-error"><%= errors.mobileNumber %></p><% } %>
+
+        <% if (turnstileSiteKey) { %>
+          <div class="cf-turnstile" data-sitekey="<%= turnstileSiteKey %>"></div>
+          <% if (errors.turnstile) { %><p class="guest-error"><%= errors.turnstile %></p><% } %>
+        <% } %>
+
+        <button type="submit" class="nav-signup-btn">Join the waitlist</button>
+      </form>
+
+      <p class="race-pass-back"><a href="/events/<%= event.slug %>">Back to event</a></p>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <% if (turnstileSiteKey) { %><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script><% } %>
+</body>
+</html>

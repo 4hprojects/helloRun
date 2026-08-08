@@ -1407,6 +1407,51 @@ exports.sendGuestRegistrationConfirmationEmail = async (
   }
 };
 
+exports.sendWaitlistOfferEmail = async (
+  recipientEmail,
+  { firstName, eventTitle, categoryLabel, offerUrl, expiresAt } = {}
+) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: recipientEmail,
+      subject: `A slot has opened for ${eventTitle || 'your event'}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#17623f;">A slot has opened</h2>
+          <p>Hi ${escapeHtml(firstName || 'there')},</p>
+          <p>
+            A slot has opened for <strong>${escapeHtml(eventTitle || 'your event')}</strong>${
+              categoryLabel ? ` in <strong>${escapeHtml(categoryLabel)}</strong>` : ''
+            }, and it is being held for you.
+          </p>
+          <div style="background:#f4f8f5;border:1px solid #dfe7e2;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            <p style="margin:0;"><a href="${escapeHtml(offerUrl || '')}" style="color:#17623f;font-weight:bold;">Take this slot</a></p>
+          </div>
+          <p style="color:#627067;font-size:.9em;">
+            ${
+              expiresAt
+                ? `This offer expires on <strong>${escapeHtml(expiresAt)}</strong>.`
+                : 'This offer expires.'
+            }
+            After that the slot passes to the next person waiting, so it will not be held
+            indefinitely. Do not forward this link: anyone who has it can take the slot.
+          </p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send waitlist offer email');
+    }
+
+    return data;
+  } catch (error) {
+    logger.error('Email service error:', error);
+    throw error;
+  }
+};
+
 exports.sendRunnerContactEmailToOrganizer = async (
   organizerEmail,
   { senderName, senderEmail, eventTitle, subject, message, replyTo } = {}

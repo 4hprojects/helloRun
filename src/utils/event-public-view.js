@@ -144,10 +144,33 @@ function buildPublicEventView(event, options = {}) {
     primaryCta: registrationState.canRegisterNow
       ? { label: 'Register Now', href: `/events/${event.slug}/register`, disabled: false }
       : { label: registrationState.label, href: '', disabled: true },
+    // Which capped categories have filled up, so a full category can offer the waitlist
+    // instead of a dead end. Empty unless the organiser switched the waitlist on.
+    waitlistCategories: buildWaitlistCategories(event),
     secondaryCtas: [
       event.leaderboardRecognitionEnabled !== false ? { label: 'View Standings', href: `/events/${encodeURIComponent(event.slug || '')}/leaderboard` } : null
     ].filter(Boolean)
   };
+}
+
+/**
+ * The full categories somebody could queue for.
+ *
+ * Read straight off the same `slots`/`reserved` pair the atomic reservation maintains, so
+ * the page cannot disagree with what the registration path will actually do.
+ */
+function buildWaitlistCategories(event) {
+  if (!event?.waitlistEnabled) return [];
+  return (event.raceCategories || [])
+    .filter((category) => {
+      const slots = Number(category.slots);
+      if (!Number.isFinite(slots) || slots <= 0) return false; // uncapped never fills
+      return (Number(category.reserved) || 0) >= slots;
+    })
+    .map((category) => ({
+      categoryId: String(category.categoryId || ''),
+      label: category.distanceLabel || category.name || category.categoryId || ''
+    }));
 }
 
 function buildChallengeSummary(event, options = {}) {

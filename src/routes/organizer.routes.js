@@ -9,6 +9,7 @@ const dashboardRoutes = require('./organiser/dashboard');
 const eventCreationRoutes = require('./organiser/event-creation');
 const eventManagementRoutes = require('./organiser/event-management');
 const registrantsRoutes = require('./organiser/registrants');
+const waitlistRoutes = require('./organiser/waitlist');
 const reviewRoutes = require('./organiser/review');
 const profileRoutes = require('./organiser/profile');
 
@@ -19,6 +20,7 @@ router.use('/', dashboardRoutes);
 router.use('/', eventCreationRoutes);
 router.use('/', eventManagementRoutes);
 router.use('/', registrantsRoutes);
+router.use('/', waitlistRoutes);
 router.use('/', reviewRoutes);
 router.use('/', profileRoutes);
 

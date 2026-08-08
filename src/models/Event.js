@@ -109,6 +109,14 @@ const eventSchema = new mongoose.Schema(
     // badges or receive certificates until they are claimed, so it is a deliberate
     // trade the organiser makes, not a default.
     allowGuestRegistration: { type: Boolean, default: false },
+    // Whether a full category offers a waitlist instead of a dead end. Off by default: a
+    // list the organiser never works through is worse than an honest "full", because it
+    // reads as a queue that is moving.
+    waitlistEnabled: { type: Boolean, default: false },
+    // How long a promoted person has to complete their registration before the slot is
+    // released to the next in line. An offer holds a real slot, so this cannot be
+    // unbounded — an unclaimed offer would take capacity out of circulation for good.
+    waitlistOfferHours: { type: Number, min: 1, max: 336, default: 48 },
     publicListingAvailableAt: {
       type: Date,
       default: null

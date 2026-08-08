@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/race-pass.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="race-pass-page" id="main-content">
+    <div class="race-pass-shell">
+      <header class="race-pass-header">
+        <p class="race-pass-kicker">You are on the waitlist</p>
+        <h1><%= event.title %></h1>
+      </header>
+
+      <p class="race-pass-hint">
+        You are number <strong><%= position %></strong> in line<% if (entry.categoryLabel) { %>
+        for <strong><%= entry.categoryLabel %></strong><% } %>.
+      </p>
+
+      <p class="race-pass-hint">
+        If a slot opens, an offer goes to <strong><%= entry.participant.email %></strong>.
+        The offer holds the slot for you, but only for a limited time — after that it
+        passes to the next person, so watch for it.
+      </p>
+
+      <p class="race-pass-hint">
+        A place on the waitlist is not a registration. Nothing has been charged, and you
+        are not entered in the event until you accept an offer and complete your details.
+      </p>
+
+      <p class="race-pass-back"><a href="/events/<%= event.slug %>">Back to event</a></p>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

@@ -715,6 +715,16 @@
             <% } else { %>
               <button type="button" class="btn btn-outline btn-block" disabled><%= details.primaryCta?.label || 'Registration Unavailable' %></button>
             <% } %>
+            <% if ((details.waitlistCategories || []).length) { %>
+              <div class="event-waitlist-offer">
+                <p class="event-guest-register">
+                  <% details.waitlistCategories.forEach(function (category) { %>
+                    <a href="/events/<%= event.slug %>/waitlist?category=<%= encodeURIComponent(category.categoryId) %>">Join the <%= category.label %> waitlist</a><br>
+                  <% }); %>
+                </p>
+                <small class="event-guest-hint">That category is full. Joining the waitlist is not a registration — you will be emailed if a slot opens.</small>
+              </div>
+            <% } %>
             <% if (event.allowGuestRegistration && details.primaryCta && !details.primaryCta.disabled) { %>
               <p class="event-guest-register">
                 <a href="/events/<%= event.slug %>/register/guest">Register without an account</a>

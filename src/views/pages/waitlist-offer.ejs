@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/race-pass.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="race-pass-page" id="main-content">
+    <div class="race-pass-shell">
+      <header class="race-pass-header">
+        <p class="race-pass-kicker">A slot is available</p>
+        <h1><%= event.title %></h1>
+        <% if (event.venueName) { %><p class="race-pass-venue"><%= event.venueName %></p><% } %>
+      </header>
+
+      <p class="race-pass-hint">
+        A slot has opened<% if (entry.categoryLabel) { %> in <strong><%= entry.categoryLabel %></strong><% } %>
+        and it is being held for you<% if (entry.offerExpiresAt) { %> until
+        <strong><%= new Date(entry.offerExpiresAt).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }) %></strong><% } %>.
+        Complete the details below to take it. After that it passes to the next person in line.
+      </p>
+
+      <% if (errors.form) { %><p class="checkin-alert" role="alert"><%= errors.form %></p><% } %>
+
+      <form method="POST" action="/waitlist/offers/<%= token %>" class="guest-form">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+
+        <label for="firstName">First name
+          <input id="firstName" name="firstName" value="<%= form.firstName || entry.participant.firstName %>" required maxlength="80">
+        </label>
+        <% if (errors.firstName) { %><p class="guest-error"><%= errors.firstName %></p><% } %>
+
+        <label for="lastName">Last name
+          <input id="lastName" name="lastName" value="<%= form.lastName || entry.participant.lastName %>" required maxlength="80">
+        </label>
+        <% if (errors.lastName) { %><p class="guest-error"><%= errors.lastName %></p><% } %>
+
+        <label for="email">Email
+          <input id="email" type="email" value="<%= entry.participant.email %>" readonly>
+        </label>
+        <p class="race-pass-hint">The offer belongs to this address, so it cannot be changed here.</p>
+
+        <label for="mobile">Contact number
+          <input id="mobile" name="mobile" value="<%= form.mobile || entry.participant.mobileNumber %>" required maxlength="40">
+        </label>
+        <% if (errors.mobile) { %><p class="guest-error"><%= errors.mobile %></p><% } %>
+
+        <label for="participationMode">Participation
+          <select id="participationMode" name="participationMode">
+            <option value="onsite" <%= form.participationMode === 'onsite' ? 'selected' : '' %>>Onsite</option>
+            <option value="virtual" <%= form.participationMode === 'virtual' ? 'selected' : '' %>>Virtual</option>
+          </select>
+        </label>
+
+        <% if ((event.raceDistances || []).length) { %>
+          <label for="raceDistance">Category
+            <select id="raceDistance" name="raceDistance">
+              <% event.raceDistances.forEach(function (distance) {
+                   var chosen = form.raceDistance || entry.categoryLabel; %>
+                <option value="<%= distance %>" <%= chosen === distance ? 'selected' : '' %>><%= distance %></option>
+              <% }); %>
+            </select>
+          </label>
+          <% if (errors.raceDistance) { %><p class="guest-error"><%= errors.raceDistance %></p><% } %>
+        <% } %>
+
+        <label for="emergencyContactName">Emergency contact name
+          <input id="emergencyContactName" name="emergencyContactName" value="<%= form.emergencyContactName || '' %>" maxlength="120">
+        </label>
+        <% if (errors.emergencyContactName) { %><p class="guest-error"><%= errors.emergencyContactName %></p><% } %>
+
+        <label for="emergencyContactNumber">Emergency contact number
+          <input id="emergencyContactNumber" name="emergencyContactNumber" value="<%= form.emergencyContactNumber || '' %>" maxlength="40">
+        </label>
+        <% if (errors.emergencyContactNumber) { %><p class="guest-error"><%= errors.emergencyContactNumber %></p><% } %>
+
+        <fieldset class="guest-waiver">
+          <legend>Waiver</legend>
+          <div class="guest-waiver-body"><%= event.waiverTemplate || 'By registering you accept the event waiver.' %></div>
+          <label class="guest-check">
+            <input type="checkbox" name="waiverAccepted" <%= form.waiverAccepted ? 'checked' : '' %>>
+            <span>I accept the event waiver.</span>
+          </label>
+          <% if (errors.waiverAccepted) { %><p class="guest-error"><%= errors.waiverAccepted %></p><% } %>
+          <label for="waiverSignature">Type your full name to sign
+            <input id="waiverSignature" name="waiverSignature" value="<%= form.waiverSignature || '' %>" maxlength="120">
+          </label>
+          <% if (errors.waiverSignature) { %><p class="guest-error"><%= errors.waiverSignature %></p><% } %>
+        </fieldset>
+
+        <button type="submit" class="nav-signup-btn">Take this slot</button>
+      </form>
+
+      <p class="race-pass-back"><a href="/events/<%= event.slug %>">Back to event</a></p>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

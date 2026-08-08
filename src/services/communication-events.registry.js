@@ -260,6 +260,21 @@ const COMMUNICATION_EVENTS = Object.freeze([
     displayOrder: 410
   },
   {
+    eventKey: 'registration.waitlist_offer',
+    name: 'Waitlist Slot Offer',
+    description: 'Tells someone on the waitlist that a slot has opened and is being held for them.',
+    category: 'registration',
+    priority: 'critical',
+    // The offer expires, and the slot goes to somebody else when it does. A participant
+    // cannot opt out of the one message that is time-limited and acts on their behalf.
+    required: true,
+    emailEnabled: true,
+    inAppEnabled: false,
+    locked: true,
+    recipientRoles: [],
+    displayOrder: 255
+  },
+  {
     eventKey: 'certificate.issued',
     name: 'Certificate Issued',
     description: 'Notifies a runner that a certificate is available.',

@@ -59,6 +59,30 @@ async function releaseOnsiteArtefacts(registrationId) {
 }
 
 /**
+ * Pass a freed slot to the next person waiting.
+ *
+ * Required lazily: the waitlist service reaches back into capacity and communication, and
+ * a top-level require here would close a cycle through this file.
+ */
+function offerFreedSlotInBackground(eventId, categoryId) {
+  (async () => {
+    try {
+      const Event = require('../models/Event');
+      const event = await Event.findById(eventId).lean();
+      if (!event?.waitlistEnabled) return;
+
+      const { offerNextSlotAndNotify } = require('./waitlist.service');
+      const result = await offerNextSlotAndNotify({ event, categoryId });
+      if (result.offered) {
+        logger.info(`[Waitlist] Freed slot offered to ${result.entry._id} for event ${eventId}`);
+      }
+    } catch (error) {
+      logger.error(`[Waitlist] Could not offer freed slot for event ${eventId}: ${error.message}`);
+    }
+  })();
+}
+
+/**
  * Cancel a registration on the organiser's behalf.
  *
  * @param {Object} input
@@ -109,6 +133,11 @@ async function cancelRegistration({ registrationId, eventId, actorUserId, reason
   const categoryId = registration.pricingSnapshot?.raceCategoryId;
   if (categoryId) {
     await releaseCategorySlot(registration.eventId, categoryId);
+    // A freed slot is the whole reason a waitlist exists, so offer it on immediately
+    // rather than waiting for an organiser to notice. Backgrounded and never allowed to
+    // throw: the cancellation is done and correct, and failing it because the next person
+    // could not be emailed would be the wrong trade.
+    offerFreedSlotInBackground(registration.eventId, categoryId);
   }
 
   recordCriticalAuditEventInBackground({

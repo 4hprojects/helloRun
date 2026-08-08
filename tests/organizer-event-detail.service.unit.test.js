@@ -196,6 +196,8 @@ test('detail presentation exposes balanced facts, readiness, links, and schedule
   assert.equal(presentation.categories[0].name, '21K Hero Challenge');
   assert.match(presentation.schedule[0].value, /2026/);
   assert.deepEqual(presentation.readinessTasks.map((item) => item.key), ['certificate', 'badge']);
-  assert.deepEqual(presentation.tools.map((group) => group.group), ['Recognition', 'Commerce', 'Publishing', 'Records']);
+  // Registration is always present — an organiser who switched the waitlist off still has
+  // people on the list, so hiding the link would strand them.
+  assert.deepEqual(presentation.tools.map((group) => group.group), ['Registration', 'Recognition', 'Commerce', 'Publishing', 'Records']);
   assert.equal(presentation.mediaItems[0].kind, 'banner');
 });

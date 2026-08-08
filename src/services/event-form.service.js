@@ -264,6 +264,19 @@ function parseOptionalNonNegativeInteger(value) {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
+/**
+ * How many hours a waitlist offer stands.
+ *
+ * Clamped rather than rejected: this sits beside a checkbox on a long form, and a typo
+ * should not fail the whole save. The bounds match the schema — an offer holds a real slot,
+ * so it can be neither instant nor indefinite.
+ */
+function parseWaitlistOfferHours(value) {
+  const parsed = Number.parseInt(String(value ?? '').trim(), 10);
+  if (!Number.isInteger(parsed)) return 48;
+  return Math.min(336, Math.max(1, parsed));
+}
+
 function hasOwnValue(body, key) {
   return Object.prototype.hasOwnProperty.call(body || {}, key);
 }
@@ -619,6 +632,8 @@ function getBlankCreateEventDefaults() {
     digitalCertificateEnabled: '1',
     autoEmailPromotionEnabled: '0',
     allowGuestRegistration: '0',
+    waitlistEnabled: '0',
+    waitlistOfferHours: '48',
     requiresDeliveryAddress: '1',
     requiresPhilippineDeliveryAddress: '1',
     internationalRunnersAllowed: '0'
@@ -787,6 +802,8 @@ function getCreateEventFormData(body = {}) {
     publicListingAvailableAt: body.publicListingAvailableAt || '',
     autoEmailPromotionEnabled: normalizeBoolean(body.autoEmailPromotionEnabled),
     allowGuestRegistration: normalizeBoolean(body.allowGuestRegistration),
+    waitlistEnabled: normalizeBoolean(body.waitlistEnabled),
+    waitlistOfferHours: parseWaitlistOfferHours(body.waitlistOfferHours),
     hasHomePromotionFields,
     homeFeatured: normalizeBoolean(body.homeFeatured),
     homeFeaturedRank: parseOptionalNonNegativeInteger(body.homeFeaturedRank),
@@ -942,6 +959,8 @@ function getCreateEventFormDataFromEvent(event) {
     publicListingAvailableAt: formatDateForInput(event.publicListingAvailableAt),
     autoEmailPromotionEnabled: Boolean(event.autoEmailPromotionEnabled),
     allowGuestRegistration: Boolean(event.allowGuestRegistration),
+    waitlistEnabled: Boolean(event.waitlistEnabled),
+    waitlistOfferHours: parseWaitlistOfferHours(event.waitlistOfferHours),
     autoEmailPromotionStatus: String(event.autoEmailPromotionStatus || 'disabled'),
     hasHomePromotionFields: false,
     homeFeatured: Boolean(event.homeFeatured),
@@ -1820,6 +1839,8 @@ function applyEventFormData(event, formData, user) {
   event.eventDetailsMarkdown = formData.eventDetailsMarkdown || '';
   event.eventType = formData.eventType || undefined;
   event.allowGuestRegistration = Boolean(formData.allowGuestRegistration);
+  event.waitlistEnabled = Boolean(formData.waitlistEnabled);
+  event.waitlistOfferHours = parseWaitlistOfferHours(formData.waitlistOfferHours);
   event.eventTypesAllowed = getEventTypesAllowed(formData.eventType);
   event.raceDistances = formData.raceDistances;
   // The create/edit-event form has no field for per-category step goals, so a

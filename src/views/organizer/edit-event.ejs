@@ -787,6 +787,19 @@
               </div>
               <small class="field-hint">Guests register with their name, email and contact number, and get a private link to their registration. They cannot submit results, earn badges or download a certificate until they create an account and claim it, so leave this off for events where finishing matters.</small>
             </div>
+            <div class="form-group form-group-full">
+              <div class="toggle-section-label">
+                <input type="hidden" name="waitlistEnabled" value="0">
+                <input type="checkbox" id="waitlistEnabled" name="waitlistEnabled" value="1" <%= formData.waitlistEnabled ? 'checked' : '' %>>
+                <label for="waitlistEnabled" class="toggle-label-text">Keep a waitlist when a category fills up</label>
+              </div>
+              <small class="field-hint">A full category offers a waitlist instead of a dead end. When a slot frees up, the next person in line is emailed an offer that holds the slot for them. Leave this off unless you will actually work through the list — a queue nobody moves reads as one that is moving.</small>
+            </div>
+            <div class="form-group">
+              <label for="waitlistOfferHours">Waitlist offer window (hours)</label>
+              <input type="number" id="waitlistOfferHours" name="waitlistOfferHours" min="1" max="336" value="<%= formData.waitlistOfferHours || 48 %>">
+              <small class="field-hint">How long someone has to take an offered slot before it passes to the next person. The slot is held for them the whole time, so a long window keeps capacity out of circulation.</small>
+            </div>
             <div class="form-group">
               <label for="registrationOpenAt">Registration Open *</label>
               <div class="input-with-button">

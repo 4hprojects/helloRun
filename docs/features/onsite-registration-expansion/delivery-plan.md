@@ -71,8 +71,14 @@ Both were blocked *only* by the account requirement, which is now gone.
 
 ### 2. Features with no existing foundation
 
-- [ ] **Waitlist.** Confirmed absent — zero references anywhere. Needs event settings, a
-      waitlist state, promotion, and a deadline for the promoted runner to confirm.
+- [x] **Waitlist.** Shipped August 8. Diverges from `04-registration-workflows.md`, which
+      said a waitlisted person becomes a `Registration` with a `waitlisted` status: measured
+      against this codebase, 93 places query registrations and only 4 filter on `status`, so
+      that would have put non-registered people into rosters, exports, headcounts, the
+      Postgres shadow, bib assignment and check-in. `WaitlistEntry` is its own collection and
+      promotion goes through the ordinary registration paths instead. An offer holds a real
+      slot through the same atomic reservation, so `createGuestRegistration` gained
+      `skipCapacityReservation`, and a worker expires stale offers and passes the slot on.
 - [ ] **Per-size kit/shirt inventory.** Confirmed absent — no shirt-size field exists, so
       this starts at registration, not at the kit table. `inventory_movements` is shop-only
       and keyed on product variants; do not reuse it.
@@ -186,7 +192,7 @@ deploy window.
 - ~~**Staff roles**~~ — **done, without a migration.** `EventStaff` scopes a grant to one
   event with named permissions, leaving the global `User.role` untouched. A new Mongo
   collection needs no migration.
-- **Waitlist, inventory, transfers** — none exist.
+- **Inventory and transfers** — neither exists. The waitlist shipped August 8.
 - **Walk-in registration** — not code-only after all. `Registration.userId` is
   `required: true`, and a genuine walk-in has no account, so this is blocked by exactly the
   same constraint as guest registration. Only an account-holder variant could be built

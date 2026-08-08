@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+  <link rel="stylesheet" href="/css/organizer-check-in.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="checkin-page" id="main-content" data-waitlist data-event-id="<%= eventId %>" data-csrf="<%= locals.csrfToken || '' %>">
+    <div class="checkin-shell">
+      <header class="checkin-header">
+        <div>
+          <p class="checkin-kicker">Waitlist</p>
+          <h1><%= event.title %></h1>
+        </div>
+        <nav class="checkin-header-actions" aria-label="Waitlist actions">
+          <a href="/organizer/events/<%= eventId %>/registrants" class="nav-login-btn">Registrants</a>
+          <a href="/organizer/events/<%= eventId %>" class="nav-login-btn">Back to event</a>
+        </nav>
+      </header>
+
+      <% if (!event.waitlistEnabled) { %>
+        <p class="checkin-alert" role="alert">
+          The waitlist is switched off for this event, so nobody new can join. Existing
+          entries are still shown, and you can still promote from them.
+        </p>
+      <% } %>
+
+      <section class="checkin-scanner" aria-labelledby="waitlistCapacityTitle">
+        <h2 id="waitlistCapacityTitle">Capacity</h2>
+        <% if (!categories.length) { %>
+          <p class="checkin-note">This event has no capped categories, so nothing can fill up.</p>
+        <% } else { %>
+          <table class="checkin-table">
+            <thead>
+              <tr><th scope="col">Category</th><th scope="col">Taken</th><th scope="col">Waiting</th><th scope="col"></th></tr>
+            </thead>
+            <tbody>
+              <% categories.forEach(function (category) { %>
+                <tr>
+                  <th scope="row"><%= category.label %></th>
+                  <td><%= category.reserved %><%= category.slots ? ' / ' + category.slots : '' %></td>
+                  <td><%= category.waiting %></td>
+                  <td>
+                    <% if (category.waiting > 0) { %>
+                      <button type="button" class="nav-signup-btn"
+                              data-waitlist-offer="<%= category.categoryId %>">Offer next slot</button>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+          <p class="checkin-note">
+            An offer holds a real slot for the person it was sent to, so "taken" goes up the
+            moment you promote somebody — before they have registered. If they let the offer
+            expire, the slot is released and passed to the next person automatically.
+          </p>
+        <% } %>
+        <p class="checkin-status" data-waitlist-status role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="checkin-scanner" aria-labelledby="waitlistQueueTitle">
+        <h2 id="waitlistQueueTitle">The queue<% if (totalWaiting) { %> — <%= totalWaiting %> waiting<% } %></h2>
+        <% if (!entries.length) { %>
+          <p class="checkin-note">Nobody has joined the waitlist for this event.</p>
+        <% } else { %>
+          <table class="checkin-table">
+            <thead>
+              <tr>
+                <th scope="col">#</th><th scope="col">Name</th><th scope="col">Category</th>
+                <th scope="col">Status</th><th scope="col">Joined</th><th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% entries.forEach(function (entry) { %>
+                <tr data-waitlist-row="<%= entry._id %>">
+                  <td><%= entry.position || '—' %></td>
+                  <td>
+                    <%= entry.participant.firstName %> <%= entry.participant.lastName %><br>
+                    <span class="checkin-note"><%= entry.participant.email %></span>
+                  </td>
+                  <td><%= entry.categoryLabel || 'Any' %></td>
+                  <td>
+                    <%= entry.status %><% if (entry.status === 'offered' && entry.offerExpiresAt) { %>
+                      <br><span class="checkin-note">expires <%= new Date(entry.offerExpiresAt).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }) %></span>
+                    <% } %>
+                  </td>
+                  <td><%= new Date(entry.createdAt).toLocaleDateString('en-PH', { dateStyle: 'medium' }) %></td>
+                  <td>
+                    <% if (['waiting', 'offered'].includes(entry.status)) { %>
+                      <button type="button" class="nav-login-btn" data-waitlist-withdraw="<%= entry._id %>">Remove</button>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        <% } %>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script src="/js/organizer-waitlist.js"></script>
+</body>
+</html>

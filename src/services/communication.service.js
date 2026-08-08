@@ -721,6 +721,9 @@ async function sendEventEmail(eventKey, payload = {}) {
   if (eventKey === 'registration.guest_confirmed') {
     return emailService.sendGuestRegistrationConfirmationEmail(email.to, email);
   }
+  if (eventKey === 'registration.waitlist_offer') {
+    return emailService.sendWaitlistOfferEmail(email.to, email);
+  }
   if (eventKey === 'registration.cancelled') {
     return emailService.sendRegistrationCancelledEmailToRunner(
       email.to,

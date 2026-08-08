@@ -134,7 +134,17 @@ function generateConfirmationCode() {
  *
  * @returns {Promise<{registration: Object, manageToken: string, hasAccount: boolean}>}
  */
-async function createGuestRegistration({ event, form, requestMeta = {}, skipConfirmationEmail = false }) {
+async function createGuestRegistration({
+  event,
+  form,
+  requestMeta = {},
+  skipConfirmationEmail = false,
+  // Set only when the caller already holds the slot for this person. A waitlist offer
+  // reserves capacity at the moment it is made — that is what stops somebody registering
+  // past a promoted person while they decide — so reserving again here would count one
+  // slot twice and shut the category early.
+  skipCapacityReservation = false
+}) {
   const existing = await findExistingGuestRegistration(event._id, form.email);
   if (existing) {
     const error = new Error('That email is already registered for this event.');
@@ -154,8 +164,13 @@ async function createGuestRegistration({ event, form, requestMeta = {}, skipConf
   }
 
   // Take the slot before writing, and give it back if anything after this fails.
+  //
+  // `reservedCategoryId` stays empty when the caller already holds the slot, which is what
+  // keeps the failure paths correct too: this function must only ever release capacity it
+  // took itself, or a failed waitlist claim would hand back a slot that still belongs to
+  // the offer.
   let reservedCategoryId = '';
-  if (resolvedPrice?.raceCategoryId) {
+  if (resolvedPrice?.raceCategoryId && !skipCapacityReservation) {
     const reservation = await reserveCategorySlot(event._id, resolvedPrice.raceCategoryId);
     if (reservation.limited && !reservation.reserved) {
       const error = new Error('That category is now full. Please choose another.');
