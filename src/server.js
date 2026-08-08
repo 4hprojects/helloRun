@@ -51,10 +51,24 @@ if (Sentry) {
   app.use(Sentry.Handlers.requestHandler());
 }
 
+/**
+ * A URL safe to write to a log.
+ *
+ * A waitlist offer link and a transfer link put the credential in the path, so logging
+ * `req.url` verbatim files a live token that anyone with log access can use. Both route
+ * files promise the token is never logged; this is what keeps that true.
+ */
+function redactUrlForLogs(url) {
+  return String(url || '').replace(
+    /\/(waitlist\/offers|transfers)\/[^/?#]+/g,
+    (_match, prefix) => `/${prefix}/[redacted]`
+  );
+}
+
 // Request timeout — kill hung requests before they exhaust the connection pool
 app.use((req, res, next) => {
   res.setTimeout(30000, () => {
-    logger.warn('Request timeout', { method: req.method, url: req.url });
+    logger.warn('Request timeout', { method: req.method, url: redactUrlForLogs(req.url) });
     if (!res.headersSent) {
       sendHttpError(req, res, {
         status: 503,
@@ -341,7 +355,7 @@ app.get('/.well-known/appspecific/com.chrome.devtools.json', (req, res) => {
 
 // ===== STEP 6: 404 HANDLER (LAST) =====
 app.use((req, res) => {
-  logger.info('404 Not Found:', `${req.method} ${req.url}`);
+  logger.info('404 Not Found:', `${req.method} ${redactUrlForLogs(req.url)}`);
   res.status(404).render('error', {
     title: '404 - Page Not Found',
     status: 404,

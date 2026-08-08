@@ -288,7 +288,10 @@ router.get('/events/:id/badges/manage', requireCanCreateEvents, async (req, res)
           `;
           earnedCountByBadgeId = Object.fromEntries(counts.map((r) => [r.badge_definition_id, r.earned_count]));
         }
-      } catch (_) {}
+      } catch (error) {
+        // Left empty, this showed every badge as 0 earned rather than as unknown.
+        logger.error(`[Badges] Could not load earned counts for event ${event?._id}: ${error.message}`);
+      }
     }
 
     return res.render('organizer/event-badges', {

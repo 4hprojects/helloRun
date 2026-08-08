@@ -933,7 +933,11 @@ async function buildRunnerDashboardViewData(user, req) {
           statusTone: isOpen ? 'positive' : (regClose && regClose < now ? 'negative' : 'neutral')
         };
       });
-    } catch (_) {}
+    } catch (error) {
+      // The cards fall back to their unenriched form; say why rather than leaving a
+      // half-populated dashboard with no explanation.
+      logger.error(`[Runner] Could not enrich event cards: ${error.message}`);
+    }
   }
 
   const formattedActivity = mergedActivity.slice(0, 3).map((item) => ({

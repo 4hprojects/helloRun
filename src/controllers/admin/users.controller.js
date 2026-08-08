@@ -489,7 +489,11 @@ exports.viewUser = async (req, res) => {
           order by ac.created_at desc
           limit 20
         `;
-      } catch (_) {}
+      } catch (error) {
+        // Swallowing this made a failed query indistinguishable from "no audit events",
+        // which is the opposite of what an audit trail is for.
+        logger.error(`[Admin] Could not load critical audit history for user ${user?._id}: ${error.message}`);
+      }
     }
 
     return res.render('admin/user-detail', {

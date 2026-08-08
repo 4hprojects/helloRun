@@ -3,6 +3,7 @@
 const { formatPlatformDate, PLATFORM_TIME_ZONE } = require('../utils/platform-date');
 const { getCountryName } = require('../utils/country');
 const { resolveRegistrationPrice } = require('./registration-price.service');
+const { categoryIsFull } = require('./waitlist.service');
 
 function buildRegistrationPagePresentation({
   event = {},
@@ -102,15 +103,26 @@ function buildDistanceChoices({
       const distanceKm = parseDistanceKm(category?.distanceLabel || category?.name || normalized);
       const title = String(category?.name || normalized).trim();
       const price = raceDistancePricingPreview[normalized] || null;
+      // A full category used to be discoverable only by filling in the whole form and
+      // being rejected on submit. categoryIsFull is the same comparison the reservation
+      // and the waitlist use, so the form cannot disagree with them.
+      const isFull = categoryIsFull(category);
+      const remaining = category && Number(category.slots) > 0
+        ? Math.max(0, Number(category.slots) - (Number(category.reserved) || 0))
+        : null;
       return {
         value: normalized,
         title,
-        helper: distanceKm !== null && title.toUpperCase() !== `${distanceKm}K`
-          ? `${formatNumber(distanceKm)} km goal`
-          : '',
+        helper: [
+          distanceKm !== null && title.toUpperCase() !== `${distanceKm}K` ? `${formatNumber(distanceKm)} km goal` : '',
+          // Only worth saying when it is nearly gone; a healthy count is noise.
+          !isFull && remaining !== null && remaining <= 10 ? `${remaining} slot${remaining === 1 ? '' : 's'} left` : ''
+        ].filter(Boolean).join(' · '),
         priceLabel: isFree ? 'Free' : String(price?.amountLabel || '').trim(),
         priceHelper: String(price?.pricingPeriodLabel || price?.helper || '').trim(),
-        available: !price || price.ok !== false,
+        available: (!price || price.ok !== false) && !isFull,
+        isFull,
+        remaining,
         selected: normalized === String(selectedValue || '').trim().toUpperCase(),
         sortDistance: distanceKm
       };

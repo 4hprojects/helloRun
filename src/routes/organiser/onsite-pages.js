@@ -52,7 +52,13 @@ router.get('/events/:eventId/check-in', protectOnsiteRead('check_in'), async (re
       .lean();
 
     if (!event) {
-      return res.status(404).render('errors/404', { title: 'Event not found' });
+      // 'error', not 'errors/404' — there is no errors/ directory, so the view lookup threw
+      // and this 404 arrived at the user as a 500. Every other 404 in this file uses this.
+      return res.status(404).render('error', {
+        title: '404 - Event Not Found',
+        status: 404,
+        message: 'Event not found.'
+      });
     }
 
     const consoleData = await getOnsiteRosterData(eventId, {

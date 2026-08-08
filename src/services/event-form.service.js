@@ -322,6 +322,41 @@ function mergeKitInventory(submitted, existing = []) {
   });
 }
 
+/**
+ * Merge submitted categories with the counters that are not on the form.
+ *
+ * `reserved` has exactly the property `released` has in mergeKitInventory above: it is
+ * maintained by the atomic claim, never appears on the event form, and a plain overwrite
+ * would reset it. That reset is silent and total — editing an unrelated field like the
+ * submission deadline would hand a full category its capacity back.
+ *
+ * `targetSteps` is carried the same way, and used to be merged separately.
+ */
+function mergeRaceCategories(submitted, existing = []) {
+  const previousByCategoryId = new Map(
+    (Array.isArray(existing) ? existing : []).map((category) => [
+      String(category?.categoryId || '').trim(),
+      category
+    ])
+  );
+
+  return (submitted || []).map((category) => {
+    const previous = previousByCategoryId.get(String(category?.categoryId || '').trim());
+    const merged = {
+      ...category,
+      targetSteps: Number.isFinite(category.targetSteps)
+        ? category.targetSteps
+        : (previous ? previous.targetSteps : null)
+    };
+
+    // Absent stays absent: `reserved` has no schema default on purpose, so that a category
+    // never claimed against reads as "never tracked" rather than as zero.
+    const reserved = Number(previous?.reserved);
+    if (Number.isFinite(reserved) && reserved > 0) merged.reserved = reserved;
+    return merged;
+  });
+}
+
 function hasOwnValue(body, key) {
   return Object.prototype.hasOwnProperty.call(body || {}, key);
 }
@@ -1926,21 +1961,9 @@ function applyEventFormData(event, formData, user) {
   event.kitInventory = mergeKitInventory(formData.kitInventory, event.kitInventory);
   event.eventTypesAllowed = getEventTypesAllowed(formData.eventType);
   event.raceDistances = formData.raceDistances;
-  // The create/edit-event form has no field for per-category step goals, so a
-  // plain overwrite here would silently wipe them on every unrelated save
-  // (e.g. editing the submission deadline). Carry the existing value forward
-  // by categoryId until the form gains real support for editing it.
-  const previousCategoriesByCategoryId = new Map(
-    (Array.isArray(event.raceCategories) ? event.raceCategories : [])
-      .map((category) => [String(category?.categoryId || '').trim(), category])
-  );
-  event.raceCategories = (formData.raceCategories || []).map((category) => {
-    const previous = previousCategoriesByCategoryId.get(String(category?.categoryId || '').trim());
-    return {
-      ...category,
-      targetSteps: Number.isFinite(category.targetSteps) ? category.targetSteps : (previous ? previous.targetSteps : null)
-    };
-  });
+  // Neither the per-category step goal nor the capacity counter is on the form, so a plain
+  // overwrite would wipe both on every unrelated save. See mergeRaceCategories.
+  event.raceCategories = mergeRaceCategories(formData.raceCategories, event.raceCategories);
   event.registrationOpenAt = parseDateSafe(formData.registrationOpenAt);
   event.registrationCloseAt = parseDateSafe(formData.registrationCloseAt);
   event.publicListingAvailableAt = parseDateSafe(formData.publicListingAvailableAt);
@@ -2090,6 +2113,7 @@ async function generateUniqueSlug(title) {
 
 module.exports = {
   KIT_SIZES,
+  mergeRaceCategories,
   parseKitInventoryFields,
   mergeKitInventory,
   countries,

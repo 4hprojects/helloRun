@@ -44,6 +44,9 @@ core platform:
 - organiser-defined registration questions, added August 8 — a deliberate subset of
   the form-builder spec (short answer, pick from a list, agreement), asked on every
   registration path and included in the registrants export;
+- race-category capacity enforced for the first time, August 8 — the identifier
+  fix also repairs the accumulated-challenge target, the minimum submission
+  distance and the slot release on cancellation, which all matched the same slug;
 - registration transfers, added August 8 — emailed invite, recipient signs their own
   waiver, organiser approval by default, reissued bib QR, and a policy that moves the
   person without touching any payment;

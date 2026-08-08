@@ -215,7 +215,7 @@ router.get('/login', redirectIfAuth, (req, res) => {
 });
 
 // Login Form Handler - redirect if already logged in
-router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
+router.post('/login', redirectIfAuth, requireCsrfProtection, loginLimiter, async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
     const { password } = req.body;

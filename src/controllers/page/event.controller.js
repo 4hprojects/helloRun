@@ -135,7 +135,11 @@ exports.getEventDetails = async (req, res) => {
       try {
         const u = await User.findById(req.session.userId).select('savedEvents').lean();
         if (u && u.savedEvents) isSaved = u.savedEvents.some((id) => String(id) === String(event._id));
-      } catch (_) {}
+      } catch (error) {
+        // Same lookup as the events list, same consequence: the save toggle shows the
+        // wrong state rather than failing visibly.
+        logger.error(`[Event] Could not resolve saved state for ${req.session.userId}: ${error.message}`);
+      }
     }
 
     return res.render('pages/event-details', {

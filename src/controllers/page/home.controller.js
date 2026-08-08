@@ -190,7 +190,11 @@ exports.getEvents = async (req, res) => {
       try {
         const u = await User.findById(req.session.userId).select('savedEvents').lean();
         if (u && u.savedEvents) savedEventIds = new Set(u.savedEvents.map(String));
-      } catch (_) {}
+      } catch (error) {
+        // Not fatal — the page still renders — but every event shows as un-saved, which
+        // reads as data loss to the person looking at it.
+        logger.error(`[Home] Could not load saved events for ${req.session.userId}: ${error.message}`);
+      }
     }
 
     return res.render('pages/events', {

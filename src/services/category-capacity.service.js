@@ -103,44 +103,117 @@ async function releaseCategorySlot(eventId, categoryId) {
 }
 
 /**
+ * The query that decides whether a registration occupies a slot in a category.
+ *
+ * Three ways to match, because the identifier has changed shape over time and the label is
+ * all some rows ever had:
+ *   - the slug, which is what a registration written today stores;
+ *   - the subdocument `_id`, which is what rows written while `getRaceCategoryOptions`
+ *     preferred `_id` stored — those never matched anything, which is why capacity was a
+ *     no-op and why a recount would have scored every category zero;
+ *   - no id at all plus a matching distance label, which is every row written on a free or
+ *     option-priced event, where the category was never resolved in the first place.
+ *
+ * The status filter is deliberately unchanged: `confirmed` and not refunded, so the number
+ * keeps meaning exactly what it meant before.
+ */
+function buildCategoryOccupancyQuery(eventId, category) {
+  const categoryId = String(category.categoryId || '');
+  const labels = [category.distanceLabel, category.name]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+
+  const byId = [{ 'pricingSnapshot.raceCategoryId': categoryId }];
+  if (category._id) byId.push({ 'pricingSnapshot.raceCategoryId': String(category._id) });
+
+  const byLabel = labels.length
+    ? [
+        {
+          $and: [
+            { $or: [{ 'pricingSnapshot.raceCategoryId': '' }, { 'pricingSnapshot.raceCategoryId': { $exists: false } }] },
+            {
+              $or: labels.flatMap((label) => {
+                // Anchored and case-insensitive: a label is free text, so it must not be
+                // read as a regular expression.
+                const exact = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+                return [{ 'pricingSnapshot.raceDistance': exact }, { raceDistance: exact }];
+              })
+            }
+          ]
+        }
+      ]
+    : [];
+
+  return {
+    eventId: new mongoose.Types.ObjectId(String(eventId)),
+    status: { $in: ['confirmed'] },
+    paymentStatus: { $nin: ['refunded'] },
+    $or: [...byId, ...byLabel]
+  };
+}
+
+/**
  * Recompute `reserved` from the registrations that actually exist.
  *
- * Used by the backfill and available for repair. Counts the same set the old check did,
- * so behaviour is preserved exactly: every live registration holds its slot from the
- * moment it is created.
+ * The only honest way to correct a counter that has drifted — editing `reserved` by hand
+ * just moves the drift somewhere else. Idempotent by construction.
+ *
+ * @param {string} eventId
+ * @param {Object} [options]
+ * @param {boolean} [options.dryRun] - compute and report without writing
+ * @returns {Promise<{updated: number, categories: number, changes: Array}>}
  */
-async function recountCategoryReservations(eventId) {
-  const event = await Event.findById(eventId).select('raceCategories').lean();
-  if (!event) return { updated: 0, categories: 0 };
+async function recountCategoryReservations(eventId, { dryRun = false } = {}) {
+  const event = await Event.findById(eventId).select('title raceCategories').lean();
+  if (!event) return { updated: 0, categories: 0, changes: [] };
 
   const limited = (event.raceCategories || []).filter(hasSlotLimit);
-  if (limited.length === 0) return { updated: 0, categories: 0 };
+  if (limited.length === 0) return { updated: 0, categories: 0, changes: [] };
 
   let updated = 0;
+  const changes = [];
+
   for (const category of limited) {
     const categoryId = String(category.categoryId || '');
-    if (!categoryId) continue;
+    // A category with no slug cannot be claimed against, so it cannot be recounted either.
+    // Reported rather than skipped silently: the organiser needs to re-save the event.
+    if (!categoryId) {
+      changes.push({
+        categoryId: '',
+        label: category.distanceLabel || category.name || '(unnamed)',
+        unidentifiable: true,
+        slots: Number(category.slots) || 0
+      });
+      continue;
+    }
 
-    const filled = await Registration.countDocuments({
-      eventId: new mongoose.Types.ObjectId(String(eventId)),
-      'pricingSnapshot.raceCategoryId': categoryId,
-      status: { $in: ['confirmed'] },
-      paymentStatus: { $nin: ['refunded'] }
+    const filled = await Registration.countDocuments(buildCategoryOccupancyQuery(event._id, category));
+    const current = Number(category.reserved);
+    if (current === filled) continue;
+
+    changes.push({
+      categoryId,
+      label: category.distanceLabel || category.name || categoryId,
+      from: Number.isFinite(current) ? current : null,
+      to: filled,
+      slots: Number(category.slots) || 0,
+      willBeFull: filled >= (Number(category.slots) || 0)
     });
 
-    if (Number(category.reserved) === filled) continue;
-
-    await Event.updateOne(
-      { _id: eventId, 'raceCategories.categoryId': categoryId },
-      { $set: { 'raceCategories.$.reserved': filled } }
-    );
+    if (!dryRun) {
+      await Event.updateOne(
+        { _id: event._id, 'raceCategories.categoryId': categoryId },
+        { $set: { 'raceCategories.$.reserved': filled } }
+      );
+    }
     updated += 1;
   }
 
-  return { updated, categories: limited.length };
+  return { updated, categories: limited.length, changes };
 }
 
 module.exports = {
+  buildCategoryOccupancyQuery,
   reserveCategorySlot,
   releaseCategorySlot,
   recountCategoryReservations,

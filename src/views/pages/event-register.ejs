@@ -159,11 +159,18 @@
                   <select id="raceDistance" name="raceDistance" <%= registrationWindowError ? 'disabled' : '' %> required aria-invalid="<%= errors.raceDistance ? 'true' : 'false' %>" aria-describedby="raceDistanceHelp <%= errors.raceDistance ? 'raceDistanceError' : '' %>">
                     <option value="" disabled <%= formData.raceDistance ? '' : 'selected' %>>Select goal or category</option>
                     <% distanceControl.items.forEach((distance) => { %>
-                      <option value="<%= distance.value %>" <%= distance.selected ? 'selected' : '' %> <%= distance.available ? '' : 'disabled' %>><%= [distance.title, distance.helper, distance.priceLabel, distance.priceHelper, distance.available ? '' : 'Unavailable'].filter(Boolean).join(' — ') %></option>
+                      <option value="<%= distance.value %>" <%= distance.selected ? 'selected' : '' %> <%= distance.available ? '' : 'disabled' %>><%= [distance.title, distance.helper, distance.priceLabel, distance.priceHelper, distance.isFull ? 'Full' : (distance.available ? '' : 'Unavailable')].filter(Boolean).join(' — ') %></option>
                     <% }) %>
                   </select>
                   <small id="raceDistanceHelp">Goals are listed from longest distance to shortest.</small>
                 </label>
+                <% if (event.waitlistEnabled && distanceControl.items.some(function (item) { return item.isFull; })) { %>
+                  <small id="raceDistanceFullHelp">
+                    A category marked full has no slots left.
+                    <a href="/events/<%= event.slug %>/waitlist">Join its waitlist</a> and you will be
+                    emailed if one opens.
+                  </small>
+                <% } %>
                 <% if (errors.raceDistance) { %><small class="error-text" id="raceDistanceError"><%= errors.raceDistance %></small><% } %>
                 <% if (errors.pricing) { %><small class="error-text" id="registrationPricingError"><%= errors.pricing %></small><% } %>
               </fieldset>

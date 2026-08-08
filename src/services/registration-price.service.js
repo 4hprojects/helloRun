@@ -30,14 +30,23 @@ function getCustomizedRegistrationOptions(event = {}) {
 function getRaceCategoryOptions(event = {}) {
   return (Array.isArray(event.raceCategories) ? event.raceCategories : [])
     .map((category, index) => {
-      const id = String(category?._id || category?.categoryId || category?.id || '').trim();
+      // `categoryId` first, `_id` only as a fallback. Mongoose re-mints the subdocument
+      // `_id` on every organiser save, so anything keyed on it drifts — while capacity,
+      // waitlist offers, the slot release on cancellation, the accumulated-challenge
+      // target, the minimum submission distance and the recount all key on the slug.
+      // With `_id` winning, none of those ever matched.
+      const id = String(category?.categoryId || category?._id || category?.id || '').trim();
       const distanceLabel = String(category?.distanceLabel || category?.name || '').trim().toUpperCase();
       const name = String(category?.name || distanceLabel || '').trim();
       return {
         id: id || `category-${index}`,
         name,
         type: String(category?.type || '').trim(),
-        distanceLabel
+        distanceLabel,
+        // Carried so the registration form can mark a full category unavailable before
+        // somebody fills in the whole thing. Absent `reserved` reads as zero, as everywhere.
+        slots: Number.isFinite(Number(category?.slots)) ? Number(category.slots) : null,
+        reserved: Number(category?.reserved) || 0
       };
     })
     .filter((category) => category.distanceLabel || category.name);
@@ -75,10 +84,37 @@ function getRegistrationPackageOptions(event = {}) {
     .filter((packageOption) => packageOption.name);
 }
 
+/**
+ * The category this registration is for, independent of how it is priced.
+ *
+ * Resolved once, up front, because every pricing branch needs it. Capacity is claimed on
+ * `raceCategoryId`, and only the distance-based branch used to set it — so a free event, or
+ * one priced by signup option or package, reserved nothing at all and its `slots` were
+ * decoration.
+ */
+function resolveSelectedCategory(event = {}, formData = {}) {
+  const raceDistance = String(formData.raceDistance || '').trim().toUpperCase();
+  if (!raceDistance) return null;
+  return (
+    getRaceCategoryOptions(event).find(
+      (category) => category.distanceLabel === raceDistance || category.name.toUpperCase() === raceDistance
+    ) || null
+  );
+}
+
 function resolveRegistrationPrice(event = {}, formData = {}, options = {}) {
   const currency = String(event.feeCurrency || 'PHP').trim().toUpperCase() || 'PHP';
   const pricingMode = normalizePricingMode(event.pricingMode, event.feeMode);
   const now = options.now instanceof Date ? options.now : new Date();
+
+  // Carried into every branch below. An event with no categories still yields '' and
+  // behaves exactly as it did before.
+  const category = resolveSelectedCategory(event, formData);
+  const categoryFields = {
+    raceCategoryId: category?.id || '',
+    raceCategoryName: category?.name || '',
+    raceCategoryType: category?.type || ''
+  };
 
   if (String(event.feeMode || '').trim() !== 'paid' || pricingMode === 'free') {
     return buildResolvedPrice({
@@ -86,7 +122,9 @@ function resolveRegistrationPrice(event = {}, formData = {}, options = {}) {
       source: 'free',
       label: 'Free registration',
       amount: 0,
-      currency
+      currency,
+      raceDistance: String(formData.raceDistance || '').trim().toUpperCase(),
+      ...categoryFields
     });
   }
 
@@ -108,7 +146,9 @@ function resolveRegistrationPrice(event = {}, formData = {}, options = {}) {
       label: selectedOption.shortDescription,
       amount: selectedOption.amount,
       currency: selectedOption.currency || currency,
-      selectedOptionId: selectedOption.id
+      selectedOptionId: selectedOption.id,
+      raceDistance: String(formData.raceDistance || '').trim().toUpperCase(),
+      ...categoryFields
     });
   }
 
@@ -152,13 +192,14 @@ function resolveRegistrationPrice(event = {}, formData = {}, options = {}) {
       packageName: selectedPackage.name,
       packageIncludedItems: selectedPackage.includedItems,
       pricingPeriodCode: activePeriod.code || '',
-      pricingPeriodLabel: activePeriod.label || ''
+      pricingPeriodLabel: activePeriod.label || '',
+      raceDistance: String(formData.raceDistance || '').trim().toUpperCase(),
+      ...categoryFields
     });
   }
 
   const raceDistance = String(formData.raceDistance || '').trim().toUpperCase();
-  const selectedCategory = getRaceCategoryOptions(event)
-    .find((category) => category.distanceLabel === raceDistance || category.name.toUpperCase() === raceDistance);
+  const selectedCategory = category;
   const distancePrice = (Array.isArray(event.distancePricing) ? event.distancePricing : [])
     .find((item) => {
       const itemCategoryId = String(item?.categoryId || '').trim();

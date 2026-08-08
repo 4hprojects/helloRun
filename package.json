@@ -9,6 +9,7 @@
     "setup": "node src/scripts/setup-uploads.js",
     "backfill:event-reference-codes": "node src/scripts/backfill-event-reference-codes.js",
     "backfill:step-competition-defaults": "node src/scripts/backfill-step-competition-defaults.js",
+    "capacity:recount": "node src/scripts/backfill-category-reservations.js",
     "certificates:reconcile-accumulated": "node src/scripts/reconcile-accumulated-certificates.js",
     "mark-test-events": "node src/scripts/mark-test-events.js",
     "seed:policies": "node src/scripts/seed-policies.js",

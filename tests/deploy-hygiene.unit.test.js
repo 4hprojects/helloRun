@@ -141,3 +141,61 @@ test('every test script routes through the guard', () => {
     assert.doesNotMatch(command, /node --test|spawnSync/, `${name} must not spawn the runner itself`);
   }
 });
+
+// --- Four safety fixes ---------------------------------------------------------------------
+
+test('a missing event renders a 404, not a 500', () => {
+  // onsite-pages.js:55 rendered 'errors/404'. There is no errors/ directory, so the view
+  // lookup threw, the catch passed it to next(error), and the user got a 500.
+  const pages = read('src/routes/organiser/onsite-pages.js');
+  assert.doesNotMatch(pages, /render\('errors\/404'/);
+  assert.equal(fs.existsSync(path.join(ROOT, 'src/views/error.ejs')), true);
+  assert.equal(fs.existsSync(path.join(ROOT, 'src/views/errors')), false);
+
+  // Every render target in the file must resolve to a view that exists.
+  for (const match of pages.matchAll(/render\('([^']+)'/g)) {
+    assert.equal(
+      fs.existsSync(path.join(ROOT, 'src/views', `${match[1]}.ejs`)),
+      true,
+      `${match[1]} must exist`
+    );
+  }
+});
+
+test('every auth POST is CSRF protected, including login', () => {
+  const auth = read('src/routes/authRoutes.js');
+  const posts = [...auth.matchAll(/router\.post\('([^']+)',([^\n]*)/g)];
+  assert.ok(posts.length > 0);
+  for (const [, route, rest] of posts) {
+    assert.match(rest, /requireCsrfProtection/, `POST ${route} must be CSRF protected`);
+  }
+  // And the form actually sends one, or enabling it would break every login.
+  assert.match(read('src/views/auth/login.ejs'), /name="_csrf"/);
+});
+
+test('an offer or transfer token never reaches the log', () => {
+  // Both route files promise this; the URL loggers were filing live credentials.
+  const server = read('src/server.js');
+  assert.match(server, /function redactUrlForLogs/);
+  assert.doesNotMatch(server, /url: req\.url \}/);
+  assert.match(server, /redactUrlForLogs\(req\.url\)/);
+  const uses = server.match(/redactUrlForLogs\(req\.url\)/g) || [];
+  assert.equal(uses.length, 2, 'the timeout logger and the 404 logger both need it');
+});
+
+test('a swallowed failure is logged rather than degrading into a wrong screen', () => {
+  // Each of these turned a query failure into a plausible-looking but false UI: an empty
+  // audit trail, every badge at 0 earned, every event showing as un-saved.
+  const sites = [
+    ['src/controllers/admin/users.controller.js', /\[Admin\] Could not load critical audit history/],
+    ['src/routes/organiser/event-management.js', /\[Badges\] Could not load earned counts/],
+    ['src/controllers/page/home.controller.js', /\[Home\] Could not load saved events/],
+    ['src/controllers/page/event.controller.js', /\[Event\] Could not resolve saved state/],
+    ['src/controllers/runner.controller.js', /\[Runner\] Could not enrich event cards/]
+  ];
+  for (const [file, pattern] of sites) {
+    const source = read(file);
+    assert.match(source, pattern, file);
+    assert.doesNotMatch(source, /catch \(_\) \{\}/, `${file} must have no silent catch left`);
+  }
+});
