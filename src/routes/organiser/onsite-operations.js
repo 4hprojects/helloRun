@@ -157,7 +157,7 @@ router.post(
       }
 
       const event = await Event.findById(req.params.eventId)
-        .select('title waiverTemplate waiverVersion organiserName feeMode feeCurrency pricingMode distancePricing pricingPeriods customizedOptions registrationPackages raceCategories raceDistances kitInventory kitSizeRequired')
+        .select('title waiverTemplate waiverVersion organiserName feeMode feeCurrency pricingMode distancePricing pricingPeriods customizedOptions registrationPackages raceCategories raceDistances kitInventory kitSizeRequired customQuestions')
         .lean();
       if (!event) return res.status(404).json({ error: 'Event not found.' });
 

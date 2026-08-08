@@ -14,6 +14,7 @@ const User = require('../models/User');
 const { resolveRegistrationPrice } = require('./registration-price.service');
 const { reserveCategorySlot, releaseCategorySlot } = require('./category-capacity.service');
 const { isTrackingSizes, isOfferedSize, normaliseSize } = require('./kit-inventory.service');
+const { validateAnswers } = require('./custom-questions.service');
 const { issueToken } = require('./guest-registration-token.service');
 const { renderWaiverTemplate } = require('../utils/waiver');
 const { getInitialRegistrationPaymentStatus } = require('../utils/payment-workflow');
@@ -38,10 +39,12 @@ function normaliseEmail(value) {
  */
 /**
  * @param {Object} body
- * @param {Object} [event] - needed only to check the kit size against what is stocked.
+ * @param {Object} [event] - needed to check the kit size and the organiser's own questions.
  *   Optional so every existing caller keeps working unchanged.
+ * @param {Object} [options]
+ * @param {boolean} [options.requireCustomAnswers=true] - false for a bulk import.
  */
-function validateGuestForm(body = {}, event = null) {
+function validateGuestForm(body = {}, event = null, { requireCustomAnswers = true } = {}) {
   const errors = {};
   const form = {
     firstName: clean(body.firstName, 80),
@@ -77,6 +80,16 @@ function validateGuestForm(body = {}, event = null) {
   } else {
     // Nothing to stock it against, so do not carry an arbitrary string onto the record.
     form.kitSize = '';
+  }
+
+  // The organiser's own questions. Validated here rather than at each call site so the
+  // guest form, the walk-in desk, the waitlist claim and the importer cannot drift apart.
+  if (event) {
+    const custom = validateAnswers(event, body, { requireAnswers: requireCustomAnswers });
+    Object.assign(errors, custom.errors);
+    form.customAnswers = custom.answers;
+  } else {
+    form.customAnswers = [];
   }
 
   // Onsite means someone has to be reachable if this person gets hurt.
@@ -221,6 +234,7 @@ async function createGuestRegistration({
       participationMode: form.participationMode,
       raceDistance: form.raceDistance || resolvedPrice?.raceDistance || '',
       kitSize: form.kitSize || '',
+      customAnswers: form.customAnswers || [],
       status: 'confirmed',
       paymentStatus: getInitialRegistrationPaymentStatus(event),
       paymentAmountDue: resolvedPrice?.amount ?? 0,

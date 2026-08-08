@@ -82,6 +82,7 @@ const { buildRegistrationPagePresentation } = require('../../services/registrati
 const { getOnsiteStateForRegistrations } = require('../../services/onsite-roster.service');
 const { reserveCategorySlot, releaseCategorySlot } = require('../../services/category-capacity.service');
 const { isTrackingSizes, isOfferedSize } = require('../../services/kit-inventory.service');
+const { validateAnswers } = require('../../services/custom-questions.service');
 const { requestCancellation } = require('../../services/registration-cancellation.service');
 const {
   getClaimEligibilityError,
@@ -317,6 +318,11 @@ exports.postEventRegistration = async (req, res) => {
       formData.kitSize = '';
     }
 
+    // The organiser's own questions, checked before capacity for the same reason as the
+    // kit size: a bad answer must not take a slot and immediately give it back.
+    const customAnswers = validateAnswers(event, req.body);
+    Object.assign(validationErrors, customAnswers.errors);
+
     // Capacity: take the slot atomically rather than counting and hoping.
     //
     // This must be the last thing before the registration is written, because from here
@@ -414,6 +420,7 @@ exports.postEventRegistration = async (req, res) => {
       participationMode: formData.participationMode,
       raceDistance: formData.raceDistance,
       kitSize: formData.kitSize || '',
+      customAnswers: customAnswers.answers,
       status: 'confirmed',
       paymentStatus: getInitialRegistrationPaymentStatus(event),
       pricingSnapshot: {

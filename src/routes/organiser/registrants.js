@@ -394,7 +394,7 @@ router.get('/events/:id/registrants/export', requireAuth, registrantExportLimite
     const registrations = await Registration.find(exportFilter)
       .sort(getRegistrantSortSpec(filterContext.selectedSort))
       .lean();
-    const { headers, rows } = getRegistrantExportData(registrations);
+    const { headers, rows } = getRegistrantExportData(registrations, event);
 
     const csvContent = [headers, ...rows]
       .map((row) => row.map(csvEscape).join(','))
@@ -468,7 +468,7 @@ router.get('/events/:id/registrants/export-xlsx', requireAuth, registrantExportL
     const registrations = await Registration.find(exportFilter)
       .sort(getRegistrantSortSpec(filterContext.selectedSort))
       .lean();
-    const { headers, rows } = getRegistrantExportData(registrations);
+    const { headers, rows } = getRegistrantExportData(registrations, event);
 
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'HelloRun';

@@ -103,7 +103,11 @@ async function previewRegistrantImport(buffer, filename, { eventId, event = null
     // Use the form the validator hands back, not the one passed in: it trims and
     // lowercases the email, and the duplicate check below depends on that. Keeping the
     // raw one let "ANA@Example.com" and "ana@example.com" through as two people.
-    const { form, errors } = validateGuestForm(toGuestForm(row, resolvedDefaults), event);
+    // A required custom question is a question for the participant. Demanding it of an
+    // organiser pasting a spreadsheet would fail every row for an answer they cannot know.
+    const { form, errors } = validateGuestForm(toGuestForm(row, resolvedDefaults), event, {
+      requireCustomAnswers: false
+    });
 
     if (Object.keys(errors).length > 0) {
       rejected.push({ row: rowNumber, email: form.email, error: Object.values(errors)[0] });

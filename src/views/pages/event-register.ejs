@@ -186,6 +186,35 @@
                 </fieldset>
               <% } %>
 
+              <% if ((event.customQuestions || []).length) { %>
+                <fieldset class="registration-choice-group" id="customQuestionsGroup">
+                  <legend>From the organiser</legend>
+                  <% event.customQuestions.forEach(function (question) { %>
+                    <% if (question.type === 'checkbox_agreement') { %>
+                      <label class="form-group" for="custom_<%= question.questionId %>">
+                        <input type="checkbox" id="custom_<%= question.questionId %>" name="custom_<%= question.questionId %>">
+                        <span><%= question.label %><%= question.required ? ' *' : '' %></span>
+                      </label>
+                    <% } else if (question.type === 'dropdown' || question.type === 'single_choice') { %>
+                      <label class="form-group" for="custom_<%= question.questionId %>"><%= question.label %><%= question.required ? ' *' : '' %>
+                        <select id="custom_<%= question.questionId %>" name="custom_<%= question.questionId %>" <%= question.required ? 'required' : '' %>>
+                          <option value=""><%= question.required ? 'Select an answer' : 'No answer' %></option>
+                          <% (question.options || []).forEach(function (option) { %>
+                            <option value="<%= option %>"><%= option %></option>
+                          <% }); %>
+                        </select>
+                      </label>
+                    <% } else { %>
+                      <label class="form-group" for="custom_<%= question.questionId %>"><%= question.label %><%= question.required ? ' *' : '' %>
+                        <input id="custom_<%= question.questionId %>" name="custom_<%= question.questionId %>" maxlength="300" <%= question.required ? 'required' : '' %>>
+                      </label>
+                    <% } %>
+                    <% if (question.helpText) { %><small class="choice-helper"><%= question.helpText %></small><% } %>
+                    <% if (errors['custom_' + question.questionId]) { %><small class="error-text"><%= errors['custom_' + question.questionId] %></small><% } %>
+                  <% }); %>
+                </fieldset>
+              <% } %>
+
               <% if (visibleCustomizedOptions.length) { %>
                 <fieldset class="registration-choice-group <%= errors.customizedOptionId ? 'has-error' : '' %>" id="customizedOptionGroup">
                   <legend>Signup option <span aria-hidden="true">*</span></legend>

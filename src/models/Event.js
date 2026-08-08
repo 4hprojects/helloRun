@@ -117,6 +117,32 @@ const eventSchema = new mongoose.Schema(
     // released to the next in line. An offer holds a real slot, so this cannot be
     // unbounded — an unclaimed offer would take capacity out of circulation for good.
     waitlistOfferHours: { type: Number, min: 1, max: 336, default: 48 },
+    // Organiser-defined questions on the registration form.
+    //
+    // A deliberate subset of the form-builder spec: a short answer, a pick from a list, or
+    // an extra agreement. That covers what the spec's own examples actually need — meal
+    // option, transport, wave, running club — without the fourteen field types, conditional
+    // routing and file upload it asks for on the basis of reusing a builder that does not
+    // exist here. See services/custom-questions.service.js.
+    customQuestions: {
+      type: [
+        {
+          // Stable across label edits, so answers already given stay attached.
+          questionId: { type: String, trim: true, maxlength: 40, required: true },
+          label: { type: String, trim: true, maxlength: 160, required: true },
+          type: {
+            type: String,
+            enum: ['short_text', 'dropdown', 'single_choice', 'checkbox_agreement'],
+            default: 'short_text'
+          },
+          required: { type: Boolean, default: false },
+          options: { type: [{ type: String, trim: true, maxlength: 80 }], default: [] },
+          helpText: { type: String, trim: true, maxlength: 200, default: '' }
+        }
+      ],
+      default: []
+    },
+
     // Whether a registration may be handed to somebody else. Off by default.
     //
     // The policy deliberately stops at the person. A transfer moves who is running; it

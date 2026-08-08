@@ -65,6 +65,23 @@ const registrationSchema = new mongoose.Schema(
       preferredFitnessApp: { type: String, trim: true, default: '', maxlength: 80 }
     },
 
+    // Answers to the organiser's own questions.
+    //
+    // The label is stored alongside the answer, not just the id. A question renamed after
+    // people have answered it would otherwise silently relabel their answers, which is
+    // worse than useless on an export being used to order 400 meals.
+    customAnswers: {
+      type: [
+        {
+          questionId: { type: String, trim: true, maxlength: 40 },
+          label: { type: String, trim: true, maxlength: 160 },
+          type: { type: String, trim: true, maxlength: 30 },
+          value: { type: String, trim: true, maxlength: 300, default: '' }
+        }
+      ],
+      default: []
+    },
+
     // The race-kit size this person chose. Empty when the event does not track sizes, so
     // every registration written before this existed stays valid.
     kitSize: { type: String, trim: true, uppercase: true, default: '', maxlength: 12 },

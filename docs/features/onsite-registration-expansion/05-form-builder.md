@@ -1,6 +1,15 @@
 # Registration Form Builder
 
-**Status: Not implemented; deferred**
+**Status: Partially implemented — the useful subset shipped August 8, the rest still deferred**
+
+Organiser-defined questions now exist: up to ten per event, as a short answer, a pick from a
+list, or an agreement checkbox, asked on every registration path and included in the
+registrants export. See `src/services/custom-questions.service.js`.
+
+Still deferred, each with a reason rather than an omission: file upload (needs R2 plumbing,
+size and type handling, and a retention story), conditional routing (the complexity
+multiplier, and nothing asks for it), profile-linked fields, sections, repeating groups and
+address composites. The reuse premise below — the HelloUniversity builder — remains false.
 
 **Last reconciled:** August 7, 2026 · **Delivery state:** [STATUS.md](../../STATUS.md) · **Sequencing:** [delivery-plan.md](delivery-plan.md)
 

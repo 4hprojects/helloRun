@@ -41,6 +41,9 @@ core platform:
   race-day staff who can be given `check_in`, `race_kit`, or `results` access to a
   single event without touching the global `User.role`; and runner-initiated
   cancellation requests that the organiser reviews rather than auto-cancelling;
+- organiser-defined registration questions, added August 8 — a deliberate subset of
+  the form-builder spec (short answer, pick from a list, agreement), asked on every
+  registration path and included in the registrants export;
 - registration transfers, added August 8 — emailed invite, recipient signs their own
   waiver, organiser approval by default, reissued bib QR, and a policy that moves the
   person without touching any payment;

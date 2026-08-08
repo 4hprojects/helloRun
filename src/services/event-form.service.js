@@ -9,6 +9,7 @@ const {
   normalizePrimaryChallengeMetric,
   normalizeTargetSteps
 } = require('../utils/challenge-metrics');
+const { parseQuestionsFromBody, parseQuestions } = require('./custom-questions.service');
 
 const countries = getCountries();
 const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K', '42K']);
@@ -682,6 +683,7 @@ function getBlankCreateEventDefaults() {
     transfersEnabled: '0',
     transferRequiresApproval: '1',
     transferDeadlineAt: '',
+    customQuestions: [],
     kitInventory: [],
     requiresDeliveryAddress: '1',
     requiresPhilippineDeliveryAddress: '1',
@@ -857,6 +859,7 @@ function getCreateEventFormData(body = {}) {
     transfersEnabled: normalizeBoolean(body.transfersEnabled),
     transferRequiresApproval: normalizeBoolean(body.transferRequiresApproval),
     transferDeadlineAt: body.transferDeadlineAt || '',
+    customQuestions: parseQuestionsFromBody(body),
     kitInventory: parseKitInventoryFields(body),
     hasHomePromotionFields,
     homeFeatured: normalizeBoolean(body.homeFeatured),
@@ -1019,6 +1022,14 @@ function getCreateEventFormDataFromEvent(event) {
     transfersEnabled: Boolean(event.transfersEnabled),
     transferRequiresApproval: event.transferRequiresApproval !== false,
     transferDeadlineAt: formatDateForInput(event.transferDeadlineAt),
+    customQuestions: (event.customQuestions || []).map((question) => ({
+      questionId: question.questionId,
+      label: question.label,
+      type: question.type,
+      required: Boolean(question.required),
+      options: (question.options || []).join('\n'),
+      helpText: question.helpText || ''
+    })),
     kitInventory: (event.kitInventory || []).map((entry) => ({
       size: String(entry.size || '').toUpperCase(),
       stock: Number(entry.stock) || 0,
@@ -1908,6 +1919,9 @@ function applyEventFormData(event, formData, user) {
   event.transfersEnabled = Boolean(formData.transfersEnabled);
   event.transferRequiresApproval = Boolean(formData.transferRequiresApproval);
   event.transferDeadlineAt = formData.transferDeadlineAt ? new Date(formData.transferDeadlineAt) : null;
+  // Re-parsed from formData rather than from the body, which is not in scope here. The
+  // existing questions are passed in so an id already carrying answers survives a rename.
+  event.customQuestions = parseQuestions(formData.customQuestions, event.customQuestions);
   // Merged, not overwritten: `released` is not on the form and must survive every save.
   event.kitInventory = mergeKitInventory(formData.kitInventory, event.kitInventory);
   event.eventTypesAllowed = getEventTypesAllowed(formData.eventType);

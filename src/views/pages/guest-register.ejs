@@ -87,6 +87,31 @@
         </label>
         <% if (errors.emergencyContactNumber) { %><p class="guest-error"><%= errors.emergencyContactNumber %></p><% } %>
 
+
+        <% (event.customQuestions || []).forEach(function (question) { %>
+          <% if (question.type === 'checkbox_agreement') { %>
+            <label class="guest-check">
+              <input type="checkbox" name="custom_<%= question.questionId %>">
+              <span><%= question.label %><%= question.required ? ' *' : '' %></span>
+            </label>
+          <% } else if (question.type === 'dropdown' || question.type === 'single_choice') { %>
+            <label for="custom_<%= question.questionId %>"><%= question.label %><%= question.required ? ' *' : '' %>
+              <select id="custom_<%= question.questionId %>" name="custom_<%= question.questionId %>" <%= question.required ? 'required' : '' %>>
+                <option value=""><%= question.required ? 'Select an answer' : 'No answer' %></option>
+                <% (question.options || []).forEach(function (option) { %>
+                  <option value="<%= option %>"><%= option %></option>
+                <% }); %>
+              </select>
+            </label>
+          <% } else { %>
+            <label for="custom_<%= question.questionId %>"><%= question.label %><%= question.required ? ' *' : '' %>
+              <input id="custom_<%= question.questionId %>" name="custom_<%= question.questionId %>" maxlength="300" <%= question.required ? 'required' : '' %>>
+            </label>
+          <% } %>
+          <% if (question.helpText) { %><p class="race-pass-hint"><%= question.helpText %></p><% } %>
+          <% if (errors['custom_' + question.questionId]) { %><p class="guest-error"><%= errors['custom_' + question.questionId] %></p><% } %>
+        <% }); %>
+
         <fieldset class="guest-waiver">
           <legend>Waiver</legend>
           <div class="guest-waiver-body"><%= event.waiverTemplate || 'By registering you accept the event waiver.' %></div>

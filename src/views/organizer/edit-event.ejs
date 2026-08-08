@@ -844,6 +844,41 @@
               <input type="datetime-local" id="transferDeadlineAt" name="transferDeadlineAt" value="<%= formData.transferDeadlineAt || '' %>">
               <small class="field-hint">Leave blank to fall back to the registration close date, then the event start. A transfer after the gun is meaningless, so there is always a limit.</small>
             </div>
+            <div class="form-group form-group-full">
+              <label>Your own questions</label>
+              <small class="field-hint">Up to ten extra questions on the registration form — a short answer, a pick from a list, or an extra agreement. Leave a label blank to remove that question. A list question with no options is dropped. Answers appear on the registrants export.</small>
+              <div class="custom-questions-list">
+                <% for (var qi = 0; qi < 10; qi++) {
+                     var q = (formData.customQuestions || [])[qi] || null;
+                     if (!q && qi > (formData.customQuestions || []).length) { continue; } %>
+                  <fieldset class="custom-question-row">
+                    <legend>Question <%= qi + 1 %></legend>
+                    <input type="hidden" name="customQuestionId<%= qi %>" value="<%= q ? q.questionId : '' %>">
+                    <label for="customQuestionLabel<%= qi %>">Question
+                      <input id="customQuestionLabel<%= qi %>" name="customQuestionLabel<%= qi %>" maxlength="160" value="<%= q ? q.label : '' %>">
+                    </label>
+                    <label for="customQuestionType<%= qi %>">Answer type
+                      <select id="customQuestionType<%= qi %>" name="customQuestionType<%= qi %>">
+                        <option value="short_text" <%= q && q.type === 'short_text' ? 'selected' : '' %>>Short answer</option>
+                        <option value="dropdown" <%= q && q.type === 'dropdown' ? 'selected' : '' %>>Pick from a list</option>
+                        <option value="single_choice" <%= q && q.type === 'single_choice' ? 'selected' : '' %>>Pick one</option>
+                        <option value="checkbox_agreement" <%= q && q.type === 'checkbox_agreement' ? 'selected' : '' %>>Agreement checkbox</option>
+                      </select>
+                    </label>
+                    <label for="customQuestionOptions<%= qi %>">Options, one per line
+                      <textarea id="customQuestionOptions<%= qi %>" name="customQuestionOptions<%= qi %>" rows="3"><%= q ? q.options : '' %></textarea>
+                    </label>
+                    <label for="customQuestionHelp<%= qi %>">Help text
+                      <input id="customQuestionHelp<%= qi %>" name="customQuestionHelp<%= qi %>" maxlength="200" value="<%= q ? q.helpText : '' %>">
+                    </label>
+                    <label class="toggle-section-label" for="customQuestionRequired<%= qi %>">
+                      <input type="checkbox" id="customQuestionRequired<%= qi %>" name="customQuestionRequired<%= qi %>" value="1" <%= q && q.required ? 'checked' : '' %>>
+                      <span class="toggle-label-text">Required</span>
+                    </label>
+                  </fieldset>
+                <% } %>
+              </div>
+            </div>
             <div class="form-group">
               <label for="registrationOpenAt">Registration Open *</label>
               <div class="input-with-button">

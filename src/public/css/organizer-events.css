@@ -2723,3 +2723,19 @@
 .kit-inventory-cell span { font-weight: 600; }
 .kit-inventory-cell input { width: 100%; }
 .kit-inventory-cell small { color: #627067; font-size: .8em; }
+
+/* Organiser-defined questions. A fixed set of rows rather than an add/remove widget:
+   ten is the cap, and a blank label is how a question is removed. */
+.custom-questions-list { display: grid; gap: .75rem; margin-top: .5rem; }
+
+.custom-question-row {
+  display: grid;
+  gap: .5rem;
+  padding: .75rem;
+  border: 1px solid #dfe7e2;
+  border-radius: 8px;
+  background: #f9fbfa;
+}
+
+.custom-question-row legend { font-weight: 600; font-size: .9rem; padding: 0 .25rem; }
+.custom-question-row textarea { resize: vertical; }

@@ -999,7 +999,12 @@ function getAutoApprovalSourceLabel(submission = {}) {
   return 'Manual review validation';
 }
 
-function getRegistrantExportData(registrations = []) {
+function getRegistrantExportData(registrations = [], event = null) {
+  const { exportHeaders, answersForExport } = require('../../services/custom-questions.service');
+  // Kit size and the organiser's own answers are the two things they most need out of an
+  // export — ordering shirts and counting meals — so they go in the file, not just on screen.
+  const customHeaders = exportHeaders(event);
+
   const headers = [
     'Confirmation Code',
     'First Name',
@@ -1031,7 +1036,10 @@ function getRegistrantExportData(registrations = []) {
     'Payment Reviewed At',
     'Payment Rejection Reason',
     'Payment Review Notes',
-    'Registered At'
+    'Kit Size',
+    'Kit Size Released',
+    'Registered At',
+    ...customHeaders
   ];
 
   const rows = registrations.map((registration) => {
@@ -1067,7 +1075,10 @@ function getRegistrantExportData(registrations = []) {
       registration.paymentReviewedAt ? new Date(registration.paymentReviewedAt).toISOString() : '',
       registration.paymentRejectionReason || '',
       registration.paymentReviewNotes || '',
-      registration.registeredAt ? new Date(registration.registeredAt).toISOString() : ''
+      registration.kitSize || '',
+      registration.kitSizeReleased || '',
+      registration.registeredAt ? new Date(registration.registeredAt).toISOString() : '',
+      ...answersForExport(event, registration)
     ];
   });
 
