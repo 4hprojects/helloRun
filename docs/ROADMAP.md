@@ -188,7 +188,20 @@ Detailed plan:
       authorization tests and supervised runtime smoke coverage. Related: every
       `/organizer/*` route re-implements its ownership check by convention rather
       than through middleware.
-- [ ] Resolve server-spawning test open handles.
+- [x] **Resolve server-spawning test open handles.** Fixed August 8. All 41 files
+      spawned `src/server.js` inline and every one called `kill()` without awaiting
+      exit, so the runner held a live handle each time. `tests/helpers/test-server.js`
+      waits for the child to actually exit, with a SIGKILL fallback so a hung server
+      cannot hang the run.
+- [x] **The app ignored SIGTERM entirely.** Found while fixing the above and far
+      more serious. Four workers register `process.once('SIGTERM', cleanup)` to clear
+      an interval — and any SIGTERM listener replaces Node's default, which is to
+      terminate. So the app cleared four timers and carried on serving indefinitely.
+      Measured: still alive 8s after SIGTERM, versus 7ms for a bare HTTP server.
+      **In production the host asks the service to stop, waits out its whole shutdown
+      grace period, then SIGKILLs it** — dropping in-flight requests and making every
+      deploy as slow as that timeout. Now exits cleanly in 65ms, closing the HTTP
+      server before the databases so a request in flight can finish.
 
 ## 6. Measured efficiency and delivery refinement
 

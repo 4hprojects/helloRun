@@ -398,10 +398,66 @@ async function startServer() {
   startEventPromotionWorker();
   startWaitlistOfferWorker();
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     logger.info(`Server running on http://localhost:${PORT}`);
     logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
   });
+
+  installGracefulShutdown(server);
+}
+
+/**
+ * Stop cleanly when the platform asks.
+ *
+ * This has to exist, not merely be tidy. Four workers register
+ * `process.once('SIGTERM', cleanup)` to clear their intervals — and **any** SIGTERM
+ * listener replaces Node's default, which is to terminate. So the process was clearing
+ * four timers on SIGTERM and then carrying on, forever. Verified: the app ignored SIGTERM
+ * entirely and was still serving eight seconds later, while a bare HTTP server with the
+ * same spawn options exited in 7ms.
+ *
+ * In production that means the host asks the service to stop, waits out its whole shutdown
+ * grace period, and then SIGKILLs it — dropping in-flight requests and making every deploy
+ * as slow as that timeout.
+ *
+ * Order matters: stop taking new connections first, then let the databases go, so a request
+ * already in flight can still finish.
+ */
+function installGracefulShutdown(server) {
+  // Longer than a slow request, shorter than any platform's kill timeout, so we exit on
+  // our own terms rather than being killed mid-write.
+  const FORCE_EXIT_MS = 10000;
+  let shuttingDown = false;
+
+  const shutdown = async (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info(`[shutdown] ${signal} received — closing`);
+
+    // A connection that will not drain must not hold the process open indefinitely.
+    const forceExit = setTimeout(() => {
+      logger.warn('[shutdown] Timed out waiting for a clean close; exiting anyway.');
+      process.exit(0);
+    }, FORCE_EXIT_MS);
+    forceExit.unref();
+
+    try {
+      await new Promise((resolve) => server.close(resolve));
+      await mongoose.connection.close(false).catch(() => {});
+      const { closePostgresClient } = require('./db/postgres');
+      await closePostgresClient().catch(() => {});
+      logger.info('[shutdown] Closed cleanly');
+    } catch (error) {
+      logger.error(`[shutdown] Error while closing: ${error.message}`);
+    }
+
+    process.exit(0);
+  };
+
+  // The workers' own `process.once('SIGTERM', …)` handlers still run and clear their
+  // intervals; these run alongside them and are what actually ends the process.
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 startServer();
