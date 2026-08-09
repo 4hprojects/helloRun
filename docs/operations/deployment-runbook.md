@@ -16,8 +16,8 @@ is called out as untested rather than described as if it works.
 ## 1. How a deploy happens
 
 **Corrected August 10, 2026.** Every previous version of this section said
-Render auto-deploys from GitHub `main`. That was wrong — there is no evidence
-this repository has ever been hosted on Render. Production runs on a single
+Render auto-deploys from GitHub `main`. That was wrong — Render is at most a
+backup (see below). Production runs on a single
 host via PM2, discovered by tracing an actual outage rather than trusting the
 prior text:
 
@@ -50,6 +50,12 @@ What that means in practice:
   whatever `node` is already on `PATH` on this host. The field only matters
   if some install step runs with `engine-strict` set, which nothing in this
   chain does.
+- **Render is a backup origin, not the deploy path.** Henz keeps a Render
+  service as a fallback (an `x-render-origin-server` header was seen in July).
+  It does not normally serve traffic, and **how to cut Cloudflare over to it and
+  back is not recorded** — a backup nobody has failed over to is a plan, not a
+  capability. If you revert or ship a fix, update Render too so the fallback is
+  not left on old code.
 
 What still holds regardless of host:
 
@@ -142,10 +148,15 @@ curl -sI https://hellorun.online/healthz | head -3
 
 `server: cloudflare` with a plain-text `error code: 502` body is Cloudflare's own
 edge error, meaning it could not get a response from the origin. Nothing in the
-repository can fix that and no push will route around it — it needs access to the
-**self-hosted Ubuntu box** (see the correction in §1). Two things to check there,
-in this order: is the app process running and listening, and is whatever connects
-it to Cloudflare (tunnel or port forward) up?
+repository can fix that and no push will route around it (see the correction in
+§1). Work in this order:
+
+1. **Which origin should be live?** `x-render-origin-server` present means Render
+   is serving; absent means the self-hosted Ubuntu box is.
+2. **On the Ubuntu box:** is the app process running and listening on its port,
+   and is whatever connects it to Cloudflare — tunnel or port forward — up?
+3. **If that will take a while, fail over to the Render backup.** Restoring
+   service beats diagnosing it; the Ubuntu box can be fixed with the site up.
 
 Before assuming the code is at fault, check whether the commit boots:
 `PORT=3211 node src/server.js` and curl `/healthz` locally. A clean local boot on

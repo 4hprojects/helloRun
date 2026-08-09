@@ -26,27 +26,35 @@ The code is not the obvious suspect: the current commit boots locally and served
 `/healthz` in about eleven seconds on the same machine minutes before this was
 observed.
 
-**Production is self-hosted on an Ubuntu machine of Henz's own** (confirmed
-August 10 — earlier notes here said Render, which was wrong or historical). So a
-`502` means that box is not serving. Two checks, in order:
+**There are two origins** (confirmed August 10): the **main deployment is
+self-hosted on an Ubuntu machine of Henz's own**, and **Render is the backup**.
+Earlier notes here described only Render, which is why this entry first pointed
+at the wrong place. Work in this order:
 
-1. Is the app process running and listening on its port?
-2. Is whatever connects it to Cloudflare — a tunnel, or a port forward — up?
+1. **Which origin should be live?** `x-render-origin-server` in the response
+   headers means Render is serving; absent means the Ubuntu box is.
+2. **On the Ubuntu box:** is the app process running and listening, and is
+   whatever connects it to Cloudflare — tunnel or port forward — up?
+3. **If that is not quick, fail over to Render.** Restoring service beats
+   diagnosing it; the Ubuntu host can be fixed with the site back up.
 
-That host is **not** the development workstation this repository sits on: checked
-August 10, it has no tunnel client installed, nginx serves only the `default`
-site with no `hellorun` server block, and nothing is listening on an app port.
+The Ubuntu host is **not** the development workstation this repository sits on:
+checked August 10, it has no tunnel client installed, nginx serves only the
+`default` site with no `hellorun` server block, and nothing is listening on an
+app port.
 
 **This is yours and nothing else on this list matters until it moves** — every
 remaining item needs a working deployment to verify, and the site is currently
 serving nobody. See
 [operations/deployment-runbook.md](operations/deployment-runbook.md) §1 and §3.
 
-- [ ] **Write down how the self-hosted deployment actually works.** Nothing in
-      this repository records how the app is started and kept up, what fronts it,
-      how new code reaches the host, or where its `.env` lives. Until that exists
-      a restart depends on one person remembering, and the runbook describes a
-      platform that is not being used.
+- [ ] **Write down how the two deployments actually work, and how to switch.**
+      Nothing in this repository records how the Ubuntu host starts and keeps the
+      app up, what fronts it, how new code reaches it, where its `.env` lives, or
+      **how to cut over to the Render backup and back**. A backup nobody has
+      failed over to is a plan, not a capability — the same caveat the runbook
+      makes about restores. Until this exists, both a restart and a failover
+      depend on one person remembering.
 
 ## 1. Verify what is live
 
