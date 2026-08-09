@@ -86,15 +86,32 @@ Completion requires recorded production observations, not repository tests.
 
 ## 2. Live behaviour that is wrong
 
-- [ ] **Race-kit release hides the one instruction the organiser needs.** Found
-      August 9 while walking the chain. Releasing a kit before a bib is assigned
-      fails with `500` and "Something went wrong. Please try again.", while the
-      service raised "No live bib assignment found for this registration. Assign
-      a bib first." — an instruction, not a fault. At a kit table with a queue,
-      the difference is between a five-second fix and a stuck volunteer. The
-      ordering constraint itself is correct and should stay; only the reporting is
-      wrong. Worth a sweep of the other onsite routes for the same shape, since
-      they share the error handler.
+- [x] **Releasing a race kit blanked the runner's shadow row.** Found and fixed
+      August 10. The kit service reads the registration with a projection, saves,
+      and the model's `post('save')` hook syncs that half-read document — and the
+      upsert writes every column from `excluded`, so the unloaded fields were
+      overwritten rather than skipped. `mongo_event_id` became `''`, and the
+      onsite roster joins on it, so **the runner's bib and check-in disappeared
+      from the console the moment their kit was handed over.** Fixed in
+      `syncRegistrationPaymentShadow`, which now reloads a projected document
+      before normalising it — at the choke point, because the hook fires for
+      every `save()` anywhere. Reproduced live and re-verified. No production data
+      affected: the only blanked row was a probe row, since this feature has never
+      deployed.
+- [x] **Race-kit release hid the one instruction the organiser needs.** Fixed
+      August 10. Releasing a kit before a bib was assigned failed with `500` and
+      "Something went wrong. Please try again.", while the service raised "Assign
+      a bib first." — an instruction, not a fault. A duplicate bib number behaved
+      the same way. At a kit table with a queue, that is the difference between a
+      five-second fix and a stuck volunteer. The onsite services now mark
+      operational failures with a code and the routes answer `409`/`404` with the
+      service's own message; the console already rendered it. The ordering
+      constraint itself was correct and stays. Verified live through both routes.
+- [x] **`probe:cleanup` reported clean while a row survived.** Fixed August 10.
+      It found data by walking down from `events_core`, so a registration whose
+      event link had been blanked was invisible to it — which is exactly how the
+      defect above survived a teardown. It now also sweeps probe rows and accounts
+      by the `zz-…@example.com` convention and fails loudly if any remain.
 - [x] **Guest cancellation files a false failure every time.** Fixed August 8.
       A guest has no in-app inbox, so the notification is now requested only when
       there is an account, and `notify` treats a missing recipient as

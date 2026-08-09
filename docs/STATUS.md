@@ -61,7 +61,9 @@ core platform:
   person without touching any payment;
 - per-size race-kit stock, added August 8 — sizes chosen at registration by every
   route, atomic claim at the kit table, substitution recorded, and stock returned
-  when a registration is cancelled;
+  when a registration is cancelled; releasing a kit no longer blanks the
+  registration's Postgres shadow row, which had been removing the runner's bib and
+  check-in from the race-day console (fixed August 10);
 - a waitlist for full categories, added August 8 — joining, organiser-managed and
   automatic promotion, offers that hold a real slot and expire, and a worker that
   passes a lapsed slot to the next person in line;

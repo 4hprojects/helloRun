@@ -29,6 +29,38 @@ const {
   recordImportLog
 } = require('../../services/result-import.service');
 
+// What a coded onsite error means over HTTP.
+//
+// Everything here is a state the desk can resolve: pick another bib number, assign a bib
+// before the kit, hand over a different size. They are answered with the service's own
+// message because that message is the instruction. Anything without a code is an
+// unexpected fault and still goes to `sendJsonServerError`, which hides the detail on
+// purpose.
+const ONSITE_OPERATIONAL_STATUS = {
+  NOT_FOUND: 404,
+  INVALID_INPUT: 400,
+  BIB_TAKEN: 409,
+  NO_BIB: 409,
+  NO_STOCK: 409,
+  ALREADY_RELEASED: 409,
+  RESULT_NOT_APPROVABLE: 409
+};
+
+/**
+ * Answer an onsite failure, telling the desk what to do when we know.
+ * Falls back to the generic 500 for anything genuinely unexpected.
+ */
+function sendOnsiteError(res, logMessage, error) {
+  const status = ONSITE_OPERATIONAL_STATUS[error?.code];
+  if (!status) return sendJsonServerError(res, logMessage, error);
+
+  return res.status(status).json({
+    success: false,
+    error: error.message,
+    reason: error.reason || error.code
+  });
+}
+
 // Parsing a spreadsheet is heavier than a scan, so this is tighter.
 const resultImportLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
@@ -107,7 +139,7 @@ router.post('/events/:eventId/bibs/assign', protectOnsiteMutation('check_in'), a
       bib: bibRecord
     });
   } catch (error) {
-    return sendJsonServerError(res, 'Error assigning bib:', error);
+    return sendOnsiteError(res, 'Error assigning bib:', error);
   }
 });
 
@@ -349,7 +381,7 @@ router.post('/events/:eventId/bibs/assign-bulk', protectOnsiteMutation('check_in
       failed: result.failed
     });
   } catch (error) {
-    return sendJsonServerError(res, 'Error assigning bibs in bulk:', error);
+    return sendOnsiteError(res, 'Error assigning bibs in bulk:', error);
   }
 });
 
@@ -383,14 +415,9 @@ router.post('/events/:eventId/race-kits/release', protectOnsiteMutation('race_ki
     });
   } catch (error) {
     // Running out of a size is an ordinary Saturday, not a server fault, and the desk has
-    // to be able to act on it rather than see a 500.
-    if (error.code === 'NO_STOCK' || error.code === 'ALREADY_RELEASED') {
-      return res.status(409).json({ success: false, error: error.message, reason: error.reason || error.code });
-    }
-    if (error.code === 'NOT_FOUND') {
-      return res.status(404).json({ success: false, error: error.message });
-    }
-    return sendJsonServerError(res, 'Error releasing race kit:', error);
+    // to be able to act on it rather than see a 500. Same for a kit asked for before a
+    // bib exists — `sendOnsiteError` now carries all of those through.
+    return sendOnsiteError(res, 'Error releasing race kit:', error);
   }
 });
 
@@ -419,7 +446,7 @@ router.post('/events/:eventId/check-ins', protectOnsiteMutation('check_in'), che
       checkIn: checkInRecord
     });
   } catch (error) {
-    return sendJsonServerError(res, 'Error recording check-in:', error);
+    return sendOnsiteError(res, 'Error recording check-in:', error);
   }
 });
 
@@ -448,7 +475,7 @@ router.post('/events/:eventId/race-kits', protectEventMutation, async (req, res)
       raceKit: kitRecord
     });
   } catch (error) {
-    return sendJsonServerError(res, 'Error creating race kit:', error);
+    return sendOnsiteError(res, 'Error creating race kit:', error);
   }
 });
 
@@ -540,7 +567,7 @@ router.post('/events/:eventId/result-imports', protectEventMutation, async (req,
       import: importRecord
     });
   } catch (error) {
-    return sendJsonServerError(res, 'Error logging result import:', error);
+    return sendOnsiteError(res, 'Error logging result import:', error);
   }
 });
 
@@ -586,7 +613,7 @@ router.post('/events/:eventId/onsite-results', protectOnsiteMutation('results'),
       result: resultRecord
     });
   } catch (error) {
-    return sendJsonServerError(res, 'Error recording onsite result:', error);
+    return sendOnsiteError(res, 'Error recording onsite result:', error);
   }
 });
 
@@ -615,7 +642,7 @@ router.post('/events/:eventId/onsite-results/:resultId/approve', protectOnsiteMu
       submissionError: approved.submissionError || null
     });
   } catch (error) {
-    return sendJsonServerError(res, 'Error approving onsite result:', error);
+    return sendOnsiteError(res, 'Error approving onsite result:', error);
   }
 });
 
@@ -652,3 +679,8 @@ router.get('/events/:eventId/bib-assignment-status', protectOnsiteRead('check_in
 });
 
 module.exports = router;
+// Exported for tests: the mapping from a service's error code to what the desk sees is
+// the whole point of this module's error handling, and it deserves to be asserted
+// directly rather than inferred from the source.
+module.exports.sendOnsiteError = sendOnsiteError;
+module.exports.ONSITE_OPERATIONAL_STATUS = ONSITE_OPERATIONAL_STATUS;

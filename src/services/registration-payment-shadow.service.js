@@ -78,10 +78,46 @@ function buildRegistrationChecksum(normalized) {
     .digest('hex');
 }
 
+/**
+ * Refuse to shadow a half-read document.
+ *
+ * The upsert below writes every column from `excluded`, so syncing a projected document
+ * does not skip the fields it never loaded — it *overwrites* them with defaults. That is
+ * how a race-kit release blanked a live registration's shadow row: the kit service reads
+ * `.select('kitSize kitSizeReleased participant')`, saves, and the model's `post('save')`
+ * hook syncs whatever it is handed. `mongo_event_id` became '', `event_core_id` became
+ * null, and the onsite roster — which joins `WHERE r.mongo_event_id = ${eventId}` — stopped
+ * finding the runner, so their bib and check-in vanished from the console mid-race-day.
+ *
+ * Reloading here rather than fixing each caller: the hook fires for every `save()`
+ * anywhere, so a per-call-site fix would only hold until the next projected save.
+ */
+async function resolveFullRegistration(registration) {
+  // A projection was used only if Mongoose recorded one; a plain object or a fully-read
+  // document passes straight through.
+  const projection = registration?.$__?.selected;
+  if (!projection || Object.keys(projection).length === 0) return registration;
+
+  const model = registration.constructor;
+  if (typeof model?.findById !== 'function') return registration;
+
+  const full = await model.findById(registration._id);
+  if (!full) return registration;
+
+  // Carry over anything the caller changed but has not yet re-read, so a sync triggered
+  // by a save still reflects that save.
+  for (const key of Object.keys(projection)) {
+    if (registration.get(key) !== undefined) full.set(key, registration.get(key));
+  }
+
+  return full;
+}
+
 async function syncRegistrationPaymentShadow(registration, options = {}) {
   const sql = options.sql || getPostgresClient();
   const operation = options.operation || 'live_sync';
-  const normalized = normalizeMongoRegistration(registration);
+  const complete = await resolveFullRegistration(registration);
+  const normalized = normalizeMongoRegistration(complete);
   const checksum = buildRegistrationChecksum(normalized);
 
   const eventRows = normalized.mongoEventId

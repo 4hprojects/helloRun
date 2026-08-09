@@ -1,9 +1,9 @@
 # Onsite Registration Workflow — End-to-End Analysis
 
-**Status: Both blocking defects fixed; all ten further gaps closed; the race-day
+**Status: Three blocking defects fixed; all ten further gaps closed; the race-day
 chain walked end to end through its own interfaces**
 
-**Last reconciled:** August 9, 2026 · **Delivery state:** [STATUS.md](../../STATUS.md) · **Sequencing:** [delivery-plan.md](delivery-plan.md)
+**Last reconciled:** August 10, 2026 · **Delivery state:** [STATUS.md](../../STATUS.md) · **Sequencing:** [delivery-plan.md](delivery-plan.md)
 
 The feature checklist in [delivery-plan.md](delivery-plan.md) is complete: every
 item the implementation pack asked for is built, tested and deployed. This
@@ -11,8 +11,9 @@ document asks a different question — **does the workflow work end to end?** �
 the answer was no.
 
 The gap between those two statements is the point of this document. Features were
-verified individually. The seams between them were not, and both blocking defects
-live in a seam.
+verified individually. The seams between them were not, and all three blocking
+defects live in a seam — the third in the seam between a projected read and a
+background sync, which is the least visible kind.
 
 Everything here was verified by running the path, not by reading it — and since
 August 9, by running it *through the interface a person uses*, which is a
@@ -53,7 +54,7 @@ interface that produces it was the thing exercised.
 | Bib assignment | works | Scoped to the event since August 8; guests permitted since migration `024`; browser-verified Aug 9 |
 | Race pass / bib QR | works | Account holders via `/my-registrations`; guests via their manage link (Aug 8) |
 | Check-in | works | Name/code search, and QR scanning now works for guests too; state persists across reload |
-| Race kit release | works | Atomic per-size claim, substitution recorded; stock decremented 5→4 live. **Requires a bib first, and says so only in the log** — see [ROADMAP §2](../../ROADMAP.md) |
+| Race kit release | works | Atomic per-size claim, substitution recorded; stock decremented 5→4 live. Requires a bib first and now says so (`409`, Aug 10). No longer blanks the shadow row — see B3 |
 | Result recording | works | |
 | Result approval | works | Writes `onsite_results`; verified `approved` with the entered time |
 | → Submission | works | Guests allowed since migration `025` |
@@ -141,6 +142,38 @@ on the onsite tables.
 
 ---
 
+### B3 — Releasing a race kit erased the runner from the console — FIXED August 10
+
+`race-kit-release.service.js:26` reads the registration with
+`.select('kitSize kitSizeReleased participant')`, sets the released size and saves.
+`Registration`'s `post('save')` hook syncs whatever document it is handed, and the
+shadow upsert writes **every** column from `excluded` — so the fields the projection
+never loaded were not skipped, they were overwritten with defaults:
+
+```
+mongo_event_id     : ''        (was the event id)
+event_core_id      : null
+confirmation_code  : ''
+participation_mode : 'virtual' (the schema default, on an onsite entry)
+```
+
+`getOnsiteStateByRegistrationId` filters `WHERE r.mongo_event_id = ${eventId}`, so the
+row stopped matching: **the bib and check-in state vanished from the check-in, bibs and
+results lists the moment the kit was handed over**, and every row read "Not synced".
+The desk saw a success.
+
+Fixed in `syncRegistrationPaymentShadow`, which now reloads a document that was read
+with a projection before normalising it, carrying forward whatever the caller changed.
+Placed there rather than in the kit service because the hook fires for every `save()`
+anywhere — a per-call-site fix would hold only until the next projected save. A sweep
+confirmed the kit release was the only path that saved a projected registration.
+
+**Why it survived the walkthrough.** It was seen on August 9 — a row with an empty
+`mongo_event_id` — and then wrongly retracted, on the strength of a second walk-in
+whose row was written correctly. That walk-in never had a kit released, which is the
+only step that triggers it. The retraction was the mistake, not the original report:
+*a control that does not include the step under suspicion does not clear it.*
+
 ## 4. Further gaps
 
 | # | Gap | What happens to a participant |
@@ -181,14 +214,27 @@ Not a defect list only — most of this works:
 Worth recording, because it is a process finding rather than a code one.
 
 Every feature here shipped with unit tests and a live probe against production
-using throwaway data. Both blocking defects survived that.
+using throwaway data. All three blocking defects survived that.
 
 - **B1** survived because the tests called the service with correct arguments.
   The service was never wrong; the form that feeds it was.
 - **B2** survived because it is not a failure — it is a silent `false` in a
   response nobody asserted on.
+- **B3** survived because the damage is done by a *different* request than the one
+  that reveals it. The kit release returns `200`; the runner disappears from a
+  page loaded afterwards. Nothing that asserts on a response can see it.
 
 The shared shape: **a test that constructs its own input cannot find a defect in
 what constructs that input in production.** Tests written after this should build
 the body the form actually serialises, and assert on what the participant ends up
 able to do — not on what the service returns when handed good data.
+
+B3 adds a second rule, learned by getting it wrong: **the control has to include
+the step under suspicion.** The empty `mongo_event_id` was spotted on August 9 and
+retracted after a second walk-in wrote a clean row — but that walk-in never had a
+kit released, which is the only step that causes it. A passing case that skips the
+suspect step is not evidence; it is a different experiment.
+
+The practical form of both rules for this codebase: **check the state after the
+next request, not the response of this one.** Both B2 and B3 are invisible to any
+assertion made on the reply that caused them.
