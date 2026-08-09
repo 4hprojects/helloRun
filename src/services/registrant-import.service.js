@@ -13,6 +13,7 @@ const { readSheetRows } = require('../utils/spreadsheet-import');
 const { createGuestRegistration, validateGuestForm } = require('./guest-registration.service');
 const { findAnyExistingRegistration } = require('./walk-in-registration.service');
 const { syncRegistrationPaymentShadow } = require('./registration-payment-shadow.service');
+const { recordSyncFailureInBackground } = require('./sync-failure.service');
 const logger = require('../utils/logger');
 
 const MAX_IMPORT_ROWS = 1000;
@@ -171,8 +172,29 @@ async function applyRegistrantRows({ event, rows, organiser, sendEmails = false 
   const failed = [];
 
   for (const entry of (rows || []).slice(0, MAX_IMPORT_ROWS)) {
-    const form = entry.form || entry;
+    const submitted = entry.form || entry;
     try {
+      // Re-validated here, not trusted from the preview. The preview is a separate HTTP
+      // request, so what arrives at commit is whatever the client chose to send back — a
+      // hand-crafted post could otherwise skip every check the preview performs. Cheap to
+      // repeat, and it also catches an event edited between the two requests.
+      const { form, errors } = validateGuestForm(submitted, event, { requireCustomAnswers: false });
+      if (Object.keys(errors).length > 0) {
+        failed.push({ email: form.email || submitted.email, error: Object.values(errors)[0] });
+        continue;
+      }
+
+      // Same reason: a duplicate could have been created between preview and commit, by
+      // another import, a walk-in, or the person registering themselves.
+      const existing = await findAnyExistingRegistration(event._id, form.email);
+      if (existing) {
+        failed.push({
+          email: form.email,
+          error: `Already registered for this event (${existing.confirmationCode}).`
+        });
+        continue;
+      }
+
       const { registration } = await createGuestRegistration({
         event,
         form,
@@ -186,14 +208,19 @@ async function applyRegistrantRows({ event, rows, organiser, sendEmails = false 
       await registration.save();
 
       // Best effort, and not awaited per row the way a walk-in is: nobody is standing at
-      // a bib table during an import, and the retry worker will catch any that miss.
+      // a bib table during an import. Recorded on failure, though — logging alone left the
+      // retry worker blind, because it walks `sync_failures` and nothing was writing one.
       syncRegistrationPaymentShadow(registration, { operation: 'live_sync' }).catch((error) => {
         logger.error(`[RegistrantImport] Shadow sync failed for ${registration._id}: ${error.message}`);
+        // Same call shape the post-save hook uses, so the retry worker sees both alike.
+        recordSyncFailureInBackground('registration', String(registration._id), error, {
+          operation: 'live_sync'
+        });
       });
 
       imported.push({ email: form.email, confirmationCode: registration.confirmationCode });
     } catch (error) {
-      failed.push({ email: form.email, error: error.message });
+      failed.push({ email: submitted.email, error: error.message });
     }
   }
 

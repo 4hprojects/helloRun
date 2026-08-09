@@ -96,12 +96,17 @@ live in a seam between features rather than inside one.
       was already replaced and the waiver re-signed, so inheriting a meal choice was
       an omission rather than a policy. An onsite entry now demands the recipient's
       own emergency contact, as every other route into an event does.
-- [ ] Bulk import commit trusts client-supplied rows — validation and the duplicate
-      check run only in the separate preview request.
-- [ ] Import's shadow-sync failure is logged but never recorded, so the retry
-      worker never sees it.
-- [ ] The self-serve guest duplicate check ignores accounts; the walk-in path
-      already solves this.
+- [x] **Bulk import commit trusts client-supplied rows.** Fixed August 8. Both the
+      validation and the cross-type duplicate check are re-run at commit, so a
+      hand-crafted post cannot skip the preview's checks and a duplicate created
+      between the two requests is caught.
+- [x] **Import's shadow-sync failure is logged but never recorded.** Fixed August 8.
+      It now writes a `sync_failures` row with the same call shape the post-save hook
+      uses, so the retry worker can actually see it.
+- [x] **The self-serve guest duplicate check ignores accounts.** Fixed August 8.
+      The public guest route now uses `findAnyExistingRegistration`, which the
+      walk-in desk has always used, so an account holder can no longer register a
+      second time as a guest and arrive as two people for one bib.
 - [ ] **Decide:** guests have no reachable race pass, so every guest, walk-in,
       imported and waitlist-claimed participant must be checked in by name or code.
       A product call, not a bug.

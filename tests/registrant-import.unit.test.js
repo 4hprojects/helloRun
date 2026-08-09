@@ -173,3 +173,22 @@ test('the sheet reader is shared with the results import', () => {
   assert.match(sharedReader, /if \(!value && !required\.includes\(field\)\) continue/);
   assert.ok(MAX_IMPORT_ROWS > 0);
 });
+
+test('the commit re-checks everything the preview checked', () => {
+  // Preview is a separate HTTP request, so what arrives at commit is whatever the client
+  // chose to send back. Trusting it meant a hand-crafted post skipped every check.
+  assert.match(service, /Re-validated here, not trusted from the preview/);
+  assert.match(service, /const \{ form, errors \} = validateGuestForm\(submitted, event/);
+  // And a duplicate can appear between the two requests — another import, a walk-in, or
+  // the person registering themselves.
+  assert.match(service, /const existing = await findAnyExistingRegistration\(event\._id, form\.email\)/);
+  assert.match(service, /a duplicate could have been created between preview and commit/);
+});
+
+test('a failed shadow sync reaches the retry worker', () => {
+  // It was logged and nothing else. The worker walks `sync_failures`, and nothing was
+  // writing one, so recovery depended on the post-save hook having failed as well.
+  assert.match(service, /recordSyncFailureInBackground\('registration', String\(registration\._id\), error/);
+  // The same call shape the post-save hook uses, so both are visible alike.
+  assert.match(read('src/models/Registration.js'), /recordSyncFailureInBackground\('registration'/);
+});

@@ -30,7 +30,7 @@ Everything here was verified by running the path, not by reading it.
 | Kit size captured | yes | yes | yes (fixed Aug 8) | **no** | yes | replaced |
 | Custom answers | yes | yes | yes (fixed Aug 8) | **no** | yes | cleared (fixed Aug 8) |
 | Emergency contact | required | required when onsite | required (fixed Aug 8) | required when onsite | required when onsite | required (fixed Aug 8) |
-| Duplicate check | unique index | guests only | guests **and** accounts | in-file + cross-type, preview only | guests only | recipient not already entered |
+| Duplicate check | unique index | both (fixed Aug 8) | guests **and** accounts | re-checked at commit (fixed Aug 8) | both (fixed Aug 8) | recipient not already entered |
 
 Only the walk-in awaits the Postgres shadow write, because it is the only path
 where somebody assigns a bib seconds later. That was a deliberate call and it is
@@ -130,9 +130,9 @@ on the onsite tables.
 | 3 | ~~Transfer drops the manage token on organiser approval~~ | **Fixed Aug 8** — emailed to the new holder on both approval paths |
 | 4 | ~~Transfer never resets `customAnswers`~~ | **Fixed Aug 8** — cleared, so the previous person's answers do not follow |
 | 5 | ~~Transfer never requires an emergency contact~~ | **Fixed Aug 8** — demanded for an onsite entry, as everywhere else |
-| 6 | Import commit trusts client-supplied rows | Validation and duplicate checks run only in preview, a separate request |
-| 7 | Import's shadow-sync `.catch` logs but records no sync failure | The retry worker never sees it; recovery depends on the post-save hook having failed too |
-| 8 | Guest duplicate check ignores accounts | An account holder can register again as a guest and arrive twice for one bib. The walk-in path already solves this |
+| 6 | ~~Import commit trusts client-supplied rows~~ | **Fixed Aug 8** — validation and the duplicate check re-run at commit |
+| 7 | ~~Import's shadow-sync failure is never recorded~~ | **Fixed Aug 8** — writes a `sync_failures` row the retry worker can see |
+| 8 | ~~Guest duplicate check ignores accounts~~ | **Fixed Aug 8** — the public route now checks both kinds, as the walk-in desk did |
 | 9 | No guest-reachable race pass | Every guest, walk-in, imported and waitlist-claimed participant must be checked in by name or code |
 | 10 | Roster has no pagination | `limit` capped at 500, no `skip`. On a 900-runner event, 400 people are reachable only by exact search |
 | 11 | Mode is never checked against the event | A guest can register `virtual` for an onsite-only event and vanish from the roster |

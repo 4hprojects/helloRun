@@ -191,7 +191,16 @@ async function createGuestRegistration({
   // slot twice and shut the category early.
   skipCapacityReservation = false
 }) {
-  const existing = await findExistingGuestRegistration(event._id, form.email);
+  // Required lazily: walk-in-registration requires this module, so a top-level import
+  // would close a cycle and hand back a half-built module at load time.
+  const { findAnyExistingRegistration } = require('./walk-in-registration.service');
+
+  // Across both kinds of registration, not just guests. The partial unique index is keyed
+  // on `userId` being an ObjectId so it never applies to a guest row, and checking only
+  // other guests let somebody who already has an account register a second time and turn
+  // up as two people for one bib. The walk-in desk has always used this; the public route
+  // did not.
+  const existing = await findAnyExistingRegistration(event._id, form.email);
   if (existing) {
     const error = new Error('That email is already registered for this event.');
     error.code = 'DUPLICATE_GUEST';

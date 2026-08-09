@@ -147,3 +147,15 @@ test('the guest form renders, including its error states', () => {
   assert.match(view, /name="_csrf"/);
   assert.doesNotMatch(view, /<%-\s*form/);
 });
+
+test('a guest cannot register a second time behind an existing account', () => {
+  // The partial unique index is keyed on userId being an ObjectId, so it never applies to
+  // a guest row; checking only other guests let an account holder register again and turn
+  // up as two people for one bib. The walk-in desk always checked both.
+  const service = read('src/services/guest-registration.service.js');
+  assert.match(service, /const existing = await findAnyExistingRegistration\(event\._id, form\.email\)/);
+  assert.match(service, /Across both kinds of registration, not just guests/);
+  // Lazily required, because walk-in-registration requires this module.
+  assert.match(service, /Required lazily: walk-in-registration requires this module/);
+  assert.match(read('src/services/walk-in-registration.service.js'), /async function findAnyExistingRegistration/);
+});
