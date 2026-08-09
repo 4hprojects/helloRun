@@ -1,0 +1,24 @@
+-- Let an approved onsite result exist without a HelloRun account.
+-- Created: 2026-08-08
+-- Purpose: a marshal-recorded finish time is a fact about the race, not about an account.
+--
+-- Migration 024 relaxed runner_user_id on the onsite tables so a guest could be checked in
+-- and given a bib. It stopped short of the submission, so approving that guest's result
+-- produced nothing at all: no submission, no ranking, no leaderboard entry. Five of the
+-- six ways to register produce a guest, so that was most of an onsite field.
+--
+-- Deliberately NOT relaxed here:
+--   certificates.runner_user_id  — a certificate names a person, and this codebase treats
+--                                  an email typed at a desk as not proof of identity
+--   user_badges.runner_user_id   — its unique index is (runner_user_id, badge_definition_id,
+--                                  event_core_id); a nullable key would need a second
+--                                  identity model in the badge system
+--
+-- Both are issued retroactively when the participant claims the registration with a
+-- verified email. That boundary is the design, and it is stated here so the schema says so
+-- too.
+--
+-- Additive: every existing row keeps its value, and the column stays a foreign key, so a
+-- value that is present is still checked.
+
+ALTER TABLE submissions_core ALTER COLUMN runner_user_id DROP NOT NULL;

@@ -423,7 +423,14 @@ async function materialiseResultAsSubmission(resultRow, { sql, eventId, performe
       performedBy
     });
 
-    return { submissionCreated: true, submissionId: String(submission._id) };
+    // hasAccount travels out so the desk is told the difference rather than it being
+    // silent: a result for someone with no account still ranks, but the certificate and
+    // badges wait until they claim the registration.
+    return {
+      submissionCreated: true,
+      submissionId: String(submission._id),
+      hasAccount: submission.hasAccount !== false
+    };
   } catch (error) {
     logger.error(`[Onsite] Could not materialise result ${resultRow?.id} as a submission: ${error.message}`);
     return { submissionCreated: false, submissionError: error.message };

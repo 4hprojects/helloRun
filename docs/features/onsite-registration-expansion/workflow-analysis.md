@@ -1,6 +1,6 @@
 # Onsite Registration Workflow — End-to-End Analysis
 
-**Status: One blocking defect fixed, one open, ten further gaps**
+**Status: Both blocking defects fixed; ten further gaps open**
 
 **Last reconciled:** August 8, 2026 · **Delivery state:** [STATUS.md](../../STATUS.md) · **Sequencing:** [delivery-plan.md](delivery-plan.md)
 
@@ -46,13 +46,14 @@ still right.
 | Race kit release | works | Atomic per-size claim, substitution recorded |
 | Result recording | works | |
 | Result approval | works | Writes `onsite_results` |
-| → Submission | **broken for guests** | Throws on a null `userId` |
-| → Ranking / leaderboard | **never reached for guests** | |
-| → Badges | **never reached for guests** | |
-| → Certificate | **never reached for guests** | |
+| → Submission | works | Guests allowed since migration `025` |
+| → Ranking / leaderboard | works | A guest ranks under the participant's name |
+| → Badges | **account only, by design** | Issued on claim |
+| → Certificate | **account only, by design** | Issued on claim |
 
-Five of the six entry paths produce a guest. So for most of an onsite field, the
-chain stops at "approved" and produces nothing a participant can see.
+Five of the six entry paths produce a guest. The chain used to stop at "approved"
+for all of them; it now runs to the leaderboard, with the two account-scoped
+outcomes waiting on a claim.
 
 ---
 
@@ -94,7 +95,7 @@ and the service, which is exactly where the break was. The replacement test
 renders the view, builds the body the form serialises, and asserts a Registration
 made from it validates.
 
-### B2 — A guest's finish time produces nothing
+### B2 — A guest's finish time produces nothing — FIXED August 8
 
 `src/services/onsite-result-submission.service.js:119` throws when
 `registration.userId` is null, under this comment:
@@ -114,6 +115,11 @@ badges stay withheld — they key on `app_users` with `NOT NULL` foreign keys, a
 the codebase deliberately treats an email typed at a desk as *not* proof of
 identity. They are issued retroactively when the person claims the registration
 with a verified email.
+
+**Verified live on August 8:** the submission is created with a null runner, its
+Postgres shadow row is written, one ranking row is created, no certificate is
+issued, and claiming the registration backfills the runner on the submission and
+on the onsite tables.
 
 ---
 

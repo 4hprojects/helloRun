@@ -115,10 +115,13 @@ const submissionSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    // Who owns this result. Not what identifies it — `registrationId` is unique and does
+    // that. An onsite result recorded by a marshal for someone with no HelloRun account has
+    // the second without the first, and is still a real finish time.
     runnerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      default: null,
       index: true
     },
     submissionAttemptId: {

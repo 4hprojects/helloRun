@@ -152,7 +152,16 @@ async function claimRegistration({ registrationId, user }) {
     occurredAt: new Date()
   });
 
-  logger.debug(`[Claim] Registration ${registration._id} claimed by user ${user._id}`);
+  // An onsite result approved while this was a guest entry ranks but stops short of a
+  // certificate and badges. The verified email that just proved ownership is exactly what
+  // those were waiting for, so hand them over now.
+  const { materialiseClaimedRegistration } = require('./onsite-result-submission.service');
+  const materialised = await materialiseClaimedRegistration({ registration, user });
+
+  logger.debug(
+    `[Claim] Registration ${registration._id} claimed by user ${user._id}` +
+      (materialised.materialised ? ` (result ${materialised.submissionId} materialised)` : '')
+  );
   return registration;
 }
 

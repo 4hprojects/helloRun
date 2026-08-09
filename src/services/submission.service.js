@@ -451,7 +451,23 @@ async function reviewSubmission({
 async function applyApprovedSubmissionEffects(submission, event, options = {}) {
   const { performedBy = null } = options;
 
+  // Ranking and the leaderboard are about the race, so they run for everyone. The
+  // leaderboard already falls back to the participant's name when there is no account.
   invalidateLeaderboardCache(event?.slug);
+  if (!submission.isPersonalRecord) {
+    syncEventRankingsInBackground(submission, event?.slug);
+  }
+
+  // Everything below belongs to an account: a certificate names a person, badges are keyed
+  // on a user, a notification needs an inbox, and a personal record is a history. A guest's
+  // onsite result gets these when the registration is claimed with a verified email.
+  if (!submission.runnerId) {
+    logger.debug(
+      `[Submission] ${submission._id} approved with no account — certificate, badges and ` +
+        'milestones wait for a claim.'
+    );
+    return;
+  }
 
   const backgroundTask = attachCertAndNotifyInBackground(submission, 'approve', event?.title || 'Event');
   if (runSubmissionBackgroundTasksInline) {
@@ -461,7 +477,6 @@ async function applyApprovedSubmissionEffects(submission, event, options = {}) {
   evaluateSubmissionAchievementsSafe(submission, { performedBy });
   if (!submission.isPersonalRecord) {
     refreshGlobalDistanceMilestonesSafe(submission.runnerId, { performedBy });
-    syncEventRankingsInBackground(submission, event?.slug);
   }
 }
 

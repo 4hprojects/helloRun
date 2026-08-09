@@ -601,12 +601,17 @@ router.post('/events/:eventId/onsite-results/:resultId/approve', protectOnsiteMu
 
     res.json({
       success: true,
-      message: approved.submissionCreated
-        ? 'Onsite result approved'
-        : 'Result approved, but it has not entered the results yet',
+      message: !approved.submissionCreated
+        ? 'Result approved, but it has not entered the results yet'
+        : approved.hasAccount === false
+          ? 'Onsite result approved and ranked. No HelloRun account yet, so the certificate and badges arrive when they claim their registration.'
+          : 'Onsite result approved',
       result: approved.result,
       awardsCreated: approved.awards.length,
       submissionCreated: Boolean(approved.submissionCreated),
+      // False means it ranked but produced no certificate or badges, because the
+      // participant has no account yet. Not a failure — a different outcome.
+      rankedWithoutAccount: Boolean(approved.submissionCreated) && approved.hasAccount === false,
       submissionError: approved.submissionError || null
     });
   } catch (error) {

@@ -181,7 +181,10 @@ async function syncSubmissionShadow(submission, options = {}) {
       throw new Error(`Event not found for submission ${submission._id} (event mongo_id: ${normalizedSubmission.event_id})`);
     }
 
-    if (!appUserId) {
+    // Only a failure when a runner was expected. A submission with no runner_user_id is a
+    // guest's onsite result, which is legitimate since migration 025 — treating it as a
+    // missing reference would fill sync_failures with rows the retry worker can never fix.
+    if (!appUserId && normalizedSubmission.runner_user_id) {
       throw new Error(`App user not found for submission ${submission._id} (user mongo_id: ${normalizedSubmission.runner_user_id})`);
     }
 

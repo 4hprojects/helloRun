@@ -59,9 +59,13 @@ live in a seam between features rather than inside one.
       `save()` failure, both projections carry the kit and question fields, and a
       new test builds the body the *form* serialises rather than supplying its
       own — the specific hole that let this ship.
-- [ ] **An approved onsite result produces nothing without an account.** Rank the
-      result and show it on the leaderboard; hold the certificate and badges until
-      the registration is claimed by verified email. Needs one migration line.
+- [x] **An approved onsite result produces nothing without an account.** Fixed
+      August 8. Migration `025` applied: `submissions_core.runner_user_id` is
+      nullable; `certificates` and `user_badges` deliberately are not. The result
+      ranks and reaches the leaderboard under the participant's name; the
+      certificate and badges are handed over when the registration is claimed with
+      a verified email. Probed live: shadow row written with a null runner, one
+      ranking row created, no certificate issued, claim backfills the runner.
 - [ ] Transfer drops the recipient's manage token on organiser approval, so a
       guest recipient cannot reach their registration.
 - [ ] Transfer inherits the previous person's custom answers, and never requires an

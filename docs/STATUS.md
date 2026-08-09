@@ -47,6 +47,9 @@ core platform:
 - organiser-defined registration questions, added August 8 — a deliberate subset of
   the form-builder spec (short answer, pick from a list, agreement), asked on every
   registration path and included in the registrants export;
+- onsite results for participants without an account, August 8 — a marshal-recorded
+  finish time now ranks and reaches the leaderboard, with the certificate and badges
+  issued when the registration is claimed with a verified email (migration `025`);
 - race-category capacity enforced for the first time, August 8 — the identifier
   fix also repairs the accumulated-challenge target, the minimum submission
   distance and the slot release on cancellation, which all matched the same slug;
@@ -97,12 +100,6 @@ production services.
   complete and the flag is off by default — but see the correction below: the
   flag hides the organiser controls rather than disabling the feature.
 
-## Implemented but Not Working
-
-- **Onsite results for participants without an account.** An approved result records
-  `onsite_results` and then stops — no submission, ranking, leaderboard entry, badge
-  or certificate. Five of the six registration paths produce a guest row, so this is
-  most of an onsite field.
 
 ## Operational Work Pending
 
