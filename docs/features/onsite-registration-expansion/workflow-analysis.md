@@ -7,7 +7,7 @@
 The feature checklist in [delivery-plan.md](delivery-plan.md) is complete: every
 item the implementation pack asked for is built, tested and deployed. This
 document asks a different question — **does the workflow work end to end?** — and
-the answer is no.
+the answer was no.
 
 The gap between those two statements is the point of this document. Features were
 verified individually. The seams between them were not, and both blocking defects
@@ -60,10 +60,10 @@ chain stops at "approved" and produces nothing a participant can see.
 
 ### B1 — Walk-in registration has never worked through its interface — FIXED August 8
 
-`src/views/organizer/event-check-in.ejs` posts neither `participationMode` nor
-`raceDistance`. Both are `required` on `src/models/Registration.js`.
-`validateGuestForm` returns no error for either, so the request passes validation
-and dies at `save()`. Reproduced:
+The check-in form posted neither `participationMode` nor `raceDistance`. Both are
+`required` on `src/models/Registration.js`. `validateGuestForm` returned no error
+for either, so the request passed validation and died at `save()`. Reproduced
+before the fix:
 
 ```
 validateGuestForm errors : {}
@@ -73,19 +73,26 @@ Registration validates   : NO — participationMode
 
 Two causes, not one:
 
-1. `validateGuestForm` (`src/services/guest-registration.service.js`) never checks
+1. `validateGuestForm` (`src/services/guest-registration.service.js`) never checked
    `participationMode`, though its own docstring says everything `Registration`
    requires must come from the form because a guest has no profile to fall back
-   on.
-2. `src/routes/organiser/onsite-pages.js:51` omits `raceDistances` from the
-   check-in page projection, so the category `<select>` renders **zero options**
-   and no `raceDistance` is posted either.
+   on. It now rejects both fields.
+2. `src/routes/organiser/onsite-pages.js` omitted `raceDistances` from the
+   check-in page projection, so the category `<select>` rendered **zero options**
+   and no `raceDistance` was posted either. Both that projection and the walk-in
+   route's now carry the kit and question fields too.
+
+**Verified end to end on August 8**, for the first time: the form's own body
+registers a walk-in, captures the kit size and the organiser's answers, records
+desk payment, and the bib assigns immediately.
 
 **Why the tests passed.** `tests/walk-in-registration.unit.test.js:28` calls
 `createWalkInRegistration` directly with `participationMode: 'onsite'` supplied,
 and the route-level assertions only string-match the file. The live probe did the
 same. Every check exercised the service; none exercised the seam between the form
-and the service, which is exactly where the break is.
+and the service, which is exactly where the break was. The replacement test
+renders the view, builds the body the form serialises, and asserts a Registration
+made from it validates.
 
 ### B2 — A guest's finish time produces nothing
 
