@@ -21,9 +21,18 @@ That is now the single largest risk on this list, because the whole August 7–8
 run — guest registration, walk-in, waitlist, kit inventory, transfers, custom
 questions, capacity — is deployed and reachable by real users.
 
-- [ ] Walk a draft event end to end in a browser: register as a guest and claim
-      it, assign a bib, open the race pass, scan it, release a kit, record and
-      approve a result, cancel and confirm the slot returns.
+- [~] **Walk a draft event end to end in a browser.** Partly done August 8 with a
+      headless browser against a **local** server on the current commit. Verified
+      the guest race pass renders on a phone viewport with a real 300×300 QR and a
+      readable bib. **It found a site-wide bug nothing else could:** saving cookie
+      preferences 404'd on every page, because the banner's two submit buttons are
+      `name="action"` and a form control named `action` shadows
+      `HTMLFormElement.action` — so the fetch posted to `/[object RadioNodeList]`.
+      The consent banner could never be dismissed, and on the race pass it sat over
+      the QR code.
+      Still outstanding, because they need an organiser session and production:
+      assign a bib, release a kit, record and approve a result, cancel and confirm
+      the slot returns.
 - [ ] Responsive and weak-connectivity checks on the onsite surfaces, which are
       used on a phone at a start line.
 - [ ] Finish the AdSense crawl, sitemap, content-seed and review operations.

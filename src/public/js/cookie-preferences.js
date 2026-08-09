@@ -63,7 +63,11 @@
     const timeoutId = controller ? window.setTimeout(() => controller.abort(), SAVE_TIMEOUT_MS) : null;
 
     try {
-      const response = await fetch(form.action, {
+      // getAttribute, not `form.action`. The banner's two submit buttons are both
+      // name="action", and a form control named `action` shadows HTMLFormElement.action —
+      // so `form.action` returned a RadioNodeList, the fetch posted to
+      // "/[object RadioNodeList]", and saving preferences 404'd on every page of the site.
+      const response = await fetch(form.getAttribute('action'), {
         method: 'POST',
         headers: { Accept: 'application/json', 'x-csrf-token': String(body.get('_csrf') || '') },
         body: new URLSearchParams(body),
