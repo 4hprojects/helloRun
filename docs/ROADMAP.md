@@ -44,6 +44,37 @@ Completion requires recorded production observations, not repository tests.
       them — the form replays existing values on every save, so stripping them
       would silently downgrade a configured event. STATUS.md corrected.
 
+### Onsite workflow gaps, found by an end-to-end trace on August 8
+
+Full analysis:
+[`features/onsite-registration-expansion/workflow-analysis.md`](features/onsite-registration-expansion/workflow-analysis.md).
+The feature checklist was complete; the workflow was not. Both blocking defects
+live in a seam between features rather than inside one.
+
+- [ ] **Walk-in registration 500s through its own form.** No `participationMode`,
+      no `raceDistance`, both required. Also fix the check-in page projection,
+      which omits `raceDistances`, `kitInventory` and `customQuestions` — so a
+      walk-in at a shirt-stocked event would record no size and no answers.
+- [ ] **An approved onsite result produces nothing without an account.** Rank the
+      result and show it on the leaderboard; hold the certificate and badges until
+      the registration is claimed by verified email. Needs one migration line.
+- [ ] Transfer drops the recipient's manage token on organiser approval, so a
+      guest recipient cannot reach their registration.
+- [ ] Transfer inherits the previous person's custom answers, and never requires an
+      emergency contact.
+- [ ] Bulk import commit trusts client-supplied rows — validation and the duplicate
+      check run only in the separate preview request.
+- [ ] Import's shadow-sync failure is logged but never recorded, so the retry
+      worker never sees it.
+- [ ] The self-serve guest duplicate check ignores accounts; the walk-in path
+      already solves this.
+- [ ] **Decide:** guests have no reachable race pass, so every guest, walk-in,
+      imported and waitlist-claimed participant must be checked in by name or code.
+      A product call, not a bug.
+- [ ] The onsite roster has no pagination — 500 max, no `skip`.
+- [ ] Participation mode is never checked against the event, so a guest can
+      register virtual for an onsite-only race and vanish from the roster.
+
 ## 3. Dead code
 
 Removal only, no behaviour change, each independently revertable.

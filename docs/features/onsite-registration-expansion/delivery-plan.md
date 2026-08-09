@@ -121,6 +121,25 @@ Both were blocked *only* by the account requirement, which is now gone.
   reuse source does not exist in this repository. Revisit only with evidence that a short
   answer, a pick from a list and an agreement are insufficient.
 
+## Workflow status — read this before trusting the checklist above
+
+The checklist is a **feature** checklist and it is complete. An end-to-end trace of
+the **workflow** on August 8 found it is not working end to end:
+[workflow-analysis.md](workflow-analysis.md).
+
+Two blocking defects, both in a seam between features rather than inside one:
+
+- **Walk-in registration has never worked through its interface.** The form posts
+  neither `participationMode` nor `raceDistance`, both required, so every attempt
+  500s. The tests passed because they called the service directly with the fields
+  supplied.
+- **An approved onsite result produces nothing for a participant with no account** —
+  no submission, ranking, badge or certificate — and five of the six ways to
+  register produce exactly that.
+
+Ten further gaps are listed in the analysis. Treat "shipped" in the checklist below
+as "the feature exists", not as "a participant can complete the journey".
+
 ## Operating constraint
 
 There is still no isolated database environment, so every migration is a production event
