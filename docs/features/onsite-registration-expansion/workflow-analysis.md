@@ -1,8 +1,9 @@
 # Onsite Registration Workflow — End-to-End Analysis
 
-**Status: Both blocking defects fixed; all ten further gaps closed**
+**Status: Both blocking defects fixed; all ten further gaps closed; the race-day
+chain walked end to end through its own interfaces**
 
-**Last reconciled:** August 8, 2026 · **Delivery state:** [STATUS.md](../../STATUS.md) · **Sequencing:** [delivery-plan.md](delivery-plan.md)
+**Last reconciled:** August 9, 2026 · **Delivery state:** [STATUS.md](../../STATUS.md) · **Sequencing:** [delivery-plan.md](delivery-plan.md)
 
 The feature checklist in [delivery-plan.md](delivery-plan.md) is complete: every
 item the implementation pack asked for is built, tested and deployed. This
@@ -13,7 +14,10 @@ The gap between those two statements is the point of this document. Features wer
 verified individually. The seams between them were not, and both blocking defects
 live in a seam.
 
-Everything here was verified by running the path, not by reading it.
+Everything here was verified by running the path, not by reading it — and since
+August 9, by running it *through the interface a person uses*, which is a
+stricter and more useful bar. The distinction is not pedantic: it is the only
+reason B1 was ever found.
 
 ---
 
@@ -38,22 +42,36 @@ still right.
 
 ## 2. The race-day chain
 
+**The whole chain below was driven through its own interfaces on August 9** — the
+organiser console in a browser, then the same routes over HTTP with a real
+session — rather than by calling the services. That is the check that found B1,
+and it is now the standard for this table: a row says "works" only if the
+interface that produces it was the thing exercised.
+
 | Stage | State | Note |
 |---|---|---|
-| Bib assignment | works | Scoped to the event since August 8; guests permitted since migration `024` |
+| Bib assignment | works | Scoped to the event since August 8; guests permitted since migration `024`; browser-verified Aug 9 |
 | Race pass / bib QR | works | Account holders via `/my-registrations`; guests via their manage link (Aug 8) |
-| Check-in | works | Name/code search, and QR scanning now works for guests too |
-| Race kit release | works | Atomic per-size claim, substitution recorded |
+| Check-in | works | Name/code search, and QR scanning now works for guests too; state persists across reload |
+| Race kit release | works | Atomic per-size claim, substitution recorded; stock decremented 5→4 live. **Requires a bib first, and says so only in the log** — see [ROADMAP §2](../../ROADMAP.md) |
 | Result recording | works | |
-| Result approval | works | Writes `onsite_results` |
+| Result approval | works | Writes `onsite_results`; verified `approved` with the entered time |
 | → Submission | works | Guests allowed since migration `025` |
 | → Ranking / leaderboard | works | A guest ranks under the participant's name |
 | → Badges | **account only, by design** | Issued on claim |
 | → Certificate | **account only, by design** | Issued on claim |
+| Cancellation | works | Slot, kit and bib all returned — verified Aug 9 |
 
 Five of the six entry paths produce a guest. The chain used to stop at "approved"
 for all of them; it now runs to the leaderboard, with the two account-scoped
 outcomes waiting on a claim.
+
+**Cancellation gives everything back.** Checked on August 9 against an event with
+a capped category and kit stock: `raceCategories.reserved` 1→0, kit `released`
+1→0 with the size available again, the registration `cancelled`, and the Postgres
+bib assignment `voided` so the number can be reissued. All four in one request —
+which matters, because a partial rollback here silently shrinks an event's
+capacity for the rest of its life.
 
 ---
 

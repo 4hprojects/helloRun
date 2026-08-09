@@ -37,8 +37,9 @@ core platform:
 - revocable bib QR codes, withdrawn on cancellation and bib reassignment, with
   scanning distinguishing withdrawn from unrecognised and unreadable;
 - guest registration without an account, with hashed manage/claim links, plus
-  organiser walk-in registration at the check-in desk — repaired and verified end
-  to end on August 8 — and bulk registrant import
+  organiser walk-in registration at the check-in desk — repaired August 8 and
+  verified from its own form in a browser on August 9, which is the check that
+  found the defect in the first place — and bulk registrant import
   from a CSV or XLSX — all three sharing one guest path, so a person with no
   HelloRun account can be entered by any route and later claim the entry with a
   verified email;
@@ -163,6 +164,12 @@ production services.
   - Registration, payment-proof and run-proof POSTs still reach the network.
   Remaining navigation and responsive work is tracked in
   [`improvement-plan/ui-pwa-follow-ups.md`](improvement-plan/ui-pwa-follow-ups.md).
+
+The organiser race-day chain — walk-in, bib, check-in, kit release, result
+record and approve, and cancellation — was walked through its own interfaces on
+August 9 and is no longer on this list. It was checked against a **local server
+on the current commit**, not against production, and not on a phone; both of
+those remain open below.
 
 - Validate runner, organiser, and administrator workflows on deployed phone,
   tablet, and desktop layouts, including weak-connectivity onsite behavior.

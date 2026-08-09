@@ -23,12 +23,13 @@ and stops for a decision.
       submissions remain intentionally blocked.
 
 Everything below the line has been verified by DB-free tests and by live probes
-against throwaway data. **None of it has been used by a human in a browser.**
-That is now the single largest risk on this list, because the whole August 7–8
-run — guest registration, walk-in, waitlist, kit inventory, transfers, custom
-questions, capacity — is deployed and reachable by real users.
+against throwaway data. The organiser race-day chain has now also been driven
+through its own interfaces (August 8–9) — that item is closed. What remains
+unverified is how these surfaces behave **on a phone at a start line**, which is
+where they are actually used, and none of it has yet been exercised against
+production rather than a local server on the same commit.
 
-- [~] **Walk a draft event end to end in a browser.** Partly done August 8 with a
+- [x] **Walk a draft event end to end in a browser.** Done August 8–9 with a
       headless browser against a **local** server on the current commit. Verified
       the guest race pass renders on a phone viewport with a real 300×300 QR and a
       readable bib. **It found a site-wide bug nothing else could:** saving cookie
@@ -37,9 +38,27 @@ questions, capacity — is deployed and reachable by real users.
       `HTMLFormElement.action` — so the fetch posted to `/[object RadioNodeList]`.
       The consent banner could never be dismissed, and on the race pass it sat over
       the QR code.
-      Still outstanding, because they need an organiser session and production:
-      assign a bib, release a kit, record and approve a result, cancel and confirm
-      the slot returns.
+      **The organiser race-day chain was completed August 9** against a local server
+      on the current commit, driving each step through its own interface rather than
+      calling the services: walk-in registered (`201`, confirmation code issued),
+      bib assigned, checked in, kit released with stock decrementing 5→4, finish
+      time recorded, result approved. The approval produced the whole B2 chain —
+      a submission with a null runner, one ranking row at position 1 with
+      `elapsed_ms` 1,725,000 matching the 00:28:45 entered, and zero certificates,
+      which is the agreed guest policy. State persisted across a full page reload.
+      Walk-in registration is therefore browser-verified for the first time.
+      **Cancellation returns everything it should**, checked August 9 through
+      `POST /organizer/events/:id/registrants/:registrationId/cancel` on an event
+      with a capped category and kit stock: `raceCategories.reserved` went 1→0,
+      the kit went back on the books (`released` 1→0, stock 5 available again),
+      the registration read `cancelled`, and the Postgres bib assignment moved to
+      `voided` so the number is reissuable — which is what the organiser's own
+      confirmation message promises.
+
+      One finding, filed in §2: kit release before a bib exists answers `500`
+      with "Something went wrong. Please try again." while the log holds the
+      actually useful "No live bib assignment found for this registration. Assign
+      a bib first."
 - [ ] Responsive and weak-connectivity checks on the onsite surfaces, which are
       used on a phone at a start line.
 - [ ] Finish the AdSense crawl, sitemap, content-seed and review operations.
@@ -48,6 +67,15 @@ Completion requires recorded production observations, not repository tests.
 
 ## 2. Live behaviour that is wrong
 
+- [ ] **Race-kit release hides the one instruction the organiser needs.** Found
+      August 9 while walking the chain. Releasing a kit before a bib is assigned
+      fails with `500` and "Something went wrong. Please try again.", while the
+      service raised "No live bib assignment found for this registration. Assign
+      a bib first." — an instruction, not a fault. At a kit table with a queue,
+      the difference is between a five-second fix and a stuck volunteer. The
+      ordering constraint itself is correct and should stay; only the reporting is
+      wrong. Worth a sweep of the other onsite routes for the same shape, since
+      they share the error handler.
 - [x] **Guest cancellation files a false failure every time.** Fixed August 8.
       A guest has no in-app inbox, so the notification is now requested only when
       there is an account, and `notify` treats a missing recipient as
