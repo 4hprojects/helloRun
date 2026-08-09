@@ -47,7 +47,14 @@ const POSTGRES_EVENT_TABLES = [
   // registrations/event_distances/event_categories carry mongo_event_id directly.
   { table: 'registrations', column: 'mongo_event_id', viaEventCoreId: false },
   { table: 'event_distances', column: 'mongo_event_id', viaEventCoreId: false },
-  { table: 'event_categories', column: 'mongo_event_id', viaEventCoreId: false }
+  { table: 'event_categories', column: 'mongo_event_id', viaEventCoreId: false },
+  // Shop rows reference events_core with ON DELETE SET NULL, so the event delete never
+  // failed on them — they simply survived, orphaned, with a null event_id and no way left
+  // to tell what they belonged to. Their own children (order_items, shop_payments,
+  // shop_fulfilment_logs, product_variants, inventory_movements,
+  // achievement_merchandise_rules) all cascade, so removing these two is enough.
+  { table: 'orders', column: 'event_id', viaEventCoreId: true },
+  { table: 'products_core', column: 'event_id', viaEventCoreId: true }
   // events_core itself is deleted last, outside this list, once every table above is clear.
   // `payments` cascades automatically off `registrations` (ON DELETE CASCADE) and needs no
   // explicit row here.

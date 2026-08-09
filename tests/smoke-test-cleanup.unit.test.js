@@ -218,3 +218,21 @@ test('applySmokeTestSchema auto-tags new docs when SMOKE_TEST_RUN_ID is set', as
     }
   }
 });
+
+test('a table it cannot check is reported, not counted as clean', () => {
+  // queryPostgresCount returned 0 when a table had no smoke-test metadata columns, so
+  // validation reported a clean sweep for tables it had never been able to look at —
+  // which is how one could quietly accumulate test rows forever.
+  const script = require('node:fs').readFileSync(
+    require('node:path').resolve(__dirname, '..', 'src/scripts/cleanup-smoke-tests.js'),
+    'utf8'
+  );
+  assert.match(script, /if \(isMissingSmokeMetadataError\(error\)\) return null/);
+  assert.match(script, /null when the table has no smoke-test metadata columns/);
+  assert.match(script, /if \(count === null\) unverifiable\.push\(table\)/);
+  assert.match(script, /NOT CHECKED — no smoke-test metadata columns on/);
+
+  // The two tables that were never in the list at all.
+  assert.match(script, /'badge_progress',/);
+  assert.match(script, /'certificate_audit_logs',/);
+});

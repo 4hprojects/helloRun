@@ -57,11 +57,17 @@ Completion requires recorded production observations, not repository tests.
       waitlist entries, transfers and bib QR tokens were all added after
       `cascadeDeleteEventsMongo` was written and none were in it — so the **admin
       test-data purge** orphaned them too, not just a probe.
-- [ ] Two gaps found while fixing the above, recorded not fixed:
-      `POSTGRES_EVENT_TABLES` omits `orders` and `products_core`, so an event with a
-      shop order still cannot be deleted; and `scripts/cleanup-smoke-tests.js` omits
-      `badge_progress` and `certificate_audit_logs` **and** counts a missing column as
-      zero rows deleted, so its own validation reports clean either way.
+- [x] **Two gaps found while fixing the above.** Both fixed August 8, and one of
+      them corrected: `orders` and `products_core` reference `events_core` with
+      **ON DELETE SET NULL**, not RESTRICT, so the delete never failed — the rows
+      simply survived orphaned with a null `event_id` and nothing left to identify
+      them by. Both are now purged before the event. And
+      `scripts/cleanup-smoke-tests.js` treated "this table has no smoke-test
+      metadata columns" as "zero rows found", so it reported a clean sweep for
+      tables it had never looked at; it now names them as unchecked.
+      `badge_progress` and `certificate_audit_logs` are in the list and correctly
+      report as unverifiable — they genuinely lack the columns, which is a
+      migration nobody has needed yet.
 
 ### Onsite workflow gaps, found by an end-to-end trace on August 8
 

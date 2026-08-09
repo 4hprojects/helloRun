@@ -47,6 +47,8 @@ const POSTGRES_TABLES = [
   'product_variants',
   'products_core',
   'achievement_merchandise_rules',
+  'badge_progress',
+  'certificate_audit_logs',
   'onsite_results',
   'result_imports',
   'check_ins',
@@ -203,18 +205,32 @@ async function cleanupPostgres({ sql, options, dryRun }) {
 
 async function validatePostgresCleanup({ sql, options }) {
   const remaining = {};
+  const unverifiable = [];
   const where = buildPostgresWhere(options);
 
   for (const table of POSTGRES_TABLES) {
     const count = await queryPostgresCount(sql, table, where);
-    if (count > 0) {
-      remaining[table] = count;
-    }
+    // null means the table carries no smoke-test metadata, so this sweep never reached it.
+    // Reporting that as clean is how a table can quietly accumulate test rows forever.
+    if (count === null) unverifiable.push(table);
+    else if (count > 0) remaining[table] = count;
+  }
+
+  if (unverifiable.length) {
+    console.warn(
+      `  NOT CHECKED — no smoke-test metadata columns on: ${unverifiable.join(', ')}.` +
+        ' Rows in these tables are not swept and their state is unknown.'
+    );
   }
 
   return remaining;
 }
 
+/**
+ * @returns {Promise<number|null>} null when the table has no smoke-test metadata columns,
+ *   which is not the same as zero rows. Returning 0 there made validation report a clean
+ *   sweep for tables it had never been able to look at.
+ */
 async function queryPostgresCount(sql, table, where) {
   try {
     const rows = await sql.unsafe(
@@ -223,7 +239,7 @@ async function queryPostgresCount(sql, table, where) {
     );
     return Number(rows[0]?.count || 0);
   } catch (error) {
-    if (isMissingSmokeMetadataError(error)) return 0;
+    if (isMissingSmokeMetadataError(error)) return null;
     throw error;
   }
 }
