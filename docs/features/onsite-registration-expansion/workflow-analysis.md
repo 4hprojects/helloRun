@@ -1,6 +1,6 @@
 # Onsite Registration Workflow — End-to-End Analysis
 
-**Status: Partially working — two blocking defects, ten further gaps**
+**Status: One blocking defect fixed, one open, ten further gaps**
 
 **Last reconciled:** August 8, 2026 · **Delivery state:** [STATUS.md](../../STATUS.md) · **Sequencing:** [delivery-plan.md](delivery-plan.md)
 
@@ -21,15 +21,15 @@ Everything here was verified by running the path, not by reading it.
 
 | | Account | Guest self-serve | Walk-in | Bulk import | Waitlist claim | Transfer |
 |---|---|---|---|---|---|---|
-| **Works end to end?** | yes | yes | **no — 500s** | yes | yes | partly |
+| **Works end to end?** | yes | yes | yes (fixed Aug 8) | yes | yes | partly |
 | `participantType` | `account` | `guest` | `guest` | `guest` | `guest` | `account` if the recipient has one, else `guest` |
 | `userId` | set | `null` | `null` | `null` | `null` | recipient's, or `null` |
 | Shadow write | fire-and-forget | fire-and-forget | **awaited** | fire-and-forget | fire-and-forget | already exists |
 | Manage token | n/a | issued + shown | issued, **dropped by the route** | issued, undeliverable unless emails on | issued + shown | **dropped on organiser approval** |
 | Capacity reserved | yes | yes | yes | yes | held by the offer | same slot |
-| Kit size captured | yes | yes | **no** | **no** | yes | replaced |
-| Custom answers | yes | yes | **no** | **no** | yes | **inherited from the previous person** |
-| Emergency contact | required | required when onsite | required rule, **never reached** | required when onsite | required when onsite | **never required** |
+| Kit size captured | yes | yes | yes (fixed Aug 8) | **no** | yes | replaced |
+| Custom answers | yes | yes | yes (fixed Aug 8) | **no** | yes | **inherited from the previous person** |
+| Emergency contact | required | required when onsite | required (fixed Aug 8) | required when onsite | required when onsite | **never required** |
 | Duplicate check | unique index | guests only | guests **and** accounts | in-file + cross-type, preview only | guests only | recipient not already entered |
 
 Only the walk-in awaits the Postgres shadow write, because it is the only path
@@ -58,7 +58,7 @@ chain stops at "approved" and produces nothing a participant can see.
 
 ## 3. Blocking defects
 
-### B1 — Walk-in registration has never worked through its interface
+### B1 — Walk-in registration has never worked through its interface — FIXED August 8
 
 `src/views/organizer/event-check-in.ejs` posts neither `participationMode` nor
 `raceDistance`. Both are `required` on `src/models/Registration.js`.

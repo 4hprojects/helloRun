@@ -67,14 +67,66 @@
           <label for="walkinEmail">Email<input id="walkinEmail" name="email" type="email" required maxlength="200"></label>
           <label for="walkinMobile">Contact number<input id="walkinMobile" name="mobile" required maxlength="40"></label>
           <label for="walkinDistance">Category
-            <select id="walkinDistance" name="raceDistance">
+            <select id="walkinDistance" name="raceDistance" required>
               <% (event.raceDistances || []).forEach(function (distance) { %>
                 <option value="<%= distance %>"><%= distance %></option>
               <% }); %>
             </select>
           </label>
-          <label for="walkinEmergencyName">Emergency contact name<input id="walkinEmergencyName" name="emergencyContactName" maxlength="120"></label>
-          <label for="walkinEmergencyNumber">Emergency contact number<input id="walkinEmergencyNumber" name="emergencyContactNumber" maxlength="40"></label>
+
+          <%# participationMode is `required` on Registration. This form had no field for
+              it at all, so every walk-in passed validation and then failed to save. A desk
+              registers people who are here, so onsite is the default; the select appears
+              only when the event genuinely allows both. %>
+          <% var walkInModes = (event.eventTypesAllowed || []).filter(function (mode) { return mode === 'onsite' || mode === 'virtual'; }); %>
+          <% if (walkInModes.length > 1) { %>
+            <label for="walkinMode">Participation
+              <select id="walkinMode" name="participationMode" required>
+                <option value="onsite">Onsite</option>
+                <option value="virtual">Virtual</option>
+              </select>
+            </label>
+          <% } else { %>
+            <input type="hidden" name="participationMode" value="<%= walkInModes[0] || (event.eventType === 'virtual' ? 'virtual' : 'onsite') %>">
+          <% } %>
+
+          <% if ((event.kitInventory || []).length) { %>
+            <label for="walkinKitSize">Race kit size<% if (event.kitSizeRequired) { %> *<% } %>
+              <select id="walkinKitSize" name="kitSize" <%= event.kitSizeRequired ? 'required' : '' %>>
+                <option value=""><%= event.kitSizeRequired ? 'Select a size' : 'No preference' %></option>
+                <% (event.kitInventory || []).forEach(function (entry) {
+                     var left = Math.max(0, (Number(entry.stock) || 0) - (Number(entry.released) || 0)); %>
+                  <option value="<%= entry.size %>" <%= left > 0 ? '' : 'disabled' %>><%= entry.size %><%= left > 0 ? '' : ' — none left' %></option>
+                <% }); %>
+              </select>
+            </label>
+          <% } %>
+
+          <% (event.customQuestions || []).forEach(function (question) { %>
+            <% if (question.type === 'checkbox_agreement') { %>
+              <label class="checkin-walkin-check">
+                <input type="checkbox" name="custom_<%= question.questionId %>">
+                <span><%= question.label %><%= question.required ? ' *' : '' %></span>
+              </label>
+            <% } else if (question.type === 'dropdown' || question.type === 'single_choice') { %>
+              <label for="walkinCustom<%= question.questionId %>"><%= question.label %><%= question.required ? ' *' : '' %>
+                <select id="walkinCustom<%= question.questionId %>" name="custom_<%= question.questionId %>" <%= question.required ? 'required' : '' %>>
+                  <option value=""><%= question.required ? 'Select an answer' : 'No answer' %></option>
+                  <% (question.options || []).forEach(function (option) { %>
+                    <option value="<%= option %>"><%= option %></option>
+                  <% }); %>
+                </select>
+              </label>
+            <% } else { %>
+              <label for="walkinCustom<%= question.questionId %>"><%= question.label %><%= question.required ? ' *' : '' %>
+                <input id="walkinCustom<%= question.questionId %>" name="custom_<%= question.questionId %>" maxlength="300" <%= question.required ? 'required' : '' %>>
+              </label>
+            <% } %>
+          <% }); %>
+
+          <%# Required for an onsite entry — someone has to be reachable if they get hurt. %>
+          <label for="walkinEmergencyName">Emergency contact name<input id="walkinEmergencyName" name="emergencyContactName" required maxlength="120"></label>
+          <label for="walkinEmergencyNumber">Emergency contact number<input id="walkinEmergencyNumber" name="emergencyContactNumber" required maxlength="40"></label>
           <label for="walkinSignature">Waiver signed by (type their name)<input id="walkinSignature" name="waiverSignature" required maxlength="120"></label>
 
           <label class="checkin-walkin-check">

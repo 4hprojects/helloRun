@@ -66,6 +66,19 @@ function validateGuestForm(body = {}, event = null, { requireCustomAnswers = tru
     errors.email = 'Enter a valid email address. Your confirmation goes here.';
   }
   if (!form.mobile) errors.mobile = 'Enter a contact number.';
+
+  // `participationMode` and `raceDistance` are both `required` on Registration, so a form
+  // that omits them passes validation here and then throws at save() — which is exactly
+  // how walk-in registration shipped broken: its form had neither field, this validator
+  // raised nothing, and every attempt returned a 500. The contract of this function is
+  // that everything the model requires comes from the form, because a guest has no
+  // profile to fall back on.
+  if (!['virtual', 'onsite'].includes(form.participationMode)) {
+    errors.participationMode = 'Choose how this person is taking part.';
+  }
+  if (!form.raceDistance) {
+    errors.raceDistance = 'Choose a category.';
+  }
   if (!form.waiverAccepted) errors.waiverAccepted = 'You must accept the waiver to register.';
   if (!form.waiverSignature) errors.waiverSignature = 'Type your name to sign the waiver.';
 

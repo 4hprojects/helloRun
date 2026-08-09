@@ -51,10 +51,14 @@ Full analysis:
 The feature checklist was complete; the workflow was not. Both blocking defects
 live in a seam between features rather than inside one.
 
-- [ ] **Walk-in registration 500s through its own form.** No `participationMode`,
-      no `raceDistance`, both required. Also fix the check-in page projection,
-      which omits `raceDistances`, `kitInventory` and `customQuestions` — so a
-      walk-in at a shirt-stocked event would record no size and no answers.
+- [x] **Walk-in registration 500s through its own form.** Fixed August 8, and
+      verified end to end for the first time: the form's own body now registers a
+      walk-in, captures the kit size and the organiser's answers, records desk
+      payment, and the bib assigns immediately. `validateGuestForm` now rejects a
+      missing `participationMode` or `raceDistance` rather than passing them to a
+      `save()` failure, both projections carry the kit and question fields, and a
+      new test builds the body the *form* serialises rather than supplying its
+      own — the specific hole that let this ship.
 - [ ] **An approved onsite result produces nothing without an account.** Rank the
       result and show it on the leaderboard; hold the certificate and badges until
       the registration is claimed by verified email. Needs one migration line.

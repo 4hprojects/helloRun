@@ -28,13 +28,18 @@ const validBody = {
   email: 'Ana@Example.COM',
   mobile: '09171234567',
   participationMode: 'virtual',
+  // Required on Registration, so a body without it is not one the form can produce.
+  raceDistance: '5K',
   waiverAccepted: 'on',
   waiverSignature: 'Ana Reyes'
 };
 
 test('a guest must supply everything, because there is no profile to fall back on', () => {
   const { errors } = validateGuestForm({});
-  ['firstName', 'lastName', 'email', 'mobile', 'waiverAccepted', 'waiverSignature'].forEach((field) => {
+  // participationMode and raceDistance are on this list because their absence used to pass
+  // validation and then throw at save() — which is how walk-in registration shipped broken.
+  ['firstName', 'lastName', 'email', 'mobile', 'waiverAccepted', 'waiverSignature',
+    'participationMode', 'raceDistance'].forEach((field) => {
     assert.ok(errors[field], `${field} should be required`);
   });
 });

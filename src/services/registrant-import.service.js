@@ -109,19 +109,20 @@ async function previewRegistrantImport(buffer, filename, { eventId, event = null
       requireCustomAnswers: false
     });
 
-    if (Object.keys(errors).length > 0) {
-      rejected.push({ row: rowNumber, email: form.email, error: Object.values(errors)[0] });
-      continue;
-    }
-
-    // Registration requires a category. Catch it here rather than letting the write fail
-    // after the organiser has already confirmed the import.
+    // Registration requires a category, and validateGuestForm now says so — but its message
+    // is generic. An organiser importing a spreadsheet needs to be told to add a *column*,
+    // so the specific guidance is checked first and wins.
     if (!form.raceDistance) {
       rejected.push({
         row: rowNumber,
         email: form.email,
         error: 'No category given, and this event offers more than one. Add a category column.'
       });
+      continue;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      rejected.push({ row: rowNumber, email: form.email, error: Object.values(errors)[0] });
       continue;
     }
 

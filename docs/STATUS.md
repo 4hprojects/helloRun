@@ -35,7 +35,8 @@ core platform:
 - revocable bib QR codes, withdrawn on cancellation and bib reassignment, with
   scanning distinguishing withdrawn from unrecognised and unreadable;
 - guest registration without an account, with hashed manage/claim links, plus
-  bulk registrant import
+  organiser walk-in registration at the check-in desk — repaired and verified end
+  to end on August 8 — and bulk registrant import
   from a CSV or XLSX — all three sharing one guest path, so a person with no
   HelloRun account can be entered by any route and later claim the entry with a
   verified email;
@@ -98,12 +99,6 @@ production services.
 
 ## Implemented but Not Working
 
-- **Organiser walk-in registration.** Built and unit-tested, but broken through its
-  own interface: the check-in form posts neither `participationMode` nor
-  `raceDistance`, both required on `Registration`, so every walk-in returns a 500.
-  Verified August 8 by running the path. The tests passed because they called
-  `createWalkInRegistration` directly with the fields already supplied. See
-  [features/onsite-registration-expansion/workflow-analysis.md](features/onsite-registration-expansion/workflow-analysis.md).
 - **Onsite results for participants without an account.** An approved result records
   `onsite_results` and then stops — no submission, ranking, leaderboard entry, badge
   or certificate. Five of the six registration paths produce a guest row, so this is

@@ -112,7 +112,9 @@ test('sizes compare the same however they were typed', () => {
 test('a size is only demanded when the event actually stocks one', () => {
   const base = {
     firstName: 'A', lastName: 'B', email: 'a@b.com', mobile: '0917',
-    participationMode: 'virtual', waiverAccepted: true, waiverSignature: 'A B'
+    // raceDistance is required on Registration, so a fixture without one is not a form a
+    // browser could ever produce.
+    participationMode: 'virtual', raceDistance: '5K', waiverAccepted: true, waiverSignature: 'A B'
   };
 
   // No inventory: never asked, and a stray value is not carried onto the record.

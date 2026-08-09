@@ -48,7 +48,7 @@ router.get('/events/:eventId/check-in', protectOnsiteRead('check_in'), async (re
   try {
     const { eventId } = req.params;
     const event = await Event.findById(eventId)
-      .select('title slug eventType eventTypesAllowed startDate venueName')
+      .select('title slug eventType eventTypesAllowed startDate venueName raceDistances kitInventory kitSizeRequired customQuestions')
       .lean();
 
     if (!event) {
