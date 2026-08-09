@@ -167,7 +167,15 @@ Removal only, no behaviour change, each independently revertable.
       every live verification is a probe against production with throwaway data.
 - [ ] Execute the deferred live-database verification backlog in that
       environment.
-- [ ] Document and test backup, restore, rollback and deployment runbooks.
+- [x] **Document** backup, restore, rollback and deployment runbooks. Written
+      August 8: [`operations/deployment-runbook.md`](operations/deployment-runbook.md).
+      Covers how to verify a deploy actually landed, what to do when it does not,
+      the migration order, and rollback. Also pins the Node version in `engines`,
+      which was unset — the platform was free to change it under us.
+- [ ] **Test** the restore path. The runbook describes what exists but nobody has
+      restored an Atlas snapshot or a Supabase backup, so it is a plan and not a
+      capability. Needs the isolated environment above to rehearse in. **This is
+      the largest untested risk on the platform.**
 
 Detailed plan:
 [`improvement-plan/phase-2-environments-and-data-safety.md`](improvement-plan/phase-2-environments-and-data-safety.md).

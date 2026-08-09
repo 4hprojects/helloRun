@@ -8,6 +8,8 @@
 
 **Forward priorities and the tracked checklist:** [ROADMAP.md](ROADMAP.md)
 
+**Deploying, verifying or rolling back:** [operations/deployment-runbook.md](operations/deployment-runbook.md)
+
 ## Implemented and Repository-Verified
 
 The repository contains implementation and focused automated coverage for the
