@@ -2,7 +2,7 @@
 
 **Document owner:** stable product requirements
 
-**Last reconciled:** July 31, 2026
+**Last reconciled:** August 8, 2026
 
 **Current delivery state:** see [STATUS.md](STATUS.md)
 
@@ -32,6 +32,13 @@ A runner can discover events, register, upload payment or run proof, connect
 supported activity providers, monitor review states, view results, earn
 certificates and badges, save events, join running groups, and manage profile
 and notification preferences.
+
+A participant may also take part **without a HelloRun account** — registering as
+a guest, being entered at the desk, or being imported by an organiser. A guest
+reaches their registration, bib and check-in code through a private emailed link
+rather than a session, and can claim the registration onto an account later by
+proving the same email address. Results recorded for a guest still count and
+rank; certificates and badges require an account and are issued on claim.
 
 ### Organiser
 
@@ -64,6 +71,22 @@ server-enforced privilege boundaries.
 - Preserve registration-time price and payment context.
 - Keep runner-facing lifecycle states consistent across dashboard,
   registrations, submissions, notifications, and orders.
+- Accept a participant through any of: self-serve with an account, self-serve as
+  a guest, an organiser registering a walk-in at the venue, a bulk import, a
+  waitlist offer, or a transfer from another participant. Every route must
+  produce the same kind of registration, subject to the same waiver, emergency
+  contact and duplicate rules.
+- Enforce a category's capacity where one is set, claiming the place atomically
+  so two people cannot take the same last slot.
+- Offer a waitlist for a full category where the organiser keeps one. An offer
+  holds a real place and expires, so a place is never held indefinitely by
+  someone who has stopped responding.
+- Track race-kit stock per size where the organiser stocks sizes, counting a kit
+  when it is handed over rather than when somebody registers.
+- Allow an organiser to collect their own questions at registration, and to
+  transfer a registration to a different person where the event permits it.
+  A transfer moves who is running and never moves money; the new participant
+  signs the waiver themselves.
 
 ### Proof, review, and completion
 
@@ -99,7 +122,9 @@ server-enforced privilege boundaries.
   confirmations where appropriate, idempotency, and audit records.
 - Prefer bounded queries, shared workers, graceful degradation, and observable
   health/readiness behavior.
-- Never treat DB-free verification as proof of production behavior.
+- Never treat DB-free verification as proof of production behavior, and never
+  treat a test that supplies its own input as proof that the interface producing
+  that input works.
 
 ## Documentation Boundaries
 

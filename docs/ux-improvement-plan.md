@@ -1,9 +1,27 @@
 # HelloRun — UX Improvement and Efficiency Plan
 
+**Status: Specification — the recommendations stand; the progress narrative does not**
+
 **Created:** June 22, 2026
-**Last updated:** July 17, 2026
+**Last updated:** July 17, 2026 · **Header reconciled:** August 8, 2026
 **Based on:** Full codebase audit, user journey review, and session implementation history
 **See also:** `docs/ROADMAP.md` (priority list), `docs/STATUS.md` (current state)
+
+This document is kept for its **specifications**, which four implementation
+records still cite as their source: [`implementation/quick-wins.md`](implementation/quick-wins.md),
+[`implementation/onboarding-flow.md`](implementation/onboarding-flow.md),
+[`implementation/proof-rejection-guidance.md`](implementation/proof-rejection-guidance.md)
+and [`implementation/bulk-organiser-actions.md`](implementation/bulk-organiser-actions.md).
+
+**Its "what's shipped" and priority narratives are a June–July snapshot and are
+out of date.** Everything in the August 7–8 run — guest registration, walk-in,
+waitlist, kit inventory, transfers, custom questions, category capacity — is
+absent from it. For what is built, read [`STATUS.md`](STATUS.md); for what is
+next, read [`ROADMAP.md`](ROADMAP.md). Both are reconciled to August 8.
+
+The header date is deliberately unchanged: the UX recommendations below have not
+been re-audited against the current system, and moving that date would say they
+had.
 
 ---
 

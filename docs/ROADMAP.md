@@ -204,11 +204,15 @@ Detailed plan:
       so all are labelled implemented rather than blanket-stamped. They stay where
       they are rather than moving to `implementation/`: 11 of them are linked from
       other documents, and relocating would break those links for a filing tidy-up.
-- [ ] `ux-improvement-plan.md` and `PRD.md` declare dates behind their own edits.
-      **Deliberately not bumped.** Moving a reconciliation date without actually
-      reconciling the content is the precise false signal the date exists to
-      prevent. These need their content read against the current system, which is
-      a real review, not a date edit.
+- [x] **`PRD.md` and `ux-improvement-plan.md` were behind their own edits.** Both
+      addressed August 8, differently and on purpose. The PRD was genuinely missing
+      requirements the system now meets — registration without an account, category
+      capacity, waitlists, per-size kit stock, organiser questions, transfers — so
+      those were written in and its date moved. `ux-improvement-plan.md` was not
+      re-dated: its UX recommendations have not been re-audited, and moving the date
+      would claim they had. It now states what it is authoritative for (the specs
+      four implementation records cite) and that its progress narrative is a
+      June–July snapshot superseded by STATUS and ROADMAP.
 
 ## 8. Product expansion
 
