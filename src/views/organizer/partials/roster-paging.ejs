@@ -1,0 +1,28 @@
+<%# Paging for a race-day roster.
+    The list used to cap at 500 with no way past it, so on a 900-runner event 400 people
+    could only be reached by an exact-name search. Says the real total, so staff can tell
+    "that is everyone" from "there are more". %>
+<% var pagingTotal = typeof matchingCount === 'number' ? matchingCount : participants.length; %>
+<% if (pagingTotal > participants.length || (typeof totalPages === 'number' && totalPages > 1)) { %>
+  <nav class="checkin-paging" aria-label="Roster pages">
+    <p class="checkin-note">
+      Showing <%= participants.length %> of <%= pagingTotal %><%= search ? ' matching' : '' %>
+      <%= pagingTotal === 1 ? 'participant' : 'participants' %>
+      — page <%= page %> of <%= totalPages %>.
+    </p>
+    <%
+      var pagingQuery = function (targetPage) {
+        var parts = ['page=' + targetPage];
+        if (search) parts.push('q=' + encodeURIComponent(search));
+        if (typeof limit !== 'undefined' && limit) parts.push('limit=' + limit);
+        return basePath + '?' + parts.join('&');
+      };
+    %>
+    <% if (hasPreviousPage) { %>
+      <a class="nav-login-btn" href="<%= pagingQuery(page - 1) %>" rel="prev">Previous</a>
+    <% } %>
+    <% if (hasNextPage) { %>
+      <a class="nav-login-btn" href="<%= pagingQuery(page + 1) %>" rel="next">Next</a>
+    <% } %>
+  </nav>
+<% } %>

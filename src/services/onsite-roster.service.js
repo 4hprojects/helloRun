@@ -19,6 +19,15 @@ function escapeRegex(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * 1-based, and bounded — a hand-typed `?page=99999` should land on an empty list, not scan.
+ */
+function normalisePageNumber(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 1) return 1;
+  return Math.min(parsed, 10000);
+}
+
 function normalizePageSize(value) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_PAGE_SIZE;
@@ -268,6 +277,10 @@ function buildParticipantRow(registration, onsiteState) {
  * @param {Object} options
  * @param {string} [options.search] - name, email, confirmation code, or bib number
  * @param {number} [options.limit]
+ * @param {boolean} [options.includeCancelled] - off by default; a cancelled entry is not
+ *   somebody who is running today.
+ * @param {number} [options.page] - 1-based. Without it a 900-runner event hid 400 people:
+ *   the list capped at 500 with no way to reach past it except an exact-name search.
  * @returns {Promise<Object>} participants, event-wide totals, and list-scoped counts
  */
 async function getOnsiteRosterData(eventId, options = {}) {
@@ -277,10 +290,17 @@ async function getOnsiteRosterData(eventId, options = {}) {
 
   const search = String(options.search || '').trim();
   const limit = normalizePageSize(options.limit);
+  const page = normalisePageNumber(options.page);
+  const skip = (page - 1) * limit;
 
   const query = {
     eventId: new mongoose.Types.ObjectId(String(eventId)),
-    participationMode: 'onsite'
+    participationMode: 'onsite',
+    // A cancelled entry is not a participant. It used to sit on the race-day list looking
+    // exactly like a live one, so a desk could hand over a bib and a kit to somebody whose
+    // registration had been cancelled. `includeCancelled` exists because an organiser
+    // reconciling afterwards does need to see them.
+    ...(options.includeCancelled ? {} : { status: { $ne: 'cancelled' } })
   };
 
   if (search) {
@@ -307,7 +327,10 @@ async function getOnsiteRosterData(eventId, options = {}) {
 
   const registrations = await Registration.find(query)
     .select('confirmationCode participant raceDistance participationMode paymentStatus status registeredAt kitSize kitSizeReleased')
-    .sort({ 'participant.lastName': 1, 'participant.firstName': 1 })
+    // A stable secondary sort, or a name that appears twice can shift between pages and a
+    // participant is silently skipped.
+    .sort({ 'participant.lastName': 1, 'participant.firstName': 1, _id: 1 })
+    .skip(skip)
     .limit(limit)
     .lean();
 
@@ -318,7 +341,10 @@ async function getOnsiteRosterData(eventId, options = {}) {
     buildParticipantRow(registration, onsiteState.get(String(registration._id)))
   );
 
-  const totals = await getEventWideTotals(eventId);
+  const [totals, matchingCount] = await Promise.all([
+    getEventWideTotals(eventId),
+    Registration.countDocuments(query)
+  ]);
 
   return {
     participants,
@@ -333,7 +359,16 @@ async function getOnsiteRosterData(eventId, options = {}) {
     },
     search,
     limit,
-    isTruncated: participants.length >= limit
+    page,
+    // How many match this search across every page, so the console can say "showing 100 of
+    // 900" rather than leaving staff to guess whether anyone is missing.
+    matchingCount,
+    totalPages: Math.max(1, Math.ceil(matchingCount / limit)),
+    hasPreviousPage: page > 1,
+    hasNextPage: skip + participants.length < matchingCount,
+    // Kept for callers that still read it, but it now means "there is another page",
+    // which is answerable rather than a dead end.
+    isTruncated: skip + participants.length < matchingCount
   };
 }
 
@@ -342,6 +377,7 @@ module.exports = {
   getOnsiteStateForRegistrations,
   findRegistrationByExactBib,
   getEventWideTotals,
+  normalisePageNumber,
   // exported for unit tests
   buildParticipantRow,
   escapeRegex,

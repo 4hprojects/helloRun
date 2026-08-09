@@ -68,9 +68,7 @@
         </form>
       </section>
 
-      <% if (isTruncated) { %>
-        <p class="checkin-note">Showing the first <%= participants.length %> matches. Narrow the search to see more.</p>
-      <% } %>
+      <%- include('partials/roster-paging', { basePath: '/organizer/events/' + eventId + '/bibs' }) %>
 
       <% if (listCounts.missingShadowRecord > 0) { %>
         <p class="checkin-alert" role="alert">

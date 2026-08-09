@@ -1,6 +1,6 @@
 # Onsite Registration Workflow — End-to-End Analysis
 
-**Status: Both blocking defects fixed; ten further gaps open**
+**Status: Both blocking defects fixed; all ten further gaps closed**
 
 **Last reconciled:** August 8, 2026 · **Delivery state:** [STATUS.md](../../STATUS.md) · **Sequencing:** [delivery-plan.md](delivery-plan.md)
 
@@ -41,8 +41,8 @@ still right.
 | Stage | State | Note |
 |---|---|---|
 | Bib assignment | works | Scoped to the event since August 8; guests permitted since migration `024` |
-| Race pass / bib QR | **account only** | `requireAuth` + `requireRunnerWorkspace`, and scoped by `userId` — a guest row has none |
-| Check-in | works | Name/code search; scan works only for account holders who can open a pass |
+| Race pass / bib QR | works | Account holders via `/my-registrations`; guests via their manage link (Aug 8) |
+| Check-in | works | Name/code search, and QR scanning now works for guests too |
 | Race kit release | works | Atomic per-size claim, substitution recorded |
 | Result recording | works | |
 | Result approval | works | Writes `onsite_results` |
@@ -133,10 +133,10 @@ on the onsite tables.
 | 6 | ~~Import commit trusts client-supplied rows~~ | **Fixed Aug 8** — validation and the duplicate check re-run at commit |
 | 7 | ~~Import's shadow-sync failure is never recorded~~ | **Fixed Aug 8** — writes a `sync_failures` row the retry worker can see |
 | 8 | ~~Guest duplicate check ignores accounts~~ | **Fixed Aug 8** — the public route now checks both kinds, as the walk-in desk did |
-| 9 | No guest-reachable race pass | Every guest, walk-in, imported and waitlist-claimed participant must be checked in by name or code |
-| 10 | Roster has no pagination | `limit` capped at 500, no `skip`. On a 900-runner event, 400 people are reachable only by exact search |
-| 11 | Mode is never checked against the event | A guest can register `virtual` for an onsite-only event and vanish from the roster |
-| 12 | Roster has no status filter | Cancelled registrations sit on the race-day list |
+| 9 | ~~No guest-reachable race pass~~ | **Built Aug 8** — the guest manage link is the race pass; QR check-in now works for guests |
+| 10 | ~~Roster has no pagination~~ | **Fixed Aug 8** — paged, with the real total shown; the offline export pages through too |
+| 11 | ~~Mode is never checked against the event~~ | **Fixed Aug 8** — refused, so nobody holds an entry invisible on race day |
+| 12 | ~~Roster has no status filter~~ | **Fixed Aug 8** — cancelled entries are off the list, reachable via `includeCancelled` |
 
 ---
 

@@ -63,7 +63,8 @@ router.get('/events/:eventId/check-in', protectOnsiteRead('check_in'), async (re
 
     const consoleData = await getOnsiteRosterData(eventId, {
       search: req.query.q,
-      limit: req.query.limit
+      limit: req.query.limit,
+      page: req.query.page
     });
 
     return res.render('organizer/event-check-in', {
@@ -74,7 +75,12 @@ router.get('/events/:eventId/check-in', protectOnsiteRead('check_in'), async (re
       totals: consoleData.totals,
       listCounts: consoleData.listCounts,
       search: consoleData.search,
-      isTruncated: consoleData.isTruncated
+      isTruncated: consoleData.isTruncated,
+      page: consoleData.page,
+      totalPages: consoleData.totalPages,
+      matchingCount: consoleData.matchingCount,
+      hasPreviousPage: consoleData.hasPreviousPage,
+      hasNextPage: consoleData.hasNextPage
     });
   } catch (error) {
     return next(error);
@@ -99,7 +105,19 @@ router.get(
         });
       }
 
-      const consoleData = await getOnsiteRosterData(eventId, { limit: 500 });
+      // Paged through rather than capped. This is the list staff fall back on when
+      // connectivity drops, so silently stopping at 500 would hide 400 people on a
+      // 900-runner event at exactly the wrong moment.
+      const pageSize = 500;
+      const participants = [];
+      let page = 1;
+      let consoleData = await getOnsiteRosterData(eventId, { limit: pageSize, page });
+      participants.push(...consoleData.participants);
+      while (consoleData.hasNextPage && page < 40) {
+        page += 1;
+        consoleData = await getOnsiteRosterData(eventId, { limit: pageSize, page });
+        participants.push(...consoleData.participants);
+      }
 
       const headers = [
         'Bib',
@@ -111,7 +129,7 @@ router.get(
         'Emergency contact',
         'Emergency number'
       ];
-      const rows = consoleData.participants.map((participant) => [
+      const rows = participants.map((participant) => [
         participant.bibNumber,
         participant.confirmationCode,
         participant.fullName,
@@ -191,7 +209,8 @@ router.get('/events/:eventId/bibs', protectOnsiteRead('check_in'), async (req, r
 
     const rosterData = await getOnsiteRosterData(eventId, {
       search: req.query.q,
-      limit: req.query.limit
+      limit: req.query.limit,
+      page: req.query.page
     });
 
     return res.render('organizer/event-bibs', {
@@ -202,7 +221,12 @@ router.get('/events/:eventId/bibs', protectOnsiteRead('check_in'), async (req, r
       totals: rosterData.totals,
       listCounts: rosterData.listCounts,
       search: rosterData.search,
-      isTruncated: rosterData.isTruncated
+      isTruncated: rosterData.isTruncated,
+      page: rosterData.page,
+      totalPages: rosterData.totalPages,
+      matchingCount: rosterData.matchingCount,
+      hasPreviousPage: rosterData.hasPreviousPage,
+      hasNextPage: rosterData.hasNextPage
     });
   } catch (error) {
     return next(error);
@@ -224,7 +248,8 @@ router.get('/events/:eventId/race-kits', protectOnsiteRead('race_kit'), async (r
 
     const rosterData = await getOnsiteRosterData(eventId, {
       search: req.query.q,
-      limit: req.query.limit
+      limit: req.query.limit,
+      page: req.query.page
     });
 
     return res.render('organizer/event-race-kits', {
@@ -236,7 +261,12 @@ router.get('/events/:eventId/race-kits', protectOnsiteRead('race_kit'), async (r
       totals: rosterData.totals,
       listCounts: rosterData.listCounts,
       search: rosterData.search,
-      isTruncated: rosterData.isTruncated
+      isTruncated: rosterData.isTruncated,
+      page: rosterData.page,
+      totalPages: rosterData.totalPages,
+      matchingCount: rosterData.matchingCount,
+      hasPreviousPage: rosterData.hasPreviousPage,
+      hasNextPage: rosterData.hasNextPage
     });
   } catch (error) {
     return next(error);
@@ -258,7 +288,8 @@ router.get('/events/:eventId/onsite-results', protectOnsiteRead('results'), asyn
 
     const rosterData = await getOnsiteRosterData(eventId, {
       search: req.query.q,
-      limit: req.query.limit
+      limit: req.query.limit,
+      page: req.query.page
     });
 
     return res.render('organizer/event-onsite-results', {
@@ -269,7 +300,12 @@ router.get('/events/:eventId/onsite-results', protectOnsiteRead('results'), asyn
       totals: rosterData.totals,
       listCounts: rosterData.listCounts,
       search: rosterData.search,
-      isTruncated: rosterData.isTruncated
+      isTruncated: rosterData.isTruncated,
+      page: rosterData.page,
+      totalPages: rosterData.totalPages,
+      matchingCount: rosterData.matchingCount,
+      hasPreviousPage: rosterData.hasPreviousPage,
+      hasNextPage: rosterData.hasNextPage
     });
   } catch (error) {
     return next(error);

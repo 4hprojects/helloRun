@@ -107,12 +107,22 @@ live in a seam between features rather than inside one.
       The public guest route now uses `findAnyExistingRegistration`, which the
       walk-in desk has always used, so an account holder can no longer register a
       second time as a guest and arrive as two people for one bib.
-- [ ] **Decide:** guests have no reachable race pass, so every guest, walk-in,
-      imported and waitlist-claimed participant must be checked in by name or code.
-      A product call, not a bug.
-- [ ] The onsite roster has no pagination — 500 max, no `skip`.
-- [ ] Participation mode is never checked against the event, so a guest can
-      register virtual for an onsite-only race and vanish from the roster.
+- [x] **Guests have no reachable race pass.** Built August 8. The guest's existing
+      manage link now shows their bib and check-in QR — one credential, already
+      hashed and already revoked on cancellation and claim, rather than a second
+      one. QR check-in works for walk-ins and imported runners for the first time.
+- [x] **The onsite roster has no pagination.** Fixed August 8: paging on the
+      check-in, bibs, race-kit and results pages, reporting the real total so staff
+      can tell "that is everyone" from "there are more". The offline backup export
+      pages through instead of silently stopping at 500 — the worst place for a
+      truncation, since it is what staff fall back on when connectivity drops.
+- [x] **Participation mode is never checked against the event.** Fixed August 8 —
+      a guest could hold a confirmed entry that never appeared on the race-day
+      roster, because the roster filters on exactly `onsite`.
+- [x] **The roster showed cancelled registrations.** Fixed August 8: a cancelled
+      entry looked identical to a live one, so a desk could hand over a bib and a
+      kit for a registration that no longer existed. `includeCancelled` keeps them
+      reachable for an organiser reconciling afterwards.
 
 ## 3. Dead code
 

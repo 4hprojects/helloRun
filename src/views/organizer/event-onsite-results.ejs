@@ -57,9 +57,7 @@
         </form>
       </section>
 
-      <% if (isTruncated) { %>
-        <p class="checkin-note">Showing the first <%= participants.length %> matches. Narrow the search to see more.</p>
-      <% } %>
+      <%- include('partials/roster-paging', { basePath: '/organizer/events/' + eventId + '/onsite-results' }) %>
 
       <section aria-labelledby="results-list-title">
         <h2 class="visually-hidden" id="results-list-title">Participants</h2>

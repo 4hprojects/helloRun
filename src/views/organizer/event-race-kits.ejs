@@ -55,9 +55,7 @@
         </form>
       </section>
 
-      <% if (isTruncated) { %>
-        <p class="checkin-note">Showing the first <%= participants.length %> matches. Narrow the search to see more.</p>
-      <% } %>
+      <%- include('partials/roster-paging', { basePath: '/organizer/events/' + eventId + '/race-kits' }) %>
 
       <% if ((inventory || []).length) { %>
         <section class="checkin-scanner" aria-labelledby="kit-stock-title">

@@ -32,6 +32,20 @@ function normaliseEmail(value) {
 }
 
 /**
+ * Does this event actually run the kind of participation being asked for?
+ *
+ * `eventTypesAllowed` is the explicit list where one exists. Falling back to `eventType`
+ * keeps events created before that field was populated working: `hybrid` offers both.
+ */
+function eventOffersMode(event, mode) {
+  const allowed = (Array.isArray(event?.eventTypesAllowed) ? event.eventTypesAllowed : []).filter(Boolean);
+  if (allowed.length) return allowed.includes(mode) || allowed.includes('hybrid');
+  const type = String(event?.eventType || '').trim();
+  if (!type || type === 'hybrid') return true;
+  return type === mode;
+}
+
+/**
  * Validate what a guest must supply.
  *
  * An account registration can fall back to the profile for anything missing. A guest has
@@ -75,6 +89,11 @@ function validateGuestForm(body = {}, event = null, { requireCustomAnswers = tru
   // profile to fall back on.
   if (!['virtual', 'onsite'].includes(form.participationMode)) {
     errors.participationMode = 'Choose how this person is taking part.';
+  } else if (event && !eventOffersMode(event, form.participationMode)) {
+    // Checked against the event, not just the enum. A guest could register `virtual` for
+    // an onsite-only race, which the onsite roster filters on — so they vanished from the
+    // race-day list entirely while holding a confirmed entry.
+    errors.participationMode = 'This event does not offer that kind of participation.';
   }
   if (!form.raceDistance) {
     errors.raceDistance = 'Choose a category.';

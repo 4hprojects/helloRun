@@ -16,10 +16,26 @@
       </header>
 
       <section class="race-pass-card">
-        <p class="race-pass-bib-label">Confirmation code</p>
-        <p class="race-pass-bib"><%= registration.confirmationCode %></p>
-        <% if (registration.status === 'cancelled') { %>
-          <p class="race-pass-status">This registration was cancelled.</p>
+        <% if (registration.status !== 'cancelled' && locals.onsite && locals.onsite.bibNumber) { %>
+          <p class="race-pass-bib-label">Your bib</p>
+          <p class="race-pass-bib"><%= onsite.bibNumber %></p>
+          <% if (locals.qrDataUrl) { %>
+            <img class="race-pass-qr" src="<%= qrDataUrl %>" alt="Check-in QR code for bib <%= onsite.bibNumber %>" width="260" height="260">
+            <p class="race-pass-hint">Show this at the check-in desk. It is scanned once and re-drawn every time you open this page, so a screenshot still works.</p>
+          <% } %>
+          <% if (onsite.checkedInAt) { %>
+            <p class="race-pass-status">Checked in.</p>
+          <% } %>
+          <p class="race-pass-bib-label">Confirmation code</p>
+          <p class="race-pass-code"><%= registration.confirmationCode %></p>
+        <% } else { %>
+          <p class="race-pass-bib-label">Confirmation code</p>
+          <p class="race-pass-bib"><%= registration.confirmationCode %></p>
+          <% if (registration.status === 'cancelled') { %>
+            <p class="race-pass-status">This registration was cancelled.</p>
+          <% } else if (registration.participationMode === 'onsite') { %>
+            <p class="race-pass-hint">Your bib appears here once the organiser has assigned one.</p>
+          <% } %>
         <% } %>
       </section>
 

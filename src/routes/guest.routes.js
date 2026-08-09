@@ -29,6 +29,8 @@ const {
   touchLastUsed
 } = require('../services/guest-registration-token.service');
 const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
+const { getOnsiteStateForRegistrations } = require('../services/onsite-roster.service');
+const { renderBibQrCode } = require('../services/bib-qr-token.service');
 
 // Unauthenticated writes, so tighter than the signed-in equivalents.
 const guestRegistrationLimiter = createRateLimiter({
@@ -169,12 +171,33 @@ router.get('/guest/registrations/:token', guestLookupLimiter, async (req, res, n
       .select('title slug eventStartAt venueName feeMode')
       .lean();
 
+    // This link is the guest's race pass as well as their receipt. Without it, every guest,
+    // walk-in, imported and waitlist-claimed participant had to be found by name at the
+    // desk, because the account race pass is session-scoped and a guest has no session.
+    // Reusing the manage token rather than minting a second credential: it is already
+    // hashed, already single-purpose, and already revoked on cancellation and on claim.
+    const onsite =
+      (await getOnsiteStateForRegistrations([String(registration._id)])).get(String(registration._id)) || null;
+
+    let qrDataUrl = '';
+    if (onsite?.bibNumber) {
+      try {
+        const qr = await renderBibQrCode(String(registration.eventId), onsite.bibNumber, registration._id);
+        qrDataUrl = qr.data_url;
+      } catch (error) {
+        // The pass is still useful with the bib number alone, so this must not 500 the page.
+        logger.error(`Guest race pass QR generation failed for ${registration._id}: ${error.message}`);
+      }
+    }
+
     touchLastUsed(resolved.record._id);
 
     return res.render('pages/guest-registration', {
       title: `Your registration - ${event?.title || 'Event'}`,
       event,
-      registration
+      registration,
+      onsite,
+      qrDataUrl
     });
   } catch (error) {
     return next(error);
