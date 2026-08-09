@@ -129,6 +129,30 @@ Work down this list. Each has actually happened.
    specific to sharing a host with other apps — nothing in this repository
    would ever surface it.
 
+### A different shape: the origin is gone
+
+A stalled deploy still serves the old commit. **If every path returns `502` —
+including `/` — the origin is not answering at all**, which is a separate
+failure and a full outage rather than a stale one. Tell them apart from the
+response, not the dashboard:
+
+```bash
+curl -sI https://hellorun.online/healthz | head -3
+```
+
+`server: cloudflare` with a plain-text `error code: 502` body is Cloudflare's own
+edge error, meaning it could not get a response from Render. Nothing in the
+repository can fix that and no push will route around it — it needs the Render
+dashboard.
+
+Before assuming the code is at fault, check whether the commit boots:
+`PORT=3211 node src/server.js` and curl `/healthz` locally. A clean local boot on
+the same commit points at the platform or the service configuration, not at the
+build.
+
+**Observed August 9, 2026:** every endpoint returned `502` from Cloudflare while
+the same commit booted locally and served `/healthz` in about eleven seconds.
+
 ## 4. Migrations
 
 Never bundled with a deploy. Always run deliberately, in this order — the same
