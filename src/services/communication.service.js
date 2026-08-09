@@ -733,6 +733,9 @@ async function sendEventEmail(eventKey, payload = {}) {
   if (eventKey === 'registration.waitlist_offer') {
     return emailService.sendWaitlistOfferEmail(email.to, email);
   }
+  if (eventKey === 'registration.transfer_completed') {
+    return emailService.sendRegistrationTransferCompletedEmail(email.to, email);
+  }
   if (eventKey === 'registration.transfer_invited') {
     return emailService.sendRegistrationTransferInviteEmail(email.to, email);
   }

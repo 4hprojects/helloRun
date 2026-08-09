@@ -278,3 +278,45 @@ test('the settings are reachable and the page is linked', () => {
   }
   assert.match(read('src/services/organizer-event-detail.service.js'), /label: 'Transfers'/);
 });
+
+// --- Three things a transfer used to lose -------------------------------------------------
+
+test('the new holder always gets a way to reach their entry', () => {
+  // completeTransfer minted the token and handed it back to the caller. The self-serve
+  // path rendered it once; the organiser approval path — which is the *default*, since
+  // transferRequiresApproval defaults true — threw it away, leaving a guest recipient with
+  // no route to their own registration at all.
+  assert.match(service, /async function sendTransferCompleted/);
+  assert.match(service, /await sendTransferCompleted\(\{ event, registration, manageToken \}\)/);
+  // It is their credential, so it goes to them rather than into a response an organiser reads.
+  assert.doesNotMatch(organiserRoutes, /manageToken/);
+  assert.match(organiserRoutes, /it is the recipient's\n      \/\/ credential/);
+
+  // Only a guest needs the link; an account holder reaches it through /my-registrations.
+  assert.match(service, /manageToken \? `\$\{baseUrl\}\/guest\/registrations\/\$\{manageToken\}` : ''/);
+
+  // A failed email must not undo a completed swap, but must be loud.
+  assert.match(service, /Completion email failed for/);
+
+  // The event is registered and has a sender, like every other locked communication.
+  const registry = read('src/services/communication-events.registry.js');
+  assert.match(registry, /eventKey: 'registration\.transfer_completed'/);
+  assert.match(registry, /the only way in/);
+  assert.match(read('src/services/communication.service.js'), /sendRegistrationTransferCompletedEmail/);
+  assert.match(read('src/services/email.service.js'), /exports\.sendRegistrationTransferCompletedEmail/);
+});
+
+test("the previous participant's answers do not follow the entry", () => {
+  // kitSize is replaced and the waiver re-signed, so inheriting a meal choice and a club
+  // was an omission rather than a policy.
+  assert.match(service, /registration\.customAnswers = \[\]/);
+  assert.match(service, /the same\n  \/\/ mistake as inheriting their waiver/);
+});
+
+test('an onsite entry cannot be transferred into having no emergency contact', () => {
+  const routes = read('src/routes/transfer.routes.js');
+  assert.match(routes, /function isOnsiteEntry/);
+  assert.match(routes, /errors\.emergencyContactName = 'Enter an emergency contact name\.'/);
+  // Every other way into an event enforces this.
+  assert.match(read('src/services/guest-registration.service.js'), /Onsite means someone has to be reachable/);
+});

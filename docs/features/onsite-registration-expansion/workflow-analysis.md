@@ -25,11 +25,11 @@ Everything here was verified by running the path, not by reading it.
 | `participantType` | `account` | `guest` | `guest` | `guest` | `guest` | `account` if the recipient has one, else `guest` |
 | `userId` | set | `null` | `null` | `null` | `null` | recipient's, or `null` |
 | Shadow write | fire-and-forget | fire-and-forget | **awaited** | fire-and-forget | fire-and-forget | already exists |
-| Manage token | n/a | issued + shown | issued, **dropped by the route** | issued, undeliverable unless emails on | issued + shown | **dropped on organiser approval** |
+| Manage token | n/a | issued + shown | issued, **dropped by the route** | issued, undeliverable unless emails on | issued + shown | emailed (fixed Aug 8) |
 | Capacity reserved | yes | yes | yes | yes | held by the offer | same slot |
 | Kit size captured | yes | yes | yes (fixed Aug 8) | **no** | yes | replaced |
-| Custom answers | yes | yes | yes (fixed Aug 8) | **no** | yes | **inherited from the previous person** |
-| Emergency contact | required | required when onsite | required (fixed Aug 8) | required when onsite | required when onsite | **never required** |
+| Custom answers | yes | yes | yes (fixed Aug 8) | **no** | yes | cleared (fixed Aug 8) |
+| Emergency contact | required | required when onsite | required (fixed Aug 8) | required when onsite | required when onsite | required (fixed Aug 8) |
 | Duplicate check | unique index | guests only | guests **and** accounts | in-file + cross-type, preview only | guests only | recipient not already entered |
 
 Only the walk-in awaits the Postgres shadow write, because it is the only path
@@ -127,9 +127,9 @@ on the onsite tables.
 
 | # | Gap | What happens to a participant |
 |---|---|---|
-| 3 | Transfer drops the manage token on organiser approval | A guest recipient has no way to reach their registration. The auto-approve path shows it; approval mode mints and destroys it |
-| 4 | Transfer never resets `customAnswers` | The new person inherits the previous one's meal choice and club. `kitSize` is replaced and the waiver re-signed, so this is an omission, not a policy |
-| 5 | Transfer never requires an emergency contact | An onsite entry can be transferred into having none. Every other path enforces it |
+| 3 | ~~Transfer drops the manage token on organiser approval~~ | **Fixed Aug 8** — emailed to the new holder on both approval paths |
+| 4 | ~~Transfer never resets `customAnswers`~~ | **Fixed Aug 8** — cleared, so the previous person's answers do not follow |
+| 5 | ~~Transfer never requires an emergency contact~~ | **Fixed Aug 8** — demanded for an onsite entry, as everywhere else |
 | 6 | Import commit trusts client-supplied rows | Validation and duplicate checks run only in preview, a separate request |
 | 7 | Import's shadow-sync `.catch` logs but records no sync failure | The retry worker never sees it; recovery depends on the post-save hook having failed too |
 | 8 | Guest duplicate check ignores accounts | An account holder can register again as a guest and arrive twice for one bib. The walk-in path already solves this |

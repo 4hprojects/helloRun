@@ -85,10 +85,17 @@ live in a seam between features rather than inside one.
       certificate and badges are handed over when the registration is claimed with
       a verified email. Probed live: shadow row written with a null runner, one
       ranking row created, no certificate issued, claim backfills the runner.
-- [ ] Transfer drops the recipient's manage token on organiser approval, so a
-      guest recipient cannot reach their registration.
-- [ ] Transfer inherits the previous person's custom answers, and never requires an
-      emergency contact.
+- [x] **Transfer drops the recipient's manage token on organiser approval.** Fixed
+      August 8. `completeTransfer` now emails the link to the new holder via a
+      `registration.transfer_completed` event, so both approval paths deliver it —
+      it is the recipient's credential, not something to hand an organiser in a
+      response body. Also makes the auto-approve path durable, which previously
+      rendered the link once and lost it if the tab closed.
+- [x] **Transfer inherits the previous person's custom answers, and never requires
+      an emergency contact.** Both fixed August 8. Answers are cleared — the kit size
+      was already replaced and the waiver re-signed, so inheriting a meal choice was
+      an omission rather than a policy. An onsite entry now demands the recipient's
+      own emergency contact, as every other route into an event does.
 - [ ] Bulk import commit trusts client-supplied rows — validation and the duplicate
       check run only in the separate preview request.
 - [ ] Import's shadow-sync failure is logged but never recorded, so the retry

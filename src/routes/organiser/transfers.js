@@ -149,9 +149,16 @@ router.post(
         approvedByUserId: req.session?.userId || null
       });
 
+      // The manage token is deliberately not returned here: it is the recipient's
+      // credential, and completeTransfer emails it to them. What the organiser needs to
+      // know is whether that person can now reach their registration.
       return res.json({
         success: true,
-        message: `Entry transferred to ${result.registration.participant.email}.`
+        message:
+          `Entry transferred to ${result.registration.participant.email}.` +
+          (result.registration.userId
+            ? ' They can see it under their HelloRun account.'
+            : ' Their private link has been emailed to them.')
       });
     } catch (error) {
       if (['TRANSFER_UNAVAILABLE', 'NOT_TRANSFERABLE', 'NOT_FOUND'].includes(error.code)) {

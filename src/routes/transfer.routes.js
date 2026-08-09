@@ -39,6 +39,18 @@ function rejectionMessage(reason) {
 }
 
 /**
+ * Is this entry one where somebody will be standing at a start line?
+ *
+ * The registration being transferred already has a participationMode, but this form is
+ * rendered from the event, so the event's own type is what decides whether an emergency
+ * contact is demanded — matching the rule the other registration paths apply.
+ */
+function isOnsiteEntry(event) {
+  const allowed = Array.isArray(event?.eventTypesAllowed) ? event.eventTypesAllowed : [];
+  return event?.eventType !== 'virtual' || allowed.includes('onsite');
+}
+
+/**
  * Check what the recipient has to supply. The waiver is theirs, not the previous person's.
  */
 function validateAcceptForm(body = {}, event = null) {
@@ -59,6 +71,14 @@ function validateAcceptForm(body = {}, event = null) {
   if (!form.mobile) errors.mobile = 'Enter a contact number.';
   if (!form.waiverAccepted) errors.waiverAccepted = 'You must accept the waiver to take this entry.';
   if (!form.waiverSignature) errors.waiverSignature = 'Type your name to sign the waiver.';
+
+  // Onsite means someone has to be reachable if this person gets hurt. Every other way into
+  // an event enforces this; a transfer did not, so an onsite entry could be handed over and
+  // end up with no emergency contact at all.
+  if (isOnsiteEntry(event)) {
+    if (!form.emergencyContactName) errors.emergencyContactName = 'Enter an emergency contact name.';
+    if (!form.emergencyContactNumber) errors.emergencyContactNumber = 'Enter an emergency contact number.';
+  }
 
   if (event && isTrackingSizes(event)) {
     if (!form.kitSize && event.kitSizeRequired) {

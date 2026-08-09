@@ -277,6 +277,13 @@ async function completeTransfer({ transfer, event, approvedByUserId = null }) {
     })
   };
 
+  // The organiser's questions were answered by the previous participant, about themselves —
+  // a meal choice, a club, a shirt cut. Carrying them onto somebody else is the same
+  // mistake as inheriting their waiver. Cleared rather than re-asked: the transfer form
+  // does not collect them, and a wrong answer is worse than a blank one an organiser can
+  // chase.
+  registration.customAnswers = [];
+
   // Their size, not the previous person's. The kit that already went out, if any, is
   // recorded on the transfer rather than pretended away.
   // Their size, not the previous person's — including when they chose not to give one.
@@ -311,6 +318,15 @@ async function completeTransfer({ transfer, event, approvedByUserId = null }) {
   transfer.resolvedAt = new Date();
   transfer.tokenHash = ''; // single use
   await transfer.save();
+
+  // Tell the new holder, and give them the link. This used to be returned to whoever
+  // called completeTransfer — which the self-serve path rendered once, and the organiser
+  // approval path threw away entirely, leaving a guest recipient with no way to reach
+  // their own registration. It is their credential, so it goes to them, not to a response
+  // body an organiser reads.
+  await sendTransferCompleted({ event, registration, manageToken }).catch((error) => {
+    logger.error(`[Transfer] Completion email failed for ${registration._id}: ${error.message}`);
+  });
 
   recordCriticalAuditEventInBackground({
     actorMongoUserId: approvedByUserId || transfer.initiatedByUserId,
@@ -373,6 +389,31 @@ async function expireStaleTransfers({ now = new Date(), limit = 200 } = {}) {
 }
 
 /**
+ * Tell the new holder the entry is theirs, with the link if they have no account.
+ *
+ * Not awaited by the caller's success: the transfer is already complete and correct, and
+ * failing it because an email bounced would undo a swap that has happened. But the failure
+ * is logged loudly, because for a guest this email is the only way in.
+ */
+async function sendTransferCompleted({ event, registration, manageToken }) {
+  const baseUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
+  await communicationService.notify('registration.transfer_completed', {
+    email: {
+      to: registration.participant?.email || '',
+      firstName: registration.participant?.firstName || '',
+      eventTitle: event?.title || 'your event',
+      confirmationCode: registration.confirmationCode || '',
+      // Only a guest gets a link; an account holder reaches it through /my-registrations.
+      manageUrl: manageToken ? `${baseUrl}/guest/registrations/${manageToken}` : '',
+      metadata: {
+        registrationId: String(registration._id),
+        eventId: String(event?._id || registration.eventId)
+      }
+    }
+  });
+}
+
+/**
  * Tell the recipient there is an entry waiting for them.
  *
  * Awaited, like the waitlist offer and for the same reason: the link is the only way to act
@@ -412,6 +453,7 @@ module.exports = {
   resolveWithout,
   expireStaleTransfers,
   sendTransferInvite,
+  sendTransferCompleted,
   listTransfersForEvent,
   getTransferBlock,
   transferDeadline,

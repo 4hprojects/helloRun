@@ -290,6 +290,21 @@ const COMMUNICATION_EVENTS = Object.freeze([
     displayOrder: 256
   },
   {
+    eventKey: 'registration.transfer_completed',
+    name: 'Registration Transfer Completed',
+    description: 'Gives the new holder the link to the entry that has just become theirs.',
+    category: 'registration',
+    priority: 'critical',
+    // For a recipient with no account this link is the only way in. It was previously
+    // rendered once on screen and lost on approval, so it cannot be optional.
+    required: true,
+    emailEnabled: true,
+    inAppEnabled: false,
+    locked: true,
+    recipientRoles: [],
+    displayOrder: 257
+  },
+  {
     eventKey: 'certificate.issued',
     name: 'Certificate Issued',
     description: 'Notifies a runner that a certificate is available.',
