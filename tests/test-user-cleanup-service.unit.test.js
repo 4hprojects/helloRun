@@ -26,6 +26,11 @@ const RunningGroupActivity = require('../src/models/RunningGroupActivity');
 const EventPromotion = require('../src/models/EventPromotion');
 const CertificateTemplate = require('../src/models/CertificateTemplate');
 const CertificateTemplateModel = CertificateTemplate;
+// Event-scoped models the cascade gained when they were added; stubbed so this stays DB-free.
+const GuestRegistrationToken = require('../src/models/GuestRegistrationToken');
+const WaitlistEntry = require('../src/models/WaitlistEntry');
+const RegistrationTransfer = require('../src/models/RegistrationTransfer');
+const BibQrToken = require('../src/models/BibQrToken');
 const criticalAuditService = require('../src/services/critical-audit.service');
 const {
   getTestUserCounts,
@@ -243,6 +248,10 @@ test('purgeTestUsers sums direct ownership deletes with organizer-owned-event ca
     mockDeleteMany(RunningGroupActivity, 1),
     mockDeleteMany(EventPromotion, 1),
     mockDeleteMany(CertificateTemplateModel, 1),
+    mockDeleteMany(GuestRegistrationToken, 0),
+    mockDeleteMany(WaitlistEntry, 0),
+    mockDeleteMany(RegistrationTransfer, 0),
+    mockDeleteMany(BibQrToken, 0),
     mockDeleteMany(Event, 1),
     mockDeleteMany(User, 1),
     mockUpdateMany(Submission),

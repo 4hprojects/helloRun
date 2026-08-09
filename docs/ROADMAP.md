@@ -44,6 +44,25 @@ Completion requires recorded production observations, not repository tests.
       them — the form replays existing values on every save, so stripping them
       would silently downgrade a configured event. STATUS.md corrected.
 
+### Verification-probe safety
+
+- [x] **Probe teardowns left residue in production, twice.** Fixed August 8. Seventeen
+      Postgres tables reference `events_core` and each probe hand-wrote four to six of
+      them; the second miss left a `rankings` row that blocked the event delete.
+      `scripts/probe-cleanup.js` now delegates to the one FK-ordered list in
+      `test-data-cleanup.service`, and **verifies zero residue afterwards rather than
+      assuming** — a teardown that failed quietly is what caused this. Runnable as a
+      sweep: `npm run probe:cleanup:dry`.
+- [x] **An event delete orphaned four event-scoped collections.** Guest tokens,
+      waitlist entries, transfers and bib QR tokens were all added after
+      `cascadeDeleteEventsMongo` was written and none were in it — so the **admin
+      test-data purge** orphaned them too, not just a probe.
+- [ ] Two gaps found while fixing the above, recorded not fixed:
+      `POSTGRES_EVENT_TABLES` omits `orders` and `products_core`, so an event with a
+      shop order still cannot be deleted; and `scripts/cleanup-smoke-tests.js` omits
+      `badge_progress` and `certificate_audit_logs` **and** counts a missing column as
+      zero rows deleted, so its own validation reports clean either way.
+
 ### Onsite workflow gaps, found by an end-to-end trace on August 8
 
 Full analysis:

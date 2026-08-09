@@ -12,6 +12,10 @@ const Submission = require('../src/models/Submission');
 const AccumulatedActivitySubmission = require('../src/models/AccumulatedActivitySubmission');
 const EventPromotion = require('../src/models/EventPromotion');
 const CertificateTemplate = require('../src/models/CertificateTemplate');
+const GuestRegistrationToken = require('../src/models/GuestRegistrationToken');
+const WaitlistEntry = require('../src/models/WaitlistEntry');
+const RegistrationTransfer = require('../src/models/RegistrationTransfer');
+const BibQrToken = require('../src/models/BibQrToken');
 const User = require('../src/models/User');
 const criticalAuditService = require('../src/services/critical-audit.service');
 const {
@@ -148,7 +152,11 @@ test('purgeTestData returns the empty summary and touches nothing when there are
       submissionsDeleted: 0,
       accumulatedSubmissionsDeleted: 0,
       promotionsDeleted: 0,
-      certificateTemplatesDeleted: 0
+      certificateTemplatesDeleted: 0,
+      guestTokensDeleted: 0,
+      waitlistEntriesDeleted: 0,
+      transfersDeleted: 0,
+      bibTokensDeleted: 0
     });
     assert.equal(postgresTouched, false, 'Postgres should never be touched when there is nothing to purge');
   } finally {
@@ -178,6 +186,12 @@ test('purgeTestData deletes Postgres first, then every Mongo collection, then au
     mockDeleteMany(AccumulatedActivitySubmission, 'AccumulatedActivitySubmission', 2),
     mockDeleteMany(EventPromotion, 'EventPromotion', 1),
     mockDeleteMany(CertificateTemplate, 'CertificateTemplate', 5),
+    // Added when these models were: an event delete used to orphan every one of them,
+    // through the admin test-data purge as well as a verification probe.
+    mockDeleteMany(GuestRegistrationToken, 'GuestRegistrationToken', 2),
+    mockDeleteMany(WaitlistEntry, 'WaitlistEntry', 3),
+    mockDeleteMany(RegistrationTransfer, 'RegistrationTransfer', 1),
+    mockDeleteMany(BibQrToken, 'BibQrToken', 4),
     patch(User, 'updateMany', async (filter) => { updateManyFilter = filter; return { modifiedCount: 1 }; }),
     mockDeleteMany(Event, 'Event', 2),
     patch(criticalAuditService, 'recordCriticalAuditEventInBackground', (input) => { auditInput = input; })
@@ -192,11 +206,18 @@ test('purgeTestData deletes Postgres first, then every Mongo collection, then au
       submissionsDeleted: 3,
       accumulatedSubmissionsDeleted: 2,
       promotionsDeleted: 1,
-      certificateTemplatesDeleted: 5
+      certificateTemplatesDeleted: 5,
+      guestTokensDeleted: 2,
+      waitlistEntriesDeleted: 3,
+      transfersDeleted: 1,
+      bibTokensDeleted: 4
     });
 
     const deletedModelNames = deleteManyCalls.map((c) => c.name);
     assert.ok(deletedModelNames.includes('Event'), 'Event.deleteMany should run');
+    for (const name of ['GuestRegistrationToken', 'WaitlistEntry', 'RegistrationTransfer', 'BibQrToken']) {
+      assert.ok(deletedModelNames.includes(name), `${name}.deleteMany should run — it is event-scoped`);
+    }
     const eventDeleteIndex = deletedModelNames.indexOf('Event');
     assert.equal(eventDeleteIndex, deletedModelNames.length - 1, 'Event should be deleted after every child collection');
 
