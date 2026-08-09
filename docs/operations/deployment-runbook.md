@@ -141,17 +141,20 @@ curl -sI https://hellorun.online/healthz | head -3
 ```
 
 `server: cloudflare` with a plain-text `error code: 502` body is Cloudflare's own
-edge error, meaning it could not get a response from Render. Nothing in the
-repository can fix that and no push will route around it — it needs the Render
-dashboard.
+edge error, meaning it could not get a response from the origin. Nothing in the
+repository can fix that and no push will route around it — it needs access to the
+**self-hosted Ubuntu box** (see the correction in §1). Two things to check there,
+in this order: is the app process running and listening, and is whatever connects
+it to Cloudflare (tunnel or port forward) up?
 
 Before assuming the code is at fault, check whether the commit boots:
 `PORT=3211 node src/server.js` and curl `/healthz` locally. A clean local boot on
 the same commit points at the platform or the service configuration, not at the
 build.
 
-**Observed August 9, 2026:** every endpoint returned `502` from Cloudflare while
-the same commit booted locally and served `/healthz` in about eleven seconds.
+**Observed August 9–10, 2026:** every endpoint returned `502` from Cloudflare
+while the same commit booted locally and served `/healthz` in about eleven
+seconds — still down a day later.
 
 ## 4. Migrations
 

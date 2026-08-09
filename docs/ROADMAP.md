@@ -13,11 +13,11 @@ ticked in the same commit that implements it, with a one-line note of the
 evidence. Anything requiring a production migration or a hands-on session says so
 and stops for a decision.
 
-## 0. Production is down — August 9, 2026
+## 0. Production is down — since August 9, 2026
 
 **`https://hellorun.online` returns `502` on every path, including `/`.** The
 body is Cloudflare's own plain-text `error code: 502`, so the edge is up and the
-Render origin is not answering.
+origin is not answering.
 
 This is not the stalled deploy recorded below; a stalled deploy keeps serving the
 old commit. The origin is gone.
@@ -26,11 +26,27 @@ The code is not the obvious suspect: the current commit boots locally and served
 `/healthz` in about eleven seconds on the same machine minutes before this was
 observed.
 
+**Production is self-hosted on an Ubuntu machine of Henz's own** (confirmed
+August 10 — earlier notes here said Render, which was wrong or historical). So a
+`502` means that box is not serving. Two checks, in order:
+
+1. Is the app process running and listening on its port?
+2. Is whatever connects it to Cloudflare — a tunnel, or a port forward — up?
+
+That host is **not** the development workstation this repository sits on: checked
+August 10, it has no tunnel client installed, nginx serves only the `default`
+site with no `hellorun` server block, and nothing is listening on an app port.
+
 **This is yours and nothing else on this list matters until it moves** — every
 remaining item needs a working deployment to verify, and the site is currently
-serving nobody. Start at the Render dashboard: is the service running, did a
-deploy fail, or has the instance been suspended? See
-[operations/deployment-runbook.md](operations/deployment-runbook.md) §3.
+serving nobody. See
+[operations/deployment-runbook.md](operations/deployment-runbook.md) §1 and §3.
+
+- [ ] **Write down how the self-hosted deployment actually works.** Nothing in
+      this repository records how the app is started and kept up, what fronts it,
+      how new code reaches the host, or where its `.env` lives. Until that exists
+      a restart depends on one person remembering, and the runbook describes a
+      platform that is not being used.
 
 ## 1. Verify what is live
 
