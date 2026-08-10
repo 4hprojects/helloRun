@@ -163,9 +163,30 @@ Before assuming the code is at fault, check whether the commit boots:
 the same commit points at the platform or the service configuration, not at the
 build.
 
-**Observed August 9–10, 2026:** every endpoint returned `502` from Cloudflare
-while the same commit booted locally and served `/healthz` in about eleven
-seconds — still down a day later.
+**Observed August 9–10, 2026, and what it actually turned out to be.** Every
+endpoint returned `502` from Cloudflare for more than a day. Three separate
+redeploys changed nothing, because **the app was never the problem** — it booted
+in three seconds and served the homepage `200` against the production databases,
+on both the deployed commit and `HEAD`.
+
+The break was the *path*. This machine is `192.168.1.19`, a private address
+behind NAT, with no tunnel client installed. Port 443 on the public IP was
+answered by the **router's own admin page** — a ZTE web UI, TLS subject
+`CN=192.168.1.1` — which returns a 404 for `/healthz`. Cloudflare connected to
+the origin, got that instead of the app, and returned `502` to every visitor.
+
+**The lesson for next time: for a `502`, check the path before the app.** Two
+commands would have found this in a minute rather than a day:
+
+```bash
+curl -sk https://<your-public-ip>/healthz          # is the app what answers?
+openssl s_client -connect <your-public-ip>:443 </dev/null 2>/dev/null \
+  | openssl x509 -noout -subject                  # whose certificate is it?
+```
+
+If that certificate is not yours, nothing you deploy will help. The fix is
+`deploy/cloudflared-config.yml` — a tunnel dials out, so it needs no port
+forward and survives the residential IP changing.
 
 ## 4. Migrations
 
