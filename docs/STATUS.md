@@ -132,8 +132,19 @@ production services.
 - ~~Deploy `b70b50d` (guest event-page 500).~~ **Resolved August 7.** It shipped with
   the onsite merge; a signed-out request to a real event URL now returns `HTTP 200`,
   verified against production.
+- ~~Production was fully down — `502` on every route, including `/healthz` and
+  `/readyz`.~~ **Resolved August 10.** `hellorun`'s `.env` `PORT` had drifted to
+  `3000`; nginx's live config for this site proxies to `3002`, and `3000` was
+  already held by an unrelated app (`hellotasks`) on the same host, so `hellorun`
+  crash-looped on `EADDRINUSE` for 600+ PM2 restarts. Fixed by correcting `PORT`
+  and restarting only the `hellorun` process; `/healthz`, `/readyz`, and a spread
+  of public pages verified live afterward. This also corrected a standing
+  documentation error: this document and
+  [the deployment runbook](operations/deployment-runbook.md) previously described
+  Render hosting — production runs via PM2 + nginx + a Cloudflare Tunnel on a
+  single host, not Render.
 - Deploy the current revision and complete the AdSense crawl/review procedure.
-- Configure and verify production Redis plus Cloudflare/Render client-IP
+- Configure and verify production Redis plus Cloudflare Tunnel/nginx client-IP
   handling.
 - Create an isolated development or staging data environment and enforce a
   live-database test guard.
