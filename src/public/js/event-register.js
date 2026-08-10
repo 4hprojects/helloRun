@@ -78,7 +78,7 @@
       const addOnAmount = addOns.reduce((total, item) => total + Number(item.amount || 0), 0);
       return {
         modeLabel: mode?.label || fieldValue('participationMode') || 'Not selected',
-        distanceLabel: distance?.title || fieldValue('raceDistance') || 'Not selected',
+        distanceLabel: distance?.goalLabel || distance?.title || fieldValue('raceDistance') || 'Not selected',
         optionLabel: option?.label || '',
         packageLabel: packageOption?.label || '',
         addOns,
@@ -155,6 +155,7 @@
 
     const showClientErrors = (errors) => {
       clearClientErrors();
+      let firstInvalidField = null;
       const hasWaiverAcceptanceError = errors.some((error) => error.id === 'waiverAccepted');
       const hasWaiverSignatureError = errors.some((error) => error.id === 'waiverSignature');
       if (hasWaiverAcceptanceError) setWaiverValidationLock(true);
@@ -163,6 +164,7 @@
         const target = document.getElementById(error.id);
         if (!target) return;
         const invalidField = target?.matches('input, select') ? target : target?.querySelector('input:not([disabled]), select:not([disabled])');
+        if (!firstInvalidField && invalidField) firstInvalidField = invalidField;
         invalidField?.setAttribute('aria-invalid', 'true');
         const message = document.createElement('small');
         const messageId = `registrationClientError-${error.id}`;
@@ -186,6 +188,10 @@
           invalidField.setAttribute('aria-describedby', Array.from(describedBy).join(' '));
         }
       });
+      if (firstInvalidField) {
+        firstInvalidField.focus({ preventScroll: true });
+        firstInvalidField.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      }
     };
 
     const updateEmergencyContactVisibility = () => {

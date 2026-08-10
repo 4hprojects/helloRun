@@ -177,7 +177,7 @@ test('event detail page explains accumulated multi-distance goals by category', 
   assert.equal(response.status, 200);
   const html = await response.text();
 
-  assert.match(html, /Pick a goal that fits your month/i);
+  assert.match(html, /Pick a virtual goal for September/i);
   assert.match(html, /class="event-challenge-goal-grid"/i);
   assert.match(html, /25K Quest[\s\S]*25 km/i);
   assert.match(html, /200K Quest[\s\S]*200 km/i);

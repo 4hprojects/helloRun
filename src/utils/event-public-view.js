@@ -108,7 +108,7 @@ function buildPublicEventView(event, options = {}) {
     targetSteps: challengeConfig.targetSteps,
     rankingOnly: challengeConfig.rankingOnly,
     targetDistanceLabel,
-    completionGoalLabel: hasCategorySpecificGoals ? 'Selected category distance' : targetDistanceLabel,
+    completionGoalLabel: hasCategorySpecificGoals ? 'Selected category goal' : targetDistanceLabel,
     distanceSummaryLabel,
     isAccumulatedChallenge,
     hasCategorySpecificGoals,
@@ -119,6 +119,7 @@ function buildPublicEventView(event, options = {}) {
       targetDistanceLabel
     }),
     challengeDates: buildChallengeDates(event),
+    participantEssentials: isAccumulatedChallenge ? buildParticipantEssentials(event, challengeConfig) : [],
     registrationState,
     pricing,
     pricingOptions,
@@ -188,7 +189,12 @@ function buildChallengeSummary(event, options = {}) {
       : `${formatNumber(distances[0])} km`;
     const stepsValues = goals.map((goal) => Number(goal.targetSteps || 0)).filter((value) => value > 0);
     const stepsLabel = `${formatNumber(Math.min(...stepsValues))} steps`;
-    return `Choose a ${distanceLabel} distance goal, a ${stepsLabel} goal, or both, and build your progress through approved activities during the official event window.`;
+    return `Choose a distance goal (${distanceLabel}), a ${stepsLabel.replace(/ steps$/, '-step')} goal, or a combined goal, and build approved progress during the event window. Combined goals require both targets; one activity can count toward both when it records distance and steps.`;
+  }
+  if (hasStepsGoal) {
+    const stepsValues = goals.map((goal) => Number(goal.targetSteps || 0)).filter((value) => value > 0);
+    const stepsLabel = `${formatNumber(Math.min(...stepsValues))} steps`;
+    return `Choose a ${stepsLabel} challenge and build your steps through approved activities during the official event window.`;
   }
   const goalLabel = distances.length > 1
     ? `${formatNumber(Math.min(...distances))}-${formatNumber(Math.max(...distances))} km`
@@ -206,8 +212,8 @@ function buildChallengeDates(event) {
     },
     {
       key: 'activity',
-      label: 'Activities count',
-      value: formatDateRange(event.virtualWindow?.startAt || event.eventStartAt, event.virtualWindow?.endAt || event.eventEndAt),
+      label: 'Activity period',
+      value: formatCompactDateRange(event.virtualWindow?.startAt || event.eventStartAt, event.virtualWindow?.endAt || event.eventEndAt),
       helper: 'Complete eligible activities in this window'
     },
     {
@@ -219,10 +225,61 @@ function buildChallengeDates(event) {
   ];
 }
 
+function buildParticipantEssentials(event, challengeConfig = {}) {
+  const description = htmlToPlainText(event.description || '');
+  const sentences = description.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
+  const audienceSummary = String(sentences[0] || '').trim();
+  const deviceSummary = String(sentences.find((sentence) => /smartwatch|smartphone|fitness app/i.test(sentence)) || '').trim();
+  const activityStartAt = parseDate(event.virtualWindow?.startAt || event.eventStartAt);
+  const activityEndAt = parseDate(event.virtualWindow?.endAt || event.eventEndAt);
+  const activityDays = activityStartAt && activityEndAt
+    ? Math.max(1, Math.floor((activityEndAt - activityStartAt) / 86400000) + 1)
+    : null;
+  const targetSteps = Number(challengeConfig.targetSteps || 0);
+  const proofTypes = normalizeList(event.proofTypesAllowed);
+  const requiresScreenshot = proofTypes.includes('photo');
+  const items = [];
+
+  if (audienceSummary) items.push({ key: 'eligibility', label: 'Who can join', value: audienceSummary });
+  if (String(event.feeMode || '').trim() === 'free' || String(event.pricingMode || '').trim() === 'free') {
+    items.push({ key: 'cost', label: 'Registration fee', value: 'Free' });
+  }
+  if (String(event.eventType || '').trim() === 'virtual' || normalizeList(event.eventTypesAllowed).includes('virtual')) {
+    items.push({
+      key: 'format',
+      label: 'Where you participate',
+      value: 'Complete eligible activities anywhere — there is no onsite race.'
+    });
+  }
+  if (targetSteps > 0) {
+    const dailySteps = activityDays ? Math.ceil(targetSteps / activityDays / 100) * 100 : null;
+    items.push({
+      key: 'steps-guide',
+      label: 'Step guide',
+      value: dailySteps
+        ? `${formatNumber(targetSteps)} total · about ${formatNumber(dailySteps)} per day`
+        : `${formatNumber(targetSteps)} total steps`
+    });
+  }
+  items.push({
+    key: 'proof',
+    label: 'What to submit',
+    value: requiresScreenshot
+      ? 'Upload a fitness-app screenshot, then enter the matching distance or steps in HelloRun.'
+      : 'Submit only your own accurate, non-duplicate activity records.'
+  });
+  if (deviceSummary) items.push({ key: 'device', label: 'What you need', value: deviceSummary });
+
+  return items;
+}
+
 function buildPublicEventSeo(event, baseUrl = '') {
   const canonicalUrl = baseUrl && event.slug ? `${baseUrl.replace(/\/+$/, '')}/events/${event.slug}` : '';
   const description = htmlToPlainText(event.description || event.eventDetailsMarkdown || '').slice(0, 160);
-  const ogImage = event.bannerImageUrl || event.posterImageUrl || (baseUrl ? `${baseUrl.replace(/\/+$/, '')}/images/helloRun-icon.webp` : '');
+  const preferredImage = event.posterImageUrl || event.bannerImageUrl || '/images/helloRun-icon.webp';
+  const ogImage = /^https?:\/\//i.test(preferredImage)
+    ? preferredImage
+    : (baseUrl ? `${baseUrl.replace(/\/+$/, '')}/${preferredImage.replace(/^\/+/, '')}` : preferredImage);
 
   return {
     description,
@@ -230,7 +287,10 @@ function buildPublicEventSeo(event, baseUrl = '') {
     ogTitle: `${event.title || 'HelloRun Event'} - HelloRun`,
     twitterTitle: `${event.title || 'HelloRun Event'} - HelloRun`,
     ogType: 'article',
-    ogImage
+    ogImage,
+    ogImageWidth: 1200,
+    ogImageHeight: 630,
+    ogImageType: preferredImage.toLowerCase().endsWith('.webp') ? 'image/webp' : undefined
   };
 }
 
@@ -531,7 +591,14 @@ function buildCategoryGoalOptions(raceCategories = []) {
         distanceLabel,
         distanceKm,
         targetSteps,
-        distanceKmLabel: goalLabel
+        // `distanceKmLabel` is retained for older templates and callers. New
+        // presentation code should use the metric-neutral goal label.
+        distanceKmLabel: goalLabel,
+        targetStepsLabel: targetSteps > 0 ? `${formatNumber(targetSteps)} steps` : '',
+        goalTypeLabel: distanceKm > 0 && targetSteps > 0
+          ? 'Distance + steps'
+          : (distanceKm > 0 ? 'Distance goal' : 'Step goal'),
+        goalLabel
       };
     })
     .filter(Boolean);
@@ -558,12 +625,15 @@ function buildRaceCategorySummaries(event) {
       const typeLabel = formatRaceCategoryTypeLabel(category?.type);
       const distanceKm = firstFiniteNumber(category?.distanceKm);
       const distanceKmLabel = distanceKm !== null && distanceKm > 0 ? `${formatNumber(distanceKm)} km` : '';
+      const targetStepsRaw = firstFiniteNumber(category?.targetSteps);
+      const targetSteps = targetStepsRaw !== null && targetStepsRaw > 0 ? targetStepsRaw : 0;
+      const targetStepsLabel = targetSteps > 0 ? `${formatNumber(targetSteps)} steps` : '';
       const slots = firstFiniteNumber(category?.slots);
       const slotsLabel = slots !== null && slots > 0 ? `${formatNumber(slots)} slots` : '';
       const cutoffTime = String(category?.cutoffTime || '').trim();
       const ageGroup = String(category?.ageGroup || '').trim();
       const rewardsDescription = String(category?.rewardsDescription || '').trim();
-      const details = [distanceLabel, distanceKmLabel, slotsLabel, cutoffTime, ageGroup].filter(Boolean);
+      const details = [distanceLabel, distanceKmLabel, targetStepsLabel, slotsLabel, cutoffTime, ageGroup].filter(Boolean);
 
       return {
         id: String(category?.categoryId || category?._id || category?.id || `category-${index + 1}`).trim(),
@@ -573,6 +643,11 @@ function buildRaceCategorySummaries(event) {
         distanceLabel,
         distanceKm,
         distanceKmLabel,
+        targetSteps,
+        targetStepsLabel,
+        goalLabel: distanceKm > 0 && targetSteps > 0
+          ? `${formatNumber(distanceKm)} km + ${formatNumber(targetSteps)} steps`
+          : (distanceKm > 0 ? distanceKmLabel : targetStepsLabel),
         slots,
         slotsLabel,
         cutoffTime,
@@ -599,6 +674,9 @@ function buildRaceCategorySummaries(event) {
         distanceLabel: label,
         distanceKm,
         distanceKmLabel: distanceKm ? `${formatNumber(distanceKm)} km` : '',
+        targetSteps: 0,
+        targetStepsLabel: '',
+        goalLabel: distanceKm ? `${formatNumber(distanceKm)} km` : label,
         slots: null,
         slotsLabel: '',
         cutoffTime: '',
@@ -655,6 +733,9 @@ function buildVirtualRules(event) {
   const challengeConfig = resolveChallengeConfig(event);
   const acceptedActivities = normalizeList(event.acceptedRunTypes).map(formatActivityTypeLabel);
   const proofTypes = normalizeList(event.proofTypesAllowed).map(formatProofTypeLabel);
+  const proofTypeKeys = normalizeList(event.proofTypesAllowed);
+  const supportsScreenshotAndEntry = proofTypeKeys.includes('photo') && proofTypeKeys.includes('manual');
+  const venueMentionsTreadmill = /treadmill/i.test(String(event.venueName || ''));
   const minimumDistance = Number.isFinite(Number(event.minimumActivityDistanceKm)) && Number(event.minimumActivityDistanceKm) > 0
     ? `${formatNumber(event.minimumActivityDistanceKm)} km minimum per submission`
     : '';
@@ -669,7 +750,17 @@ function buildVirtualRules(event) {
     primaryMetric: challengeConfig.primaryMetric,
     rankingOnly: challengeConfig.rankingOnly,
     acceptedActivities,
+    acceptedActivitiesSummary: [
+      acceptedActivities.join(', '),
+      venueMentionsTreadmill ? 'including treadmill walking or running' : ''
+    ].filter(Boolean).join(', '),
     proofTypes,
+    proofInstructions: supportsScreenshotAndEntry
+      ? 'Upload a fitness-app screenshot showing the activity date, then enter the matching distance or steps in HelloRun.'
+      : (proofTypes.length ? `Submit ${proofTypes.join(', ').toLowerCase()} for review.` : 'Submit your result through HelloRun for review.'),
+    submissionTimingInstructions: event.finalSubmissionDeadlineAt
+      ? `Submit after each activity, after several days, or all at once by ${formatDate(event.finalSubmissionDeadlineAt)}.`
+      : 'Submit during the event submission window.',
     minimumDistance,
     finalSubmissionDeadline: formatDate(event.finalSubmissionDeadlineAt),
     leaderboardMode: formatLeaderboardMode(event.leaderboardMode),
@@ -715,7 +806,7 @@ function buildStats({ event, registrationCount, targetDistanceLabel, raceDistanc
   const isAccumulatedChallenge = isAccumulatedChallengeEvent(event);
   const hasMultipleDistances = !isAccumulatedChallenge && raceDistances.length > 1;
   const stats = [
-    { label: 'Signups', value: String(registrationCount), helper: 'Registered runners' }
+    { label: 'Signups', value: String(registrationCount), helper: 'Registered participants' }
   ];
 
   if (isAccumulatedChallenge && raceDistances.length) {
@@ -792,10 +883,10 @@ function formatEventTypeLabel(value) {
 
 function formatActivityTypeLabel(value) {
   const labels = {
-    run: 'Run',
-    walk: 'Walk',
-    hike: 'Hike',
-    trail_run: 'Trail run'
+    run: 'Running or jogging',
+    walk: 'walking',
+    hike: 'hiking',
+    trail_run: 'trail running'
   };
   return labels[value] || value;
 }
@@ -814,8 +905,8 @@ function formatProofTypeLabel(value) {
   const labels = {
     running_app_sync: 'Strava or running app sync',
     gps: 'GPS activity',
-    photo: 'Photo proof',
-    manual: 'Manual entry'
+    photo: 'Fitness-app screenshot',
+    manual: 'Matching activity details'
   };
   return labels[value] || value;
 }
@@ -854,6 +945,22 @@ function formatDateRange(startValue, endValue) {
   const end = formatDate(endValue);
   if (start === 'Date not listed' && end === 'Date not listed') return 'Event window not listed';
   return `${start} - ${end}`;
+}
+
+function formatCompactDateRange(startValue, endValue) {
+  const start = formatDate(startValue);
+  const end = formatDate(endValue);
+  const startParts = start.match(/^([A-Z][a-z]{2}) (\d{1,2}), (\d{4})$/);
+  const endParts = end.match(/^([A-Z][a-z]{2}) (\d{1,2}), (\d{4})$/);
+
+  if (!startParts || !endParts) return formatDateRange(startValue, endValue);
+  if (startParts[3] === endParts[3] && startParts[1] === endParts[1]) {
+    return `${startParts[1]} ${startParts[2]}–${endParts[2]}, ${startParts[3]}`;
+  }
+  if (startParts[3] === endParts[3]) {
+    return `${startParts[1]} ${startParts[2]}–${endParts[1]} ${endParts[2]}, ${startParts[3]}`;
+  }
+  return `${start}–${end}`;
 }
 
 function formatDate(value) {

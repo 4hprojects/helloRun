@@ -42,12 +42,18 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
   const targetDistanceKm = isAccumulated
     ? resolveAccumulatedTargetDistanceKm(registration, event)
     : 0;
+  const targetSteps = isAccumulated
+    ? resolveAccumulatedTargetSteps(registration, event)
+    : null;
+  const effectivePrimaryMetric = targetDistanceKm > 0
+    ? 'distance'
+    : (targetSteps > 0 ? 'steps' : challengeConfig.primaryMetric);
   const progress = isAccumulated
     ? buildAccumulatedProgress({
         activities,
         targetDistanceKm,
-        targetSteps: resolveAccumulatedTargetSteps(registration, event),
-        primaryMetric: challengeConfig.primaryMetric
+        targetSteps,
+        primaryMetric: effectivePrimaryMetric
       })
     : null;
   const challengeTiming = buildChallengeTimingDisplay(registration, event, now);
@@ -58,11 +64,12 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
   const eventStartAt = parseDate(event.virtualWindow?.startAt || event.eventStartAt);
   const beforeActivityWindow = Boolean(eventStartAt && eventStartAt > now);
   const progressPercentage = progress?.primaryTarget > 0 ? roundOne(progress.progressPercent) : null;
-  const primaryMetricLabel = challengeConfig.primaryMetric === 'steps' ? 'steps' : 'distance';
-  const pendingPrimaryValue = challengeConfig.primaryMetric === 'steps'
+  const progressMetrics = buildProgressMetrics(progress);
+  const primaryMetricLabel = effectivePrimaryMetric === 'steps' ? 'steps' : 'distance';
+  const pendingPrimaryValue = effectivePrimaryMetric === 'steps'
     ? Number(progress?.pendingSteps || 0)
     : Number(progress?.pendingDistanceKm || 0);
-  const overPrimaryGoal = challengeConfig.primaryMetric === 'steps'
+  const overPrimaryGoal = effectivePrimaryMetric === 'steps'
     ? Number(progress?.overGoalSteps || 0) > 0
     : Number(progress?.overGoalDistanceKm || 0) > 0;
   const remainingDistanceKm = progress?.targetDistanceKm > 0
@@ -83,7 +90,7 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
     paymentStatus: String(registration.paymentStatus || ''),
     isAccumulated,
     challengeMetrics: challengeConfig.metrics,
-    primaryChallengeMetric: challengeConfig.primaryMetric,
+    primaryChallengeMetric: effectivePrimaryMetric,
     rankingOnly: Boolean(progress?.rankingOnly),
     challengeTiming,
     submissionTiming,
@@ -108,6 +115,8 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
     overGoalDistanceLabel: formatDistance(progress?.overGoalDistanceKm || 0),
     remainingDistanceKm,
     remainingDistanceLabel: remainingDistanceKm === null ? 'Goal not listed' : formatDistance(remainingDistanceKm),
+    progressMetrics,
+    overallProgressLabel: buildOverallProgressLabel(progressMetrics),
     progressPercentage,
     progressLabel: progressPercentage === null ? 'Ranking only — no completion goal' : `${formatNumber(progressPercentage)}% complete`,
     progressBarPercentage: progressPercentage === null ? 0 : Math.min(100, Math.max(0, progressPercentage)),
@@ -148,8 +157,8 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
         state: 'goal_reached',
         stateLabel: overPrimaryGoal ? `Goal reached · extra ${primaryMetricLabel} verified` : 'Goal reached',
         helperText: progress.pendingActivityCount > 0
-          ? `Your badge is earned. Pending ${primaryMetricLabel} remains separate until approval, and you can keep adding eligible activities before the deadline.`
-          : 'Your badge is earned. You can keep adding eligible activities before the deadline; your certificate will use the final verified total.',
+          ? `Your completion is verified. Pending ${primaryMetricLabel} remains separate until approval, and you can keep adding eligible activities before the deadline.`
+          : 'Your completion is verified. You can keep adding eligible activities before the deadline; your certificate will use the final verified total.',
         primaryAction: { type: 'submit', label: 'Add activity', registrationId: String(registration._id || '') },
         secondaryAction: { type: 'link', label: 'View achievements', href: '/runner/achievements' }
       };
@@ -203,7 +212,7 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
     return {
       ...base,
       state: 'registered',
-      stateLabel: 'Ready for July',
+      stateLabel: 'Ready to begin',
       helperText: 'Activity submission opens when the official challenge window begins.',
       primaryAction: { type: 'link', label: 'View registration', href: '/my-registrations' },
       secondaryAction: null
@@ -228,7 +237,9 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
       stateLabel: challengeTiming.closed ? 'Awaiting final review' : 'Activity under review',
       helperText: challengeTiming.closed
         ? 'The activity window has ended. Pending activities are awaiting organizer review.'
-        : `Pending ${primaryMetricLabel} (${pendingPrimaryValue.toLocaleString('en-US')}) is shown separately and does not count toward verified progress yet.`,
+        : (progressMetrics.length > 1
+            ? `Progress from ${progress.pendingActivityCount} pending activit${progress.pendingActivityCount === 1 ? 'y is' : 'ies are'} shown separately and does not count toward either verified goal yet.`
+            : `Pending ${primaryMetricLabel} (${pendingPrimaryValue.toLocaleString('en-US')}) is shown separately and does not count toward verified progress yet.`),
       primaryAction: { type: 'link', label: 'View submissions', href: '/runner/submissions' },
       secondaryAction: challengeTiming.closed
         ? null
@@ -267,9 +278,86 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
   };
 }
 
+function buildProgressMetrics(progress = {}) {
+  const metrics = [];
+  const distanceTarget = Number(progress?.targetDistanceKm || 0);
+  const stepsTarget = Number(progress?.targetSteps || 0);
+
+  if (distanceTarget > 0) {
+    metrics.push(buildProgressMetric({
+      key: 'distance',
+      label: 'Distance',
+      approved: Number(progress.approvedDistanceKm || 0),
+      pending: Number(progress.pendingDistanceKm || 0),
+      target: distanceTarget,
+      formatter: formatDistance
+    }));
+  }
+
+  if (stepsTarget > 0) {
+    metrics.push(buildProgressMetric({
+      key: 'steps',
+      label: 'Steps',
+      approved: Number(progress.approvedSteps || 0),
+      pending: Number(progress.pendingSteps || 0),
+      target: stepsTarget,
+      formatter: formatSteps
+    }));
+  }
+
+  return metrics;
+}
+
+function buildProgressMetric({ key, label, approved, pending, target, formatter }) {
+  const remaining = Math.max(0, target - approved);
+  const overGoal = Math.max(0, approved - target);
+  const potential = approved + pending;
+  const progressPercentage = target > 0 ? roundOne((approved / target) * 100) : null;
+  const complete = target > 0 && approved >= target;
+  const approvedLabel = formatter(approved);
+  const targetLabel = formatter(target);
+  const pendingLabel = formatter(pending);
+  const remainingLabel = formatter(remaining);
+  const overGoalLabel = formatter(overGoal);
+
+  return {
+    key,
+    label,
+    approved,
+    approvedLabel,
+    pending,
+    pendingLabel,
+    target,
+    targetLabel,
+    remaining,
+    remainingLabel,
+    overGoal,
+    overGoalLabel,
+    potential,
+    potentialLabel: formatter(potential),
+    complete,
+    progressPercentage,
+    progressBarPercentage: progressPercentage === null ? 0 : Math.min(100, Math.max(0, progressPercentage)),
+    progressLabel: progressPercentage === null ? 'Goal not listed' : `${formatNumber(progressPercentage)}% complete`,
+    statusLabel: overGoal > 0 ? `${overGoalLabel} over goal` : (complete ? 'Goal reached' : `${remainingLabel} remaining`),
+    ariaValueText: `${approvedLabel} of ${targetLabel}; ${progressPercentage === null ? 'goal not listed' : `${formatNumber(progressPercentage)}% complete`}`
+  };
+}
+
+function buildOverallProgressLabel(progressMetrics = []) {
+  if (!progressMetrics.length) return 'Ranking only — no completion goal';
+  if (progressMetrics.length === 1) return progressMetrics[0].progressLabel;
+  const completedCount = progressMetrics.filter((metric) => metric.complete).length;
+  return `${completedCount} of ${progressMetrics.length} goals reached`;
+}
+
 function formatDistance(value) {
   const number = Number(value || 0);
   return `${formatNumber(number)} km`;
+}
+
+function formatSteps(value) {
+  return `${Math.max(0, Math.round(Number(value || 0))).toLocaleString('en-US')} steps`;
 }
 
 function formatNumber(value) {

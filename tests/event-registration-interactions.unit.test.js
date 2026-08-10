@@ -48,8 +48,8 @@ function buildWindow() {
       profileName: 'Jamie Runner',
       modes: [{ value: 'virtual', label: 'Virtual' }],
       distances: [
-        { value: '25K', title: '25K Starter' },
-        { value: '50K', title: '50K Progress' }
+        { value: '25K', title: '25K Starter', goalLabel: '25 km', targetSteps: 0 },
+        { value: '50K', title: '50K Progress', goalLabel: '50 km + 120,000 steps', targetSteps: 120000 }
       ],
       distancePricing: { '25K': { amount: 0 }, '50K': { amount: 0 } },
       customizedOptions: [],
@@ -67,13 +67,13 @@ test('registration interactions update the live review and gate submission behin
   window.document.dispatchEvent(new window.Event('DOMContentLoaded'));
 
   assert.equal(window.document.querySelector('[data-review-mode]').textContent, 'Virtual');
-  assert.equal(window.document.querySelector('[data-review-distance]').textContent, '25K Starter');
+  assert.equal(window.document.querySelector('[data-review-distance]').textContent, '25 km');
   assert.equal(window.document.querySelector('[data-review-total]').textContent, 'Free');
 
   const distance50 = window.document.getElementById('distance50');
   distance50.checked = true;
   distance50.dispatchEvent(new window.Event('change', { bubbles: true }));
-  assert.equal(window.document.querySelector('[data-review-distance]').textContent, '50K Progress');
+  assert.equal(window.document.querySelector('[data-review-distance]').textContent, '50 km + 120,000 steps');
 
   const addon = window.document.getElementById('addon');
   addon.checked = true;

@@ -201,14 +201,85 @@ test('buildPublicEventView exposes category-specific goals for accumulated multi
   });
 
   assert.equal(publicEvent.hasCategorySpecificGoals, true);
-  assert.equal(publicEvent.completionGoalLabel, 'Selected category distance');
+  assert.equal(publicEvent.completionGoalLabel, 'Selected category goal');
   assert.deepEqual(
     publicEvent.categoryGoalOptions.map((option) => [option.name, option.compactName, option.distanceKmLabel]),
     [['25K Quest', 'Quest', '25 km'], ['50K Quest', 'Quest', '50 km'], ['100K Quest', 'Quest', '100 km']]
   );
   assert.equal(publicEvent.challengeSummary, 'Choose a 25-100 km challenge and build your distance through approved activities during the official event window.');
   assert.equal(publicEvent.secondaryCtas[0].href, '/events/category-quest/leaderboard');
-  assert.deepEqual(publicEvent.challengeDates.map((item) => item.label), ['Register by', 'Activities count', 'Submit by']);
+  assert.deepEqual(publicEvent.challengeDates.map((item) => item.label), ['Register by', 'Activity period', 'Submit by']);
+});
+
+test('buildPublicEventView preserves all mixed distance and step category goals', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'CNS Move More Challenge 2026',
+    slug: 'cns-move-more-challenge-2026',
+    organiserName: 'College of Natural Sciences, Benguet State University',
+    description: 'A free, 30-day virtual wellness challenge for CNS faculty and staff. Use any fitness app you like — no smartwatch required.',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    virtualCompletionMode: 'accumulated_activity',
+    challengeMetrics: ['distance', 'steps'],
+    primaryChallengeMetric: 'distance',
+    targetDistanceKm: 50,
+    targetSteps: 120000,
+    eventStartAt: '2026-09-01T00:00:00+08:00',
+    eventEndAt: '2026-09-30T23:59:00+08:00',
+    finalSubmissionDeadlineAt: '2026-10-02T23:59:00+08:00',
+    virtualWindow: {
+      startAt: '2026-09-01T00:00:00+08:00',
+      endAt: '2026-09-30T23:59:00+08:00'
+    },
+    proofTypesAllowed: ['photo', 'manual'],
+    raceCategories: [
+      { categoryId: '25k', name: '25-Kilometer Challenge', type: 'challenge', distanceKm: 25, targetSteps: 0 },
+      { categoryId: '50k', name: '50-Kilometer Challenge', type: 'challenge', distanceKm: 50, targetSteps: 0 },
+      { categoryId: 'steps', name: '120,000-Step Challenge', type: 'challenge', distanceKm: 0, targetSteps: 120000 },
+      { categoryId: '25k-steps', name: '25-Kilometer and 120,000-Step Challenge', type: 'challenge', distanceKm: 25, targetSteps: 120000 },
+      { categoryId: '50k-steps', name: '50-Kilometer and 120,000-Step Challenge', type: 'challenge', distanceKm: 50, targetSteps: 120000 }
+    ],
+    feeMode: 'free'
+  }, { now: new Date('2026-08-10T00:00:00+08:00') });
+
+  assert.equal(publicEvent.categoryGoalOptions.length, 5);
+  assert.deepEqual(
+    publicEvent.categoryGoalOptions.map((option) => option.goalLabel),
+    ['25 km', '50 km', '120,000 steps', '25 km + 120,000 steps', '50 km + 120,000 steps']
+  );
+  assert.deepEqual(
+    publicEvent.categoryGoalOptions.map((option) => option.goalTypeLabel),
+    ['Distance goal', 'Distance goal', 'Step goal', 'Distance + steps', 'Distance + steps']
+  );
+  assert.equal(publicEvent.raceCategories[2].targetSteps, 120000);
+  assert.equal(publicEvent.raceCategories[2].targetStepsLabel, '120,000 steps');
+  assert.match(publicEvent.challengeSummary, /120,000-step goal/);
+  assert.match(publicEvent.challengeSummary, /Combined goals require both targets/);
+  assert.equal(publicEvent.participantEssentials.find((item) => item.key === 'steps-guide').value, '120,000 total · about 4,000 per day');
+  assert.equal(publicEvent.participantEssentials.find((item) => item.key === 'cost').value, 'Free');
+  assert.equal(publicEvent.participantEssentials.find((item) => item.key === 'proof').value, 'Upload a fitness-app screenshot, then enter the matching distance or steps in HelloRun.');
+  assert.equal(publicEvent.participantEssentials.some((item) => item.key === 'deadline'), false);
+  assert.equal(publicEvent.challengeDates.find((item) => item.key === 'activity').value, 'Sep 1–30, 2026');
+});
+
+test('buildPublicEventView uses step-specific copy for a step-only challenge', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Step Challenge',
+    slug: 'step-challenge',
+    eventType: 'virtual',
+    virtualCompletionMode: 'accumulated_activity',
+    challengeMetrics: ['steps'],
+    primaryChallengeMetric: 'steps',
+    targetSteps: 120000,
+    raceCategories: [
+      { categoryId: 'steps', name: '120,000-Step Challenge', type: 'challenge', distanceKm: 0, targetSteps: 120000 }
+    ],
+    feeMode: 'free'
+  });
+
+  assert.equal(publicEvent.categoryGoalOptions[0].goalLabel, '120,000 steps');
+  assert.match(publicEvent.challengeSummary, /build your steps/i);
+  assert.doesNotMatch(publicEvent.challengeSummary, /build your distance/i);
 });
 
 test('buildPublicEventView formats public event dates in the platform timezone', () => {
@@ -299,6 +370,20 @@ test('buildPublicEventView adds recap for ended public events', () => {
   assert.equal(publicEvent.isEnded, true);
   assert.match(publicEvent.recap.body, /Past Community Run/);
   assert.ok(publicEvent.recap.details.some((item) => item.includes('GPS activity')));
+});
+
+test('buildPublicEventView omits recap while an event is active', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Active Challenge',
+    slug: 'active-challenge',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    eventStartAt: '2026-09-01T00:00:00+08:00',
+    eventEndAt: '2026-09-30T23:59:00+08:00',
+    feeMode: 'free'
+  }, { now: new Date('2026-09-15T12:00:00+08:00') });
+
+  assert.equal(publicEvent.recap, null);
 });
 
 test('buildPublicEventView surfaces customized signup pricing options', () => {
@@ -447,4 +532,22 @@ test('buildPublicEventSeo uses event image and canonical URL', () => {
   assert.equal(seo.canonicalUrl, 'https://hellorun.online/events/seo-event');
   assert.equal(seo.ogImage, 'https://cdn.example.com/banner.webp');
   assert.match(seo.description, /focused event page/);
+});
+
+test('buildPublicEventSeo prefers a social poster and resolves local artwork URLs', () => {
+  const seo = buildPublicEventSeo({
+    title: 'CNS Move More Challenge 2026',
+    slug: 'cns-move-more-challenge-2026',
+    description: 'A CNS wellness challenge.',
+    bannerImageUrl: '/images/events/cns-move-more-challenge-2026/cns-move-more-hero.webp',
+    posterImageUrl: '/images/events/cns-move-more-challenge-2026/cns-move-more-social.webp'
+  }, 'https://hellorun.online/');
+
+  assert.equal(
+    seo.ogImage,
+    'https://hellorun.online/images/events/cns-move-more-challenge-2026/cns-move-more-social.webp'
+  );
+  assert.equal(seo.ogImageWidth, 1200);
+  assert.equal(seo.ogImageHeight, 630);
+  assert.equal(seo.ogImageType, 'image/webp');
 });

@@ -173,6 +173,101 @@ test('event detail does not call an ended challenge in progress during its submi
   assert.equal(review.secondaryAction, null);
 });
 
+test('step-only registrations expose step progress without a fabricated distance goal', () => {
+  const event = buildEvent({
+    slug: 'cns-move-more-challenge-2026',
+    virtualCompletionMode: 'accumulated_activity',
+    challengeMetrics: ['distance', 'steps'],
+    primaryChallengeMetric: 'distance',
+    targetDistanceKm: 50,
+    targetSteps: 120000,
+    raceCategories: [
+      { categoryId: 'steps', name: '120,000-Step Challenge', distanceKm: 0, targetSteps: 120000 }
+    ]
+  });
+  const registration = buildRegistration({
+    raceDistance: '',
+    pricingSnapshot: { raceCategoryId: 'steps', raceCategoryName: '120,000-Step Challenge' }
+  });
+  const state = buildPublicEventRunnerState({
+    event,
+    registration,
+    activities: [
+      { status: 'approved', steps: 48000 },
+      { status: 'submitted', steps: 12000 }
+    ],
+    now: NOW
+  });
+
+  assert.equal(state.primaryChallengeMetric, 'steps');
+  assert.equal(state.targetDistanceKm, 0);
+  assert.equal(state.progressMetrics.length, 1);
+  assert.equal(state.progressMetrics[0].key, 'steps');
+  assert.equal(state.progressMetrics[0].approvedLabel, '48,000 steps');
+  assert.equal(state.progressMetrics[0].pendingLabel, '12,000 steps');
+  assert.equal(state.progressMetrics[0].targetLabel, '120,000 steps');
+  assert.equal(state.progressMetrics[0].remainingLabel, '72,000 steps');
+  assert.equal(state.progressMetrics[0].progressPercentage, 40);
+  assert.equal(state.progressMetrics[0].complete, false);
+  assert.equal(state.overallProgressLabel, '40% complete');
+});
+
+test('dual registrations expose both goals and complete only after both are verified', () => {
+  const event = buildEvent({
+    slug: 'cns-move-more-challenge-2026',
+    virtualCompletionMode: 'accumulated_activity',
+    challengeMetrics: ['distance', 'steps'],
+    primaryChallengeMetric: 'distance',
+    targetDistanceKm: 50,
+    targetSteps: 120000,
+    raceCategories: [
+      { categoryId: 'dual', name: '25-Kilometer and 120,000-Step Challenge', distanceKm: 25, targetSteps: 120000 }
+    ]
+  });
+  const registration = buildRegistration({
+    pricingSnapshot: { raceCategoryId: 'dual', raceCategoryName: '25-Kilometer and 120,000-Step Challenge' }
+  });
+  const incomplete = buildPublicEventRunnerState({
+    event,
+    registration,
+    activities: [{ status: 'approved', distanceKm: 27, steps: 110000 }],
+    now: NOW
+  });
+
+  assert.equal(incomplete.completed, false);
+  assert.deepEqual(incomplete.progressMetrics.map((metric) => metric.key), ['distance', 'steps']);
+  assert.equal(incomplete.progressMetrics[0].statusLabel, '2 km over goal');
+  assert.equal(incomplete.progressMetrics[1].statusLabel, '10,000 steps remaining');
+  assert.equal(incomplete.overallProgressLabel, '1 of 2 goals reached');
+
+  const completed = buildPublicEventRunnerState({
+    event,
+    registration,
+    activities: [{ status: 'approved', distanceKm: 27, steps: 125000 }],
+    now: NOW
+  });
+  assert.equal(completed.completed, true);
+  assert.equal(completed.progressMetrics[1].overGoalLabel, '5,000 steps');
+  assert.equal(completed.overallProgressLabel, '2 of 2 goals reached');
+});
+
+test('pre-window runner state uses month-neutral wording', () => {
+  const state = buildPublicEventRunnerState({
+    event: buildEvent({
+      eventStartAt: '2026-09-01T00:00:00.000Z',
+      eventEndAt: '2026-09-30T23:59:00.000Z',
+      virtualWindow: { startAt: '2026-09-01T00:00:00.000Z', endAt: '2026-09-30T23:59:00.000Z' },
+      finalSubmissionDeadlineAt: '2026-10-02T23:59:00.000Z'
+    }),
+    registration: buildRegistration(),
+    activities: [],
+    now: NOW
+  });
+
+  assert.equal(state.stateLabel, 'Ready to begin');
+  assert.doesNotMatch(state.stateLabel, /July/i);
+});
+
 test('race-result events remain outside the accumulated runner presentation', () => {
   assert.equal(buildPublicEventRunnerState({
     event: buildEvent({ virtualCompletionMode: 'single_activity' }),

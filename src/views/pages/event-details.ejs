@@ -49,6 +49,7 @@
       const registrationToneClass = details.registrationState ? `event-status-${details.registrationState.tone}` : 'event-status-neutral';
       const defaultEventImageUrl = '/images/helloRun-icon.webp';
       const heroImageUrl = details.heroImageUrl || defaultEventImageUrl;
+      const isDefaultHeroImage = heroImageUrl === defaultEventImageUrl;
       const previewReturnHref = typeof previewBackHref !== 'undefined' && previewBackHref ? previewBackHref : '/organizer/create-event';
       const previewErrorsRaw = typeof previewErrors !== 'undefined' ? previewErrors : [];
       const previewErrorMessages = Array.isArray(previewErrorsRaw)
@@ -61,13 +62,14 @@
         details.isAccumulatedChallenge &&
         registrationOptionItems.length > 1
       );
+      const categoryRewardDescriptions = new Set((details.raceCategories || [])
+        .map((category) => String(category.rewardsDescription || '').trim())
+        .filter(Boolean));
       const hasDetailedRaceCategories = (details.raceCategories || []).some((category) => Boolean(
-        (category.type && category.type !== 'distance') ||
         category.slotsLabel ||
         category.cutoffTime ||
-        category.ageGroup ||
-        category.rewardsDescription
-      ));
+        category.ageGroup
+      )) || categoryRewardDescriptions.size > 1;
       const showRaceCategoriesSection = Boolean(
         (details.raceCategories || []).length &&
         (!details.hasCategorySpecificGoals || hasDetailedRaceCategories)
@@ -104,7 +106,7 @@
       <% } %>
     <% } %>
 
-    <section class="event-landing-hero" style="--event-hero-image: url('<%= heroImageUrl %>');">
+    <section class="event-landing-hero<%= isDefaultHeroImage ? ' event-landing-hero--default-image' : '' %>" style="--event-hero-image: url('<%= heroImageUrl %>');">
       <div class="event-landing-hero-overlay"></div>
       <div class="event-landing-hero-inner">
         <div class="event-hero-copy">
@@ -123,7 +125,7 @@
           <h1><%= details.title %></h1>
           <div class="event-lead">
             <span class="event-lead-label">About this event</span>
-            <p><%= details.challengeSummary || details.descriptionText || details.description || 'Review the event schedule, registration details, and completion requirements.' %></p>
+            <p><%= details.descriptionText || details.challengeSummary || details.description || 'Review the event schedule, registration details, and completion requirements.' %></p>
           </div>
 
           <div class="event-hero-actions">
@@ -163,9 +165,9 @@
             </div>
             <div class="event-panel-divider"></div>
             <div class="event-hero-panel-group event-hero-panel-registration">
-              <p class="event-panel-label">Verified progress</p>
-              <strong class="event-panel-status"><%= runnerState.approvedDistanceLabel %> / <%= runnerState.targetDistanceLabel %></strong>
-              <span><%= runnerState.progressLabel %></span>
+              <p class="event-panel-label">Goal progress</p>
+              <strong class="event-panel-status"><%= runnerState.overallProgressLabel || runnerState.progressLabel %></strong>
+              <span><%= (runnerState.progressMetrics || []).map((metric) => `${metric.approvedLabel} of ${metric.targetLabel}`).join(' · ') || 'No completion goal listed' %></span>
             </div>
           <% } else { %>
             <div class="event-hero-panel-group event-hero-panel-price">
@@ -213,28 +215,36 @@
               <span class="event-runner-state event-runner-state-<%= runnerState.state %>"><%= runnerState.stateLabel %></span>
             </div>
 
-            <div class="event-runner-progress-summary">
-              <div class="event-runner-progress-total">
-                <span>Verified distance</span>
-                <p><strong><%= runnerState.approvedDistanceLabel %></strong><small>of <%= runnerState.targetDistanceLabel %></small></p>
-              </div>
-              <div class="event-runner-progress-track-wrap">
-                <div class="event-runner-progress-labels">
-                  <strong><%= runnerState.progressLabel %></strong>
-                  <span><%= runnerState.overGoalDistanceKm > 0 ? `${runnerState.overGoalDistanceLabel} over goal` : runnerState.completed ? 'Goal reached' : `${runnerState.remainingDistanceLabel} remaining` %></span>
-                </div>
-                <div
-                  class="event-runner-progress-track"
-                  role="progressbar"
-                  aria-label="Verified progress toward <%= runnerState.selectedQuest %>"
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                  aria-valuenow="<%= runnerState.progressBarPercentage %>"
-                  aria-valuetext="<%= runnerState.progressLabel %>; <%= runnerState.approvedDistanceLabel %> of <%= runnerState.targetDistanceLabel %>"
-                >
-                  <span style="width: <%= runnerState.progressBarPercentage %>%"></span>
-                </div>
-              </div>
+            <div class="event-runner-progress-metrics">
+              <% (runnerState.progressMetrics || []).forEach((metric) => { %>
+                <section class="event-runner-progress-summary" aria-labelledby="eventProgressMetric<%= metric.key %>">
+                  <div class="event-runner-progress-total">
+                    <span id="eventProgressMetric<%= metric.key %>">Verified <%= metric.label.toLowerCase() %></span>
+                    <p><strong><%= metric.approvedLabel %></strong><small>of <%= metric.targetLabel %></small></p>
+                    <% if (metric.pending > 0) { %><small><%= metric.pendingLabel %> pending review</small><% } %>
+                  </div>
+                  <div class="event-runner-progress-track-wrap">
+                    <div class="event-runner-progress-labels">
+                      <strong><%= metric.progressLabel %></strong>
+                      <span><%= metric.statusLabel %></span>
+                    </div>
+                    <div
+                      class="event-runner-progress-track"
+                      role="progressbar"
+                      aria-label="Verified <%= metric.label.toLowerCase() %> progress toward <%= runnerState.selectedQuest %>"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                      aria-valuenow="<%= metric.progressBarPercentage %>"
+                      aria-valuetext="<%= metric.ariaValueText %>"
+                    >
+                      <span style="width: <%= metric.progressBarPercentage %>%"></span>
+                    </div>
+                  </div>
+                </section>
+              <% }) %>
+              <% if (!(runnerState.progressMetrics || []).length) { %>
+                <p class="event-muted"><%= runnerState.progressLabel %></p>
+              <% } %>
             </div>
 
             <% if (runnerCardPrimaryAction) { %>
@@ -264,9 +274,7 @@
               <div class="event-runner-progress-details-body">
                 <dl class="event-runner-progress-facts">
                   <div><dt>Verified activities</dt><dd><%= runnerState.approvedActivityCount %></dd></div>
-                  <div><dt>Pending</dt><dd><%= runnerState.pendingDistanceLabel %> · <%= runnerState.pendingActivityCount %> activit<%= runnerState.pendingActivityCount === 1 ? 'y' : 'ies' %></dd></div>
-                  <% if (runnerState.pendingActivityCount > 0) { %><div><dt>Potential total</dt><dd><%= runnerState.potentialProgressLabel %></dd></div><% } %>
-                  <% if (runnerState.overGoalDistanceKm > 0) { %><div><dt>Over goal</dt><dd><%= runnerState.overGoalDistanceLabel %></dd></div><% } %>
+                  <div><dt>Pending activities</dt><dd><%= runnerState.pendingActivityCount %></dd></div>
                   <div><dt>Submit by</dt><dd><%= runnerState.submissionTiming?.label || 'Deadline not listed' %></dd></div>
                 </dl>
                 <% if (runnerState.primaryAction && runnerState.secondaryAction) { %>
@@ -289,22 +297,23 @@
           <% } else { %>
             <div class="event-challenge-decision-heading">
               <div>
-                <p class="event-section-kicker">Choose your challenge goal</p>
-                <h2 id="eventGoalsTitle">Pick a goal that fits your month</h2>
-                <p>Compare the targets below. Every approved activity moves you closer to your selected goal.</p>
+                <p class="event-section-kicker">Choose your challenge</p>
+                <h2 id="eventGoalsTitle">Choose one virtual goal for September</h2>
+                <p><%= details.challengeSummary || 'Compare the targets below. Every approved activity moves you closer to your selected goal.' %></p>
               </div>
               <% if (details.primaryCta && !details.primaryCta.disabled) { %>
                 <div class="event-challenge-decision-action">
-                  <a href="<%= details.primaryCta.href %>" class="btn btn-primary">Choose a goal &amp; register</a>
+                  <a href="<%= details.primaryCta.href %>" class="btn btn-primary">Choose a goal and register free</a>
                   <small>You’ll select your category during registration.</small>
                 </div>
               <% } %>
             </div>
-            <div class="event-challenge-goal-grid" aria-label="Available accumulated distance goals">
+            <div class="event-challenge-goal-grid" aria-label="Available accumulated challenge goals">
               <% (details.categoryGoalOptions || []).forEach((option) => { %>
-                <article aria-label="<%= option.name %>, <%= option.distanceKmLabel %>">
-                  <span><%= option.compactName || option.name %></span>
-                  <strong><%= option.distanceKmLabel %></strong>
+                <% const visibleGoalLabel = option.goalLabel || option.compactName || option.name || option.distanceKmLabel || option.distanceLabel || 'Goal details'; %>
+                <article aria-label="<%= option.name %>, <%= visibleGoalLabel %>">
+                  <span>Virtual <%= String(option.goalTypeLabel || 'challenge').toLowerCase() %></span>
+                  <strong><%= visibleGoalLabel %></strong>
                 </article>
               <% }) %>
             </div>
@@ -312,7 +321,21 @@
         </section>
       <% } %>
 
-      <section class="event-stats-strip" aria-label="Event highlights">
+      <% if (details.isAccumulatedChallenge && !runnerState && (details.participantEssentials || []).length) { %>
+        <section class="event-participant-essentials" aria-labelledby="eventEssentialsTitle">
+          <div class="event-participant-essentials-heading">
+            <p class="event-section-kicker">Before you register</p>
+            <h2 id="eventEssentialsTitle">What participants need to know</h2>
+          </div>
+          <dl>
+            <% details.participantEssentials.forEach((item) => { %>
+              <div class="event-essential-<%= item.key %>"><dt><%= item.label %></dt><dd><%= item.value %></dd></div>
+            <% }) %>
+          </dl>
+        </section>
+      <% } %>
+
+      <section class="event-stats-strip<%= details.isAccumulatedChallenge ? ' event-challenge-timeline' : '' %>" aria-label="<%= details.isAccumulatedChallenge ? 'Event timeline' : 'Event highlights' %>">
         <% if (details.isAccumulatedChallenge) { %>
           <% (details.challengeDates || []).forEach((item) => { %>
             <article class="event-stat event-stat-<%= item.key %>">
@@ -342,7 +365,9 @@
           <% } %>
           <a href="#event-submission-rules">Rules</a>
           <a href="#event-rewards">Rewards</a>
-          <% if (eventDetailsHtml) { %><a href="#event-full-details">Full details</a><% } %>
+          <% if (eventDetailsHtml) { %><a href="#event-full-details">Details</a><% } %>
+          <% if (details.isAccumulatedChallenge && details.posterImageUrl) { %><a href="#event-poster">Poster</a><% } %>
+          <% if (details.recap) { %><a href="#event-recap">Recap</a><% } %>
         </nav>
       </details>
 
@@ -368,7 +393,7 @@
               <span class="event-section-icon"><i data-lucide="route"></i></span>
               <div>
                 <h2>How This Event Works</h2>
-                <p><%= details.isAccumulatedChallenge ? 'Build your distance over time. Approved submissions count toward your official progress.' : 'Register, complete the event, then submit your result for review.' %></p>
+                <p><%= details.isAccumulatedChallenge ? 'Complete eligible virtual activities anywhere during the event window. Approved submissions build your selected goal or goals.' : 'Register, complete the event, then submit your result for review.' %></p>
               </div>
             </div>
 
@@ -376,22 +401,22 @@
               <article>
                 <span>1</span>
                 <h3>Register</h3>
-                <p>Choose your participation mode and confirm your runner profile.</p>
+                <p><%= details.isAccumulatedChallenge ? 'Choose one goal and confirm your participant profile.' : 'Choose your event option and confirm your participant profile.' %></p>
               </article>
               <article>
                 <span>2</span>
-                <h3>Complete Activities</h3>
-                <p><%= details.virtualRules?.acceptedActivities?.length ? `Accepted activities: ${details.virtualRules.acceptedActivities.join(', ')}.` : 'Complete the configured event distance during the event window.' %></p>
+                <h3><%= details.isAccumulatedChallenge ? 'Complete Virtual Activities' : 'Complete Activities' %></h3>
+                <p><%= details.virtualRules?.acceptedActivitiesSummary ? `${details.isAccumulatedChallenge ? 'Complete them anywhere. ' : ''}${details.virtualRules.acceptedActivitiesSummary}.` : 'Complete the configured event distance during the event window.' %></p>
               </article>
               <article>
                 <span>3</span>
                 <h3>Submit Proof</h3>
-                <p><%= details.virtualRules?.proofTypes?.length ? `Proof accepted: ${details.virtualRules.proofTypes.join(', ')}.` : 'Submit your result through HelloRun for organizer review.' %></p>
+                <p><%= details.virtualRules?.proofInstructions || 'Submit your result through HelloRun for review.' %></p>
               </article>
               <article>
                 <span>4</span>
                 <h3>Earn Recognition</h3>
-                <p><%= details.virtualRules?.recognitionMode || 'Finishers receive the recognition configured for this event.' %></p>
+                <p><%= details.isAccumulatedChallenge ? 'Reach every target in your selected goal using approved activities.' : (details.virtualRules?.recognitionMode || 'Finishers receive the recognition configured for this event.') %></p>
               </article>
             </div>
           </section>
@@ -405,16 +430,21 @@
               <span class="event-section-icon"><i data-lucide="upload-cloud"></i></span>
               <div>
                 <h2>Activities & Submission Rules</h2>
-                <p>Use eligible activities and clear proof so verified distance counts toward your goal.</p>
+                <p><%= details.isAccumulatedChallenge ? 'Log eligible virtual activities from anywhere and submit clear proof so verified progress counts toward your goal.' : 'Use eligible activities and clear proof so verified progress counts toward your goal.' %></p>
               </div>
             </div>
 
             <dl class="event-rule-list">
               <div><dt>Event window</dt><dd><%= details.virtualRules?.virtualWindowLabel || 'Not listed' %></dd></div>
-              <div><dt>Accepted activities</dt><dd><%= details.virtualRules?.acceptedActivities?.join(', ') || 'Not specified' %></dd></div>
-              <div><dt>Proof types</dt><dd><%= details.virtualRules?.proofTypes?.join(', ') || 'Not specified' %></dd></div>
-              <div><dt>Final deadline</dt><dd><%= details.virtualRules?.finalSubmissionDeadline || 'Not listed' %></dd></div>
-              <div><dt>Leaderboard</dt><dd><%= details.virtualRules?.leaderboardMode || 'Not available' %></dd></div>
+              <div><dt>What counts</dt><dd><%= details.virtualRules?.acceptedActivitiesSummary || 'Not specified' %><%= details.slug === 'cns-move-more-challenge-2026' ? '. Cycling does not count.' : '' %></dd></div>
+              <div><dt>What to submit</dt><dd><%= details.virtualRules?.proofInstructions || 'Not specified' %></dd></div>
+              <div><dt>When to submit</dt><dd><%= details.virtualRules?.submissionTimingInstructions || details.virtualRules?.finalSubmissionDeadline || 'Not listed' %></dd></div>
+              <div><dt>What becomes official</dt><dd>Only your own approved, accurate, non-duplicate activities count toward your goal.</dd></div>
+              <div><dt>Leaderboard privacy</dt><dd><%= details.isAccumulatedChallenge ? 'Choose during registration to show your full name, an abbreviated name, or stay off the public leaderboard.' : (details.virtualRules?.leaderboardMode || 'Not available') %></dd></div>
+              <% if (details.slug === 'cns-move-more-challenge-2026') { %>
+                <div><dt>Beginner-friendly apps</dt><dd>Use Apple Health on iPhone, Google Fit on Android, or Samsung Health on a Samsung phone. Strava or MapMyRun works for distance-only goals. For a step or combined goal, use a tracker screen that visibly includes steps; a Strava import alone is not enough.</dd></div>
+                <div><dt>A good screenshot shows</dt><dd>The activity date and distance in kilometers for a 25K or 50K goal, steps for the 120,000-step goal, or both for a combined goal. Do not crop out the date or totals. Upload an original, readable JPG, PNG, or WebP image up to 5 MB.</dd></div>
+              <% } %>
             </dl>
           </section>
 
@@ -507,7 +537,7 @@
               <span class="event-section-icon"><i data-lucide="gift"></i></span>
               <div>
                 <h2>Rewards & Recognition</h2>
-                <p>What runners can expect after valid completion.</p>
+                <p><%= details.isAccumulatedChallenge ? 'Reach every target in your selected goal using approved activities to become an official finisher.' : 'What you receive after completing the event.' %></p>
               </div>
             </div>
 
@@ -520,6 +550,9 @@
                   </article>
                 <% }) %>
               </div>
+              <% if (details.isAccumulatedChallenge && event.leaderboardRecognitionEnabled !== false) { %>
+                <p class="event-supporting-copy">Your approved progress can appear on the event leaderboards based on the privacy option you choose during registration.</p>
+              <% } %>
             <% } else { %>
               <p class="event-muted">Rewards have not been listed by the organizer yet.</p>
             <% } %>
@@ -548,7 +581,7 @@
                   </article>
                 <% }) %>
               </div>
-            <% } else { %>
+            <% } else if (event.digitalBadgeEnabled) { %>
               <div class="event-badge-empty">
                 <i data-lucide="award"></i>
                 <div>
@@ -558,24 +591,6 @@
               </div>
             <% } %>
           </section>
-
-          <% if (details.recap) { %>
-            <section class="event-section event-recap-section">
-              <div class="event-section-heading">
-                <span class="event-section-icon"><i data-lucide="notebook-text"></i></span>
-                <div>
-                  <h2>Event Recap</h2>
-                  <p>This past event remains available as a useful public record for runners and visitors.</p>
-                </div>
-              </div>
-              <p class="event-recap-body"><%= details.recap.body %></p>
-              <ul class="event-recap-list">
-                <% details.recap.details.forEach((item) => { %>
-                  <li><%= item %></li>
-                <% }) %>
-              </ul>
-            </section>
-          <% } %>
 
           <% if ((details.pricingOptions || []).length || (details.packageOptions || []).length || details.pricing?.hasOptionalCosts) { %>
             <section class="event-section" id="event-registration-options">
@@ -629,12 +644,12 @@
           <% } %>
 
           <% if (eventDetailsHtml) { %>
-            <details class="event-section event-details-description" id="event-full-details">
+            <details class="event-section event-details-description" id="event-full-details" open>
               <summary class="event-organizer-details-summary">
                 <span class="event-section-icon"><i data-lucide="file-text"></i></span>
                 <span>
-                  <strong>Additional organizer details</strong>
-                  <small>Read the full event information, extended instructions, and community notes.</small>
+                  <strong><%= details.isAccumulatedChallenge ? 'Complete challenge guide' : 'Additional organizer details' %></strong>
+                  <small><%= details.isAccumulatedChallenge ? 'Read pacing examples, supported apps, submission flexibility, and honor-system guidance.' : 'Read the full event information, extended instructions, and community notes.' %></small>
                 </span>
               </summary>
               <div class="event-authoritative-note" role="note">
@@ -648,12 +663,12 @@
           <% } %>
 
           <% if (details.isAccumulatedChallenge && details.posterImageUrl) { %>
-            <section class="event-section event-challenge-poster-section">
+            <section class="event-section event-challenge-poster-section" id="event-poster">
               <div class="event-section-heading">
                 <span class="event-section-icon"><i data-lucide="image"></i></span>
                 <div>
                   <h2>Event Poster</h2>
-                  <p>Open the organizer’s promotional artwork. If artwork dates differ, the current structured dates above apply.</p>
+                  <p>Open the full-size <%= details.title %> event poster.</p>
                 </div>
               </div>
               <button
@@ -676,16 +691,19 @@
                   <p>Visuals shared by the organizer for this event.</p>
                 </div>
               </div>
-              <div class="event-gallery-grid">
+              <div class="event-gallery-grid<%= details.galleryImageUrls.length === 1 ? ' event-gallery-grid-single' : '' %>">
                 <% details.galleryImageUrls.forEach((galleryUrl, galleryIndex) => { %>
+                  <% const galleryAlt = details.slug === 'cns-move-more-challenge-2026' && /cns-move-more-beginner-guide/i.test(galleryUrl)
+                    ? 'CNS Move More beginner guide to activity-tracking apps and valid screenshots'
+                    : `${details.title} gallery image ${galleryIndex + 1}`; %>
                   <button
                     type="button"
                     class="event-gallery-thumb-btn"
                     data-gallery-index="<%= galleryIndex %>"
                     data-gallery-src="<%= galleryUrl %>"
-                    aria-label="Open gallery image <%= galleryIndex + 1 %>"
+                    aria-label="Open <%= galleryAlt %>"
                   >
-                    <img class="event-gallery-image" src="<%= galleryUrl %>" alt="<%= details.title %> gallery image <%= galleryIndex + 1 %>">
+                    <img class="event-gallery-image" src="<%= galleryUrl %>" alt="<%= galleryAlt %>">
                   </button>
                 <% }) %>
               </div>
@@ -695,11 +713,29 @@
           <% if (details.isAccumulatedChallenge && !runnerState && !isPreviewMode && details.primaryCta && !details.primaryCta.disabled) { %>
             <section class="event-challenge-closing-cta" aria-labelledby="eventChallengeClosingTitle">
               <div>
-                <p class="event-section-kicker">Ready to take on the challenge?</p>
-                <h2 id="eventChallengeClosingTitle">Choose your goal and start building distance</h2>
-                <p>Register now, select the target that fits your month, and submit approved activities as you go.</p>
+                <p class="event-section-kicker">Ready to move more this September?</p>
+                <h2 id="eventChallengeClosingTitle">Choose your goal and register free</h2>
+                <p>Select one category during registration. Your approved activities during the event window will count toward that goal.</p>
               </div>
-              <a href="<%= details.primaryCta.href %>" class="btn btn-primary">Register for this challenge</a>
+              <a href="<%= details.primaryCta.href %>" class="btn btn-primary">Choose a goal and register free</a>
+            </section>
+          <% } %>
+
+          <% if (details.recap) { %>
+            <section class="event-section event-recap-section" id="event-recap">
+              <div class="event-section-heading">
+                <span class="event-section-icon"><i data-lucide="notebook-text"></i></span>
+                <div>
+                  <h2>Event Recap</h2>
+                  <p>This past event remains available as a useful public record for runners and visitors.</p>
+                </div>
+              </div>
+              <p class="event-recap-body"><%= details.recap.body %></p>
+              <ul class="event-recap-list">
+                <% details.recap.details.forEach((item) => { %>
+                  <li><%= item %></li>
+                <% }) %>
+              </ul>
             </section>
           <% } %>
         </div>
@@ -899,7 +935,7 @@
           <div class="event-mobile-sticky-copy">
             <span><%= runnerState?.stateLabel || details.registrationState?.label || 'Registration open' %></span>
             <strong><%= runnerState?.selectedQuest || details.pricing?.amountLabel || 'View pricing' %></strong>
-            <small><%= runnerState?.progressLabel || details.registrationState?.helper || '' %></small>
+            <small><%= runnerState?.overallProgressLabel || runnerState?.progressLabel || details.registrationState?.helper || '' %></small>
           </div>
           <% if (pagePrimaryAction.type === 'submit' || pagePrimaryAction.type === 'resubmit') { %>
             <button

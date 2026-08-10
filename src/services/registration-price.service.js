@@ -43,6 +43,8 @@ function getRaceCategoryOptions(event = {}) {
         name,
         type: String(category?.type || '').trim(),
         distanceLabel,
+        distanceKm: Number.isFinite(Number(category?.distanceKm)) ? Number(category.distanceKm) : null,
+        targetSteps: Number.isFinite(Number(category?.targetSteps)) ? Number(category.targetSteps) : null,
         // Carried so the registration form can mark a full category unavailable before
         // somebody fills in the whole thing. Absent `reserved` reads as zero, as everywhere.
         slots: Number.isFinite(Number(category?.slots)) ? Number(category.slots) : null,

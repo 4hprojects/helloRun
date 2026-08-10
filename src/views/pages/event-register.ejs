@@ -20,7 +20,7 @@
     const shouldCollectEmergencyContact = typeof collectEmergencyContact !== 'undefined' ? collectEmergencyContact : requiresEmergencyContact;
   %>
 
-  <main class="event-register-page">
+  <main class="event-register-page <%= presentation.isAccumulated ? 'is-accumulated-registration' : '' %>">
     <section class="event-register-shell">
       <header class="event-register-header">
         <a href="/events/<%= event.slug %>" class="event-register-back">
@@ -30,7 +30,7 @@
         <div class="event-register-header-copy">
           <span class="event-register-eyebrow"><%= eventSummary.formatLabel || 'Event registration' %></span>
           <h1>Join <%= event.title %></h1>
-          <p>Choose your event preferences, accept the waiver, and review everything before registering.</p>
+          <p><%= presentation.isAccumulated ? 'Choose one challenge goal and review the waiver before registering.' : 'Choose your event preferences, accept the waiver, and review everything before registering.' %></p>
           <ul class="event-register-key-facts" aria-label="Registration timing">
             <li><i data-lucide="calendar-x" aria-hidden="true"></i><span>Register by <strong><%= eventSummary.registrationCloseLabel %></strong></span></li>
             <li><i data-lucide="activity" aria-hidden="true"></i><span>Activity <strong><%= eventSummary.activityWindowLabel %></strong></span></li>
@@ -104,8 +104,8 @@
       <% } else { %>
         <nav class="registration-step-nav" aria-label="Registration steps">
           <ol>
-            <li><a href="#registrationChoices"><span>1</span>Event choices</a></li>
-            <li><a href="#registrationWaiver"><span>2</span>Waiver</a></li>
+            <li><a href="#registrationChoices"><span>1</span><%= presentation.isAccumulated ? 'Choose goal' : 'Event choices' %></a></li>
+            <li><a href="#registrationWaiver"><span>2</span>Waiver & review</a></li>
           </ol>
         </nav>
 
@@ -117,12 +117,21 @@
               <div class="registration-step-heading">
                 <span class="registration-step-number">1</span>
                 <div>
-                  <span class="event-register-eyebrow">Event choices</span>
-                  <h2 id="registrationChoicesTitle">Choose how you will participate</h2>
-                  <p>Select the mode, goal, and any available registration options.</p>
+                  <span class="event-register-eyebrow"><%= presentation.isAccumulated ? 'Your challenge' : 'Event choices' %></span>
+                  <h2 id="registrationChoicesTitle"><%= presentation.isAccumulated ? 'Choose your challenge goal' : 'Choose how you will participate' %></h2>
+                  <p><%= presentation.isAccumulated ? 'Choose one goal for the full activity period. You can build progress over multiple eligible activities.' : 'Select the mode, goal, and any available registration options.' %></p>
                 </div>
               </div>
 
+              <% if (presentation.usesFixedChallengeFacts) { const fixedMode = modeControl.items[0]; %>
+                <input type="hidden" id="participationMode" name="participationMode" value="<%= fixedMode?.value || '' %>">
+                <ul class="registration-fixed-facts" aria-label="Challenge facts">
+                  <li><i data-lucide="smartphone" aria-hidden="true"></i><span><strong>Virtual</strong><small>Complete activities anywhere</small></span></li>
+                  <li><i data-lucide="badge-check" aria-hidden="true"></i><span><strong>Free</strong><small>No payment required</small></span></li>
+                  <li><i data-lucide="calendar-days" aria-hidden="true"></i><span><strong><%= eventSummary.activityWindowLabel %></strong><small>Activity period</small></span></li>
+                  <li><i data-lucide="upload-cloud" aria-hidden="true"></i><span><strong><%= eventSummary.submissionDeadlineLabel %></strong><small>Final submission deadline</small></span></li>
+                </ul>
+              <% } else { %>
               <fieldset class="registration-choice-group <%= errors.participationMode ? 'has-error' : '' %>" id="participationModeGroup">
                 <legend>Participation mode <span aria-hidden="true">*</span></legend>
                 <% if (modeControl.kind === 'fixed') { const mode = modeControl.items[0]; %>
@@ -150,10 +159,28 @@
                 <% } %>
                 <% if (errors.participationMode) { %><small class="error-text" id="participationModeError"><%= errors.participationMode %></small><% } %>
               </fieldset>
+              <% } %>
 
               <fieldset class="registration-choice-group <%= errors.raceDistance ? 'has-error' : '' %>" id="raceDistanceGroup">
                 <legend>Goal or category <span aria-hidden="true">*</span></legend>
-                <p class="choice-helper">Choose the category that will determine your event goal and result grouping.</p>
+                <p class="choice-helper"><%= presentation.isAccumulated ? 'Your approved activities add together toward this goal.' : 'Choose the category that will determine your event goal and result grouping.' %></p>
+                <% if (distanceControl.kind === 'cards') { %>
+                  <div class="registration-goal-cards">
+                    <% distanceControl.items.forEach((goal, index) => { %>
+                      <label class="registration-goal-card <%= goal.available ? '' : 'is-unavailable' %>" for="raceDistance-<%= index %>">
+                        <input type="radio" id="raceDistance-<%= index %>" name="raceDistance" value="<%= goal.value %>" <%= goal.selected ? 'checked' : '' %> <%= registrationWindowError || !goal.available ? 'disabled' : '' %> required aria-invalid="<%= errors.raceDistance ? 'true' : 'false' %>" aria-describedby="raceDistanceHelp <%= errors.raceDistance ? 'raceDistanceError' : '' %>">
+                        <span class="registration-goal-copy">
+                          <span class="registration-goal-title"><strong><%= goal.goalLabel %></strong><% if (goal.recommendationLabel) { %><small class="registration-goal-badge"><%= goal.recommendationLabel %></small><% } %></span>
+                          <small class="registration-goal-category"><%= goal.title %></small>
+                          <% if (goal.helper) { %><small><%= goal.helper %></small><% } %>
+                          <small class="registration-goal-requirement"><span class="registration-goal-requirement-full"><%= goal.requiresBoth ? 'Complete both targets. ' : '' %><%= goal.trackingRequirement %></span><% if (goal.requiresBoth) { %><span class="registration-goal-requirement-compact">Both goals required</span><% } %></small>
+                        </span>
+                        <span class="registration-goal-price"><%= goal.priceLabel %></span>
+                      </label>
+                    <% }) %>
+                  </div>
+                  <small id="raceDistanceHelp">Choose the goal that feels realistic for your month. You may go beyond it.</small>
+                <% } else { %>
                 <label class="form-group" for="raceDistance">
                   <span class="sr-only">Goal or category</span>
                   <select id="raceDistance" name="raceDistance" <%= registrationWindowError ? 'disabled' : '' %> required aria-invalid="<%= errors.raceDistance ? 'true' : 'false' %>" aria-describedby="raceDistanceHelp <%= errors.raceDistance ? 'raceDistanceError' : '' %>">
@@ -164,6 +191,7 @@
                   </select>
                   <small id="raceDistanceHelp">Goals are listed from longest distance to shortest.</small>
                 </label>
+                <% } %>
                 <% if (event.waitlistEnabled && distanceControl.items.some(function (item) { return item.isFull; })) { %>
                   <small id="raceDistanceFullHelp">
                     A category marked full has no slots left.
@@ -174,6 +202,12 @@
                 <% if (errors.raceDistance) { %><small class="error-text" id="raceDistanceError"><%= errors.raceDistance %></small><% } %>
                 <% if (errors.pricing) { %><small class="error-text" id="registrationPricingError"><%= errors.pricing %></small><% } %>
               </fieldset>
+
+              <% if (presentation.isAccumulated) { %>
+                <div class="registration-mobile-goal-summary" data-mobile-goal-summary aria-live="polite">
+                  <span>Selected goal</span><strong data-review-distance>Choose one above</strong>
+                </div>
+              <% } %>
 
               <% if ((event.kitInventory || []).length) { %>
                 <fieldset class="registration-choice-group <%= errors.kitSize ? 'has-error' : '' %>" id="kitSizeGroup">
@@ -289,46 +323,6 @@
                 </div>
               <% } %>
 
-              <% if (requiresChallengeProfile) { %>
-                <div class="register-field-grid" id="challengeProfileFields">
-                  <div class="form-group <%= errors.department ? 'has-error' : '' %>">
-                    <label for="department">Department or office <span aria-hidden="true">*</span></label>
-                    <input id="department" name="department" type="text" value="<%= formData.department || '' %>" maxlength="120" <%= registrationWindowError ? 'disabled' : '' %> aria-describedby="<%= errors.department ? 'departmentError' : '' %>">
-                    <% if (errors.department) { %><small class="error-text" id="departmentError"><%= errors.department %></small><% } %>
-                  </div>
-                  <div class="form-group <%= errors.position ? 'has-error' : '' %>">
-                    <label for="position">Position or designation <span aria-hidden="true">*</span></label>
-                    <input id="position" name="position" type="text" value="<%= formData.position || '' %>" maxlength="120" <%= registrationWindowError ? 'disabled' : '' %> aria-describedby="<%= errors.position ? 'positionError' : '' %>">
-                    <% if (errors.position) { %><small class="error-text" id="positionError"><%= errors.position %></small><% } %>
-                  </div>
-                  <div class="form-group <%= errors.preferredFitnessApp ? 'has-error' : '' %>">
-                    <label for="preferredFitnessApp">Preferred fitness app <span aria-hidden="true">*</span></label>
-                    <input id="preferredFitnessApp" name="preferredFitnessApp" type="text" placeholder="e.g. Google Fit, Strava, Apple Health" value="<%= formData.preferredFitnessApp || '' %>" maxlength="80" <%= registrationWindowError ? 'disabled' : '' %> aria-describedby="preferredFitnessAppHelp <%= errors.preferredFitnessApp ? 'preferredFitnessAppError' : '' %>">
-                    <small id="preferredFitnessAppHelp">Any app that shows your distance or steps works. A smartwatch is not required — a smartphone is enough.</small>
-                    <% if (errors.preferredFitnessApp) { %><small class="error-text" id="preferredFitnessAppError"><%= errors.preferredFitnessApp %></small><% } %>
-                  </div>
-                </div>
-
-                <fieldset class="registration-choice-group <%= errors.leaderboardDisplayPreference ? 'has-error' : '' %>" id="leaderboardDisplayGroup">
-                  <legend>Leaderboard display preference</legend>
-                  <div class="registration-choice-cards">
-                    <label class="registration-choice-card" for="leaderboardDisplayFull">
-                      <input type="radio" id="leaderboardDisplayFull" name="leaderboardDisplayPreference" value="full_name" <%= formData.leaderboardDisplayPreference === 'full_name' ? 'checked' : '' %> <%= registrationWindowError ? 'disabled' : '' %>>
-                      <span><strong>Show my full name</strong></span>
-                    </label>
-                    <label class="registration-choice-card" for="leaderboardDisplayAbbreviated">
-                      <input type="radio" id="leaderboardDisplayAbbreviated" name="leaderboardDisplayPreference" value="abbreviated" <%= formData.leaderboardDisplayPreference === 'abbreviated' ? 'checked' : '' %> <%= registrationWindowError ? 'disabled' : '' %>>
-                      <span><strong>Show an abbreviated name</strong></span>
-                    </label>
-                    <label class="registration-choice-card" for="leaderboardDisplayHidden">
-                      <input type="radio" id="leaderboardDisplayHidden" name="leaderboardDisplayPreference" value="hidden" <%= formData.leaderboardDisplayPreference === 'hidden' ? 'checked' : '' %> <%= registrationWindowError ? 'disabled' : '' %>>
-                      <span><strong>Do not show me on the public leaderboard</strong></span>
-                    </label>
-                  </div>
-                  <small>Organizers can always see your full identity, even if you choose not to appear on the public leaderboard.</small>
-                  <% if (errors.leaderboardDisplayPreference) { %><small class="error-text"><%= errors.leaderboardDisplayPreference %></small><% } %>
-                </fieldset>
-              <% } %>
             </section>
 
             <section class="register-card registration-step-card <%= (errors.waiverAccepted || errors.waiverSignature) ? 'card-error' : '' %>" id="registrationWaiver" aria-labelledby="registrationWaiverTitle">
@@ -359,7 +353,7 @@
                   </div>
                   <% if (!registrationWindowError) { %>
                     <div class="register-actions waiver-register-actions">
-                      <button type="submit" class="btn btn-primary" id="reviewRegistrationBtn">Register</button>
+                      <button type="submit" class="btn btn-primary" id="reviewRegistrationBtn">Review registration</button>
                     </div>
                   <% } %>
                 </div>
@@ -380,6 +374,9 @@
                 <div data-review-package-row hidden><dt>Package</dt><dd data-review-package>—</dd></div>
                 <div><dt>Location</dt><dd><%= eventSummary.locationLabel %></dd></div>
               </dl>
+              <% if (String(event.feeMode || '').trim() !== 'paid') { %>
+                <div class="registration-free-summary"><i data-lucide="badge-check" aria-hidden="true"></i><span><strong>Free</strong><small>No payment required</small></span></div>
+              <% } else { %>
               <section class="registration-cost-summary" aria-labelledby="liveCostTitle">
                 <h3 id="liveCostTitle">Cost summary</h3>
                 <dl>
@@ -389,6 +386,7 @@
                 </dl>
                 <p data-review-pricing-note>Final pricing is validated when you submit.</p>
               </section>
+              <% } %>
               <div class="registration-review-deadline">
                 <i data-lucide="clock-3" aria-hidden="true"></i>
                 <span>Registration closes <strong><%= eventSummary.registrationCloseLabel %></strong>.</span>
@@ -415,7 +413,7 @@
               <div data-dialog-option-row hidden><dt>Signup option</dt><dd data-dialog-option>—</dd></div>
               <div data-dialog-package-row hidden><dt>Package</dt><dd data-dialog-package>—</dd></div>
               <div data-dialog-addons-row hidden><dt>Add-ons</dt><dd data-dialog-addons>—</dd></div>
-              <div class="registration-dialog-total"><dt>Total</dt><dd data-dialog-total>—</dd></div>
+              <div class="registration-dialog-total"><dt><%= String(event.feeMode || '').trim() === 'paid' ? 'Total' : 'Registration' %></dt><dd data-dialog-total>—</dd></div>
               <div><dt>Waiver</dt><dd data-dialog-waiver>Not confirmed</dd></div>
             </dl>
             <p class="registration-dialog-note">Submitting creates the registration using the server-validated price and current event rules.</p>

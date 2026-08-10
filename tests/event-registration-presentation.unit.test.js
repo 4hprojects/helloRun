@@ -49,7 +49,7 @@ const categories = distances.map((distanceLabel) => ({
   distanceLabel
 }));
 
-test('July registration presentation exposes six descending free accumulated goals and structured dates', () => {
+test('July registration presentation exposes six configured free accumulated goal cards and structured dates', () => {
   const presentation = buildRegistrationPagePresentation({
     event: buildJulyEvent(),
     formData: {
@@ -80,10 +80,10 @@ test('July registration presentation exposes six descending free accumulated goa
   assert.equal(presentation.event.submissionDeadlineLabel, 'Aug 14, 2026');
   assert.equal(presentation.event.locationLabel, 'Virtual participation');
   assert.equal(presentation.modes.kind, 'fixed');
-  assert.equal(presentation.distances.kind, 'select');
+  assert.equal(presentation.distances.kind, 'cards');
   assert.deepEqual(
     presentation.distances.items.map((item) => item.sortDistance),
-    [200, 150, 100, 75, 50, 25]
+    [200, 25, 100, 50, 150, 75]
   );
   assert.ok(presentation.distances.items.every((item) => item.priceLabel === 'Free'));
   assert.equal(presentation.reviewData.distancePricing['25K JULY STARTER QUEST'].amount, 0);
@@ -93,6 +93,47 @@ test('July registration presentation exposes six descending free accumulated goa
     requiredCount: 9,
     missingFields: ['Mobile', 'Timezone']
   });
+});
+
+test('CNS registration presentation exposes five metric-aware goals in organiser order', () => {
+  const event = buildJulyEvent({
+    title: 'CNS Move More Challenge 2026',
+    slug: 'cns-move-more-challenge-2026',
+    organiserName: 'College of Natural Sciences, Benguet State University',
+    virtualCompletionMode: 'accumulated_activity',
+    eventStartAt: '2026-09-01T00:00:00+08:00',
+    eventEndAt: '2026-09-30T23:59:00+08:00'
+  });
+  const cnsCategories = [
+    { id: '25', name: '25-Kilometer Challenge', distanceLabel: '25K', distanceKm: 25, targetSteps: 0 },
+    { id: '50', name: '50-Kilometer Challenge', distanceLabel: '50K', distanceKm: 50, targetSteps: 0 },
+    { id: 'steps', name: '120,000-Step Challenge', distanceLabel: '120,000-STEP CHALLENGE', distanceKm: 0, targetSteps: 120000 },
+    { id: 'both25', name: '25-Kilometer and 120,000-Step Challenge', distanceLabel: '25-KILOMETER AND 120,000-STEP CHALLENGE', distanceKm: 25, targetSteps: 120000 },
+    { id: 'both50', name: '50-Kilometer and 120,000-Step Challenge', distanceLabel: '50-KILOMETER AND 120,000-STEP CHALLENGE', distanceKm: 50, targetSteps: 120000 }
+  ];
+  const allowed = cnsCategories.map((item) => item.distanceLabel);
+  const presentation = buildRegistrationPagePresentation({
+    event,
+    formData: { participationMode: 'virtual', raceDistance: '', addOnProductIds: [] },
+    profileSnapshot: { firstName: 'Jamie', lastName: 'Runner', email: 'jamie@example.com' },
+    allowedModes: ['virtual'],
+    allowedRaceDistances: allowed,
+    raceCategoryOptions: cnsCategories
+  });
+
+  assert.deepEqual(presentation.distances.items.map((item) => item.goalLabel), [
+    '25 km', '50 km', '120,000 steps', '25 km + 120,000 steps', '50 km + 120,000 steps'
+  ]);
+  assert.deepEqual(presentation.distances.items.map((item) => item.helper), [
+    'about 0.84 km/day',
+    'about 1.67 km/day',
+    'about 4,000 steps/day',
+    'about 0.84 km/day and 4,000 steps/day',
+    'about 1.67 km/day and 4,000 steps/day'
+  ]);
+  assert.equal(presentation.distances.items[0].recommendationLabel, 'Suitable starting goal');
+  assert.equal(presentation.distances.items[3].requiresBoth, true);
+  assert.match(presentation.distances.items[3].trackingRequirement, /both distance and steps/i);
 });
 
 test('adaptive choice controls use fixed, cards, and select thresholds', () => {
@@ -111,6 +152,23 @@ test('adaptive choice controls use fixed, cards, and select thresholds', () => {
     isFree: true
   });
   assert.deepEqual(choices.map((item) => item.value), ['10K', '5K', 'HALF MARATHON']);
+});
+
+test('standard events retain the existing distance select and numeric sorting', () => {
+  const presentation = buildRegistrationPagePresentation({
+    event: buildJulyEvent({ virtualCompletionMode: 'single_activity' }),
+    formData: { participationMode: 'virtual', raceDistance: '' },
+    allowedModes: ['virtual'],
+    allowedRaceDistances: ['5K', '10K'],
+    raceCategoryOptions: [
+      { id: '5k', name: '5K', distanceLabel: '5K' },
+      { id: '10k', name: '10K', distanceLabel: '10K' }
+    ]
+  });
+
+  assert.equal(presentation.isAccumulated, false);
+  assert.equal(presentation.distances.kind, 'select');
+  assert.deepEqual(presentation.distances.items.map((item) => item.value), ['10K', '5K']);
 });
 
 test('distance choices sort standard numeric goals longest first and named values deterministically', () => {
@@ -213,12 +271,13 @@ test('registration page keeps backend contracts and progressive review hooks', (
   assert.match(view, /name="waiverSignature"/);
   assert.match(view, /<select id="raceDistance" name="raceDistance"/);
   assert.match(view, /<option value="" disabled <%= formData\.raceDistance \? '' : 'selected' %>>Select goal or category<\/option>/);
-  assert.doesNotMatch(view, /id="raceDistance-<%= index %>"/);
+  assert.match(view, /id="raceDistance-<%= index %>"/);
   assert.match(view, /Goals are listed from longest distance to shortest/);
   assert.doesNotMatch(view, /registrationProfile|Update profile|Optional profile update/);
-  assert.match(view, /href="#registrationWaiver"><span>2<\/span>Waiver/);
+  assert.match(view, /Waiver & review/);
+  assert.doesNotMatch(view, /registrationParticipantDetails|Confirm eligibility and tracking details|Department or office|Position or designation|Preferred fitness app|Leaderboard display preference/);
   assert.doesNotMatch(view, /registrationReviewTitle|Ready to check your registration|href="#registrationReview"/);
-  assert.match(view, /class="register-actions waiver-register-actions">[\s\S]*id="reviewRegistrationBtn">Register<\/button>/);
+  assert.match(view, /class="register-actions waiver-register-actions">[\s\S]*id="reviewRegistrationBtn">Review registration<\/button>/);
   assert.match(view, /<details class="waiver-details" id="waiverDetails"/);
   assert.match(view, /errors\.waiverAccepted \|\| errors\.waiverSignature/);
   assert.match(view, /data-validation-locked-open="<%= errors\.waiverAccepted \? 'true' : 'false' %>"/);
@@ -226,6 +285,7 @@ test('registration page keeps backend contracts and progressive review hooks', (
   assert.match(view, /registrationReviewDialog/);
   assert.doesNotMatch(view, /registrationErrorSummary|Check your registration details/);
   assert.match(script, /registration-client-field-error/);
+  assert.match(script, /scrollIntoView/);
   assert.match(view, /Final pricing is validated when you submit/);
   assert.doesNotMatch(view, /Charges and checkout linking will be finalized in the next phase/);
   assert.equal((view.match(/raceDistancePricingPreviewData/g) || []).length, 0);
@@ -258,9 +318,13 @@ test('registration page keeps backend contracts and progressive review hooks', (
   assert.match(css, /\.registration-review-dialog \.register-actions \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
   assert.match(css, /\.registration-review-dialog \.register-actions,[\s\S]*\.registration-state-actions \{\s*display: grid;\s*grid-template-columns: 1fr;/);
   assert.match(css, /@media \(max-width: 680px\)[\s\S]*\.registration-review-card \{\s*display: none;/);
+  assert.match(css, /@media \(max-width: 680px\)[\s\S]*\.registration-goal-card \{[\s\S]*min-height:\s*58px;[\s\S]*padding:\s*0\.55rem 0\.6rem;/);
+  assert.match(css, /@media \(max-width: 680px\)[\s\S]*\.registration-goal-category,[\s\S]*\.registration-goal-requirement-full,[\s\S]*display:\s*none;/);
+  assert.match(view, /registration-goal-requirement-compact">Both goals required/);
   assert.doesNotMatch(css, /\.registration-review-card\s*\{[^}]*border-top:\s*4px solid var\(--register-accent\)/);
   assert.match(controller, /waiverVersion: Number\(event\.waiverVersion \|\| 1\)/);
   assert.match(controller, /participationMode: defaultParticipationMode,\s*raceDistance: '',/);
+  assert.doesNotMatch(controller, /Preferred fitness app is required for this event/);
   assert.match(controller, /renderedWaiver,/);
   assert.match(communication, /email\.waiverVersion,[\s\S]*email\.renderedWaiver/);
   assert.match(email, /Accepted event waiver/);

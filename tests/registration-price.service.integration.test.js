@@ -99,7 +99,11 @@ test('race category options omit empty rows', () => {
       id: 'cat-5k',
       name: '5K Open',
       type: 'distance',
-      distanceLabel: '5K'
+      distanceLabel: '5K',
+      distanceKm: null,
+      targetSteps: null,
+      slots: null,
+      reserved: 0
     }
   ]);
 });

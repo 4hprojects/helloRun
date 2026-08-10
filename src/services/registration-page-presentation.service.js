@@ -4,6 +4,7 @@ const { formatPlatformDate, PLATFORM_TIME_ZONE } = require('../utils/platform-da
 const { getCountryName } = require('../utils/country');
 const { resolveRegistrationPrice } = require('./registration-price.service');
 const { categoryIsFull } = require('./waitlist.service');
+const { isAccumulatedChallenge } = require('../utils/challenge-metrics');
 
 function buildRegistrationPagePresentation({
   event = {},
@@ -20,13 +21,19 @@ function buildRegistrationPagePresentation({
   existingRegistration = null
 } = {}) {
   const currency = String(event.feeCurrency || 'PHP').trim().toUpperCase() || 'PHP';
+  const accumulated = isAccumulatedChallenge(event);
   const modes = buildModeChoices(allowedModes, formData.participationMode);
   const distances = buildDistanceChoices({
     allowedRaceDistances,
     raceCategoryOptions,
     raceDistancePricingPreview,
     selectedValue: formData.raceDistance,
-    isFree: String(event.feeMode || '').trim() !== 'paid'
+    isFree: String(event.feeMode || '').trim() !== 'paid',
+    accumulated,
+    activityDays: getInclusiveDayCount(
+      event.virtualWindow?.startAt || event.eventStartAt,
+      event.virtualWindow?.endAt || event.eventEndAt
+    )
   });
   const profile = buildProfilePresentation(profileSnapshot, profileCompleteness);
   const reviewData = buildReviewData({
@@ -44,6 +51,7 @@ function buildRegistrationPagePresentation({
     event: {
       title: String(event.title || 'Event').trim(),
       slug: String(event.slug || '').trim(),
+      organiserName: String(event.organiserName || 'the event organiser').trim(),
       formatLabel: buildFormatLabel(event, allowedModes),
       registrationCloseLabel: formatPlatformDate(event.registrationCloseAt),
       activityWindowLabel: formatDateRange(event.virtualWindow?.startAt || event.eventStartAt, event.virtualWindow?.endAt || event.eventEndAt),
@@ -51,12 +59,17 @@ function buildRegistrationPagePresentation({
       locationLabel: buildLocationLabel(event, allowedModes),
       timeZoneLabel: PLATFORM_TIME_ZONE
     },
+    isAccumulated: accumulated,
+    usesFixedChallengeFacts: accumulated
+      && modes.length === 1
+      && String(modes[0]?.value || '').toLowerCase() === 'virtual'
+      && String(event.feeMode || '').trim() !== 'paid',
     modes: {
       kind: getChoiceControlKind(modes.length),
       items: modes
     },
     distances: {
-      kind: 'select',
+      kind: accumulated ? 'cards' : 'select',
       items: distances
     },
     profile,
@@ -91,16 +104,26 @@ function buildDistanceChoices({
   raceCategoryOptions = [],
   raceDistancePricingPreview = {},
   selectedValue = '',
-  isFree = false
+  isFree = false,
+  accumulated = false,
+  activityDays = null
 } = {}) {
   const categories = Array.isArray(raceCategoryOptions) ? raceCategoryOptions : [];
-  return (Array.isArray(allowedRaceDistances) ? allowedRaceDistances : [])
+  const choices = (Array.isArray(allowedRaceDistances) ? allowedRaceDistances : [])
     .map((value) => {
       const normalized = String(value || '').trim().toUpperCase();
       const category = categories.find((item) => {
         return String(item.distanceLabel || item.name || '').trim().toUpperCase() === normalized;
       });
-      const distanceKm = parseDistanceKm(category?.distanceLabel || category?.name || normalized);
+      const hasConfiguredDistance = category?.distanceKm !== null && category?.distanceKm !== undefined && String(category.distanceKm).trim() !== '';
+      const configuredDistanceKm = Number(category?.distanceKm);
+      const distanceKm = hasConfiguredDistance && Number.isFinite(configuredDistanceKm)
+        ? Math.max(0, configuredDistanceKm)
+        : parseDistanceKm(category?.distanceLabel || category?.name || normalized);
+      const hasConfiguredSteps = category?.targetSteps !== null && category?.targetSteps !== undefined && String(category.targetSteps).trim() !== '';
+      const targetSteps = hasConfiguredSteps && Number.isFinite(Number(category?.targetSteps))
+        ? Math.max(0, Number(category.targetSteps))
+        : 0;
       const title = String(category?.name || normalized).trim();
       const price = raceDistancePricingPreview[normalized] || null;
       // A full category used to be discoverable only by filling in the whole form and
@@ -113,7 +136,8 @@ function buildDistanceChoices({
       return {
         value: normalized,
         title,
-        helper: [
+        goalLabel: buildGoalLabel(distanceKm, targetSteps, title),
+        helper: accumulated ? buildDailyGuidance(distanceKm, targetSteps, activityDays) : [
           distanceKm !== null && title.toUpperCase() !== `${distanceKm}K` ? `${formatNumber(distanceKm)} km goal` : '',
           // Only worth saying when it is nearly gone; a healthy count is noise.
           !isFull && remaining !== null && remaining <= 10 ? `${remaining} slot${remaining === 1 ? '' : 's'} left` : ''
@@ -124,15 +148,57 @@ function buildDistanceChoices({
         isFull,
         remaining,
         selected: normalized === String(selectedValue || '').trim().toUpperCase(),
-        sortDistance: distanceKm
+        sortDistance: distanceKm,
+        distanceKm: distanceKm && distanceKm > 0 ? distanceKm : 0,
+        targetSteps,
+        metricLabels: [distanceKm > 0 ? 'Distance' : '', targetSteps > 0 ? 'Steps' : ''].filter(Boolean),
+        requiresBoth: distanceKm > 0 && targetSteps > 0,
+        trackingRequirement: targetSteps > 0
+          ? (distanceKm > 0 ? 'Your proof must show both distance and steps.' : 'Your proof must show steps and the activity date.')
+          : 'Your proof must show distance and the activity date.'
       };
-    })
-    .sort((left, right) => {
+    });
+
+  if (accumulated) {
+    const distanceOnly = choices.filter((item) => item.distanceKm > 0 && item.targetSteps === 0);
+    const starterDistance = Math.min(...distanceOnly.map((item) => item.distanceKm));
+    choices.forEach((item) => {
+      item.recommendationLabel = item.distanceKm === starterDistance && item.targetSteps === 0
+        ? 'Suitable starting goal'
+        : '';
+    });
+    return choices;
+  }
+
+  return choices.sort((left, right) => {
       if (left.sortDistance !== null && right.sortDistance !== null) return right.sortDistance - left.sortDistance;
       if (left.sortDistance !== null) return -1;
       if (right.sortDistance !== null) return 1;
       return left.title.localeCompare(right.title, undefined, { numeric: true, sensitivity: 'base' });
     });
+}
+
+function buildGoalLabel(distanceKm, targetSteps, fallback) {
+  const parts = [];
+  if (Number(distanceKm) > 0) parts.push(`${formatNumber(distanceKm)} km`);
+  if (Number(targetSteps) > 0) parts.push(`${formatNumber(targetSteps)} steps`);
+  return parts.length ? parts.join(' + ') : String(fallback || 'Challenge goal').trim();
+}
+
+function buildDailyGuidance(distanceKm, targetSteps, activityDays) {
+  const days = Number(activityDays);
+  if (!Number.isFinite(days) || days < 1) return '';
+  const parts = [];
+  if (Number(distanceKm) > 0) parts.push(`${formatNumber(Math.ceil((Number(distanceKm) / days) * 100) / 100)} km/day`);
+  if (Number(targetSteps) > 0) parts.push(`${Math.round(Number(targetSteps) / days).toLocaleString('en-US')} steps/day`);
+  return parts.length ? `about ${parts.join(' and ')}` : '';
+}
+
+function getInclusiveDayCount(startValue, endValue) {
+  const start = new Date(startValue);
+  const end = new Date(endValue);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return null;
+  return Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
 }
 
 function buildProfilePresentation(snapshot = {}, completeness = null) {
@@ -198,7 +264,18 @@ function buildReviewData({
     expectedSignatureName: profile.fullName,
     profileName: profile.fullName || 'Not set',
     modes: modes.map(({ value, label }) => ({ value, label })),
-    distances: distances.map(({ value, title, helper, priceLabel, available }) => ({ value, title, helper, priceLabel, available })),
+    distances: distances.map(({ value, title, goalLabel, helper, priceLabel, available, distanceKm, targetSteps, requiresBoth, trackingRequirement }) => ({
+      value,
+      title,
+      goalLabel,
+      helper,
+      priceLabel,
+      available,
+      distanceKm,
+      targetSteps,
+      requiresBoth,
+      trackingRequirement
+    })),
     customizedOptions: (Array.isArray(customizedRegistrationOptions) ? customizedRegistrationOptions : []).map((option) => ({
       id: String(option.id || ''),
       label: String(option.shortDescription || '').trim(),

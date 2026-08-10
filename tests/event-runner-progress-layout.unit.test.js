@@ -15,11 +15,12 @@ test('authenticated event progress card remains in normal document flow', () => 
 
 test('authenticated progress keeps primary metrics visible and discloses secondary facts', () => {
   assert.match(view, /class="event-runner-progress-labels"/);
-  assert.match(view, /remaining` %><\/span>/);
+  assert.match(view, /metric\.statusLabel/);
+  assert.match(view, /metric\.ariaValueText/);
   assert.match(view, /<details class="event-runner-progress-details">/);
   assert.match(view, /Activity and deadline details/);
   assert.match(view, /<dt>Verified activities<\/dt>/);
-  assert.match(view, /<dt>Pending<\/dt>/);
+  assert.match(view, /<dt>Pending activities<\/dt>/);
   assert.match(view, /<dt>Submit by<\/dt>/);
   assert.match(view, /runnerProgressDetailSignals\.join/);
   assert.match(css, /\.event-runner-progress-track\s*\{[\s\S]*height:\s*9px/);

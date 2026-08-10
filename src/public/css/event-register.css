@@ -382,6 +382,174 @@
   font-size: 0.78rem;
 }
 
+.registration-fixed-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.registration-fixed-facts li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.65rem;
+  border: 1px solid #e2e6ec;
+  border-radius: 10px;
+  background: var(--register-soft);
+}
+
+.registration-fixed-facts svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: var(--register-accent);
+}
+
+.registration-fixed-facts span,
+.registration-free-summary span {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.registration-fixed-facts strong,
+.registration-free-summary strong {
+  color: var(--register-ink);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.registration-fixed-facts small,
+.registration-free-summary small {
+  color: var(--register-muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.registration-goal-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+
+.registration-goal-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  align-items: start;
+  min-height: 82px;
+  padding: 0.75rem;
+  border: 1px solid #ccd4df;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.registration-goal-card:hover {
+  border-color: #e2a083;
+  background: #fffaf7;
+}
+
+.registration-goal-card:has(input:checked) {
+  border-color: var(--register-accent);
+  background: var(--register-accent-soft);
+  box-shadow: 0 0 0 2px rgba(200, 77, 27, 0.12);
+}
+
+.registration-goal-card:has(input:focus-visible) {
+  outline: 3px solid rgba(37, 99, 235, 0.28);
+  outline-offset: 2px;
+}
+
+.registration-goal-card.is-unavailable {
+  border-style: dashed;
+  background: #f2f4f7;
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.registration-goal-card input {
+  width: 1.1rem;
+  height: 1.1rem;
+  min-height: auto;
+  margin: 0.15rem 0 0;
+  accent-color: var(--register-accent);
+}
+
+.registration-goal-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.18rem;
+}
+
+.registration-goal-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.registration-goal-title strong {
+  color: var(--register-ink);
+  font-size: 0.95rem;
+}
+
+.registration-goal-copy > small {
+  color: var(--register-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.registration-goal-copy .registration-goal-requirement {
+  color: #39465a;
+}
+
+.registration-goal-requirement-compact {
+  display: none;
+}
+
+.registration-goal-badge {
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  color: #05603a;
+  background: #dff7e9;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.registration-goal-price {
+  color: var(--register-accent-dark);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.registration-mobile-goal-summary {
+  display: none;
+}
+
+.registration-free-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+  padding: 0.7rem;
+  border: 1px solid #a6dbc0;
+  border-radius: 10px;
+  background: #ecfdf3;
+}
+
+.registration-free-summary svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: #027a48;
+}
+
 .registration-addon-list {
   display: grid;
   gap: 0.55rem;
@@ -1115,6 +1283,10 @@
     min-width: 0;
     height: 100%;
   }
+
+  .is-accumulated-registration .event-register-form {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 1040px) {
@@ -1172,6 +1344,12 @@
     padding: 0 0 0 1rem;
     border-top: 0;
     border-left: 1px solid #e7eaf0;
+  }
+
+  .registration-free-summary {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    margin-top: 0;
   }
 }
 
@@ -1256,6 +1434,91 @@
 
   .registration-choice-card {
     min-height: 68px;
+  }
+
+  .registration-mobile-goal-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.8rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #fed7c2;
+    border-radius: 10px;
+    background: var(--register-accent-soft);
+  }
+
+  .registration-mobile-goal-summary span {
+    color: var(--register-muted);
+    font-size: 0.72rem;
+  }
+
+  .registration-mobile-goal-summary strong {
+    color: var(--register-ink);
+    font-size: 0.82rem;
+    text-align: right;
+  }
+
+  .registration-goal-card {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    min-height: 58px;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.55rem 0.6rem;
+    border-radius: 10px;
+  }
+
+  .registration-goal-cards {
+    gap: 0.4rem;
+  }
+
+  .registration-goal-card input {
+    margin-top: 0;
+  }
+
+  .registration-goal-copy {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 0.45rem;
+    row-gap: 0.08rem;
+    align-items: center;
+  }
+
+  .registration-goal-title,
+  .registration-goal-copy > small {
+    grid-column: 1;
+  }
+
+  .registration-goal-title strong {
+    font-size: 0.86rem;
+  }
+
+  .registration-goal-copy > small {
+    font-size: 0.69rem;
+    line-height: 1.25;
+  }
+
+  .registration-goal-category,
+  .registration-goal-requirement-full,
+  .registration-goal-requirement:empty {
+    display: none;
+  }
+
+  .registration-goal-requirement-compact {
+    display: inline;
+    color: #8a3417;
+    font-weight: 750;
+  }
+
+  .registration-goal-badge {
+    padding: 0.1rem 0.3rem;
+    font-size: 0.58rem;
+  }
+
+  .registration-goal-price {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+    font-size: 0.7rem;
   }
 
   .registration-submit-card {
