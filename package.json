@@ -2,7 +2,7 @@
   "name": "hellorun",
   "version": "1.0.0",
   "engines": {
-    "node": ">=20.0.0 <21"
+    "node": ">=22.0.0"
   },
   "description": "Running event management platform",
   "main": "src/server.js",

@@ -460,4 +460,7 @@ function installGracefulShutdown(server) {
   process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
-startServer();
+startServer().catch((error) => {
+  logger.error(`[startup] Fatal error before listen: ${error.message}`);
+  process.exit(1);
+});
