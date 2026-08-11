@@ -213,7 +213,7 @@ exports.updateEvent = async (req, res) => {
       });
     }
     const actor = await User.findById(req.session.userId);
-    const formData = getCreateEventFormData(req.body);
+    const formData = getCreateEventFormData(req.body, { existingEvent: event });
     const incomingPaymentQrFile = req.files?.paymentQrImageFile?.[0] || null;
     if (incomingPaymentQrFile && formData.feeMode === 'paid' && !formData.paymentQrImageUrl) {
       formData.paymentQrImageUrl = 'https://pending-upload.local/payment-qr.png';

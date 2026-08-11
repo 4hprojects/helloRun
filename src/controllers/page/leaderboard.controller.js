@@ -131,7 +131,7 @@ exports.getEventLeaderboardPage = async (req, res) => {
 
     const myStanding = req.session?.userId
       ? await getMyStanding(req.params.slug, req.session.userId, {
-          distance: data.activeDistance?.key,
+          distance: data.activeDistance?.value || data.activeDistance?.key,
           metric: data.filters?.metric
         })
       : null;

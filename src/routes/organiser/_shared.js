@@ -1105,8 +1105,8 @@ function escapeRegex(input) {
   return String(input || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function getCreateEventFormData(body = {}) {
-  return eventFormService.getCreateEventFormData(body);
+function getCreateEventFormData(body = {}, options = {}) {
+  return eventFormService.getCreateEventFormData(body, options);
 }
 
 function formatDateForInput(value) {

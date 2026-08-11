@@ -290,7 +290,7 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
 
   // Use cached groups/entries when available; fall through on any Redis error.
   const metricCacheKey = `${settings.primaryMetric}:${settings.trackedMetrics.join('+')}`;
-  const cacheKey = `leaderboard:v3:${eventSlug}:${metricCacheKey}`;
+  const cacheKey = `leaderboard:v5:${eventSlug}:${metricCacheKey}`;
   const redis = getRedisClient();
   let cachedGroups = null;
   if (redis) {
@@ -344,10 +344,23 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
   const distanceOptions = groups.map((group) => ({
     key: group.key,
     label: group.label,
+    value: group.value,
+    categoryId: group.categoryId,
+    goalLabel: group.goalLabel,
+    distanceKm: group.distanceKm,
+    targetSteps: group.targetSteps,
     totalEntries: group.stats.totalEntries,
     verifiedEntries: group.stats.verifiedEntries,
     pendingEntries: group.stats.pendingEntries
   }));
+  const categoryCards = buildLeaderboardCategoryCards(baseGroups);
+  const overviewStats = {
+    categoryCount: categoryCards.length,
+    totalEntries: categoryCards.reduce((total, card) => total + card.stats.totalEntries, 0),
+    verifiedEntries: categoryCards.reduce((total, card) => total + card.stats.verifiedEntries, 0),
+    pendingEntries: categoryCards.reduce((total, card) => total + card.stats.pendingEntries, 0),
+    lastUpdatedAt: getLastUpdatedAt(baseGroups.flatMap((group) => group.entries || []))
+  };
   const filters = {
     ...options,
     distance: activeDistance.key,
@@ -363,6 +376,8 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
     pendingEntries: options.status === 'verified' || resultPage > 1 ? [] : pendingEntries.slice(0, options.limit),
     groups,
     distanceOptions,
+    categoryCards,
+    overviewStats,
     activeDistance,
     pagination: {
       page: resultPage,
@@ -379,7 +394,9 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
     rankingExplanation: settings.type === 'accumulated_challenge'
       ? (settings.primaryMetric === 'consistency'
         ? `Ranked by most active days (minimum ${MIN_CONSISTENCY_ACTIVE_DAYS}), tie-broken by total steps, then distance, then elevation. Only approved submissions count.`
-        : `Ranked by highest verified ${settings.primaryMetric}. Official rankings include approved submissions only.`)
+        : settings.primaryMetric === 'elevation'
+          ? 'Ranked by highest verified elevation gain. Only approved submissions count.'
+          : `Ranked by highest verified ${settings.primaryMetric}. Official rankings include approved submissions only.`)
       : 'Ranked by fastest verified time. Official rankings include approved submissions only.'
   };
 }
@@ -387,14 +404,21 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
 function invalidateLeaderboardCache(eventSlug) {
   const redis = getRedisClient();
   if (!redis || !eventSlug) return;
-  redis.del(
+  const legacyKeys = [
     `leaderboard:${eventSlug}`,
     `leaderboard:v2:${eventSlug}`,
     `leaderboard:v3:${eventSlug}:distance:distance`,
     `leaderboard:v3:${eventSlug}:steps:steps`,
     `leaderboard:v3:${eventSlug}:distance:distance+steps`,
     `leaderboard:v3:${eventSlug}:steps:distance+steps`
-  ).catch(() => {});
+  ];
+  redis.del(...legacyKeys).catch(() => {});
+  if (typeof redis.scanStream !== 'function') return;
+  const stream = redis.scanStream({ match: `leaderboard:v*:${eventSlug}:*`, count: 25 });
+  stream.on('data', (keys) => {
+    if (keys.length) redis.del(...keys).catch(() => {});
+  });
+  stream.on('error', () => {});
 }
 
 async function getMyStanding(eventSlug, userId, rawOptions = {}) {
@@ -409,7 +433,7 @@ async function getMyStanding(eventSlug, userId, rawOptions = {}) {
   if (!data) return null;
   const entry = data.entries.find((item) => String(item.userId || '') === safeUserId) || null;
   const pendingProgress = data.settings.type === 'accumulated_challenge'
-    ? await getRunnerPendingAccumulatedStanding(data.event, safeUserId, data.settings, data.activeDistance?.label)
+    ? await getRunnerPendingAccumulatedStanding(data.event, safeUserId, data.settings, data.activeDistance?.value || data.activeDistance?.label)
     : null;
   if (entry) {
     return {
@@ -422,7 +446,12 @@ async function getMyStanding(eventSlug, userId, rawOptions = {}) {
     };
   }
 
-  const pending = pendingProgress || await getRunnerPendingStanding(data.event.id, safeUserId, data.settings, data.activeDistance?.label);
+  const pending = pendingProgress || await getRunnerPendingStanding(
+    data.event.id,
+    safeUserId,
+    data.settings,
+    data.activeDistance?.value || data.activeDistance?.label
+  );
   return {
     event: data.event,
     settings: data.settings,
@@ -456,13 +485,21 @@ async function getNearbyRunners(eventSlug, userId, rawOptions = {}) {
 
 function buildEventLeaderboardGroups(entries = [], event = {}, options = {}) {
   const buckets = new Map();
+  const configuredCategories = getConfiguredCategoryOptions(event);
+  const configuredByKey = new Map(configuredCategories.map((category) => [category.key, category]));
 
   entries.forEach((entry) => {
     const key = getEventLeaderboardGroupKey(entry.category);
     if (!buckets.has(key)) {
+      const configuredCategory = configuredByKey.get(key) || {};
       buckets.set(key, {
         key,
-        label: resolveEventLeaderboardGroupLabel(key, event, entry.category),
+        label: configuredCategory.label || resolveEventLeaderboardGroupLabel(key, event, entry.category),
+        value: configuredCategory.value || String(entry.category || '').trim(),
+        categoryId: configuredCategory.categoryId || '',
+        goalLabel: configuredCategory.goalLabel || String(entry.category || '').trim() || 'Event category',
+        distanceKm: configuredCategory.distanceKm || null,
+        targetSteps: configuredCategory.targetSteps || null,
         entries: []
       });
     }
@@ -470,9 +507,9 @@ function buildEventLeaderboardGroups(entries = [], event = {}, options = {}) {
   });
 
   if (options.includeConfiguredDistances) {
-    getConfiguredDistanceOptions(event).forEach((distance) => {
-      if (!buckets.has(distance.key)) {
-        buckets.set(distance.key, createEmptyLeaderboardGroup(distance));
+    configuredCategories.forEach((category) => {
+      if (!buckets.has(category.key)) {
+        buckets.set(category.key, createEmptyLeaderboardGroup(category));
       }
     });
   }
@@ -486,6 +523,11 @@ function buildEventLeaderboardGroups(entries = [], event = {}, options = {}) {
     const bucket = buckets.get(key) || {
       key,
       label: resolveEventLeaderboardGroupLabel(key, event, ''),
+      value: key,
+      categoryId: '',
+      goalLabel: key,
+      distanceKm: null,
+      targetSteps: null,
       entries: []
     };
     let officialPosition = 0;
@@ -514,6 +556,11 @@ function buildEventLeaderboardGroups(entries = [], event = {}, options = {}) {
     return {
       key,
       label: bucket.label,
+      value: bucket.value || bucket.label,
+      categoryId: bucket.categoryId || '',
+      goalLabel: bucket.goalLabel || bucket.label,
+      distanceKm: Number(bucket.distanceKm || 0) || null,
+      targetSteps: Number(bucket.targetSteps || 0) || null,
       entries: rankedEntries,
       stats: {
         totalEntries: rankedEntries.length,
@@ -543,6 +590,11 @@ function createEmptyLeaderboardGroup(distance = {}) {
   return {
     key: distance.key || 'uncategorized',
     label: distance.label || 'Uncategorized',
+    value: distance.value || distance.label || 'Uncategorized',
+    categoryId: distance.categoryId || '',
+    goalLabel: distance.goalLabel || distance.label || 'Event category',
+    distanceKm: Number(distance.distanceKm || 0) || null,
+    targetSteps: Number(distance.targetSteps || 0) || null,
     entries: [],
     stats: {
       totalEntries: 0,
@@ -552,15 +604,51 @@ function createEmptyLeaderboardGroup(distance = {}) {
   };
 }
 
-function getConfiguredDistanceOptions(event = {}) {
+function getConfiguredCategoryOptions(event = {}) {
   const seen = new Set();
-  return (Array.isArray(event.raceDistances) ? event.raceDistances : [])
-    .map((item) => {
-      const label = String(item || '').trim();
-      const key = normalizeDistance(label);
-      return { key, label };
-    })
-    .filter((item) => item.key && item.label && !seen.has(item.key) && seen.add(item.key));
+  const categories = [];
+
+  (Array.isArray(event.raceCategories) ? event.raceCategories : []).forEach((category) => {
+    const name = String(category?.name || '').trim();
+    const distanceLabel = String(category?.distanceLabel || '').trim();
+    const selector = distanceLabel || name;
+    const key = normalizeDistance(selector);
+    if (!key || seen.has(key)) return;
+    const distanceKm = Number(category?.distanceKm || 0) > 0 ? Number(category.distanceKm) : null;
+    const targetSteps = Number(category?.targetSteps || 0) > 0 ? Number(category.targetSteps) : null;
+    const goalParts = [
+      distanceKm ? `${formatDistanceWithGrouping(distanceKm)} km` : '',
+      targetSteps ? `${targetSteps.toLocaleString('en-US')} steps` : ''
+    ].filter(Boolean);
+    seen.add(key);
+    categories.push({
+      key,
+      label: name || distanceLabel || selector,
+      value: selector,
+      categoryId: String(category?.categoryId || '').trim(),
+      goalLabel: goalParts.join(' + ') || distanceLabel || name || 'Event category',
+      distanceKm,
+      targetSteps
+    });
+  });
+
+  (Array.isArray(event.raceDistances) ? event.raceDistances : []).forEach((item) => {
+    const label = String(item || '').trim();
+    const key = normalizeDistance(label);
+    if (!key || !label || seen.has(key)) return;
+    seen.add(key);
+    categories.push({
+      key,
+      label,
+      value: label,
+      categoryId: '',
+      goalLabel: label,
+      distanceKm: null,
+      targetSteps: null
+    });
+  });
+
+  return categories;
 }
 
 function resolveActiveDistance({ groups = [], requestedDistance = '', runnerDistance = '' }) {
@@ -574,7 +662,12 @@ function resolveActiveDistance({ groups = [], requestedDistance = '', runnerDist
   const selectedGroup = groups.find((group) => group.key === selectedKey);
   return {
     key: selectedKey,
-    label: selectedGroup?.label || (selectedKey === 'uncategorized' ? 'Uncategorized' : selectedKey)
+    label: selectedGroup?.label || (selectedKey === 'uncategorized' ? 'Uncategorized' : selectedKey),
+    value: selectedGroup?.value || selectedGroup?.label || selectedKey,
+    categoryId: selectedGroup?.categoryId || '',
+    goalLabel: selectedGroup?.goalLabel || selectedGroup?.label || selectedKey,
+    distanceKm: Number(selectedGroup?.distanceKm || 0) || null,
+    targetSteps: Number(selectedGroup?.targetSteps || 0) || null
   };
 }
 
@@ -599,22 +692,19 @@ function getEventLeaderboardGroupKey(category) {
 
 function resolveEventLeaderboardGroupLabel(key, event = {}, fallbackCategory = '') {
   if (key === 'uncategorized') return 'Uncategorized';
-  const configuredDistances = Array.isArray(event.raceDistances)
-    ? event.raceDistances.map((item) => String(item || '').trim()).filter(Boolean)
-    : [];
-  const matchingConfigured = configuredDistances.find((item) => normalizeDistance(item) === key);
-  if (matchingConfigured) return matchingConfigured;
+  const matchingConfigured = getConfiguredCategoryOptions(event).find((item) => item.key === key);
+  if (matchingConfigured) return matchingConfigured.label;
   const fallback = String(fallbackCategory || '').trim();
   return fallback || key;
 }
 
+function resolveEventLeaderboardCategoryLabel(category, event = {}) {
+  const rawCategory = String(category || '').trim();
+  return resolveEventLeaderboardGroupLabel(getEventLeaderboardGroupKey(rawCategory), event, rawCategory);
+}
+
 function orderEventLeaderboardGroupKeys({ event = {}, availableKeys = [] }) {
-  const configuredDistances = Array.isArray(event.raceDistances)
-    ? event.raceDistances.map((item) => String(item || '').trim()).filter(Boolean)
-    : [];
-  const configuredKeys = configuredDistances
-    .map((item) => normalizeDistance(item))
-    .filter(Boolean);
+  const configuredKeys = getConfiguredCategoryOptions(event).map((item) => item.key);
 
   const order = [];
   configuredKeys.forEach((key) => {
@@ -633,6 +723,31 @@ function orderEventLeaderboardGroupKeys({ event = {}, availableKeys = [] }) {
   }
 
   return order;
+}
+
+function buildLeaderboardCategoryCards(groups = []) {
+  return groups.map((group) => ({
+    key: group.key,
+    label: group.label,
+    value: group.value || group.label,
+    categoryId: group.categoryId || '',
+    goalLabel: group.goalLabel || group.label,
+    distanceKm: Number(group.distanceKm || 0) || null,
+    targetSteps: Number(group.targetSteps || 0) || null,
+    stats: {
+      totalEntries: Number(group.stats?.totalEntries || 0),
+      verifiedEntries: Number(group.stats?.verifiedEntries || 0),
+      pendingEntries: Number(group.stats?.pendingEntries || 0)
+    },
+    leaders: (group.entries || [])
+      .filter((entry) => entry.status === 'verified')
+      .slice(0, 3)
+      .map((entry) => ({
+        rank: Number.isInteger(entry.rank) ? entry.rank : null,
+        runnerName: entry.runnerName || 'Runner',
+        primaryMetricLabel: entry.primaryMetricLabel || entry.timeLabel || entry.distanceLabel || '-'
+      }))
+  }));
 }
 
 async function getLeaderboardEventBySlug(eventSlug) {
@@ -884,12 +999,14 @@ function formatConsistencyEntry({ row, event, settings, runner, registration, ra
   const progressBarPercentage = totalPossibleDays
     ? Math.min(100, Math.round((activeDays / totalPossibleDays) * 100))
     : 100;
+  const category = registration?.raceDistance || row.raceDistance || '';
   return {
     rank: Number.isInteger(rank) ? rank : null,
     registrationId: String(registration?._id || row._id || ''),
     userId: String(runner?._id || row.runnerId || ''),
     runnerName: formatRunnerName(runner, settings.nameDisplayMode, registration),
-    category: registration?.raceDistance || row.raceDistance || '',
+    category,
+    categoryLabel: resolveEventLeaderboardCategoryLabel(category, event),
     participationMode: registration?.participationMode || row.participationMode || '',
     activeDays,
     activeDaysLabel,
@@ -1490,7 +1607,7 @@ function normalizeEventLeaderboardOptions(rawOptions = {}) {
     category: normalizeDistance(rawOptions.distance || rawOptions.category || rawOptions.categoryId),
     mode: normalizeMode(rawOptions.mode || rawOptions.participationMode),
     status: normalizePublicStatus(rawOptions.status),
-    metric: ['distance', 'steps'].includes(String(rawOptions.metric || '').trim().toLowerCase())
+    metric: ['distance', 'steps', 'elevation', 'consistency'].includes(String(rawOptions.metric || '').trim().toLowerCase())
       ? String(rawOptions.metric).trim().toLowerCase()
       : '',
     search: String(rawOptions.search || '').trim().toLowerCase().slice(0, 80),
@@ -1558,22 +1675,41 @@ function buildEventLeaderboardPresentation(leaderboard = {}, options = {}) {
 
   const trackedMetrics = Array.isArray(settings.trackedMetrics) ? settings.trackedMetrics : [];
   const activeMetric = filters.metric || settings.primaryMetric;
+  const categoryCards = (leaderboard.categoryCards || []).map((card) => ({
+    ...card,
+    active: card.key === leaderboard.activeDistance?.key,
+    href: `${buildEventLeaderboardUrl(event.slug, {
+      distance: card.key,
+      metric: filters.metric,
+      limit: filters.limit
+    })}#official-standings`
+  }));
+  const overviewStats = {
+    categoryCount: Number(leaderboard.overviewStats?.categoryCount ?? categoryCards.length),
+    totalEntries: Number(leaderboard.overviewStats?.totalEntries ?? categoryCards.reduce((total, card) => total + Number(card.stats?.totalEntries || 0), 0)),
+    verifiedEntries: Number(leaderboard.overviewStats?.verifiedEntries ?? categoryCards.reduce((total, card) => total + Number(card.stats?.verifiedEntries || 0), 0)),
+    pendingEntries: Number(leaderboard.overviewStats?.pendingEntries ?? categoryCards.reduce((total, card) => total + Number(card.stats?.pendingEntries || 0), 0)),
+    lastUpdatedAt: leaderboard.overviewStats?.lastUpdatedAt || null
+  };
 
   return {
     isAccumulated,
     showDistanceNavigation: (leaderboard.distanceOptions || []).length > 1,
+    showCategoryCards: categoryCards.length > 1,
+    categoryCards,
+    overviewStats,
     showModeFilter,
     showStatusFilter,
     showAdvancedFilters: showModeFilter || showStatusFilter,
     hasActiveAdvancedFilters: Boolean(filters.mode || filters.status),
-    showCategoryColumn: (leaderboard.distanceOptions || []).length > 1,
+    showCategoryColumn: categoryCards.length <= 1 && (leaderboard.distanceOptions || []).length > 1,
     showMetricNavigation: isAccumulated && trackedMetrics.length > 1,
     metricOptions: trackedMetrics.map((metric) => ({
       key: metric,
       label: metric === 'steps'
         ? 'Steps'
         : metric === 'elevation'
-          ? 'Elevation'
+          ? 'Most Elevation'
           : metric === 'consistency'
             ? 'Most Consistent'
             : 'Distance',
@@ -1616,13 +1752,15 @@ function formatRaceEntry(row, event, settings, rank) {
   const distanceKm = Number(row.distanceKm || 0);
   const elapsedMs = Number(row.elapsedMs || 0);
   const paceSecondsPerKm = distanceKm > 0 && elapsedMs > 0 ? Math.round((elapsedMs / 1000) / distanceKm) : 0;
+  const category = registration.raceDistance || row.raceDistance || '';
   return {
     rank: Number.isInteger(rank) ? rank : null,
     registrationId: String(registration._id || row.registrationId || ''),
     submissionId: String(row._id || ''),
     userId: String(row.runnerId?._id || row.runnerId || ''),
     runnerName: formatRunnerName(row.runnerId, settings.nameDisplayMode, registration),
-    category: registration.raceDistance || row.raceDistance || '',
+    category,
+    categoryLabel: resolveEventLeaderboardCategoryLabel(category, event),
     participationMode: registration.participationMode || row.participationMode || '',
     distanceKm,
     distanceLabel: distanceKm > 0 ? `${formatDistance(distanceKm)} km` : '',
@@ -1661,13 +1799,15 @@ function formatAccumulatedEntry({ row, event, settings, runner, registration, ra
     : rankedMetric === 'elevation'
       ? `${formatDistance(totalElevationGain)} m gained`
       : `${formatDistance(totalDistanceKm)} km`;
+  const category = registration?.raceDistance || row.raceDistance || '';
   return {
     rank: Number.isInteger(rank) ? rank : null,
     registrationId: String(registration?._id || row._id || ''),
     submissionId: String(row._id || ''),
     userId: String(runner?._id || row.runnerId || ''),
     runnerName: formatRunnerName(runner, settings.nameDisplayMode, registration),
-    category: registration?.raceDistance || row.raceDistance || '',
+    category,
+    categoryLabel: resolveEventLeaderboardCategoryLabel(category, event),
     participationMode: registration?.participationMode || row.participationMode || '',
     distanceKm: totalDistanceKm,
     totalDistanceKm,
@@ -1937,6 +2077,7 @@ module.exports = {
   buildEventLeaderboardCanonicalUrl,
   buildEventLeaderboardPresentation,
   filterEventLeaderboardGroups,
+  buildLeaderboardCategoryCards,
   buildAccumulatedProgressMetrics,
   resolveEventLeaderboardSettings,
   invalidateLeaderboardCache,

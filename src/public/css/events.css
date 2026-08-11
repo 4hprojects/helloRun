@@ -581,6 +581,10 @@
   min-width: 0;
 }
 
+.event-card-facts > .event-card-fact-wide {
+  grid-column: 1 / -1;
+}
+
 .event-card-facts dt {
   display: flex;
   align-items: center;

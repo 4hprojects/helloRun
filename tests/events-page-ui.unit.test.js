@@ -49,6 +49,20 @@ test('compact event cards expose the runner decision facts without list-page des
   assert.match(viewSource, /loading="lazy"/);
 });
 
+test('event card facts prioritize date and price before full-width distance and location rows', () => {
+  const dateIndex = viewSource.indexOf('event-card-fact-date');
+  const priceIndex = viewSource.indexOf('event-card-fact-price');
+  const distanceIndex = viewSource.indexOf('event-card-fact-distance');
+  const locationIndex = viewSource.indexOf('event-card-fact-location');
+
+  assert.ok(dateIndex < priceIndex);
+  assert.ok(priceIndex < distanceIndex);
+  assert.ok(distanceIndex < locationIndex);
+  assert.match(viewSource, /event-card-fact-wide event-card-fact-distance/);
+  assert.match(viewSource, /event-card-fact-wide event-card-fact-location/);
+  assert.match(cssSource, /\.event-card-facts > \.event-card-fact-wide\s*\{[\s\S]*grid-column:\s*1 \/ -1/);
+});
+
 test('responsive event discovery uses three, two, and one-column grids with accessible controls', () => {
   assert.match(cssSource, /\.events-card-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,/);
   assert.match(cssSource, /@media \(max-width: 1024px\)[\s\S]*\.events-card-grid\s*\{[\s\S]*repeat\(2,/);

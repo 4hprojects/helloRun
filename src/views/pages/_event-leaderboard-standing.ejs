@@ -1,0 +1,67 @@
+<section class="leaderboard-standing-card leaderboard-standing-<%= standingView.state %>" aria-labelledby="my-standing-heading">
+  <% if (standingView.state === 'verified') { %>
+    <div class="leaderboard-standing-lead">
+      <p class="leaderboard-kicker">My standing</p>
+      <h2 id="my-standing-heading">#<%= standing.rank %> in <%= standing.categoryLabel || activeDistance.label %></h2>
+      <p>Officially ranked <strong>#<%= standing.rank %></strong> of <strong><%= standingView.verifiedEntries %></strong> verified runners.</p>
+    </div>
+    <dl class="leaderboard-standing-facts">
+      <div><dt>Status</dt><dd><span class="leaderboard-status-badge leaderboard-status-verified">Verified</span></dd></div>
+      <div><dt><%= isAccumulated ? primaryMetricLabel : 'Distance' %></dt><dd><%= isAccumulated ? standing.primaryMetricLabel : (standing.distanceLabel || 'N/A') %></dd></div>
+      <% if (isAccumulated) { %>
+        <% if ((settings.trackedMetrics || []).includes('distance') && (settings.trackedMetrics || []).includes('steps')) { %>
+          <div><dt>Verified distance</dt><dd><%= standing.distanceLabel %></dd></div>
+          <div><dt>Verified steps</dt><dd><%= standing.stepsLabel %></dd></div>
+        <% } %>
+        <% if (!standing.rankingOnly) { %><div><dt>Remaining</dt><dd><%= primaryMetric === 'steps' ? standing.remainingStepsLabel : standing.remainingDistanceLabel %></dd></div><% } %>
+        <div><dt>Verified activities</dt><dd><%= standing.activityCountLabel %></dd></div>
+      <% } else { %>
+        <% if (standing.timeLabel) { %><div><dt>Time</dt><dd><%= standing.timeLabel %></dd></div><% } %>
+        <% if (standing.paceLabel) { %><div><dt>Pace</dt><dd><%= standing.paceLabel %></dd></div><% } %>
+      <% } %>
+    </dl>
+    <% if (isAccumulated) { %>
+      <div class="leaderboard-standing-progress">
+        <div><strong><%= standing.isGoalComplete ? 'Goal completed' : standing.progressLabel %></strong><span><%= standing.progressPercentage === null ? '' : `${standing.progressPercentage}%` %></span></div>
+        <div class="leaderboard-progress-track" role="progressbar" aria-label="Your verified challenge progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= standing.progressBarPercentage %>"><span style="--progress-width: <%= standing.progressBarPercentage %>%"></span></div>
+        <% if (standingView.pendingProgress) { %><p><strong><%= standingView.pendingProgress.primaryMetricLabel %></strong> from <%= standingView.pendingProgress.activityCountLabel %> is pending and is not included above.</p><% } %>
+      </div>
+    <% } %>
+    <% if (standingView.nearby?.length) { %>
+      <div class="leaderboard-nearby">
+        <h3>Runners near you</h3>
+        <ol>
+          <% standingView.nearby.forEach((runner) => { %><li class="<%= runner.isCurrentUser ? 'is-current' : '' %>"><span><strong>#<%= runner.rank %></strong> <%= runner.isCurrentUser ? 'You' : runner.runnerName %></span><b><%= runner.timeLabel || runner.primaryMetricLabel || runner.distanceLabel %></b></li><% }) %>
+        </ol>
+      </div>
+    <% } %>
+  <% } else if (standingView.state === 'pending') { %>
+    <div class="leaderboard-standing-lead">
+      <p class="leaderboard-kicker">My standing</p>
+      <h2 id="my-standing-heading">Your result is under review</h2>
+      <p><%= isAccumulated ? 'Pending activities do not count toward your official challenge progress or rank until the organizer verifies them.' : 'It will receive an official rank after the organizer verifies it.' %></p>
+    </div>
+    <dl class="leaderboard-standing-facts"><div><dt>Status</dt><dd><span class="leaderboard-status-badge leaderboard-status-pending_review">Pending review</span></dd></div><div><dt><%= isAccumulated ? `Pending ${primaryMetric}` : 'Distance' %></dt><dd><%= isAccumulated ? standing.primaryMetricLabel : (standing.distanceLabel || standing.categoryLabel || activeDistance.label) %></dd></div><% if (isAccumulated) { %><div><dt>Pending activities</dt><dd><%= standing.activityCountLabel %></dd></div><div><dt>Potential progress</dt><dd><%= standing.progressLabel %></dd></div><% } %></dl>
+  <% } else if (standingView.state === 'rejected') { %>
+    <div class="leaderboard-standing-lead">
+      <p class="leaderboard-kicker">My standing</p>
+      <h2 id="my-standing-heading">Your result needs attention</h2>
+      <p>Review your submission status in your runner dashboard before resubmitting.</p>
+      <a href="/runner/submissions" class="leaderboard-button leaderboard-button-primary">Review submission</a>
+    </div>
+  <% } else if (standingView.state === 'guest') { %>
+    <div class="leaderboard-standing-lead">
+      <p class="leaderboard-kicker">My standing</p>
+      <h2 id="my-standing-heading">Find your personal result</h2>
+      <p>Log in to see your verification status, official rank, <%= isAccumulated ? 'challenge progress,' : '' %> and nearby runners.</p>
+      <a href="<%= standingView.loginUrl %>" class="leaderboard-button leaderboard-button-primary">Log in to view my standing</a>
+    </div>
+  <% } else { %>
+    <div class="leaderboard-standing-lead">
+      <p class="leaderboard-kicker">My standing</p>
+      <h2 id="my-standing-heading">No result for this category yet</h2>
+      <p>Your standing appears here after you submit a result and the organizer reviews it.</p>
+      <a href="/runner/submissions" class="leaderboard-button leaderboard-button-secondary">View my submissions</a>
+    </div>
+  <% } %>
+</section>

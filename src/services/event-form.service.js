@@ -794,7 +794,7 @@ function sanitizeWaiverTemplate(value) {
   return normalizeWaiverTemplate(sanitizeHtml(normalizedTemplate, WAIVER_SANITIZE_OPTIONS));
 }
 
-function getCreateEventFormData(body = {}) {
+function getCreateEventFormData(body = {}, options = {}) {
   const isDefaultCreateBody = !Object.keys(body || {}).length;
   const submittedChallengeMetrics = Array.isArray(body.challengeMetrics)
     ? body.challengeMetrics
@@ -811,6 +811,12 @@ function getCreateEventFormData(body = {}) {
     accumulated: isAccumulatedChallenge(virtualCompletionMode)
   });
   const primaryChallengeMetric = normalizePrimaryChallengeMetric(body.primaryChallengeMetric, challengeMetrics);
+  const allowStepCompetitionWhenDisabled = Boolean(
+    options.existingEvent
+    && normalizeChallengeMetrics(options.existingEvent.challengeMetrics, {
+      accumulated: isAccumulatedChallenge(options.existingEvent.virtualCompletionMode)
+    }).includes('steps')
+  );
   const requestedPrimaryChallengeMetric = String(body.primaryChallengeMetric || '').trim().toLowerCase();
   const targetStepsRaw = String(body.targetSteps ?? '').trim();
   const targetSteps = normalizeTargetSteps(body.targetSteps);
@@ -916,6 +922,7 @@ function getCreateEventFormData(body = {}) {
     challengeMetrics,
     challengeMetricsSelectionMissing: hasExplicitChallengeMetricSelection && !hasValidExplicitChallengeMetric,
     primaryChallengeMetric,
+    allowStepCompetitionWhenDisabled,
     primaryChallengeMetricInvalid: Boolean(
       requestedPrimaryChallengeMetric && !challengeMetrics.includes(requestedPrimaryChallengeMetric)
     ),
@@ -1093,6 +1100,7 @@ function getCreateEventFormDataFromEvent(event) {
     targetSteps: normalizeTargetSteps(event.targetSteps),
     targetStepsProvided: normalizeTargetSteps(event.targetSteps) !== null,
     stepCompetitionsEnabled: isStepCompetitionsEnabled(),
+    allowStepCompetitionWhenDisabled: challengeMetrics.includes('steps'),
     targetDistanceKm: challengeMetrics.includes('distance')
       ? (Number.isFinite(event.targetDistanceKm) ? event.targetDistanceKm : inferTargetDistanceKm(normalizedEventDistances, raceCategories, {
       yearFallback: isAccumulatedChallenge(event.virtualCompletionMode)

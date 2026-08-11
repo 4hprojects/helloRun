@@ -127,6 +127,18 @@ test('organizer validation keeps step competitions behind the disabled feature f
   assert.equal(validateCreateEventForm(formData).challengeMetrics, 'Step competitions are not enabled yet.');
 });
 
+test('existing step competitions receive a trusted edit allowance while new events remain gated', () => {
+  const formData = getCreateEventFormData(publishPayload(), {
+    existingEvent: {
+      virtualCompletionMode: 'accumulated_activity',
+      challengeMetrics: ['distance', 'steps']
+    }
+  });
+
+  assert.equal(formData.allowStepCompetitionWhenDisabled, true);
+  assert.equal(validateCreateEventForm(formData).challengeMetrics, undefined);
+});
+
 test('step-primary progress separates review states and completes only on approved steps', () => {
   const progress = buildAccumulatedProgress({
     targetSteps: 10_000,
@@ -171,6 +183,17 @@ test('step leaderboard uses shared competition ranks and deterministic non-metri
 
   assert.deepEqual(ranked.map((item) => item.row._id), ['reg-a', 'reg-b', 'reg-c']);
   assert.deepEqual(ranked.map((item) => item.rank), [1, 1, 3]);
+});
+
+test('elevation leaderboard ranks highest verified elevation gain first', () => {
+  const ranked = rankAccumulatedRows([
+    { _id: 'reg-low', totalElevationGain: 120, totalDistanceKm: 80, totalSteps: 100_000, finalContributingAt: '2026-09-12T08:00:00Z' },
+    { _id: 'reg-high', totalElevationGain: 450, totalDistanceKm: 20, totalSteps: 30_000, finalContributingAt: '2026-09-12T10:00:00Z' },
+    { _id: 'reg-mid', totalElevationGain: 275, totalDistanceKm: 50, totalSteps: 70_000, finalContributingAt: '2026-09-12T09:00:00Z' }
+  ], 'elevation');
+
+  assert.deepEqual(ranked.map((item) => item.row._id), ['reg-high', 'reg-mid', 'reg-low']);
+  assert.deepEqual(ranked.map((item) => item.rank), [1, 2, 3]);
 });
 
 test('event leaderboard preserves shared ranks within each registration category', () => {

@@ -101,6 +101,67 @@ test('edit form restores accumulated target from category distance when stored t
   assert.equal(formData.targetDistanceKm, 100);
 });
 
+test('existing step competition remains publish-ready while its organizer controls are feature-gated', () => {
+  const previousFlag = process.env.FEATURE_STEP_COMPETITIONS_ENABLED;
+  process.env.FEATURE_STEP_COMPETITIONS_ENABLED = 'false';
+
+  try {
+    const formData = getCreateEventFormDataFromEvent({
+      title: 'CNS Move More Challenge 2026',
+      organiserName: 'College of Natural Sciences',
+      description: 'A complete accumulated distance and steps challenge.',
+      eventDetailsMarkdown: 'Complete challenge rules and participant instructions.',
+      eventType: 'virtual',
+      registrationOpenAt: new Date('2026-08-01T00:00:00Z'),
+      registrationCloseAt: new Date('2026-08-31T00:00:00Z'),
+      eventStartAt: new Date('2026-09-01T00:00:00Z'),
+      eventEndAt: new Date('2026-09-30T00:00:00Z'),
+      virtualWindow: {
+        startAt: new Date('2026-09-01T00:00:00Z'),
+        endAt: new Date('2026-09-30T00:00:00Z')
+      },
+      proofTypesAllowed: ['photo'],
+      virtualCompletionMode: 'accumulated_activity',
+      challengeMetrics: ['distance', 'steps'],
+      primaryChallengeMetric: 'distance',
+      targetSteps: 120000,
+      targetDistanceKm: 50,
+      raceDistances: ['25K', '50K'],
+      raceCategories: [
+        { categoryId: 'cns-25k', name: '25K Challenge', type: 'challenge', distanceLabel: '25K', distanceKm: 25 },
+        { categoryId: 'cns-50k', name: '50K Challenge', type: 'challenge', distanceLabel: '50K', distanceKm: 50 }
+      ],
+      acceptedRunTypes: ['run', 'walk', 'hike'],
+      recognitionMode: 'completion_with_optional_ranking',
+      leaderboardMode: 'finishers_and_top_metric',
+      leaderboardRecognitionEnabled: true,
+      leaderboardSettings: {
+        enabled: true,
+        type: 'accumulated_challenge',
+        rankingBasis: 'highest_verified_distance',
+        visibility: 'public',
+        nameDisplayMode: 'first_name_last_initial',
+        visibleColumns: ['rank', 'runner', 'category', 'distance', 'steps', 'status']
+      },
+      feeMode: 'free'
+    });
+    const validationErrors = validateCreateEventForm({ ...formData, actionType: 'publish' });
+    const readiness = getEventReadinessChecklist(formData);
+
+    assert.equal(formData.stepCompetitionsEnabled, false);
+    assert.equal(formData.allowStepCompetitionWhenDisabled, true);
+    assert.deepEqual(formData.challengeMetrics, ['distance', 'steps']);
+    assert.equal(formData.primaryChallengeMetric, 'distance');
+    assert.equal(formData.targetSteps, 120000);
+    assert.equal(formData.leaderboardSettings.rankingBasis, 'highest_verified_distance');
+    assert.equal(validationErrors.challengeMetrics, undefined);
+    assert.equal(readiness.items.find((item) => item.id === 'challengeMetrics').ok, true);
+  } finally {
+    if (previousFlag === undefined) delete process.env.FEATURE_STEP_COMPETITIONS_ENABLED;
+    else process.env.FEATURE_STEP_COMPETITIONS_ENABLED = previousFlag;
+  }
+});
+
 test('create-event form maps legacy pricing modes to current pricing modes', () => {
   assert.equal(getCreateEventFormData({ feeMode: 'paid', pricingMode: 'same_fee' }).pricingMode, 'customized_options');
   assert.equal(getCreateEventFormData({ feeMode: 'paid', pricingMode: 'per_distance' }).pricingMode, 'distance_based');

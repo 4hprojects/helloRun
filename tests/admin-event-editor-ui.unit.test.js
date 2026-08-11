@@ -20,7 +20,7 @@ test('shared event editor compiles after admin-specific refinements', () => {
 
 test('admin event update imports and uses the form parser', () => {
   assert.match(controller, /getCreateEventFormData, getCreateEventFormDataFromEvent/);
-  assert.match(controller, /const formData = getCreateEventFormData\(req\.body\)/);
+  assert.match(controller, /const formData = getCreateEventFormData\(req\.body, \{ existingEvent: event \}\)/);
   assert.match(shared, /getCreateEventFormData/);
 });
 

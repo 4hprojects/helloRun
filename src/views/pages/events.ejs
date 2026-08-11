@@ -203,24 +203,24 @@
                   <p class="event-card-helper"><%= event.availability?.helper || 'Review the event schedule and registration details.' %></p>
 
                   <dl class="event-card-facts">
-                    <div>
+                    <div class="event-card-fact event-card-fact-date">
                       <dt><i data-lucide="calendar" aria-hidden="true"></i><span>Date</span></dt>
                       <dd><%= event.startDateLabel || 'Not listed' %></dd>
                     </div>
-                    <div>
-                      <dt><i data-lucide="map-pin" aria-hidden="true"></i><span>Location</span></dt>
-                      <dd><%= event.locationLabel || 'Not listed' %></dd>
+                    <div class="event-card-fact event-card-fact-price">
+                      <dt><i data-lucide="wallet-cards" aria-hidden="true"></i><span>Price</span></dt>
+                      <dd><%= event.priceLabel || 'Not listed' %></dd>
                     </div>
-                    <div>
+                    <div class="event-card-fact event-card-fact-wide event-card-fact-distance">
                       <dt><i data-lucide="flag" aria-hidden="true"></i><span>Distance</span></dt>
                       <dd>
                         <span aria-hidden="true"><%= event.distanceLabel || 'Not listed' %></span>
                         <span class="sr-only"><%= event.distanceFullLabel || event.distanceLabel || 'Not listed' %></span>
                       </dd>
                     </div>
-                    <div>
-                      <dt><i data-lucide="wallet-cards" aria-hidden="true"></i><span>Price</span></dt>
-                      <dd><%= event.priceLabel || 'Not listed' %></dd>
+                    <div class="event-card-fact event-card-fact-wide event-card-fact-location">
+                      <dt><i data-lucide="map-pin" aria-hidden="true"></i><span>Location</span></dt>
+                      <dd><%= event.locationLabel || 'Not listed' %></dd>
                     </div>
                   </dl>
 

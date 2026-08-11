@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const CertificateTemplate = require('../../models/CertificateTemplate');
-const { isAccumulatedChallenge, resolveChallengeConfig } = require('../../utils/challenge-metrics');
+const { isAccumulatedChallenge } = require('../../utils/challenge-metrics');
 const {
   logger,
   User,
@@ -484,8 +484,7 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
       return res.redirect(`/organizer/events/${event._id}?${query.toString()}`);
     }
 
-    const formData = getCreateEventFormData(req.body);
-    formData.allowStepCompetitionWhenDisabled = resolveChallengeConfig(event).tracksSteps;
+    const formData = getCreateEventFormData(req.body, { existingEvent: event });
     const incomingPaymentQrFile = req.files?.paymentQrImageFile?.[0] || null;
     if (incomingPaymentQrFile && formData.feeMode === 'paid' && !formData.paymentQrImageUrl) {
       formData.paymentQrImageUrl = 'https://pending-upload.local/payment-qr.png';

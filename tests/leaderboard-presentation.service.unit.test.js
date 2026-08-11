@@ -10,6 +10,8 @@ const {
   buildEventLeaderboardUrl,
   buildEventLeaderboardCanonicalUrl,
   buildEventLeaderboardPresentation,
+  buildEventLeaderboardGroups,
+  buildLeaderboardCategoryCards,
   filterEventLeaderboardGroups,
   buildAccumulatedProgressMetrics
 } = require('../src/services/leaderboard.service');
@@ -43,9 +45,11 @@ test('all discovery sort modes are deterministic', () => {
 });
 
 test('event URLs preserve result filters while canonical URLs keep distance and page only', () => {
-  const filters = { distance: '10k', search: 'runner a', mode: 'virtual', status: 'pending', page: 3, limit: 50 };
-  assert.equal(buildEventLeaderboardUrl('city-run', filters), '/events/city-run/leaderboard?distance=10K&search=runner+a&mode=virtual&status=pending_review&page=3&limit=50');
+  const filters = { distance: '10k', search: 'runner a', mode: 'virtual', status: 'pending', metric: 'elevation', page: 3, limit: 50 };
+  assert.equal(buildEventLeaderboardUrl('city-run', filters), '/events/city-run/leaderboard?distance=10K&search=runner+a&mode=virtual&status=pending_review&metric=elevation&page=3&limit=50');
   assert.equal(buildEventLeaderboardCanonicalUrl('city-run', filters, 3, 'https://hellorun.test'), 'https://hellorun.test/events/city-run/leaderboard?distance=10K&page=3');
+  assert.equal(buildEventLeaderboardUrl('city-run', { metric: 'consistency' }), '/events/city-run/leaderboard?metric=consistency');
+  assert.equal(buildEventLeaderboardUrl('city-run', { metric: 'speed' }), '/events/city-run/leaderboard');
 });
 
 test('event presentation distinguishes guest, authenticated empty, and verified standing states', () => {
@@ -69,6 +73,71 @@ test('event presentation distinguishes guest, authenticated empty, and verified 
   assert.equal(verified.standing.state, 'verified');
   assert.equal(verified.standing.nearby.length, 1);
   assert.equal(verified.standing.verifiedEntries, 42);
+});
+
+test('structured challenge categories produce ordered public-safe top-three cards', () => {
+  const event = {
+    raceDistances: ['25K', '50K'],
+    raceCategories: [
+      { categoryId: 'cns-25k', name: '25-Kilometer Challenge', distanceLabel: '25K', distanceKm: 25, targetSteps: 0 },
+      { categoryId: 'cns-50k', name: '50-Kilometer Challenge', distanceLabel: '50K', distanceKm: 50, targetSteps: 0 },
+      { categoryId: 'cns-steps', name: '120,000-Step Challenge', distanceLabel: '', distanceKm: 0, targetSteps: 120000 },
+      { categoryId: 'cns-25k-steps', name: '25-Kilometer and 120,000-Step Challenge', distanceLabel: '', distanceKm: 25, targetSteps: 120000 },
+      { categoryId: 'cns-50k-steps', name: '50-Kilometer and 120,000-Step Challenge', distanceLabel: '', distanceKm: 50, targetSteps: 120000 }
+    ]
+  };
+  const entries = [
+    { runnerName: 'Runner One', category: '25K', status: 'verified', primaryTotal: 40, primaryMetricLabel: '40 km' },
+    { runnerName: 'Runner Two', category: '25K', status: 'verified', primaryTotal: 30, primaryMetricLabel: '30 km' },
+    { runnerName: 'Runner Three', category: '25K', status: 'verified', primaryTotal: 20, primaryMetricLabel: '20 km' },
+    { runnerName: 'Runner Four', category: '25K', status: 'verified', primaryTotal: 10, primaryMetricLabel: '10 km' },
+    { runnerName: 'Pending Runner', category: '25K', status: 'pending_review', primaryTotal: 50, primaryMetricLabel: '50 km' }
+  ];
+
+  const groups = buildEventLeaderboardGroups(entries, event, { includeConfiguredDistances: true });
+  const cards = buildLeaderboardCategoryCards(groups);
+
+  assert.equal(groups.length, 5);
+  assert.deepEqual(groups.map((group) => group.label), event.raceCategories.map((category) => category.name));
+  assert.equal(cards[0].goalLabel, '25 km');
+  assert.equal(cards[2].goalLabel, '120,000 steps');
+  assert.equal(cards[3].goalLabel, '25 km + 120,000 steps');
+  assert.deepEqual(cards[0].leaders.map((leader) => leader.runnerName), ['Runner One', 'Runner Two', 'Runner Three']);
+  assert.equal(cards[0].stats.verifiedEntries, 4);
+  assert.equal(cards[0].stats.pendingEntries, 1);
+  assert.equal(cards.some((card) => card.leaders.some((leader) => leader.runnerName === 'Pending Runner')), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(cards[0].leaders[0], 'userId'), false);
+});
+
+test('category card links preserve elevation selection and mark only the active category', () => {
+  const presentation = buildEventLeaderboardPresentation({
+    event: { slug: 'move-more' },
+    settings: { type: 'accumulated_challenge', primaryMetric: 'elevation', trackedMetrics: ['distance', 'steps', 'elevation', 'consistency'] },
+    filters: { distance: '25K', metric: 'elevation', search: 'runner' },
+    activeDistance: { key: '25K', label: '25K Challenge' },
+    categoryCards: [
+      { key: '25K', label: '25K Challenge', stats: { totalEntries: 1, verifiedEntries: 1 }, leaders: [] },
+      { key: '50K', label: '50K Challenge', stats: { totalEntries: 0, verifiedEntries: 0 }, leaders: [] }
+    ],
+    distanceOptions: [{ key: '25K' }, { key: '50K' }],
+    pagination: { page: 1, totalPages: 1 }
+  }, { isAuthenticated: false });
+
+  assert.equal(presentation.showCategoryCards, true);
+  assert.equal(presentation.showCategoryColumn, false);
+  assert.deepEqual(presentation.overviewStats, {
+    categoryCount: 2,
+    totalEntries: 1,
+    verifiedEntries: 1,
+    pendingEntries: 0,
+    lastUpdatedAt: null
+  });
+  assert.deepEqual(presentation.categoryCards.map((card) => card.active), [true, false]);
+  assert.equal(presentation.categoryCards[1].href, '/events/move-more/leaderboard?distance=50K&metric=elevation#official-standings');
+  assert.doesNotMatch(presentation.categoryCards[1].href, /search=/);
+  assert.equal(presentation.metricOptions.find((metric) => metric.key === 'elevation').label, 'Most Elevation');
+  assert.equal(presentation.getMetricUrl('elevation'), '/events/move-more/leaderboard?distance=25K&search=runner&metric=elevation');
+  assert.equal(presentation.pagination.getPageUrl(2), '/events/move-more/leaderboard?distance=25K&search=runner&metric=elevation&page=2#official-standings');
 });
 
 test('request filters are applied to cached base groups without mutating ranks or leaking between requests', () => {
