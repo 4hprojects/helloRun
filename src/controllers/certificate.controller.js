@@ -146,10 +146,9 @@ async function getCertificateMutationContext(req) {
 
 async function getAccessibleEvent(req) {
   const user = req.res?.locals?.user;
-  if (!user || !['organiser', 'admin'].includes(user.role)) return null;
-  const query = { _id: req.params.eventId, isDeleted: { $ne: true } };
-  if (user.role !== 'admin') query.organizerId = req.session.userId;
-  return Event.findOne(query).lean();
+  if (!user) return null;
+  const { getAccessibleEvent: resolveAccessibleEvent } = require('../services/event-access.service');
+  return resolveAccessibleEvent(req.params.eventId, { ...user, _id: req.session.userId });
 }
 
 function redirectOrJson(req, res, eventId, success, message) {

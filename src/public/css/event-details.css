@@ -233,6 +233,28 @@
   border: 0;
 }
 
+.event-hero-share .event-share-trigger {
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 44px;
+  max-height: 44px;
+  flex: 0 0 44px;
+  aspect-ratio: 1;
+  place-items: center;
+  box-sizing: border-box;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  line-height: 1;
+}
+
+.event-hero-actions:has(.event-share-menu[open]) {
+  position: relative;
+  z-index: 1000;
+}
+
 .btn-hero-secondary {
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.55);
@@ -307,6 +329,64 @@
   grid-template-columns: minmax(0, 1fr) 330px;
   gap: 18px;
   align-items: start;
+}
+
+.event-bottom-share {
+  width: min(1152px, calc(100% - 48px));
+  margin: 0 auto 24px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border: 1px solid #d8e3ef;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fff 0%, #f1f8fc 100%);
+  box-shadow: 0 8px 20px rgba(20, 33, 61, 0.05);
+}
+
+.event-bottom-share-copy {
+  min-width: 0;
+}
+
+.event-bottom-share h2 {
+  margin: 3px 0 5px;
+  color: #162033;
+  font-size: clamp(1.2rem, 2.5vw, 1.55rem);
+  line-height: 1.25;
+}
+
+.event-bottom-share-copy > p:last-child {
+  max-width: 720px;
+  margin: 0;
+  color: #52657d;
+  line-height: 1.55;
+}
+
+.event-bottom-share-menu {
+  flex: 0 0 auto;
+}
+
+.event-bottom-share-menu .event-share-trigger {
+  white-space: nowrap;
+}
+
+.event-bottom-share-menu .event-share-options {
+  top: auto;
+  bottom: calc(100% + 0.45rem);
+}
+
+@media (max-width: 900px) {
+  .event-bottom-share {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .event-bottom-share-menu .event-share-options {
+    right: auto;
+    left: 0;
+  }
 }
 
 .event-details-shell-wide {
@@ -2316,6 +2396,24 @@ textarea.contact-organiser-input {
 
   .event-final-cta-row {
     display: none;
+  }
+
+  .event-bottom-share {
+    width: calc(100% - 48px);
+    margin: 16px auto 24px;
+    padding: 18px;
+    align-items: stretch;
+  }
+
+  .event-bottom-share-menu,
+  .event-bottom-share-menu .event-share-trigger {
+    width: 100%;
+  }
+
+  .event-bottom-share-menu .event-share-options {
+    right: 0;
+    left: 0;
+    width: 100%;
   }
 }
 

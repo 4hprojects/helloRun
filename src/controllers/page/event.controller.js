@@ -80,6 +80,7 @@ const {
   acquireContactSendLock
 } = require('../../services/event-contact-protection.service');
 const { isOwnOrganizerEvent } = require('../../utils/workspace');
+const { listPublicCoOrganizers } = require('../../services/event-co-organizer.service');
 
 exports.getEventDetails = async (req, res) => {
   try {
@@ -89,7 +90,7 @@ exports.getEventDetails = async (req, res) => {
     }
 
     const now = new Date();
-    const [registrationCount, badges, eventShopProducts, relatedEvents, runnerEventState, contactCooldown] = await Promise.all([
+    const [registrationCount, badges, eventShopProducts, relatedEvents, runnerEventState, contactCooldown, coOrganizerNames] = await Promise.all([
       Registration.countDocuments({
         eventId: event._id,
         status: { $ne: 'cancelled' }
@@ -112,10 +113,11 @@ exports.getEventDetails = async (req, res) => {
           error: error.message
         });
         return null;
-      })
+      }),
+      listPublicCoOrganizers(event._id).catch(() => [])
     ]);
     const baseUrl = getSitemapBaseUrl(req);
-    const publicEvent = buildPublicEventView(event, { registrationCount, eventBadges: badges });
+    const publicEvent = buildPublicEventView(event, { registrationCount, eventBadges: badges, coOrganizerNames });
     const ownEventParticipationConflict = isOwnOrganizerEvent(res.locals.user, event);
     if (ownEventParticipationConflict) {
       publicEvent.primaryCta = {
@@ -145,6 +147,11 @@ exports.getEventDetails = async (req, res) => {
     return res.render('pages/event-details', {
       title: `${event.title} - HelloRun`,
       seo: buildPublicEventSeo(event, baseUrl),
+      share: {
+        url: `${baseUrl}/events/${event.slug}`,
+        title: `${event.title} - HelloRun`,
+        description: publicEvent.descriptionText || publicEvent.challengeSummary || ''
+      },
       event,
       publicEvent,
       badges,

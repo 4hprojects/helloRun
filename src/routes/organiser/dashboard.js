@@ -21,6 +21,7 @@ const {
   buildOrganizerTrendMetric,
   getPageMessage
 } = require('./_shared');
+const { hasOrganizerWorkspaceAccess, getActiveCoOrganizerEventIds } = require('../../services/event-access.service');
 
 /* ==========================================
    GET: Organizer Dashboard
@@ -38,8 +39,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       });
     }
 
-    // Only organiser role can access
-    if (user.role !== 'organiser') {
+    if (!await hasOrganizerWorkspaceAccess(user)) {
       return res.status(403).render('error', {
         title: '403 - Access Denied',
         status: 403,
@@ -56,7 +56,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const dashboardRange = normalizeOrganizerDashboardRange(req.query.range);
     const rangeLabel = getOrganizerDashboardRangeLabel(dashboardRange);
     const rangeWindow = getOrganizerDashboardRangeWindow(dashboardRange, now);
-    const eventQuery = { organizerId: user._id, isDeleted: { $ne: true } };
+    const assignedEventIds = await getActiveCoOrganizerEventIds(user._id);
+    const eventQuery = { $or: [{ organizerId: user._id }, { _id: { $in: assignedEventIds } }], isDeleted: { $ne: true } };
 
     const [totalEvents, activeEvents, upcomingEvents, recentEventDocs, draftEventDocs, organizerEventIdDocs] = await Promise.all([
       Event.countDocuments(eventQuery),
@@ -231,6 +232,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       href: `/organizer/events/${item.eventId}/registrants`
     }));
     const isApprovedOrganizer = user.role === 'organiser' && user.organizerStatus === 'approved';
+    const isCoOrganizer = !isApprovedOrganizer && assignedEventIds.length > 0;
     const organiserBadges = isApprovedOrganizer
       ? await getRunnerEarnedBadges(user._id, { limit: 6, badgeScopes: ['organiser'] }).catch((error) => {
           logger.error('Error loading organiser dashboard badges:', error);
@@ -269,7 +271,10 @@ router.get('/dashboard', requireAuth, async (req, res) => {
             description: 'Browse run proofs across events'
           }
         ]
-      : [
+      : isCoOrganizer ? [
+          { icon: 'calendar', label: 'Assigned Events', href: '/organizer/events', description: 'Manage events shared with you' },
+          { icon: 'clipboard-list', label: 'Run Submissions', href: '/organizer/submissions', description: 'Review proofs for assigned events' }
+        ] : [
           {
             icon: 'plus-circle',
             label: 'Create New Event',
@@ -345,7 +350,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       recentEvents,
       organiserBadges,
       isApprovedOrganizer,
-      utilitiesOpen: !isApprovedOrganizer || totalEvents === 0 || totalRegistrations === 0,
+      isCoOrganizer,
+      utilitiesOpen: (!isApprovedOrganizer && !isCoOrganizer) || totalEvents === 0 || totalRegistrations === 0,
       applicationAction,
       quickActions,
       approvedDate: application && application.reviewedAt

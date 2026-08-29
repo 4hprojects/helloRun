@@ -698,6 +698,9 @@ async function sendEventEmail(eventKey, payload = {}) {
       email.approvalNote
     );
   }
+  if (eventKey === 'event.co_organizer_invited') {
+    return emailService.sendEventCoOrganizerInviteEmail(email.to, email);
+  }
   if (eventKey === 'registration.confirmed') {
     return emailService.sendEventRegistrationConfirmationEmail(
       email.to,
@@ -710,6 +713,9 @@ async function sendEventEmail(eventKey, payload = {}) {
       email.waiverVersion,
       email.renderedWaiver
     );
+  }
+  if (eventKey === 'event.started_reminder' || eventKey === 'result.submission_reminder') {
+    return emailService.sendEventActivationReminderEmail(email.to, email);
   }
   if (eventKey === 'organiser.runner_contact') {
     return emailService.sendRunnerContactEmailToOrganizer(email.to, email);
@@ -835,7 +841,10 @@ function getSubjectForEvent(eventKey, payload = {}) {
     'organiser.application_approved': 'Your organiser application has been approved',
     'organiser.application_rejected': 'Update on Your Organizer Application - HelloRun',
     'event.published': `Event Published: ${eventTitle}`,
+    'event.co_organizer_invited': `Co-organizer invitation: ${eventTitle}`,
     'registration.confirmed': `Registration Confirmed: ${eventTitle}`,
+    'event.started_reminder': `${eventTitle} is now open — let's get moving`,
+    'result.submission_reminder': `24 hours left to submit your run: ${eventTitle}`,
     'registration.cancelled': `Registration Cancelled: ${eventTitle}`,
     'registration.guest_confirmed': `You are registered for ${eventTitle}`,
     'registration.cancellation_requested': `Cancellation Requested: ${eventTitle}`,

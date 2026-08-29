@@ -6,7 +6,9 @@ const NOTIFICATION_OPTIONS = Object.freeze([
   { key: 'certificate.issued', label: 'Certificate ready', description: 'Email when your finisher certificate is available.' },
   { key: 'badge.earned', label: 'Badge earned', description: 'Email when you earn an achievement badge.' },
   { key: 'organiser.payment_reminder', label: 'Payment reminders', description: 'Email payment reminders from event organizers.' },
-  { key: 'event.promotion', label: 'Event promotions', description: 'Email invitations and promotions for upcoming events.' }
+  { key: 'event.promotion', label: 'Event promotions', description: 'Email invitations and promotions for upcoming events.' },
+  { key: 'event.started_reminder', label: 'Event start reminders', description: 'Email when an event you joined opens.' },
+  { key: 'result.submission_reminder', label: 'Run submission reminders', description: 'Email when an event submission deadline is approaching.' }
 ]);
 
 const NOTIFICATION_GROUPS = Object.freeze([
@@ -20,7 +22,7 @@ const NOTIFICATION_GROUPS = Object.freeze([
     key: 'events',
     label: 'Event communication',
     description: 'Payment reminders and optional event recommendations.',
-    optionKeys: ['organiser.payment_reminder', 'event.promotion']
+    optionKeys: ['organiser.payment_reminder', 'event.promotion', 'event.started_reminder', 'result.submission_reminder']
   }
 ]);
 

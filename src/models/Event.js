@@ -426,6 +426,24 @@ const eventSchema = new mongoose.Schema(
         type: Boolean,
         default: false
       },
+      showHighestStepsCard: {
+        type: Boolean,
+        default: false
+      },
+      showHighestElevationCard: {
+        type: Boolean,
+        default: false
+      },
+      showMostConsistentCard: {
+        type: Boolean,
+        default: false
+      },
+      publicRankCutoff: {
+        type: Number,
+        min: 0,
+        max: 1000,
+        default: 0
+      },
       hideFlagged: {
         type: Boolean,
         default: true

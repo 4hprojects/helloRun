@@ -193,7 +193,8 @@ exports.getEventLeaderboardMyStanding = async (req, res) => {
       distance: req.query.distance,
       category: req.query.category,
       mode: req.query.mode,
-      status: req.query.status
+      status: req.query.status,
+      metric: req.query.metric
     });
     if (!data) {
       return res.status(404).json({ success: false, message: 'Standing is not available for this event.' });

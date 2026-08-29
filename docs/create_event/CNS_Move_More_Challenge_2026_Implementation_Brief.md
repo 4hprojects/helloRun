@@ -439,31 +439,36 @@ Participants may continue submitting valid activities after reaching their targe
 
 ## 17. Leaderboards
 
-Create the following leaderboards:
+Create five goal-aware category leaderboards and three event-wide recognitions:
 
-1. Longest Distance
-2. Highest Steps
-3. Highest Elevation
-4. Most Consistent Participant
+1. Highest Steps
+2. Highest Elevation
+3. Most Consistent Participant
 
 Only approved submissions must count.
 
 Leaderboard totals must update after a submission is approved.
 
+The five category cards rank progress toward each category's own goal. Distance-only categories use distance-goal progress, the step-only category uses step-goal progress, and combined categories use the lower of distance-goal and step-goal progress. The percentages remain uncapped.
+
+Each recognition is one overall event award across all five registration categories. It is not recalculated or duplicated per category.
+
 ---
 
-## 18. Longest Distance Leaderboard
+## 18. Category Progress Leaderboards
 
-Rank participants based on total approved accumulated distance.
+Rank participants within their selected registration category based on uncapped goal progress.
 
 Rules:
 
-- Include participants from both the 25-kilometer and 50-kilometer categories.
-- Include participants registered for dual categories.
+- Distance-only categories use approved accumulated distance divided by their distance goal.
+- The step-only category uses approved accumulated steps divided by 120,000.
+- Combined categories use the lower of their distance percentage and step percentage so both required goals matter.
 - Count only valid walking, jogging, running, hiking, and treadmill distance.
 - Allow totals to exceed the selected challenge target.
 - Do not count cycling distance.
-- Sort from highest total distance to lowest.
+- Exact progress scores share a rank.
+- Metric selection, search, and pagination must not recalculate these five cards.
 
 Suggested displayed fields:
 
@@ -478,13 +483,15 @@ Suggested displayed fields:
 
 ## 19. Highest Steps Leaderboard
 
-Rank participants based on total approved accumulated steps.
+Rank publicly eligible participants across all five categories based on total approved accumulated steps.
 
 Rules:
 
 - Every approved step counts.
 - Allow totals to exceed 120,000.
 - Sort from highest total steps to lowest.
+- Display every exact co-leader.
+- Link to event-wide steps standings that show each participant's selected category.
 
 Suggested displayed fields:
 
@@ -498,15 +505,30 @@ Suggested displayed fields:
 
 ## 20. Highest Elevation Leaderboard
 
-Rank participants based on total approved accumulated elevation gain.
+Recognize the participant with the highest total approved accumulated elevation gain across the entire event.
 
 Rules:
 
+- Compare every publicly eligible participant across all five registration categories in one event-wide result.
+- Do not calculate or display separate Highest Elevation winners per category.
 - Count elevation gain only.
 - Do not add elevation loss.
 - Count only screenshots or activity records that clearly display elevation gain.
 - Elevation must be stored in meters.
 - Sort from highest total elevation gain to lowest.
+- Exclude pending, rejected, flagged, leaderboard-hidden, and leaderboard-opt-out entries.
+- Display every exact co-leader when two or more eligible participants share the highest total.
+- Keep the event-wide winner unchanged when a viewer selects a category, searches, changes page, or opens another metric.
+- Show an empty recognition state until at least one eligible participant has approved elevation greater than zero.
+
+Presentation:
+
+- Render **Highest Steps**, **Highest Elevation**, and **Most Consistent** in one three-card event-wide recognition section after the five category cards.
+- Show each winner or co-leader's privacy-safe display name, selected category, and shared verified elevation total in meters.
+- Before September 1, show that recognition begins September 1 and that the overall leader will be determined from approved elevation gain across all five categories.
+- After the event starts, show a concise empty state until approved elevation exists.
+- Link to event-wide metric standings only after a qualifying leader exists.
+- Do not show the verification timestamp in the recognition card.
 
 Suggested displayed fields:
 
@@ -572,6 +594,8 @@ During registration, allow the participant to choose:
 - Display full name
 - Display abbreviated name
 - Do not display on the public leaderboard
+
+Public category standings and the three event-wide metric standings publish every participant ranked #10 or better, including all exact rank-10 ties. Public search operates only within those published ranks, and public page or limit parameters must not reveal lower ranks. A signed-in participant outside the public top 10 can still see their own exact current standing privately, without neighboring lower-ranked participants.
 
 Administrators must still be able to see the participant's full identity.
 
@@ -874,6 +898,7 @@ The implementation is complete when:
 - Participants can exceed the challenge goals.
 - The system identifies 25-kilometer, 50-kilometer, step, and dual finishers.
 - The system generates Longest Distance, Highest Steps, Highest Elevation, and Most Consistent leaderboards.
+- Highest Steps, Highest Elevation, and Most Consistent each identify one overall event winner or all applicable exact co-leaders across all five categories, independent of category cards and result filters.
 - The system allows one active-day credit per participant per calendar date.
 - The system applies the consistency tie-breaking rules.
 - Every submission requires honor-system confirmation.

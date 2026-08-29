@@ -24,7 +24,8 @@ test('email unsubscribe route handles event promotion preference', () => {
   const routes = read('src/routes/pageRoutes.js');
 
   assert.match(routes, /router\.get\('\/unsubscribe', requireAuth/);
-  assert.match(routes, /key !== 'event\.promotion'/);
+  assert.match(routes, /new Set\(\['event\.promotion', 'event\.started_reminder', 'result\.submission_reminder'\]\)/);
+  assert.match(routes, /!allowedKeys\.has\(key\)/);
   assert.match(routes, /\$addToSet:\s*\{\s*'notificationPreferences\.emailOptOut': key\s*\}/);
 });
 

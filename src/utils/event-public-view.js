@@ -97,6 +97,7 @@ function buildPublicEventView(event, options = {}) {
     title: event.title || 'HelloRun Event',
     slug: event.slug || '',
     organizerName: event.organiserName || 'HelloRun',
+    coOrganizerNames: Array.isArray(options.coOrganizerNames) ? options.coOrganizerNames.filter(Boolean) : [],
     description: event.description || '',
     descriptionText: htmlToPlainText(event.description || ''),
     eventTypeLabel,

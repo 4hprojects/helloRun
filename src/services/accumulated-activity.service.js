@@ -7,6 +7,7 @@ const communicationService = require('./communication.service');
 const { notifyWithRetry } = require('./reliable-communication.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 const { resolveRejectionReason } = require('../utils/rejection-reasons');
+const { resolveEventAccess } = require('./event-access.service');
 const {
   refreshAccumulatedChallengeProgress,
   refreshGlobalDistanceMilestoneProgressInBackground
@@ -88,7 +89,7 @@ async function reviewAccumulatedActivitySubmission({
   if (!event || !isAccumulatedChallenge(event)) {
     throw new Error('Activity submission not found or inaccessible.');
   }
-  if (!isAdminReviewer && String(event.organizerId || '') !== String(organizerId || '')) {
+  if (!isAdminReviewer && !await resolveEventAccess({ eventId: event._id, userId: organizerId, userRole: normalizedReviewerRole })) {
     throw new Error('Activity submission not found or inaccessible.');
   }
 

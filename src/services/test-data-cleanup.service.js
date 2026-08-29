@@ -5,6 +5,7 @@ const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const EventPromotion = require('../models/EventPromotion');
+const EventReminderDelivery = require('../models/EventReminderDelivery');
 const CertificateTemplate = require('../models/CertificateTemplate');
 // Event-scoped records added after this service was written. Each is keyed on eventId and
 // would otherwise be orphaned by an event delete — including through the admin test-data
@@ -13,6 +14,7 @@ const GuestRegistrationToken = require('../models/GuestRegistrationToken');
 const WaitlistEntry = require('../models/WaitlistEntry');
 const RegistrationTransfer = require('../models/RegistrationTransfer');
 const BibQrToken = require('../models/BibQrToken');
+const EventCoOrganizer = require('../models/EventCoOrganizer');
 const User = require('../models/User');
 const { getPostgresClient } = require('../db/postgres');
 // Required as a namespace (not destructured) so tests can monkey-patch
@@ -128,15 +130,17 @@ async function getTestDataCounts() {
       submissions: 0,
       accumulatedSubmissions: 0,
       promotions: 0,
+      reminderDeliveries: 0,
       certificateTemplates: 0
     };
   }
 
-  const [registrations, submissions, accumulatedSubmissions, promotions, certificateTemplates] = await Promise.all([
+  const [registrations, submissions, accumulatedSubmissions, promotions, reminderDeliveries, certificateTemplates] = await Promise.all([
     Registration.countDocuments({ eventId: { $in: eventIds } }),
     Submission.countDocuments({ eventId: { $in: eventIds } }),
     AccumulatedActivitySubmission.countDocuments({ eventId: { $in: eventIds } }),
     EventPromotion.countDocuments({ eventId: { $in: eventIds } }),
+    EventReminderDelivery.countDocuments({ eventId: { $in: eventIds } }),
     CertificateTemplate.countDocuments({ eventId: { $in: eventIds } })
   ]);
 
@@ -146,6 +150,7 @@ async function getTestDataCounts() {
     submissions,
     accumulatedSubmissions,
     promotions,
+    reminderDeliveries,
     certificateTemplates
   };
 }
@@ -156,16 +161,19 @@ const EMPTY_EVENT_CASCADE_SUMMARY = {
   submissionsDeleted: 0,
   accumulatedSubmissionsDeleted: 0,
   promotionsDeleted: 0,
+  reminderDeliveriesDeleted: 0,
   certificateTemplatesDeleted: 0,
   guestTokensDeleted: 0,
   waitlistEntriesDeleted: 0,
   transfersDeleted: 0,
-  bibTokensDeleted: 0
+  bibTokensDeleted: 0,
+  coOrganizersDeleted: 0
 };
 
 // Deletes an explicit list of Events (and everything that hangs off them in MongoDB:
 // Registrations, Submissions, AccumulatedActivitySubmissions, EventPromotions,
 // GuestRegistrationTokens, WaitlistEntries, RegistrationTransfers, BibQrTokens,
+// EventCoOrganizers,
 // CertificateTemplates, and User.savedEvents references) — Mongo-only, no Postgres.
 // Shared by purgeTestData (isTestData-driven) and the test-user purge (organizer-driven,
 // see test-user-cleanup.service.js), so both call the same cascade instead of duplicating it.
@@ -177,21 +185,25 @@ async function cascadeDeleteEventsMongo(eventIds) {
     submissionsResult,
     accumulatedResult,
     promotionsResult,
+    reminderDeliveriesResult,
     certTemplatesResult,
     guestTokensResult,
     waitlistResult,
     transfersResult,
-    bibTokensResult
+    bibTokensResult,
+    coOrganizersResult
   ] = await Promise.all([
     Registration.deleteMany({ eventId: { $in: eventIds } }),
     Submission.deleteMany({ eventId: { $in: eventIds } }),
     AccumulatedActivitySubmission.deleteMany({ eventId: { $in: eventIds } }),
     EventPromotion.deleteMany({ eventId: { $in: eventIds } }),
+    EventReminderDelivery.deleteMany({ eventId: { $in: eventIds } }),
     CertificateTemplate.deleteMany({ eventId: { $in: eventIds } }),
     GuestRegistrationToken.deleteMany({ eventId: { $in: eventIds } }),
     WaitlistEntry.deleteMany({ eventId: { $in: eventIds } }),
     RegistrationTransfer.deleteMany({ eventId: { $in: eventIds } }),
-    BibQrToken.deleteMany({ eventId: { $in: eventIds } })
+    BibQrToken.deleteMany({ eventId: { $in: eventIds } }),
+    EventCoOrganizer.deleteMany({ eventId: { $in: eventIds } })
   ]);
   await User.updateMany(
     { savedEvents: { $in: eventIds } },
@@ -205,11 +217,13 @@ async function cascadeDeleteEventsMongo(eventIds) {
     submissionsDeleted: submissionsResult.deletedCount || 0,
     accumulatedSubmissionsDeleted: accumulatedResult.deletedCount || 0,
     promotionsDeleted: promotionsResult.deletedCount || 0,
+    reminderDeliveriesDeleted: reminderDeliveriesResult.deletedCount || 0,
     certificateTemplatesDeleted: certTemplatesResult.deletedCount || 0,
     guestTokensDeleted: guestTokensResult.deletedCount || 0,
     waitlistEntriesDeleted: waitlistResult.deletedCount || 0,
     transfersDeleted: transfersResult.deletedCount || 0,
-    bibTokensDeleted: bibTokensResult.deletedCount || 0
+    bibTokensDeleted: bibTokensResult.deletedCount || 0,
+    coOrganizersDeleted: coOrganizersResult.deletedCount || 0
   };
 }
 

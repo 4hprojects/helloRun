@@ -66,7 +66,7 @@ test('documented ranking and privacy behavior remains grounded in the service', 
   assert.match(SERVICE_SOURCE, /isPersonalRecord:\s*\{\s*\$ne:\s*true\s*\}/);
   assert.match(SERVICE_SOURCE, /\.sort\(\{ elapsedMs: 1, reviewedAt: 1, submittedAt: 1, createdAt: 1 \}\)/);
   assert.match(SERVICE_SOURCE, /totalDistanceKm:\s*\{\s*\$sum:\s*\{\s*\$ifNull:\s*\['\$distanceKm', 0\]\s*\}\s*\}/);
-  assert.match(SERVICE_SOURCE, /rankAccumulatedRows\(rows, settings\.primaryMetric\)/);
+  assert.match(SERVICE_SOURCE, /publicRows = rows\.filter[\s\S]*rankAccumulatedRows\(publicRows, settings\.primaryMetric\)/);
   assert.match(SERVICE_SOURCE, /LEADERBOARD_CACHE_TTL_SECONDS = 60/);
   assert.match(SERVICE_SOURCE, /const \{ searchableText, \.\.\.publicEntry \} = entry/);
 });

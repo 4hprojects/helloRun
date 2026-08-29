@@ -267,6 +267,22 @@
 
         <% } /* end hasSupa */ %>
 
+        <% if (analytics.mongo?.activationReminders) { const reminderStats = analytics.mongo.activationReminders; %>
+        <section class="dashboard-band" aria-labelledby="analytics-reminders-title">
+          <h2 id="analytics-reminders-title" class="dashboard-section-title">Runner Activation Reminders</h2>
+          <div class="dashboard-grid">
+            <article class="metric-card"><div class="metric-card-head"><p class="metric-label">Registrations Reminded</p><i data-lucide="bell-ring" class="metric-card-icon-sm" aria-hidden="true"></i></div><p class="metric-value"><%= fmtNum(reminderStats.uniqueRemindedRegistrations) %></p><p class="metric-helper">Successful email or in-app delivery</p></article>
+            <article class="metric-card"><div class="metric-card-head"><p class="metric-label">Converted to Submission</p><i data-lucide="person-standing" class="metric-card-icon-sm" aria-hidden="true"></i></div><p class="metric-value"><%= fmtNum(reminderStats.convertedRegistrations) %></p><p class="metric-helper">First activity after reminder</p></article>
+            <article class="metric-card"><div class="metric-card-head"><p class="metric-label">Submission Conversion</p><i data-lucide="percent" class="metric-card-icon-sm" aria-hidden="true"></i></div><p class="metric-value"><%= fmtPct(reminderStats.submissionConversionRate) %></p><p class="metric-helper">Before the event deadline</p></article>
+          </div>
+          <div class="admin-analytics-table-wrap">
+            <table class="admin-analytics-table"><thead><tr><th>Reminder</th><th class="num">Eligible</th><th class="num">Email sent</th><th class="num">Queued</th><th class="num">Failed</th><th class="num">Opted out</th><th class="num">In-app</th><th class="num">Suppressed</th></tr></thead><tbody>
+            <% reminderStats.byType.forEach(function(row) { %><tr><td><%= row.reminderType === 'event_started' ? 'Event started' : 'Submit your run' %></td><td class="num"><%= fmtNum(row.eligible) %></td><td class="num"><%= fmtNum(row.emailSent) %></td><td class="num"><%= fmtNum(row.emailQueued) %></td><td class="num"><%= fmtNum(row.emailFailed) %></td><td class="num"><%= fmtNum(row.emailSuppressed) %></td><td class="num"><%= fmtNum(row.inAppSent) %></td><td class="num"><%= fmtNum(row.suppressed) %></td></tr><% }) %>
+            </tbody></table>
+          </div>
+        </section>
+        <% } %>
+
         <!-- Section 6: Revenue -->
         <% if (hasSupa && revenue) { %>
           <section class="dashboard-band" aria-labelledby="analytics-revenue-title">

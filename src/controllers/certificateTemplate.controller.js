@@ -155,10 +155,9 @@ async function getAccessibleEvent(req) {
   const eventId = req.params.eventId;
   if (!userId || !eventId) return null;
   const user = resLocalsUser(req);
-  if (!user || !['organiser', 'admin'].includes(user.role)) return null;
-  const query = { _id: eventId, isDeleted: { $ne: true } };
-  if (user?.role !== 'admin') query.organizerId = userId;
-  return Event.findOne(query).lean();
+  if (!user) return null;
+  const { getAccessibleEvent: resolveAccessibleEvent } = require('../services/event-access.service');
+  return resolveAccessibleEvent(eventId, { ...user, _id: userId });
 }
 
 function resLocalsUser(req) {

@@ -119,7 +119,7 @@ test('supporting content uses one native utilities disclosure with an intentiona
   assert.match(view, /utilitiesOpen \? 'open' : ''/);
   assert.match(view, /Organizer tools &amp; account/);
   assert.match(view, /id="gettingStartedChecklist"/);
-  assert.match(route, /utilitiesOpen: !isApprovedOrganizer \|\| totalEvents === 0 \|\| totalRegistrations === 0/);
+  assert.match(route, /utilitiesOpen: \(!isApprovedOrganizer && !isCoOrganizer\) \|\| totalEvents === 0 \|\| totalRegistrations === 0/);
 });
 
 test('responsive dashboard keeps compact metric and action grids at mobile widths', () => {

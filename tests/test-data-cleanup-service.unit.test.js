@@ -11,11 +11,13 @@ const Registration = require('../src/models/Registration');
 const Submission = require('../src/models/Submission');
 const AccumulatedActivitySubmission = require('../src/models/AccumulatedActivitySubmission');
 const EventPromotion = require('../src/models/EventPromotion');
+const EventReminderDelivery = require('../src/models/EventReminderDelivery');
 const CertificateTemplate = require('../src/models/CertificateTemplate');
 const GuestRegistrationToken = require('../src/models/GuestRegistrationToken');
 const WaitlistEntry = require('../src/models/WaitlistEntry');
 const RegistrationTransfer = require('../src/models/RegistrationTransfer');
 const BibQrToken = require('../src/models/BibQrToken');
+const EventCoOrganizer = require('../src/models/EventCoOrganizer');
 const User = require('../src/models/User');
 const criticalAuditService = require('../src/services/critical-audit.service');
 const {
@@ -108,6 +110,7 @@ test('getTestDataCounts returns zeroed counts when no test-data events exist', a
       submissions: 0,
       accumulatedSubmissions: 0,
       promotions: 0,
+      reminderDeliveries: 0,
       certificateTemplates: 0
     });
   } finally {
@@ -123,6 +126,7 @@ test('getTestDataCounts aggregates counts across every linked collection', async
     patch(Submission, 'countDocuments', async () => 3),
     patch(AccumulatedActivitySubmission, 'countDocuments', async () => 2),
     patch(EventPromotion, 'countDocuments', async () => 1),
+    patch(EventReminderDelivery, 'countDocuments', async () => 6),
     patch(CertificateTemplate, 'countDocuments', async () => 5)
   ];
   try {
@@ -133,6 +137,7 @@ test('getTestDataCounts aggregates counts across every linked collection', async
       submissions: 3,
       accumulatedSubmissions: 2,
       promotions: 1,
+      reminderDeliveries: 6,
       certificateTemplates: 5
     });
   } finally {
@@ -152,11 +157,13 @@ test('purgeTestData returns the empty summary and touches nothing when there are
       submissionsDeleted: 0,
       accumulatedSubmissionsDeleted: 0,
       promotionsDeleted: 0,
+      reminderDeliveriesDeleted: 0,
       certificateTemplatesDeleted: 0,
       guestTokensDeleted: 0,
       waitlistEntriesDeleted: 0,
       transfersDeleted: 0,
-      bibTokensDeleted: 0
+      bibTokensDeleted: 0,
+      coOrganizersDeleted: 0
     });
     assert.equal(postgresTouched, false, 'Postgres should never be touched when there is nothing to purge');
   } finally {
@@ -185,6 +192,7 @@ test('purgeTestData deletes Postgres first, then every Mongo collection, then au
     mockDeleteMany(Submission, 'Submission', 3),
     mockDeleteMany(AccumulatedActivitySubmission, 'AccumulatedActivitySubmission', 2),
     mockDeleteMany(EventPromotion, 'EventPromotion', 1),
+    mockDeleteMany(EventReminderDelivery, 'EventReminderDelivery', 6),
     mockDeleteMany(CertificateTemplate, 'CertificateTemplate', 5),
     // Added when these models were: an event delete used to orphan every one of them,
     // through the admin test-data purge as well as a verification probe.
@@ -192,6 +200,7 @@ test('purgeTestData deletes Postgres first, then every Mongo collection, then au
     mockDeleteMany(WaitlistEntry, 'WaitlistEntry', 3),
     mockDeleteMany(RegistrationTransfer, 'RegistrationTransfer', 1),
     mockDeleteMany(BibQrToken, 'BibQrToken', 4),
+    mockDeleteMany(EventCoOrganizer, 'EventCoOrganizer', 1),
     patch(User, 'updateMany', async (filter) => { updateManyFilter = filter; return { modifiedCount: 1 }; }),
     mockDeleteMany(Event, 'Event', 2),
     patch(criticalAuditService, 'recordCriticalAuditEventInBackground', (input) => { auditInput = input; })
@@ -206,16 +215,18 @@ test('purgeTestData deletes Postgres first, then every Mongo collection, then au
       submissionsDeleted: 3,
       accumulatedSubmissionsDeleted: 2,
       promotionsDeleted: 1,
+      reminderDeliveriesDeleted: 6,
       certificateTemplatesDeleted: 5,
       guestTokensDeleted: 2,
       waitlistEntriesDeleted: 3,
       transfersDeleted: 1,
-      bibTokensDeleted: 4
+      bibTokensDeleted: 4,
+      coOrganizersDeleted: 1
     });
 
     const deletedModelNames = deleteManyCalls.map((c) => c.name);
     assert.ok(deletedModelNames.includes('Event'), 'Event.deleteMany should run');
-    for (const name of ['GuestRegistrationToken', 'WaitlistEntry', 'RegistrationTransfer', 'BibQrToken']) {
+    for (const name of ['EventReminderDelivery', 'GuestRegistrationToken', 'WaitlistEntry', 'RegistrationTransfer', 'BibQrToken', 'EventCoOrganizer']) {
       assert.ok(deletedModelNames.includes(name), `${name}.deleteMany should run — it is event-scoped`);
     }
     const eventDeleteIndex = deletedModelNames.indexOf('Event');

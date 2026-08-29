@@ -10,6 +10,8 @@
 
   <%
     const approvedOrganizer = Boolean(isApprovedOrganizer || user.organizerStatus === 'approved');
+    const coOrganizer = Boolean(typeof isCoOrganizer !== 'undefined' && isCoOrganizer);
+    const operationalOrganizer = approvedOrganizer || coOrganizer;
     const earnedOrganiserBadges = Array.isArray(organiserBadges) ? organiserBadges : [];
     const statusLabel = user.organizerStatus === 'not_applied'
       ? 'Application Not Started'
@@ -29,8 +31,8 @@
             <h1>Welcome back, <%= user.firstName || 'Organizer' %>!</h1>
             <p class="organizer-dashboard-status-line">
               <span class="organizer-status organizer-status-<%= user.organizerStatus || 'not_applied' %>">
-                <i data-lucide="<%= approvedOrganizer ? 'shield-check' : user.organizerStatus === 'rejected' ? 'x-circle' : 'clock' %>" aria-hidden="true"></i>
-                <%= approvedOrganizer ? 'Verified Organizer' : statusLabel %>
+                <i data-lucide="<%= operationalOrganizer ? 'shield-check' : user.organizerStatus === 'rejected' ? 'x-circle' : 'clock' %>" aria-hidden="true"></i>
+                <%= coOrganizer ? 'Event Co-organizer' : approvedOrganizer ? 'Verified Organizer' : statusLabel %>
               </span>
               <% if (approvedDate) { %><span><%= user.organizerStatus === 'approved' ? 'Approved' : 'Submitted' %> <%= approvedDate %></span><% } %>
             </p>
@@ -41,6 +43,9 @@
           <% if (approvedOrganizer) { %>
             <a href="/organizer/create-event" class="btn organizer-primary-action"><i data-lucide="plus" aria-hidden="true"></i><span>Create Event</span></a>
             <a href="/organizer/events" class="btn btn-secondary"><i data-lucide="calendar" aria-hidden="true"></i><span>My Events</span></a>
+          <% } else if (coOrganizer) { %>
+            <a href="/organizer/events" class="btn organizer-primary-action"><i data-lucide="calendar" aria-hidden="true"></i><span>Assigned Events</span></a>
+            <form action="/workspace/runner" method="POST"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><button type="submit" class="btn btn-secondary">Runner workspace</button></form>
           <% } else { %>
             <button type="button" class="btn organizer-primary-action" id="pendingCreateEventTrigger" data-pending-create-event-trigger>
               <i data-lucide="plus" aria-hidden="true"></i><span>Create Event</span>
@@ -52,7 +57,7 @@
         </div>
       </header>
 
-      <% if (approvedOrganizer) { %>
+      <% if (operationalOrganizer) { %>
         <section class="organizer-dashboard-card organizer-analytics" aria-labelledby="analytics-heading">
           <div class="organizer-section-heading organizer-analytics-heading">
             <div>
@@ -194,7 +199,7 @@
               <% }); %>
             </div>
           <% } else { %>
-            <div class="organizer-empty-state"><i data-lucide="calendar-plus" aria-hidden="true"></i><h3>No events yet</h3><p>Create your first running event and begin preparing registration.</p><a href="/organizer/create-event" class="btn organizer-primary-action">Create Your First Event</a></div>
+            <div class="organizer-empty-state"><i data-lucide="calendar-plus" aria-hidden="true"></i><h3>No events yet</h3><p><%= coOrganizer ? 'No active event assignments are available.' : 'Create your first running event and begin preparing registration.' %></p><% if (!coOrganizer) { %><a href="/organizer/create-event" class="btn organizer-primary-action">Create Your First Event</a><% } %></div>
           <% } %>
         </section>
 

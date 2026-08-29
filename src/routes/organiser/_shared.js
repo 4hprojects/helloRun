@@ -19,7 +19,7 @@ const {
   notifyWithRetryInBackground
 } = require('../../services/reliable-communication.service');
 const { createRateLimiter } = require('../../middleware/rate-limit.middleware');
-const { requireAuth, requireApprovedOrganizer, requireCanCreateEvents, isFullAdminTier } = require('../../middleware/auth.middleware');
+const { requireAuth, requireApprovedOrganizer, requireCanCreateEvents, requireOrganizerWorkspace, isFullAdminTier } = require('../../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../../middleware/csrf.middleware');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../../utils/country');
 const { DEFAULT_WAIVER_TEMPLATE, normalizeWaiverTemplate } = require('../../utils/waiver');
@@ -34,6 +34,7 @@ const {
 } = require('../../utils/event-public-view');
 const { reviewSubmission } = require('../../services/submission.service');
 const { recordCriticalAuditEventInBackground } = require('../../services/critical-audit.service');
+const { getAccessibleEvent } = require('../../services/event-access.service');
 const { syncRegistrationPaymentShadow } = require('../../services/registration-payment-shadow.service');
 const { recordSyncFailureInBackground } = require('../../services/sync-failure.service');
 const {
@@ -1583,13 +1584,14 @@ async function getOwnedEventOrNull(eventId, userId) {
   if (!mongoose.Types.ObjectId.isValid(eventId)) {
     return null;
   }
-  return Event.findOne({ _id: eventId, organizerId: userId, isDeleted: { $ne: true } });
+  const user = await User.findById(userId).select('_id role accountStatus').lean();
+  return getAccessibleEvent(eventId, user);
 }
 
 function canAccessRegistrantReview(user) {
   if (!user) return false;
   if (user.role === 'admin') return true;
-  return user.role === 'organiser' && user.organizerStatus === 'approved';
+  return !['suspended', 'closed', 'restricted'].includes(String(user.accountStatus || ''));
 }
 
 async function getRegistrantAccessibleEventOrNull(eventId, user) {
@@ -1599,7 +1601,7 @@ async function getRegistrantAccessibleEventOrNull(eventId, user) {
   if (user.role === 'admin') {
     return Event.findById(eventId);
   }
-  return getOwnedEventOrNull(eventId, user._id);
+  return getAccessibleEvent(eventId, user);
 }
 
 function getStatusTransitionError(currentStatus, nextStatus) {
@@ -1686,6 +1688,7 @@ module.exports = {
   createRateLimiter,
   requireAuth,
   requireApprovedOrganizer,
+  requireOrganizerWorkspace,
   requireCanCreateEvents,
   requireCsrfProtection,
   isFullAdminTier,

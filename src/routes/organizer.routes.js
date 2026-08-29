@@ -13,6 +13,7 @@ const waitlistRoutes = require('./organiser/waitlist');
 const transferRoutes = require('./organiser/transfers');
 const reviewRoutes = require('./organiser/review');
 const profileRoutes = require('./organiser/profile');
+const coOrganizerRoutes = require('./organiser/co-organizers');
 
 router.use('/', onsiteOperationsRoutes);
 router.use('/', onsitePageRoutes);
@@ -25,5 +26,6 @@ router.use('/', waitlistRoutes);
 router.use('/', transferRoutes);
 router.use('/', reviewRoutes);
 router.use('/', profileRoutes);
+router.use('/', coOrganizerRoutes);
 
 module.exports = router;

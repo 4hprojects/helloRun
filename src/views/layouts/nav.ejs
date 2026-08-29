@@ -109,7 +109,7 @@
               <span class="nav-notification-badge" aria-hidden="true"><%= runnerUnreadNotificationDisplay %></span>
             <% } %>
           </a>
-          <% if (locals.isOrganizer) { %>
+          <% if (locals.canUseOrganizerWorkspace) { %>
             <form action="/workspace/organizer" method="POST" class="workspace-switch-form">
               <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
               <button type="submit" class="nav-icon-link" aria-label="Switch to Organizer mode" title="Switch to Organizer mode"><i data-lucide="calendar-cog"></i><span class="nav-tooltip">Organizer mode</span></button>
@@ -192,7 +192,7 @@
     <span>Progress</span>
   </a>
   <a href="/runner/profile" class="mobile-nav-tab<%= isCurrent('/runner/profile') ? ' is-active' : '' %>" aria-label="Profile" <% if (isCurrent('/runner/profile')) { %>aria-current="page"<% } %>><i data-lucide="user" aria-hidden="true"></i><span>Profile</span></a>
-  <% if (locals.isOrganizer) { %>
+  <% if (locals.canUseOrganizerWorkspace) { %>
     <form action="/workspace/organizer" method="POST" class="workspace-switch-form mobile-workspace-switch-form">
       <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
       <button type="submit" class="mobile-nav-tab" aria-label="Switch to Organizer mode"><i data-lucide="calendar-cog" aria-hidden="true"></i><span>Organizer</span></button>
@@ -202,7 +202,7 @@
 <% } else if (locals.isAuthenticated && isOrganizerWorkspace) { %>
 <nav class="mobile-bottom-nav" aria-label="Organizer mobile navigation">
   <a href="/organizer/dashboard" class="mobile-nav-tab<%= isCurrent('/organizer/dashboard') ? ' is-active' : '' %>" aria-label="Organizer Dashboard" <% if (isCurrent('/organizer/dashboard')) { %>aria-current="page"<% } %>><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></a>
-  <% if (locals.isApprovedOrganizer) { %>
+  <% if (locals.isApprovedOrganizer || locals.canUseOrganizerWorkspace) { %>
     <a href="/organizer/events" class="mobile-nav-tab<%= isCurrent('/organizer/events') ? ' is-active' : '' %>" aria-label="Organizer Events" <% if (isCurrent('/organizer/events')) { %>aria-current="page"<% } %>><i data-lucide="calendar-days" aria-hidden="true"></i><span>Events</span></a>
     <a href="/organizer/dashboard#queue-breakdown-heading" class="mobile-nav-tab" aria-label="Organizer Work Queue"><i data-lucide="inbox" aria-hidden="true"></i><span>Work</span></a>
     <a href="/organizer/promote" class="mobile-nav-tab<%= isCurrent('/organizer/promote') ? ' is-active' : '' %>" aria-label="Organizer Promotion Tools" <% if (isCurrent('/organizer/promote')) { %>aria-current="page"<% } %>><i data-lucide="more-horizontal" aria-hidden="true"></i><span>More</span></a>

@@ -183,7 +183,9 @@ exports.getEvents = async (req, res) => {
     delete req.session.loginSuccess;
     delete req.session.userName;
 
-    const eventListPage = await buildPublicEventListPage(req.query);
+    const eventListPage = await buildPublicEventListPage(req.query, {
+      baseUrl: getSitemapBaseUrl(req)
+    });
 
     let savedEventIds = new Set();
     if (req.session.userId) {

@@ -24,6 +24,7 @@ const { syncSubmissionShadow } = require('./submission-shadow.service');
 const { recordSyncFailureInBackground } = require('./sync-failure.service');
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
 const { isOwnOrganizerEvent } = require('../utils/workspace');
+const { resolveEventAccess } = require('./event-access.service');
 
 const APPROVABLE_STATUS = new Set(['submitted', 'rejected']);
 const REJECTABLE_STATUS = new Set(['submitted']);
@@ -376,7 +377,7 @@ async function reviewSubmission({
   if (!event) {
     throw new Error('Submission not found or inaccessible.');
   }
-  if (!isAdminReviewer && String(event.organizerId || '') !== String(organizerId || '')) {
+  if (!isAdminReviewer && !await resolveEventAccess({ eventId: event._id, userId: organizerId, userRole: normalizedReviewerRole })) {
     throw new Error('Submission not found or inaccessible.');
   }
 

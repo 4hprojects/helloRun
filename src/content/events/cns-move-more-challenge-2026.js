@@ -12,7 +12,9 @@ const DATES = Object.freeze({
 });
 
 const STEPS_GOAL = 120000;
+const VENUE_NAME = 'Virtual — participant-selected eligible route';
 const REWARDS_DESCRIPTION = 'Digital certificate and recognition on the event leaderboards after eligible activities are approved.';
+const HIGHEST_ELEVATION_CLARIFICATION = 'The leaderboard separates **five category leaders** from **three event-wide recognitions**. Category cards rank progress toward each selected goal; combined categories use the lower of distance-goal and step-goal progress. Highest Steps, Highest Elevation, and Most Consistent each compare publicly eligible approved results across all five categories exactly once. Their full standings are also event-wide, so category selection does not create duplicate awards. Public standings show everyone ranked **#10 or better**, including exact rank-10 ties. A signed-in participant outside the public top 10 can still see their own exact current standing privately.';
 const EVENT_DESCRIPTION = 'Open to CNS teaching, non-teaching, administrative, and support personnel. This free, 30-day virtual wellness challenge lets you choose an accumulated 25K or 50K virtual run/walk goal, a 120,000-step goal, or a combined goal. Complete eligible activities anywhere during September — there is no onsite race. All you need is a smartphone or fitness app that records the activity date and your distance or steps; no smartwatch is required.';
 const BRAND_ASSETS = Object.freeze({
   logoUrl: '/images/events/cns-move-more-challenge-2026/cns-logo.jpg',
@@ -98,13 +100,13 @@ The 25K and 50K options are **accumulated virtual run/walk distance challenges**
 
 Choose one category. You may not register for both the 25K and 50K categories at the same time. A combined category requires you to reach both its distance and step targets. The same eligible activity can count toward both when your app records both figures. You may exceed your goal — every valid kilometer and step beyond your target still counts toward the leaderboards.
 
-## Walk, jog, run, hike, or use a treadmill
+## Walk, jog, run, or hike
 
-Valid activities: walking, jogging, running, hiking, and treadmill walking or running. Cycling distance does not count toward either distance challenge.
+Valid activities: walking, jogging, running, and hiking. Cycling distance does not count toward either distance challenge.
 
 If you are new to activity tracking, start with **Apple Health on iPhone**, **Google Fit on Android**, or **Samsung Health on a Samsung phone**. These phone-based apps can record steps and walking or running distance without a smartwatch. For a distance-only 25K or 50K goal, Strava or MapMyRun is also suitable. A Strava import by itself does not satisfy a step-only or combined goal; use a tracker screen that visibly includes steps.
 
-You may also use Garmin Connect, Huawei Health, Mi Fitness, Fitbit, Zepp, COROS, another smartphone pedometer, a smartwatch companion app, or a treadmill activity record. What matters is that your proof clearly shows the required information, not which supported app or device you use.
+You may also use Garmin Connect, Huawei Health, Mi Fitness, Fitbit, Zepp, COROS, another smartphone pedometer, or a smartwatch companion app. What matters is that your proof clearly shows the required information, not which supported app or device you use.
 
 ## Submit when it works for you
 
@@ -117,6 +119,8 @@ Every submission requires you to confirm the honor-system statement: that the ac
 ## Finisher recognition and privacy
 
 Reaching your registered goal(s) makes you an official finisher. Leaderboards track total distance, total steps, and consistent participation, using only approved submissions. During registration you can choose to display your full name, an abbreviated name, or stay off the public leaderboard — organizers can always see your full identity.
+
+${HIGHEST_ELEVATION_CLARIFICATION}
 
 ## Move for your wellness, and for each other
 
@@ -145,7 +149,7 @@ function buildCnsMoveMoreChallengeEventPayload({ organizerId, approvedBy, refere
     eventStartAt: DATES.activityStartAt,
     eventEndAt: DATES.activityEndAt,
     virtualWindow: { startAt: DATES.activityStartAt, endAt: DATES.activityEndAt },
-    venueName: 'Virtual — participant-selected eligible route or treadmill',
+    venueName: VENUE_NAME,
     city: '',
     province: '',
     country: 'PH',
@@ -174,6 +178,10 @@ function buildCnsMoveMoreChallengeEventPayload({ organizerId, approvedBy, refere
       rankingBasis: 'highest_verified_distance',
       visibility: 'public',
       showPending: false,
+      showHighestStepsCard: true,
+      showHighestElevationCard: true,
+      showMostConsistentCard: true,
+      publicRankCutoff: 10,
       hideFlagged: true,
       nameDisplayMode: 'first_name_last_initial',
       visibleColumns: ['rank', 'runner', 'category', 'distance', 'steps', 'status']
@@ -198,7 +206,9 @@ module.exports = {
   SLUG,
   DATES,
   STEPS_GOAL,
+  VENUE_NAME,
   EVENT_DESCRIPTION,
+  HIGHEST_ELEVATION_CLARIFICATION,
   BRAND_ASSETS,
   GALLERY_IMAGE_URLS,
   RACE_CATEGORIES,

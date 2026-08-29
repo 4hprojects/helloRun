@@ -143,6 +143,19 @@ const COMMUNICATION_EVENTS = Object.freeze([
     displayOrder: 130
   },
   {
+    eventKey: 'event.co_organizer_invited',
+    name: 'Event Co-organizer Invitation',
+    description: 'Invites an existing verified account to help manage one event.',
+    category: 'organiser',
+    priority: 'critical',
+    required: true,
+    emailEnabled: true,
+    inAppEnabled: true,
+    locked: true,
+    recipientRoles: ['runner', 'organiser'],
+    displayOrder: 131
+  },
+  {
     eventKey: 'registration.confirmed',
     name: 'Registration Confirmed',
     description: 'Confirms an event registration.',
@@ -154,6 +167,32 @@ const COMMUNICATION_EVENTS = Object.freeze([
     locked: false,
     recipientRoles: ['runner'],
     displayOrder: 200
+  },
+  {
+    eventKey: 'event.started_reminder',
+    name: 'Event Started Reminder',
+    description: 'Tells an eligible registered runner that their participation window has opened.',
+    category: 'registration',
+    priority: 'normal',
+    required: false,
+    emailEnabled: true,
+    inAppEnabled: true,
+    locked: false,
+    recipientRoles: ['runner'],
+    displayOrder: 201
+  },
+  {
+    eventKey: 'result.submission_reminder',
+    name: 'Run Submission Reminder',
+    description: 'Reminds an eligible registered runner with no activity that their submission deadline is approaching.',
+    category: 'result',
+    priority: 'normal',
+    required: false,
+    emailEnabled: true,
+    inAppEnabled: true,
+    locked: false,
+    recipientRoles: ['runner'],
+    displayOrder: 202
   },
   {
     eventKey: 'registration.guest_confirmed',

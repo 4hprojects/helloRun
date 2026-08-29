@@ -57,26 +57,29 @@ test('restricted setup detection catches every paid/physical/onsite signal', () 
   assert.ok(getRestrictedSetupReasons({ ...freeVirtual, venueName: 'Track Oval' }).includes('onsite_logistics'));
 });
 
-test('event create and edit routes enforce the verify-to-unlock gate before save', () => {
+test('event creation and primary-owner authority enforce the verify-to-unlock gate before save', () => {
   const shared = read('src/routes/organiser/_shared.js');
   const creation = read('src/routes/organiser/event-creation.js');
   const management = read('src/routes/organiser/event-management.js');
 
   assert.match(shared, /VERIFY_TO_UNLOCK_MESSAGE/);
   assert.match(creation, /organizerStatus !== 'approved' && getRestrictedSetupReasons\(event\)\.length/);
-  assert.match(management, /organizerStatus !== 'approved' && getRestrictedSetupReasons\(event\)\.length/);
+  assert.match(management, /setupAuthority\.organizerStatus !== 'approved' && getRestrictedSetupReasons\(event\)\.length/);
 });
 
-test('event management routes accept acknowledged organizers, promotion stays approved-only', () => {
+test('event management routes accept event-scoped workspace members while creation stays separately gated', () => {
   const management = read('src/routes/organiser/event-management.js');
+  const creation = read('src/routes/organiser/event-creation.js');
 
-  assert.match(management, /router\.get\('\/events', requireCanCreateEvents/);
-  assert.match(management, /router\.get\('\/events\/:id', requireCanCreateEvents/);
-  assert.match(management, /router\.get\('\/events\/:id\/edit', requireCanCreateEvents/);
-  assert.match(management, /router\.post\('\/events\/:id\/edit', requireCanCreateEvents/);
-  assert.match(management, /router\.post\('\/events\/:id\/status', requireCanCreateEvents/);
-  assert.match(management, /router\.get\('\/promote', requireApprovedOrganizer/);
-  assert.match(management, /router\.post\('\/promote', requireApprovedOrganizer/);
+  assert.match(management, /router\.get\('\/events', requireOrganizerWorkspace/);
+  assert.match(management, /router\.get\('\/events\/:id', requireOrganizerWorkspace/);
+  assert.match(management, /router\.get\('\/events\/:id\/edit', requireOrganizerWorkspace/);
+  assert.match(management, /router\.post\('\/events\/:id\/edit', requireOrganizerWorkspace/);
+  assert.match(management, /router\.post\('\/events\/:id\/status', requireOrganizerWorkspace/);
+  assert.match(management, /router\.get\('\/promote', requireOrganizerWorkspace/);
+  assert.match(management, /router\.post\('\/promote', requireOrganizerWorkspace/);
+  assert.match(creation, /router\.get\('\/create-event', requireCanCreateEvents/);
+  assert.match(creation, /router\.post\('\/create-event', requireCanCreateEvents/);
 });
 
 test('acknowledgement route accepts any verified non-approved organiser', () => {

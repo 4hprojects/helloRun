@@ -67,6 +67,13 @@ const ORGANIZER_SUBMISSION_DEFAULTS = Object.freeze({
   pageSize: 25
 });
 
+async function listAccessibleReviewEvents(user) {
+  if (user.role === 'admin') return Event.find({ isDeleted: { $ne: true } }).select('_id').lean();
+  const { getAccessibleEventIdQuery } = require('../../services/event-access.service');
+  const accessQuery = await getAccessibleEventIdQuery(user);
+  return Event.find({ ...accessQuery, isDeleted: { $ne: true } }).select('_id').lean();
+}
+
 router.get('/submissions', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
@@ -86,9 +93,7 @@ router.get('/submissions', requireAuth, async (req, res) => {
       });
     }
 
-    const accessibleEvents = user.role === 'admin'
-      ? await Event.find({ isDeleted: { $ne: true } }).select('_id').lean()
-      : await Event.find({ organizerId: user._id, isDeleted: { $ne: true } }).select('_id').lean();
+    const accessibleEvents = await listAccessibleReviewEvents(user);
     const eventIds = accessibleEvents.map((event) => String(event._id));
     const [hub, events] = await Promise.all([
       listSubmissionHub({ filters: req.query, eventIds, defaults: ORGANIZER_SUBMISSION_DEFAULTS }),
@@ -157,10 +162,7 @@ router.post('/submissions/:submissionId/quick-approve', requireAuth, requireCsrf
       });
     }
 
-    const accessibleEvents = await Event.find({
-      organizerId: user._id,
-      isDeleted: { $ne: true }
-    }).select('_id').lean();
+    const accessibleEvents = await listAccessibleReviewEvents(user);
     await approveCleanSubmission({
       submissionId: req.params.submissionId,
       eventIds: accessibleEvents.map((event) => String(event._id)),
@@ -367,10 +369,7 @@ router.post('/submissions/bulk-approve', requireAuth, requireCsrfProtection, sub
     }
 
     const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
-    const accessibleEvents = await Event.find({
-      organizerId: user._id,
-      isDeleted: { $ne: true }
-    }).select('_id').lean();
+    const accessibleEvents = await listAccessibleReviewEvents(user);
     const eventIds = accessibleEvents.map((event) => String(event._id));
     const results = await Promise.allSettled(
       submissionIds.map((id) =>

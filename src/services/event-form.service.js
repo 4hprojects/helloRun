@@ -409,6 +409,18 @@ function normalizeLeaderboardSettings(body = {}, context = {}) {
       'public'
     ),
     showPending: normalizeBoolean(body.leaderboardSettingsShowPending || body.leaderboardShowPending || body.showPending),
+    showHighestStepsCard: type === 'accumulated_challenge' && normalizeBoolean(
+      body.leaderboardSettingsShowHighestStepsCard || body.showHighestStepsCard
+    ),
+    showHighestElevationCard: type === 'accumulated_challenge' && normalizeBoolean(
+      body.leaderboardSettingsShowHighestElevationCard || body.showHighestElevationCard
+    ),
+    showMostConsistentCard: type === 'accumulated_challenge' && normalizeBoolean(
+      body.leaderboardSettingsShowMostConsistentCard || body.showMostConsistentCard
+    ),
+    publicRankCutoff: Math.min(1000, parseOptionalNonNegativeInteger(
+      body.leaderboardSettingsPublicRankCutoff ?? body.publicRankCutoff
+    ) || 0),
     hideFlagged: hasOwnValue(body, 'leaderboardSettingsHideFlagged') || hasOwnValue(body, 'leaderboardHideFlagged') || hasOwnValue(body, 'hideFlagged')
       ? normalizeBoolean(body.leaderboardSettingsHideFlagged || body.leaderboardHideFlagged || body.hideFlagged)
       : true,
@@ -433,6 +445,10 @@ function normalizeLeaderboardSettingsFromEvent(event = {}) {
       : normalizeModeValue(existing.rankingBasis, LEADERBOARD_RANKING_BASES, 'fastest_time'),
     visibility: normalizeModeValue(existing.visibility, LEADERBOARD_VISIBILITIES, 'public'),
     showPending: Boolean(existing.showPending),
+    showHighestStepsCard: type === 'accumulated_challenge' && Boolean(existing.showHighestStepsCard),
+    showHighestElevationCard: type === 'accumulated_challenge' && Boolean(existing.showHighestElevationCard),
+    showMostConsistentCard: type === 'accumulated_challenge' && Boolean(existing.showMostConsistentCard),
+    publicRankCutoff: Math.min(1000, parseOptionalNonNegativeInteger(existing.publicRankCutoff) || 0),
     hideFlagged: typeof existing.hideFlagged === 'boolean' ? existing.hideFlagged : true,
     nameDisplayMode: normalizeModeValue(existing.nameDisplayMode, LEADERBOARD_NAME_DISPLAY_MODES, 'first_name_last_initial'),
     visibleColumns: normalizeLeaderboardVisibleColumns(existing.visibleColumns)

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-check-in.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <% const basePath = `/organizer/events/${eventId}/co-organizers`; %>
+  <main class="checkin-page" id="main-content"><div class="checkin-shell">
+    <header class="checkin-header"><div><p class="checkin-kicker">Event team</p><h1><%= event.title %></h1></div><a href="/organizer/events/<%= eventId %>" class="nav-login-btn">Back to event</a></header>
+    <% if (message) { %><p class="checkin-alert" role="status"><%= message.text %></p><% } %>
+    <p class="checkin-note">Co-organizers can manage this event, participants, payments, results, communications, and recognition. Only the primary owner can manage this team, archive or delete the event, or transfer ownership.</p>
+    <section class="checkin-scanner" aria-labelledby="inviteTitle">
+      <h2 id="inviteTitle">Invite a co-organizer</h2>
+      <p class="checkin-note">The person must already have an active, verified HelloRun account. Access starts after acceptance.</p>
+      <form method="POST" action="<%= basePath %>" class="checkin-staff-form">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+        <label for="coOrganizerEmail">Email address</label>
+        <input id="coOrganizerEmail" name="email" type="email" required autocomplete="off">
+        <button type="submit" class="nav-signup-btn">Send invitation</button>
+      </form>
+    </section>
+    <section aria-labelledby="teamTitle"><h2 id="teamTitle" class="checkin-board-heading">Co-organizers</h2>
+      <% if (!members.length) { %><p class="checkin-empty">No co-organizers have been invited.</p><% } else { %>
+      <ul class="checkin-list"><% members.forEach(function(member) { %><li class="checkin-row">
+        <div class="checkin-row-identity"><p class="checkin-row-name"><%= member.name %></p><p class="checkin-row-meta"><%= member.email %> · <%= member.status %></p></div>
+        <% if (member.status === 'pending') { %><form method="POST" action="<%= basePath %>/<%= member.id %>/resend"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><button type="submit" class="nav-login-btn checkin-action">Resend</button></form><% } %>
+        <% if (member.status === 'pending' || member.status === 'active') { const action = member.status === 'pending' ? 'cancel' : 'revoke'; %>
+        <form method="POST" action="<%= basePath %>/<%= member.id %>/<%= action %>" data-high-risk-confirm data-confirm-title="<%= action === 'cancel' ? 'Cancel invitation' : 'Remove co-organizer' %>" data-confirm-target="<%= member.name %>" data-confirm-impact="<%= action === 'cancel' ? 'The invitation link will stop working.' : 'Their event access ends immediately.' %>" data-confirm-reversibility="You can invite this account again." data-confirm-privilege="Primary event owner" data-confirm-button="Confirm">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><button type="submit" class="nav-login-btn checkin-action"><%= action === 'cancel' ? 'Cancel' : 'Remove' %></button>
+        </form><% } %>
+      </li><% }); %></ul><% } %>
+    </section>
+  </div></main>
+  <%- include('../layouts/footer') %><script src="/js/main.js"></script>
+</body></html>

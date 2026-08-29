@@ -20,7 +20,7 @@ function canUseRunnerWorkspace(user = {}) {
 
 function canUseWorkspace(user = {}, workspace) {
   if (workspace === WORKSPACES.ADMIN) return user.role === 'admin';
-  if (workspace === WORKSPACES.ORGANIZER) return user.role === 'organiser';
+  if (workspace === WORKSPACES.ORGANIZER) return user.role === 'organiser' || user.canUseOrganizerWorkspace === true;
   if (workspace === WORKSPACES.RUNNER) return canUseRunnerWorkspace(user);
   return false;
 }
@@ -38,7 +38,7 @@ function getWorkspaceForPath(user = {}, pathname = '', currentWorkspace) {
       : resolveActiveWorkspace(user, currentWorkspace);
   }
   if (path === '/organizer' || path.startsWith('/organizer/')) {
-    return user.role === 'organiser'
+    return canUseWorkspace(user, WORKSPACES.ORGANIZER)
       ? WORKSPACES.ORGANIZER
       : resolveActiveWorkspace(user, currentWorkspace);
   }

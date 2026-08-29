@@ -582,6 +582,11 @@
                         <option value="private_until_published" <%= leaderboardSettings.visibility === 'private_until_published' ? 'selected' : '' %>>Private until published</option>
                       </select>
                     </div>
+                    <div class="form-group">
+                      <label for="leaderboardSettingsPublicRankCutoff">Public Rank Cutoff</label>
+                      <input id="leaderboardSettingsPublicRankCutoff" type="number" name="leaderboardSettingsPublicRankCutoff" min="0" max="1000" step="1" value="<%= leaderboardSettings.publicRankCutoff || 0 %>">
+                      <small class="field-hint">Use 0 to publish every eligible rank. A positive value publishes that rank and all exact ties while runners can still view their own standing.</small>
+                    </div>
                     <div class="form-group form-group-full">
                       <label>Visible Columns</label>
                       <div class="checkbox-row">
@@ -593,13 +598,19 @@
                     <div class="form-group form-group-full">
                       <label>Review Visibility</label>
                       <input type="hidden" name="leaderboardSettingsEnabled" value="0">
+                      <input type="hidden" name="leaderboardSettingsShowHighestStepsCard" value="0">
+                      <input type="hidden" name="leaderboardSettingsShowHighestElevationCard" value="0">
+                      <input type="hidden" name="leaderboardSettingsShowMostConsistentCard" value="0">
                       <input type="hidden" name="leaderboardSettingsHideFlagged" value="0">
                       <div class="checkbox-row">
                         <label><input type="checkbox" name="leaderboardSettingsEnabled" value="1" <%= leaderboardSettings.enabled !== false ? 'checked' : '' %>> Enable event leaderboard</label>
                         <label><input type="checkbox" name="leaderboardSettingsShowPending" value="1" <%= leaderboardSettings.showPending ? 'checked' : '' %>> Show pending submissions with labels</label>
+                        <span data-event-wide-recognition-setting <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'hidden' %>><label><input type="checkbox" name="leaderboardSettingsShowHighestStepsCard" value="1" <%= leaderboardSettings.showHighestStepsCard ? 'checked' : '' %> <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'disabled' %>> Recognize the overall highest verified steps</label></span>
+                        <span data-event-wide-recognition-setting <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'hidden' %>><label><input type="checkbox" name="leaderboardSettingsShowHighestElevationCard" value="1" <%= leaderboardSettings.showHighestElevationCard ? 'checked' : '' %> <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'disabled' %>> Recognize the overall highest verified elevation</label></span>
+                        <span data-event-wide-recognition-setting <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'hidden' %>><label><input type="checkbox" name="leaderboardSettingsShowMostConsistentCard" value="1" <%= leaderboardSettings.showMostConsistentCard ? 'checked' : '' %> <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'disabled' %>> Recognize the overall most consistent participant</label></span>
                         <label><input type="checkbox" name="leaderboardSettingsHideFlagged" value="1" <%= leaderboardSettings.hideFlagged !== false ? 'checked' : '' %>> Hide suspicious submissions publicly</label>
                       </div>
-                      <small class="field-hint">Official ranking includes approved submissions only. Pending rows can be shown without receiving a rank.</small>
+                      <small class="field-hint">Event-wide recognition is available for accumulated challenges. Only approved, publicly eligible results across all categories count.</small>
                     </div>
                   </div>
                 </div>

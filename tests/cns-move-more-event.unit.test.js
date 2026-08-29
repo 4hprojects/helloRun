@@ -1,8 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const Event = require('../src/models/Event');
 
 const {
   DATES,
+  VENUE_NAME,
   BRAND_ASSETS,
   EVENT_DESCRIPTION,
   RACE_CATEGORIES,
@@ -10,6 +12,22 @@ const {
   EVENT_DETAILS_MARKDOWN,
   buildCnsMoveMoreChallengeEventPayload
 } = require('../src/content/events/cns-move-more-challenge-2026');
+const { removeTreadmillOption } = require('../src/scripts/update-cns-move-more-content');
+
+test('CNS content updater removes only the legacy treadmill option', () => {
+  const legacy = `## Walk, jog, run, hike, or use a treadmill
+
+Valid activities: walking, jogging, running, hiking, and treadmill walking or running. Cycling distance does not count.
+
+You may use another smartphone pedometer, a smartwatch companion app, or a treadmill activity record.
+
+Keep this custom organizer note.`;
+  const updated = removeTreadmillOption(legacy);
+
+  assert.doesNotMatch(updated, /treadmill/i);
+  assert.match(updated, /## Walk, jog, run, or hike/);
+  assert.match(updated, /Keep this custom organizer note\./);
+});
 
 test('CNS Move More source keeps all five mixed-metric goals and the confirmed deadline', () => {
   assert.deepEqual(
@@ -25,6 +43,12 @@ test('CNS Move More source keeps all five mixed-metric goals and the confirmed d
   assert.match(EVENT_DETAILS_MARKDOWN, /Samsung Health on a Samsung phone/i);
   assert.match(EVENT_DETAILS_MARKDOWN, /Strava import by itself does not satisfy a step-only or combined goal/i);
   assert.match(EVENT_DETAILS_MARKDOWN, /both distance and steps.*combined goal/i);
+  assert.doesNotMatch(EVENT_DETAILS_MARKDOWN, /treadmill/i);
+  assert.match(EVENT_DETAILS_MARKDOWN, /five category leaders.*three event-wide recognitions/is);
+  assert.match(EVENT_DETAILS_MARKDOWN, /combined categories use the lower of distance-goal and step-goal progress/is);
+  assert.match(EVENT_DETAILS_MARKDOWN, /across all five categories/i);
+  assert.match(EVENT_DETAILS_MARKDOWN, /ranked \*\*#10 or better\*\*/i);
+  assert.match(EVENT_DETAILS_MARKDOWN, /own exact current standing privately/i);
   assert.match(EVENT_DETAILS_MARKDOWN, /JPG, PNG, or WebP/i);
   assert.doesNotMatch(EVENT_DETAILS_MARKDOWN, /proposed final submission deadline|subject to confirmation/i);
 });
@@ -40,7 +64,16 @@ test('CNS Move More payload remains free, public, and configured for distance an
   assert.equal(payload.slug, 'cns-move-more-challenge-2026');
   assert.equal(payload.feeMode, 'free');
   assert.equal(payload.status, 'published');
+  assert.equal(payload.leaderboardSettings.showHighestStepsCard, true);
+  assert.equal(payload.leaderboardSettings.showHighestElevationCard, true);
+  assert.equal(payload.leaderboardSettings.showMostConsistentCard, true);
+  assert.equal(payload.leaderboardSettings.publicRankCutoff, 10);
+  assert.equal(Event.schema.path('leaderboardSettings.showHighestStepsCard').defaultValue, false);
+  assert.equal(Event.schema.path('leaderboardSettings.showHighestElevationCard').defaultValue, false);
+  assert.equal(Event.schema.path('leaderboardSettings.showMostConsistentCard').defaultValue, false);
+  assert.equal(Event.schema.path('leaderboardSettings.publicRankCutoff').defaultValue, 0);
   assert.deepEqual(payload.challengeMetrics, ['distance', 'steps']);
+  assert.equal(payload.venueName, VENUE_NAME);
   assert.equal(payload.raceCategories.length, 5);
   assert.match(payload.description, /CNS teaching, non-teaching, administrative, and support personnel/i);
   assert.equal(payload.description, EVENT_DESCRIPTION);

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const organizerShopController = require('../controllers/organizer-shop.controller');
-const { requireAuth, requireApprovedOrganizer } = require('../middleware/auth.middleware');
+const { requireAuth, requireOrganizerWorkspace } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const {
@@ -25,7 +25,7 @@ const shopReportExportLimiter = createRateLimiter({
   message: 'Too many shop report exports. Please wait a few minutes and try again.'
 });
 
-router.use(requireAuth, requireApprovedOrganizer);
+router.use(requireAuth, requireOrganizerWorkspace);
 
 router.get('/events/:eventId/shop', validateObjectIdParam('eventId'), canManageEventShop, organizerShopController.getShopDashboard);
 

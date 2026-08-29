@@ -19,6 +19,7 @@ const BlogReport = require('../models/BlogReport');
 const RunningGroup = require('../models/RunningGroup');
 const RunningGroupActivity = require('../models/RunningGroupActivity');
 const EventPromotion = require('../models/EventPromotion');
+const EventReminderDelivery = require('../models/EventReminderDelivery');
 const CertificateTemplate = require('../models/CertificateTemplate');
 const { getPostgresClient } = require('../db/postgres');
 const criticalAuditService = require('./critical-audit.service');
@@ -167,6 +168,7 @@ const EMPTY_TEST_USER_SUMMARY = {
   runningGroupsDeleted: 0,
   runningGroupActivitiesDeleted: 0,
   eventPromotionsDeleted: 0,
+  eventReminderDeliveriesDeleted: 0,
   certificateTemplatesDeleted: 0,
   eventsDeleted: 0
 };
@@ -187,7 +189,7 @@ async function cascadeDeleteOwnedMongoData(userIds) {
     registrationsResult, submissionsResult, accumulatedResult, idempotencyKeysResult,
     applicationsResult, stravaResult, notificationsResult, communicationLogsResult,
     blogCommentsResult, blogLikesResult, blogViewsResult, blogRevisionsResult, blogReportsResult,
-    runningGroupActivitiesResult, promotionsResult, certTemplatesResult
+    runningGroupActivitiesResult, promotionsResult, reminderDeliveriesResult, certTemplatesResult
   ] = await Promise.all([
     Registration.deleteMany({ userId: { $in: userIds } }),
     Submission.deleteMany({ runnerId: { $in: userIds } }),
@@ -204,6 +206,7 @@ async function cascadeDeleteOwnedMongoData(userIds) {
     BlogReport.deleteMany({ $or: [{ blogId: { $in: testBlogIds } }, { reporterId: { $in: userIds } }] }),
     RunningGroupActivity.deleteMany({ $or: [{ groupId: { $in: testGroupIds } }, { actorUserId: { $in: userIds } }] }),
     EventPromotion.deleteMany({ organizerId: { $in: userIds } }),
+    EventReminderDelivery.deleteMany({ userId: { $in: userIds } }),
     CertificateTemplate.deleteMany({ organizerId: { $in: userIds } })
   ]);
 
@@ -229,6 +232,7 @@ async function cascadeDeleteOwnedMongoData(userIds) {
     runningGroupsDeleted: runningGroupsResult.deletedCount || 0,
     runningGroupActivitiesDeleted: runningGroupActivitiesResult.deletedCount || 0,
     eventPromotionsDeleted: promotionsResult.deletedCount || 0,
+    eventReminderDeliveriesDeleted: reminderDeliveriesResult.deletedCount || 0,
     certificateTemplatesDeleted: certTemplatesResult.deletedCount || 0,
     eventsDeleted: 0
   };
@@ -271,6 +275,7 @@ const EMPTY_TEST_USER_COUNTS = {
   runningGroups: 0,
   runningGroupActivities: 0,
   eventPromotions: 0,
+  eventReminderDeliveries: 0,
   certificateTemplates: 0,
   events: 0
 };
@@ -303,6 +308,7 @@ async function getTestUserCounts(excludeUserId) {
     runningGroups: owned.runningGroupsDeleted,
     runningGroupActivities: owned.runningGroupActivitiesDeleted,
     eventPromotions: owned.eventPromotionsDeleted,
+    eventReminderDeliveries: owned.eventReminderDeliveriesDeleted,
     certificateTemplates: owned.certificateTemplatesDeleted,
     events: organizedEvents
   };
@@ -317,7 +323,7 @@ async function cascadeDeleteOwnedMongoDataDryRun(userIds) {
   const [
     registrations, submissions, accumulated, idempotencyKeys, applications, strava,
     notifications, communicationLogs, blogComments, blogLikes, blogViews, blogRevisions,
-    blogReports, blogPosts, runningGroups, runningGroupActivities, promotions, certTemplates
+    blogReports, blogPosts, runningGroups, runningGroupActivities, promotions, reminderDeliveries, certTemplates
   ] = await Promise.all([
     Registration.countDocuments({ userId: { $in: userIds } }),
     Submission.countDocuments({ runnerId: { $in: userIds } }),
@@ -336,6 +342,7 @@ async function cascadeDeleteOwnedMongoDataDryRun(userIds) {
     RunningGroup.countDocuments({ createdBy: { $in: userIds } }),
     RunningGroupActivity.countDocuments({ $or: [{ groupId: { $in: testGroupIds } }, { actorUserId: { $in: userIds } }] }),
     EventPromotion.countDocuments({ organizerId: { $in: userIds } }),
+    EventReminderDelivery.countDocuments({ userId: { $in: userIds } }),
     CertificateTemplate.countDocuments({ organizerId: { $in: userIds } })
   ]);
 
@@ -357,6 +364,7 @@ async function cascadeDeleteOwnedMongoDataDryRun(userIds) {
     runningGroupsDeleted: runningGroups,
     runningGroupActivitiesDeleted: runningGroupActivities,
     eventPromotionsDeleted: promotions,
+    eventReminderDeliveriesDeleted: reminderDeliveries,
     certificateTemplatesDeleted: certTemplates
   };
 }
@@ -392,6 +400,7 @@ async function purgeTestUsers({ actorUserId, ipAddress, userAgent, sql } = {}) {
     submissionsDeleted: eventCascadeSummary.submissionsDeleted,
     accumulatedSubmissionsDeleted: eventCascadeSummary.accumulatedSubmissionsDeleted,
     eventPromotionsDeleted: eventCascadeSummary.promotionsDeleted,
+    eventReminderDeliveriesDeleted: eventCascadeSummary.reminderDeliveriesDeleted,
     certificateTemplatesDeleted: eventCascadeSummary.certificateTemplatesDeleted,
     eventsDeleted: eventCascadeSummary.eventsDeleted
   });

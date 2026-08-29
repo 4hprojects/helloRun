@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Event = require('../models/Event');
 const User = require('../models/User');
 const { getStaffPermissions } = require('../services/event-staff.service');
+const { resolveEventAccess } = require('../services/event-access.service');
 
 /**
  * Access to one event's onsite operations, for the organiser, an admin, or an assigned
@@ -43,8 +44,8 @@ function requireOnsiteEventAccess(permission) {
       }
 
       const isAdmin = user.role === 'admin';
-      const isOwningOrganiser =
-        user.role === 'organiser' && String(event.organizerId || '') === String(user._id);
+      const eventAccess = await resolveEventAccess({ eventId, userId: user._id, userRole: user.role });
+      const isOwningOrganiser = Boolean(eventAccess);
 
       let staffPermissions = [];
       if (!isAdmin && !isOwningOrganiser) {
@@ -57,6 +58,7 @@ function requireOnsiteEventAccess(permission) {
       req.organizerEvent = event;
       req.eventStaffPermissions = staffPermissions;
       req.isEventStaffOnly = !isAdmin && !isOwningOrganiser;
+      req.eventAccess = eventAccess;
       req.user = {
         id: String(user._id),
         mongoUserId: user._id,

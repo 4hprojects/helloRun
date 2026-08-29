@@ -122,6 +122,9 @@
           </div>
 
           <p class="event-organizer">Hosted by <%= details.organizerName || 'HelloRun' %></p>
+          <% if (Array.isArray(details.coOrganizerNames) && details.coOrganizerNames.length) { %>
+            <p class="event-organizer">Co-organized by <%= details.coOrganizerNames.join(', ') %></p>
+          <% } %>
           <h1><%= details.title %></h1>
           <div class="event-lead">
             <span class="event-lead-label">About this event</span>
@@ -141,6 +144,16 @@
               <% if (details.secondaryCtas?.[0]) { %>
                 <a href="<%= details.secondaryCtas[0].href %>" class="btn btn-outline btn-hero-secondary"><i data-lucide="trophy"></i><span><%= details.secondaryCtas[0].label %></span></a>
               <% } %>
+              <%- include('../partials/event-share-menu', {
+                instanceId: `eventHeroShare-${details.slug}`,
+                url: share.url,
+                title: share.title,
+                triggerLabel: 'Share event',
+                showTriggerText: false,
+                ariaLabel: `Share ${details.title}`,
+                containerClass: 'event-hero-share',
+                triggerClass: 'btn btn-outline btn-hero-secondary'
+              }) %>
               <% if (locals.isAuthenticated) { %>
                 <button type="button"
                   class="btn btn-outline btn-hero-secondary btn-save-event js-save-event<%= isSaved ? ' is-saved' : '' %>"
@@ -980,6 +993,25 @@
         </div>
       <% } %>
     </section>
+
+    <% if (!isPreviewMode) { %>
+      <section class="event-bottom-share" aria-labelledby="eventBottomShareTitle">
+        <div class="event-bottom-share-copy">
+          <p class="event-section-kicker">Invite another runner</p>
+          <h2 id="eventBottomShareTitle">Know someone who would enjoy this event?</h2>
+          <p>Share the official event page so they can review the dates, rules, and registration details.</p>
+        </div>
+        <%- include('../partials/event-share-menu', {
+          instanceId: `eventBottomShare-${details.slug}`,
+          url: share.url,
+          title: share.title,
+          triggerLabel: 'Share event',
+          ariaLabel: `Share ${details.title}`,
+          containerClass: 'event-bottom-share-menu',
+          triggerClass: 'btn btn-primary'
+        }) %>
+      </section>
+    <% } %>
   </main>
 
   <% if (!isPreviewMode && relatedEvents && relatedEvents.length) { %>
@@ -1016,6 +1048,7 @@
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
+  <% if (!isPreviewMode) { %><script src="/js/event-share.js"></script><% } %>
   <% if (locals.isAuthenticated) { %><script src="/js/event-save.js"></script><% } %>
   <script>
     if (window.lucide) lucide.createIcons();

@@ -387,6 +387,7 @@ const { startAccumulatedCertificateWorker } = require('./workers/accumulated-cer
 const { startPolicyNoticeWorker } = require('./workers/policy-notice-worker');
 const { startEventPromotionWorker } = require('./workers/event-promotion-worker');
 const { startWaitlistOfferWorker } = require('./workers/waitlist-offer-worker');
+const { startEventActivationReminderWorker } = require('./workers/event-activation-reminder-worker');
 
 async function startServer() {
   await connectToDatabase();
@@ -397,6 +398,7 @@ async function startServer() {
   startPolicyNoticeWorker();
   startEventPromotionWorker();
   startWaitlistOfferWorker();
+  startEventActivationReminderWorker();
 
   const server = app.listen(PORT, () => {
     logger.info(`Server running on http://localhost:${PORT}`);

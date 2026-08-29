@@ -19,6 +19,8 @@
   const mobilePosition = nav.querySelector('#builderMobilePosition');
   const mobileTitle = nav.querySelector('#builderMobileTitle');
   const mobileQuery = window.matchMedia('(max-width: 640px)');
+  const leaderboardType = form.querySelector('#leaderboardSettingsType');
+  const recognitionSettings = Array.from(form.querySelectorAll('[data-event-wide-recognition-setting]'));
   let activeGroup = 'basics';
   const errorFieldFallbacks = [
     [/^(raceCategor|raceDistances)/, 'race-categories-step'],
@@ -84,6 +86,18 @@
         const state = hasError ? 'Contains errors' : (isComplete ? 'Required fields complete' : 'In progress');
         link.setAttribute('aria-label', group.label + ': ' + state);
       }
+    });
+  }
+
+  function syncEventWideRecognitionSettings() {
+    if (!leaderboardType || !recognitionSettings.length) return;
+    const available = leaderboardType.value === 'accumulated_challenge';
+    recognitionSettings.forEach((setting) => {
+      setting.hidden = !available;
+      const checkbox = setting.querySelector('input[type="checkbox"]');
+      if (!checkbox) return;
+      checkbox.disabled = !available;
+      if (!available) checkbox.checked = false;
     });
   }
 
@@ -174,6 +188,7 @@
 
   form.addEventListener('input', updateGroupStates);
   form.addEventListener('change', updateGroupStates);
+  leaderboardType?.addEventListener('change', syncEventWideRecognitionSettings);
   mobileQuery.addEventListener?.('change', () => {
     applyMobileDisclosure();
     closeMenu();
@@ -182,6 +197,7 @@
   const hashField = findField(decodeFragment(window.location.hash));
   const invalidField = form.querySelector('.has-error input, .has-error select, .has-error textarea, [aria-invalid="true"]');
   const initialGroup = groupForNode(hashField) || groupForNode(invalidField) || 'basics';
+  syncEventWideRecognitionSettings();
   updateGroupStates();
   setActiveGroup(initialGroup);
   if (invalidField) requestAnimationFrame(() => invalidField.focus({ preventScroll: true }));

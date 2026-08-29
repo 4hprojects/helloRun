@@ -11,8 +11,8 @@ const {
   Submission,
   AccumulatedActivitySubmission,
   requireAuth,
-  requireApprovedOrganizer,
   requireCanCreateEvents,
+  requireOrganizerWorkspace,
   requireCsrfProtection,
   uploadService,
   eventFormService,
@@ -61,12 +61,26 @@ const {
 const { synchronizeEventBadgeImages } = require('../../services/event-badge.service');
 const { listOrganizerEvents } = require('../../services/organizer-event-list.service');
 const { getOrganizerEventDetailPresentation } = require('../../services/organizer-event-detail.service');
+const { resolveEventAccess } = require('../../services/event-access.service');
+
+async function getEventSetupAuthority(event, user) {
+  const access = await resolveEventAccess({
+    eventId: event?._id,
+    userId: user?._id,
+    userRole: user?.role
+  });
+  if (access?.level !== 'co_organizer') return user;
+  const primaryOwner = await User.findById(event.organizerId)
+    .select('firstName lastName email role organizerStatus emailVerified accountStatus')
+    .lean();
+  return primaryOwner || user;
+}
 
 /* ==========================================
    GET: My Events
    ========================================== */
 
-router.get('/events', requireCanCreateEvents, async (req, res) => {
+router.get('/events', requireOrganizerWorkspace, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
 
@@ -100,7 +114,7 @@ router.get('/events', requireCanCreateEvents, async (req, res) => {
    GET: Event Details
    ========================================== */
 
-router.get('/events/:id', requireCanCreateEvents, async (req, res) => {
+router.get('/events/:id', requireOrganizerWorkspace, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -126,11 +140,13 @@ router.get('/events/:id', requireCanCreateEvents, async (req, res) => {
         : Promise.resolve([])
     ]);
     const publishReadinessErrors = getPublishReadinessErrors(event);
+    const access = await resolveEventAccess({ eventId: event._id, userId: user._id, userRole: user.role });
     const presentation = await getOrganizerEventDetailPresentation({
       event,
       hasActiveCertificate: Boolean(activeCertificateTemplate),
       eventBadgeCount: eventBadges.length,
-      publishReadinessErrors
+      publishReadinessErrors,
+      canManageTeam: Boolean(access?.canManageTeam)
     });
 
     return res.render('organizer/event-details', {
@@ -230,7 +246,7 @@ router.get('/events/:id/audit', requireAuth, async (req, res) => {
    GET: Event Badges (JSON)
    ========================================== */
 
-router.get('/events/:id/badges', requireCanCreateEvents, async (req, res) => {
+router.get('/events/:id/badges', requireOrganizerWorkspace, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     const event = await getOwnedEventOrNull(req.params.id, user?._id);
@@ -250,7 +266,7 @@ router.get('/events/:id/badges', requireCanCreateEvents, async (req, res) => {
    GET: Badge Manager
    ========================================== */
 
-router.get('/events/:id/badges/manage', requireCanCreateEvents, async (req, res) => {
+router.get('/events/:id/badges/manage', requireOrganizerWorkspace, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     const event = await getOwnedEventOrNull(req.params.id, user?._id);
@@ -316,7 +332,7 @@ router.get('/events/:id/badges/manage', requireCanCreateEvents, async (req, res)
    POST: Update Badge Display
    ========================================== */
 
-router.post('/events/:id/badges/:badgeId', requireCanCreateEvents, requireCsrfProtection, async (req, res) => {
+router.post('/events/:id/badges/:badgeId', requireOrganizerWorkspace, requireCsrfProtection, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     const event = await getOwnedEventOrNull(req.params.id, user?._id);
@@ -364,7 +380,7 @@ router.post('/events/:id/badges/:badgeId', requireCanCreateEvents, requireCsrfPr
    POST: Badge Image Upload
    ========================================== */
 
-router.post('/events/:id/badges/:badgeId/image', requireCanCreateEvents, uploadService.uploadBadgeImage, requireCsrfProtection, async (req, res) => {
+router.post('/events/:id/badges/:badgeId/image', requireOrganizerWorkspace, uploadService.uploadBadgeImage, requireCsrfProtection, async (req, res) => {
   try {
     if (req.uploadError) return res.status(400).json({ success: false, message: req.uploadError });
     if (!req.file) return res.status(400).json({ success: false, message: 'No image file provided.' });
@@ -399,7 +415,7 @@ router.post('/events/:id/badges/:badgeId/image', requireCanCreateEvents, uploadS
    GET: Edit Event
    ========================================== */
 
-router.get('/events/:id/edit', requireCanCreateEvents, async (req, res) => {
+router.get('/events/:id/edit', requireOrganizerWorkspace, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -428,9 +444,11 @@ router.get('/events/:id/edit', requireCanCreateEvents, async (req, res) => {
 
     const formData = getCreateEventFormDataFromEvent(event);
     const eventBadges = await getEventBadgesByMongoEventId(event._id).catch(() => []);
+    const setupAuthority = await getEventSetupAuthority(event, user);
     return res.render('organizer/edit-event', {
       title: `Edit Event - ${event.title}`,
       user,
+      setupAuthority,
       event,
       errors: {},
       formData,
@@ -455,7 +473,7 @@ router.get('/events/:id/edit', requireCanCreateEvents, async (req, res) => {
    POST: Update Event
    ========================================== */
 
-router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEventBranding, requireCsrfProtection, async (req, res) => {
+router.post('/events/:id/edit', requireOrganizerWorkspace, uploadService.uploadEventBranding, requireCsrfProtection, async (req, res) => {
   const uploadedBrandingKeys = [];
   let brandingPersisted = false;
   try {
@@ -483,6 +501,7 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
       });
       return res.redirect(`/organizer/events/${event._id}?${query.toString()}`);
     }
+    const setupAuthority = await getEventSetupAuthority(event, user);
 
     const formData = getCreateEventFormData(req.body, { existingEvent: event });
     const incomingPaymentQrFile = req.files?.paymentQrImageFile?.[0] || null;
@@ -512,6 +531,7 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
       return res.status(400).render('organizer/edit-event', {
         title: `Edit Event - ${event.title}`,
         user,
+        setupAuthority,
         event,
         errors: { [errorField]: req.uploadError },
         formData,
@@ -603,6 +623,7 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
       return res.status(400).render('organizer/edit-event', {
         title: `Edit Event - ${event.title}`,
         user,
+        setupAuthority,
         event,
         errors: { galleryImageUrls: `Gallery supports up to ${MAX_GALLERY_IMAGES} images.` },
         formData,
@@ -621,6 +642,7 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
       return res.status(400).render('organizer/edit-event', {
         title: `Edit Event - ${event.title}`,
         user,
+        setupAuthority,
         event,
         errors: validationErrors,
         formData,
@@ -632,7 +654,7 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
       });
     }
 
-    const organiserNameFromUser = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    const organiserNameFromUser = `${setupAuthority.firstName || ''} ${setupAuthority.lastName || ''}`.trim();
     const organiserName = formData.organiserName || organiserNameFromUser || 'HelloRun Organizer';
     const eventTypesAllowed = getEventTypesAllowed(formData.eventType);
 
@@ -683,7 +705,7 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
       ? formData.leaderboardMode
       : 'finishers';
 
-    eventFormService.applyEventFormData(event, formData, user);
+    eventFormService.applyEventFormData(event, formData, setupAuthority);
     if (logoFile || formData.removeLogoImage || formData.logoUrl !== previousLogoUrl) {
       event.badgeImageUrl = formData.badgeImageUrl || '';
     }
@@ -692,13 +714,14 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
       event.submittedForReviewAt = new Date();
     }
 
-    if (user.organizerStatus !== 'approved' && getRestrictedSetupReasons(event).length) {
+    if (setupAuthority.organizerStatus !== 'approved' && getRestrictedSetupReasons(event).length) {
       if (uploadedBrandingKeys.length) {
         await uploadService.deleteObjects(uploadedBrandingKeys);
       }
       return res.status(400).render('organizer/edit-event', {
         title: `Edit Event - ${event.title}`,
         user,
+        setupAuthority,
         event,
         errors: { feeMode: VERIFY_TO_UNLOCK_MESSAGE },
         formData,
@@ -789,7 +812,7 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
    POST: Event Status Transition
    ========================================== */
 
-router.post('/events/:id/status', requireCanCreateEvents, requireCsrfProtection, async (req, res) => {
+router.post('/events/:id/status', requireOrganizerWorkspace, requireCsrfProtection, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -810,6 +833,10 @@ router.post('/events/:id/status', requireCanCreateEvents, requireCsrfProtection,
     }
 
     const nextStatus = typeof req.body.nextStatus === 'string' ? req.body.nextStatus.trim() : '';
+    const access = await resolveEventAccess({ eventId: event._id, userId: user._id, userRole: user.role });
+    if (nextStatus === 'archived' && !access?.canArchiveOrDelete) {
+      return res.status(403).render('error', { title: 'Owner access required', status: 403, message: 'Only the primary event owner can archive this event.' });
+    }
     const transitionError = getStatusTransitionError(event.status, nextStatus);
     if (transitionError) {
       const q = new URLSearchParams({ type: 'error', msg: transitionError });
@@ -834,8 +861,11 @@ router.post('/events/:id/status', requireCanCreateEvents, requireCsrfProtection,
     await event.save();
     generateDefaultEventBadgesInBackground(event, { performedBy: user._id });
 
+    const primaryOrganizer = nextStatus === 'pending_review'
+      ? await User.findById(event.organizerId)
+      : null;
     const autoApproval = nextStatus === 'pending_review'
-      ? await tryAutoApproveEvent(event, { organizer: user })
+      ? await tryAutoApproveEvent(event, { organizer: primaryOrganizer })
       : { approved: false };
 
     const q = new URLSearchParams({
@@ -859,7 +889,7 @@ router.post('/events/:id/status', requireCanCreateEvents, requireCsrfProtection,
    POST: Remove Event Media
    ========================================== */
 
-router.post('/events/:id/media/remove', requireCanCreateEvents, requireCsrfProtection, async (req, res) => {
+router.post('/events/:id/media/remove', requireOrganizerWorkspace, requireCsrfProtection, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -965,18 +995,22 @@ async function getQuotaUsed(organizerId) {
   return Number(agg[0]?.total || 0);
 }
 
-router.get('/promote', requireApprovedOrganizer, async (req, res) => {
+router.get('/promote', requireOrganizerWorkspace, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('firstName organizerStatus').lean();
     if (!user) return res.status(403).render('error', { title: '403', status: 403, message: 'Access denied.' });
 
-    const [events, quotaUsed, recentCampaigns] = await Promise.all([
-      Event.find({ organizerId: req.session.userId, isDeleted: { $ne: true }, status: { $ne: 'archived' } })
-        .select('_id title slug status eventStartAt')
+    const { getAccessibleEventIdQuery } = require('../../services/event-access.service');
+    const accessQuery = await getAccessibleEventIdQuery({ ...user, _id: req.session.userId });
+    const events = await Event.find({ ...accessQuery, isDeleted: { $ne: true }, status: { $ne: 'archived' } })
+        .select('_id title slug status eventStartAt organizerId')
         .sort({ eventStartAt: -1 })
-        .lean(),
-      getQuotaUsed(req.session.userId),
-      EventPromotion.find({ organizerId: req.session.userId })
+        .lean();
+    const eventIds = events.map((event) => event._id);
+    const [quotaUsed, recentCampaigns] = await Promise.all([
+      Promise.all(events.map((event) => getQuotaUsed(event.organizerId)))
+        .then((values) => Math.max(0, ...values)),
+      EventPromotion.find({ eventId: { $in: eventIds } })
         .sort({ createdAt: -1 })
         .limit(5)
         .populate('eventId', 'title')
@@ -1001,7 +1035,7 @@ router.get('/promote', requireApprovedOrganizer, async (req, res) => {
   }
 });
 
-router.get('/promote/preview', requireApprovedOrganizer, async (req, res) => {
+router.get('/promote/preview', requireOrganizerWorkspace, async (req, res) => {
   try {
     const { eventId, audience } = req.query;
     if (!eventId || !['previous_participants', 'non_participants'].includes(audience)) {
@@ -1012,8 +1046,8 @@ router.get('/promote/preview', requireApprovedOrganizer, async (req, res) => {
     if (!event) return res.status(403).json({ error: 'Event not found.' });
 
     const [recipients, quotaUsed] = await Promise.all([
-      resolveOrganizerPromotionRecipients({ organizerId: req.session.userId, audience }),
-      getQuotaUsed(req.session.userId)
+      resolveOrganizerPromotionRecipients({ organizerId: event.organizerId, audience }),
+      getQuotaUsed(event.organizerId)
     ]);
 
     const quotaRemaining = Math.max(0, PROMO_DAILY_LIMIT - quotaUsed);
@@ -1030,7 +1064,7 @@ router.get('/promote/preview', requireApprovedOrganizer, async (req, res) => {
   }
 });
 
-router.post('/promote', requireApprovedOrganizer, requireCsrfProtection, async (req, res) => {
+router.post('/promote', requireOrganizerWorkspace, requireCsrfProtection, async (req, res) => {
   const redirectBase = '/organizer/promote';
   try {
     const { eventId, audience } = req.body;
@@ -1046,14 +1080,14 @@ router.post('/promote', requireApprovedOrganizer, requireCsrfProtection, async (
       return res.redirect(`${redirectBase}?${q}`);
     }
 
-    const quotaUsed = await getQuotaUsed(req.session.userId);
+    const quotaUsed = await getQuotaUsed(event.organizerId);
     const quotaRemaining = Math.max(0, PROMO_DAILY_LIMIT - quotaUsed);
     if (quotaRemaining <= 0) {
       const q = new URLSearchParams({ type: 'error', msg: `Daily promotion limit reached (${PROMO_DAILY_LIMIT}/day). Try again tomorrow.` });
       return res.redirect(`${redirectBase}?${q}`);
     }
 
-    const allRecipients = await resolveOrganizerPromotionRecipients({ organizerId: req.session.userId, audience });
+    const allRecipients = await resolveOrganizerPromotionRecipients({ organizerId: event.organizerId, audience });
     const recipients = allRecipients.slice(0, quotaRemaining);
 
     if (!recipients.length) {
@@ -1064,7 +1098,7 @@ router.post('/promote', requireApprovedOrganizer, requireCsrfProtection, async (
     const dateKey = new Date().toISOString().slice(0, 10);
     // recipientCount is set up front so getQuotaUsed counts in-flight campaigns.
     const campaign = await EventPromotion.create({
-      organizerId: req.session.userId,
+      organizerId: event.organizerId,
       eventId: event._id,
       audience,
       recipientCount: recipients.length,

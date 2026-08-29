@@ -1042,6 +1042,10 @@ router.post('/workspace/:workspace', requireAuth, requireCsrfProtection, async (
     const user = await User.findById(req.session.userId)
       .select('role organizerStatus emailVerified accountStatus')
       .lean();
+    if (user) {
+      const { hasOrganizerWorkspaceAccess } = require('../services/event-access.service');
+      user.canUseOrganizerWorkspace = await hasOrganizerWorkspaceAccess(user);
+    }
 
     if (
       !['runner', 'organizer'].includes(requestedWorkspace) ||

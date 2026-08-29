@@ -50,7 +50,7 @@ test('the shared list covers what the hand-written teardowns missed', () => {
 test('an event delete no longer orphans the newer event-scoped models', () => {
   // These were added after the cascade was written, and none of them were in it — so the
   // admin test-data purge orphaned them too, not just a probe.
-  for (const model of ['GuestRegistrationToken', 'WaitlistEntry', 'RegistrationTransfer', 'BibQrToken']) {
+  for (const model of ['GuestRegistrationToken', 'WaitlistEntry', 'RegistrationTransfer', 'BibQrToken', 'EventCoOrganizer']) {
     assert.match(service, new RegExp(`${model}\\.deleteMany\\(\\{ eventId`), `${model} must be cascaded`);
   }
   assert.match(service, /would otherwise be orphaned by an event delete/);
@@ -76,7 +76,7 @@ test('the sweep matches probe events narrowly', () => {
 test('the empty summary and the real summary agree on shape', async () => {
   // deleteMany is never called with an empty id list, so this returns the constant.
   const summary = await cascadeDeleteEventsMongo([]);
-  for (const key of ['guestTokensDeleted', 'waitlistEntriesDeleted', 'transfersDeleted', 'bibTokensDeleted']) {
+  for (const key of ['guestTokensDeleted', 'waitlistEntriesDeleted', 'transfersDeleted', 'bibTokensDeleted', 'coOrganizersDeleted']) {
     assert.equal(summary[key], 0, `${key} must be in the empty summary too`);
   }
 });

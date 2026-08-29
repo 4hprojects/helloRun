@@ -68,7 +68,8 @@ router.post('/cookie-preferences', requireCsrfProtection, (req, res) => {
 router.get('/unsubscribe', requireAuth, async (req, res) => {
   try {
     const key = String(req.query.key || '').trim();
-    if (key !== 'event.promotion') {
+    const allowedKeys = new Set(['event.promotion', 'event.started_reminder', 'result.submission_reminder']);
+    if (!allowedKeys.has(key)) {
       return res.redirect('/runner/profile?section=notifications&type=error&msg=Unknown+email+preference.');
     }
 
@@ -82,7 +83,7 @@ router.get('/unsubscribe', requireAuth, async (req, res) => {
       return res.redirect('/');
     }
 
-    return res.redirect('/runner/profile?section=notifications&type=success&msg=You+have+been+unsubscribed+from+event+promotion+emails.');
+    return res.redirect('/runner/profile?section=notifications&type=success&msg=Email+preference+updated.');
   } catch (error) {
     logger.error('Unsubscribe preference update failed:', error);
     return res.redirect('/runner/profile?section=notifications&type=error&msg=Unable+to+update+email+preference.');

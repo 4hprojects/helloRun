@@ -3,6 +3,7 @@ const { countUnreadNotifications } = require('../services/notification.service')
 const logger = require('../utils/logger');
 const { sendHttpError } = require('../utils/http-error-response');
 const { consumeSessionFlash } = require('../utils/session-flash');
+const { hasOrganizerWorkspaceAccess } = require('../services/event-access.service');
 const {
   WORKSPACES,
   canUseRunnerWorkspace,
@@ -27,6 +28,8 @@ async function redirectIfAuth(req, res, next) {
         req.session.destroy(() => {});
         return next();
       }
+
+      user.canUseOrganizerWorkspace = await hasOrganizerWorkspaceAccess(user);
 
       req.session.role = user.role;
       req.session.activeWorkspace = resolveActiveWorkspace(user, req.session.activeWorkspace);
@@ -85,6 +88,7 @@ async function populateAuthLocals(req, res, next) {
         .lean();
 
       if (user) {
+        user.canUseOrganizerWorkspace = await hasOrganizerWorkspaceAccess(user);
         if (user.accountStatus === 'suspended' || user.accountStatus === 'closed') {
           req.session.destroy(() => {});
           return res.redirect('/login?suspended=1');
@@ -98,6 +102,7 @@ async function populateAuthLocals(req, res, next) {
         res.locals.user = user;
         res.locals.isAuthenticated = true;
         res.locals.isOrganizer = user.role === 'organiser';
+        res.locals.canUseOrganizerWorkspace = user.canUseOrganizerWorkspace;
         res.locals.isAdmin = user.role === 'admin';
         res.locals.isFullAdmin = user.role === 'admin' && isFullAdminTier(user);
         res.locals.isApprovedOrganizer = user.role === 'organiser' && user.organizerStatus === 'approved';
@@ -122,6 +127,7 @@ async function populateAuthLocals(req, res, next) {
         res.locals.isRunnerWorkspace = false;
         res.locals.isOrganizerWorkspace = false;
         res.locals.canUseRunnerWorkspace = false;
+        res.locals.canUseOrganizerWorkspace = false;
         res.locals.runnerUnreadNotifications = 0;
       }
     } catch (error) {
@@ -136,6 +142,7 @@ async function populateAuthLocals(req, res, next) {
       res.locals.isRunnerWorkspace = false;
       res.locals.isOrganizerWorkspace = false;
       res.locals.canUseRunnerWorkspace = false;
+      res.locals.canUseOrganizerWorkspace = false;
       res.locals.runnerUnreadNotifications = 0;
     }
   } else {
@@ -149,6 +156,7 @@ async function populateAuthLocals(req, res, next) {
     res.locals.isRunnerWorkspace = false;
     res.locals.isOrganizerWorkspace = false;
     res.locals.canUseRunnerWorkspace = false;
+    res.locals.canUseOrganizerWorkspace = false;
     res.locals.runnerUnreadNotifications = 0;
   }
 
@@ -328,6 +336,17 @@ async function requireApprovedOrganizer(req, res, next) {
   }
 }
 
+async function requireOrganizerWorkspace(req, res, next) {
+  if (!req.session?.userId) return res.redirect('/login');
+  try {
+    const user = await User.findById(req.session.userId).select('_id role accountStatus').lean();
+    if (!user || !await hasOrganizerWorkspaceAccess(user)) {
+      return sendHttpError(req, res, { status: 403, message: 'Organizer workspace access is required.' });
+    }
+    return next();
+  } catch (error) { return next(error); }
+}
+
 /**
  * Require organiser account allowed to create events
  */
@@ -375,6 +394,7 @@ module.exports = {
   isFullAdminTier,
   requireOrganizer,
   requireApprovedOrganizer,
+  requireOrganizerWorkspace,
   requireCanCreateEvents,
   canCreateEventsFromLeanUser
 };

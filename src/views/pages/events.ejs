@@ -25,12 +25,23 @@
             <h1 id="eventsPageTitle"><%= pageContent?.heroTitle || 'Discover Running Events' %></h1>
             <p><%= pageContent?.heroDescription || 'Compare virtual, on-site, and hybrid events to find your next challenge.' %></p>
           </div>
-          <% if (locals.isAuthenticated) { %>
-            <a href="/my-registrations" class="btn btn-outline events-registrations-link">
-              <i data-lucide="clipboard-list" aria-hidden="true"></i>
-              My Registrations
-            </a>
-          <% } %>
+          <div class="events-intro-actions">
+            <%- include('../partials/event-share-menu', {
+              instanceId: 'eventsListingShare',
+              url: share.url,
+              title: share.title,
+              triggerLabel: 'Share events',
+              ariaLabel: 'Share this events discovery page',
+              containerClass: 'events-header-share',
+              triggerClass: 'btn btn-outline'
+            }) %>
+            <% if (locals.isAuthenticated) { %>
+              <a href="/my-registrations" class="btn btn-outline events-registrations-link">
+                <i data-lucide="clipboard-list" aria-hidden="true"></i>
+                My Registrations
+              </a>
+            <% } %>
+          </div>
         </div>
 
         <form method="GET" action="/events#event-results" class="events-discovery-form">
@@ -186,17 +197,29 @@
                       <span class="tag tag-status tag-status-<%= event.availability?.tone || 'closed' %>"><%= event.availability?.label || 'Closed' %></span>
                       <span class="tag"><%= event.eventTypeLabel || 'Event' %></span>
                     </div>
-                    <% if (locals.isAuthenticated) { %>
-                      <% const _isSaved = savedEventIds && savedEventIds.has(String(event._id)); %>
-                      <button type="button"
-                        class="btn btn-save-event js-save-event<%= _isSaved ? ' is-saved' : '' %>"
-                        data-event-slug="<%= event.slug %>"
-                        data-saved="<%= _isSaved ? '1' : '0' %>"
-                        aria-label="<%= _isSaved ? 'Remove from saved' : 'Save event' %>"
-                        title="<%= _isSaved ? 'Remove from saved' : 'Save event' %>">
-                        <i data-lucide="heart" aria-hidden="true"></i>
-                      </button>
-                    <% } %>
+                    <div class="event-card-actions">
+                      <%- include('../partials/event-share-menu', {
+                        instanceId: `eventCardShare-${event.slug}`,
+                        url: event.share.url,
+                        title: event.share.title,
+                        triggerLabel: 'Share',
+                        showTriggerText: false,
+                        ariaLabel: `Share ${event.title}`,
+                        containerClass: 'event-card-share',
+                        triggerClass: 'btn btn-outline'
+                      }) %>
+                      <% if (locals.isAuthenticated) { %>
+                        <% const _isSaved = savedEventIds && savedEventIds.has(String(event._id)); %>
+                        <button type="button"
+                          class="btn btn-save-event js-save-event<%= _isSaved ? ' is-saved' : '' %>"
+                          data-event-slug="<%= event.slug %>"
+                          data-saved="<%= _isSaved ? '1' : '0' %>"
+                          aria-label="<%= _isSaved ? 'Remove from saved' : 'Save event' %>"
+                          title="<%= _isSaved ? 'Remove from saved' : 'Save event' %>">
+                          <i data-lucide="heart" aria-hidden="true"></i>
+                        </button>
+                      <% } %>
+                    </div>
                   </div>
 
                   <h3 class="event-card-title"><a href="/events/<%= event.slug %>"><%= event.title %></a></h3>
@@ -301,6 +324,7 @@
   <%- include('../layouts/footer') %>
   <div class="events-action-status" data-events-action-status role="status" aria-live="polite" aria-atomic="true"></div>
   <script src="/js/main.js"></script>
+  <script src="/js/event-share.js"></script>
   <% if (locals.isAuthenticated) { %><script src="/js/event-save.js"></script><% } %>
   <script>if (window.lucide) lucide.createIcons();</script>
 </body>

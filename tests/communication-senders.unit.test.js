@@ -55,6 +55,35 @@ function loadEmailServiceWithCapture() {
   return { emailService, sent };
 }
 
+function assertEmailSafeBrandedHeader(html) {
+  assert.match(html, /helloRun-icon\.png/);
+  assert.doesNotMatch(html, /helloRun-icon\.webp/);
+  assert.match(html, /<table role="presentation" width="100%"[^>]*bgcolor="#FA9A4B"/);
+  assert.match(html, /bgcolor="#ffffff" style="width:40px;height:40px;background-color:#ffffff;border-radius:50%/);
+  assert.match(html, /<img[^>]*alt=""[^>]*width="30" height="32"/);
+  assert.match(html, /<td width="12"[^>]*>&nbsp;<\/td>/);
+  assert.match(html, />HelloRun<\/td>/);
+  assert.doesNotMatch(html, /header-content/);
+}
+
+test('account and promotion emails use the shared email-safe branded header', async () => {
+  const { emailService, sent } = loadEmailServiceWithCapture();
+  process.env.APP_URL = 'https://hellorun.online';
+
+  await emailService.sendPasswordResetEmail('runner@example.com', 'reset-token', 'Ana');
+  await emailService.sendEventPromotionEmail(
+    'runner@example.com',
+    'Ana',
+    'Bayani Run 2026',
+    '',
+    'https://hellorun.online/events/bayani-run-2026',
+    'Bayani Running Club'
+  );
+
+  assert.equal(sent.length, 2);
+  sent.forEach((payload) => assertEmailSafeBrandedHeader(payload.html));
+});
+
 test('every registered communication event has an email sender', () => {
   const keys = [...registry.matchAll(/eventKey: '([^']+)'/g)].map((match) => match[1]);
   const missing = keys.filter((key) => !communication.includes(`eventKey === '${key}'`));

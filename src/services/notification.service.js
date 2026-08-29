@@ -5,6 +5,9 @@ const logger = require('../utils/logger');
 const NOTIFICATION_VIEWS = new Set(['all', 'unread', 'archived']);
 
 const TYPE_PRESENTATION = [
+  { match: /submission_due_reminder/, category: 'Activity reminder', icon: 'timer', tone: 'attention', actionLabel: 'Submit your run' },
+  { match: /event_started_reminder/, category: 'Event reminder', icon: 'flag', tone: 'progress', actionLabel: 'View event' },
+  { match: /event_co_organizer/, category: 'Event management', icon: 'users', tone: 'progress', actionLabel: 'Review invitation' },
   { match: /privacy_policy_updated/, category: 'Account and policy', icon: 'shield-user', tone: 'account', actionLabel: 'Review privacy policy' },
   { match: /cookie_policy_updated/, category: 'Account and policy', icon: 'cookie', tone: 'account', actionLabel: 'Review cookie policy' },
   { match: /refund_policy_updated/, category: 'Account and policy', icon: 'receipt-text', tone: 'account', actionLabel: 'Review refund policy' },

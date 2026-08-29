@@ -82,14 +82,16 @@ test('dashboard limits safe new-tab navigation to snapshots, certificates, and e
   const recent = read('src/views/runner/partials/dashboard-recent-activity.ejs');
   const achievement = read('src/views/runner/partials/dashboard-latest-achievement.ejs');
 
-  assert.doesNotMatch(dashboard, /target="_blank"/);
+  assert.equal((dashboard.match(/target="_blank"/g) || []).length, 2);
+  assert.match(dashboard, /instagram\.com\/hellorunonline" target="_blank" rel="noopener noreferrer"/);
+  assert.match(dashboard, /facebook\.com\/hellorunonline" target="_blank" rel="noopener noreferrer"/);
   assert.doesNotMatch(recent, /target="_blank"/);
   assert.equal((journey.match(/target="_blank"/g) || []).length, 1);
   assert.match(journey, /nextAction\.type === 'download_certificate'[\s\S]*?target="_blank" rel="noopener noreferrer"/);
   assert.equal((summary.match(/target="_blank"/g) || []).length, 6);
   assert.equal((achievement.match(/target="_blank"/g) || []).length, 5);
 
-  for (const source of [journey, summary, achievement]) {
+  for (const source of [dashboard, journey, summary, achievement]) {
     const newTabCount = (source.match(/target="_blank"/g) || []).length;
     const safeNewTabCount = (source.match(/target="_blank" rel="noopener noreferrer"/g) || []).length;
     assert.ok(newTabCount > 0);

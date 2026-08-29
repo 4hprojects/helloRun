@@ -5,6 +5,9 @@ const Event = require('../models/Event');
 const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const OrganiserApplication = require('../models/OrganiserApplication');
+const EventReminderDelivery = require('../models/EventReminderDelivery');
+const CommunicationLog = require('../models/CommunicationLog');
+const CommunicationRetry = require('../models/CommunicationRetry');
 
 async function queryTotals(sql) {
   const [users, events, certs] = await Promise.all([
@@ -384,17 +387,96 @@ async function queryUserBreakdown() {
   return { byStatus, byAuthProvider, emailVerified: Number(verifiedCount || 0) };
 }
 
+async function queryEventReminderActivation(since) {
+  const deliveries = await EventReminderDelivery.find({ createdAt: { $gte: since } })
+    .select('registrationId reminderType status inAppStatus emailStatus deliveredAt deadlineAt')
+    .lean();
+  const deliveryIds = deliveries.map((item) => String(item._id));
+  const [emailLogs, retryJobs] = deliveryIds.length ? await Promise.all([
+    CommunicationLog.find({
+      eventKey: { $in: ['event.started_reminder', 'result.submission_reminder'] },
+      channel: 'email',
+      'metadata.reminderDeliveryId': { $in: deliveryIds }
+    }).sort({ createdAt: 1 }).select('status sentAt createdAt metadata').lean(),
+    CommunicationRetry.find({ 'metadata.reminderDeliveryId': { $in: deliveryIds } })
+      .select('status sentAt updatedAt metadata').lean()
+  ]) : [[], []];
+  const latestEmailLog = new Map(emailLogs.map((item) => [String(item.metadata?.reminderDeliveryId || ''), item]));
+  const retryByDelivery = new Map(retryJobs.map((item) => [String(item.metadata?.reminderDeliveryId || ''), item]));
+  const normalizedDeliveries = deliveries.map((item) => {
+    const key = String(item._id);
+    const log = latestEmailLog.get(key);
+    const retry = retryByDelivery.get(key);
+    let emailStatus = item.emailStatus;
+    if (retry?.status === 'sent') emailStatus = 'sent';
+    else if (retry?.status === 'dead') emailStatus = 'failed';
+    else if (['queued', 'retrying'].includes(retry?.status)) emailStatus = 'queued';
+    else if (log?.status) emailStatus = log.status;
+    const emailDeliveredAt = emailStatus === 'sent'
+      ? (retry?.sentAt || log?.sentAt || log?.createdAt || null)
+      : null;
+    return { ...item, emailStatus, effectiveDeliveredAt: item.deliveredAt || emailDeliveredAt };
+  });
+  const delivered = normalizedDeliveries.filter((item) => item.effectiveDeliveredAt);
+  const registrationIds = [...new Set(delivered.map((item) => String(item.registrationId)))];
+  const objectIds = delivered.map((item) => item.registrationId).filter(Boolean);
+  const [standard, accumulated] = objectIds.length ? await Promise.all([
+    Submission.find({ registrationId: { $in: objectIds } }).select('registrationId submittedAt createdAt').lean(),
+    AccumulatedActivitySubmission.find({ registrationId: { $in: objectIds } }).select('registrationId submittedAt createdAt').lean()
+  ]) : [[], []];
+  const firstActivityByRegistration = new Map();
+  for (const activity of [...standard, ...accumulated]) {
+    const key = String(activity.registrationId);
+    const at = new Date(activity.submittedAt || activity.createdAt || 0);
+    const existing = firstActivityByRegistration.get(key);
+    if (!Number.isNaN(at.getTime()) && (!existing || at < existing)) firstActivityByRegistration.set(key, at);
+  }
+  const converted = new Set();
+  for (const item of delivered) {
+    const registrationId = String(item.registrationId);
+    const activityAt = firstActivityByRegistration.get(registrationId);
+    const deadlineAt = item.deadlineAt ? new Date(item.deadlineAt) : null;
+    if (activityAt && activityAt >= new Date(item.effectiveDeliveredAt) && (!deadlineAt || activityAt <= deadlineAt)) {
+      converted.add(registrationId);
+    }
+  }
+
+  const types = ['event_started', 'submission_due'].map((reminderType) => {
+    const rows = normalizedDeliveries.filter((item) => item.reminderType === reminderType);
+    return {
+      reminderType,
+      eligible: rows.length,
+      completed: rows.filter((item) => item.status === 'completed').length,
+      suppressed: rows.filter((item) => item.status === 'suppressed').length,
+      emailSent: rows.filter((item) => item.emailStatus === 'sent').length,
+      emailQueued: rows.filter((item) => item.emailStatus === 'queued').length,
+      emailFailed: rows.filter((item) => item.emailStatus === 'failed').length,
+      emailSuppressed: rows.filter((item) => item.emailStatus === 'suppressed').length,
+      inAppSent: rows.filter((item) => item.inAppStatus === 'sent').length
+    };
+  });
+  return {
+    byType: types,
+    uniqueRemindedRegistrations: registrationIds.length,
+    convertedRegistrations: converted.size,
+    submissionConversionRate: registrationIds.length
+      ? Number(((converted.size / registrationIds.length) * 100).toFixed(1))
+      : 0
+  };
+}
+
 async function getMongoAnalytics(options = {}) {
   const since = options.since || twelveMonthsAgo();
   try {
-    const [organiserFunnel, eventBreakdown, submissionBreakdown, runTypeDistribution, userBreakdown] = await Promise.all([
+    const [organiserFunnel, eventBreakdown, submissionBreakdown, runTypeDistribution, userBreakdown, activationReminders] = await Promise.all([
       queryOrganiserFunnel(since),
       queryEventBreakdown(since),
       querySubmissionBreakdown(),
       queryRunTypeDistribution(),
-      queryUserBreakdown()
+      queryUserBreakdown(),
+      queryEventReminderActivation(since)
     ]);
-    return { organiserFunnel, eventBreakdown, submissionBreakdown, runTypeDistribution, userBreakdown };
+    return { organiserFunnel, eventBreakdown, submissionBreakdown, runTypeDistribution, userBreakdown, activationReminders };
   } catch (error) {
     logger.error('MongoDB analytics query failed:', error.message);
     return null;
@@ -416,4 +498,4 @@ async function getPlatformAnalytics(options = {}) {
   }
 }
 
-module.exports = { getPlatformAnalytics };
+module.exports = { getPlatformAnalytics, queryEventReminderActivation };

@@ -3,6 +3,7 @@ const Event = require('../models/Event');
 const User = require('../models/User');
 const { getPostgresClient } = require('../db/postgres');
 const { WORKSPACES, canUseRunnerWorkspace } = require('../utils/workspace');
+const { hasOrganizerWorkspaceAccess, resolveEventAccess } = require('../services/event-access.service');
 
 async function requireRunner(req, res, next) {
   try {
@@ -25,7 +26,7 @@ async function requireRunner(req, res, next) {
 async function requireOrganizer(req, res, next) {
   try {
     const user = await getSessionUser(req);
-    if (!user || user.role !== 'organiser') {
+    if (!user || !await hasOrganizerWorkspaceAccess(user)) {
       return renderAccessDenied(res, 'Organizer access is required.');
     }
     req.shopActor = user;
@@ -41,19 +42,19 @@ async function canManageEventShop(req, res, next) {
     if (!user) return renderAccessDenied(res, 'Authentication required.');
     req.shopActor = user;
     req.shopActorAppUserId = await getAppUserIdForMongoUser(user._id);
-    if (user.role !== 'organiser') return renderAccessDenied(res, 'Organizer access is required.');
+    if (!await hasOrganizerWorkspaceAccess(user)) return renderAccessDenied(res, 'Organizer access is required.');
 
     const eventId = String(req.params.eventId || req.body.eventId || '').trim();
     if (!mongoose.Types.ObjectId.isValid(eventId)) {
       return renderBadRequest(res, 'Invalid event reference.');
     }
 
-    const event = await Event.findById(eventId).select('organizerId').lean();
-    if (!event || String(event.organizerId || '') !== String(user._id)) {
+    const access = await resolveEventAccess({ eventId, userId: user._id, userRole: user.role });
+    if (!access) {
       return renderAccessDenied(res, 'You can only manage shop data for your own events.');
     }
 
-    req.shopEvent = event;
+    req.shopEvent = access.event;
     return next();
   } catch (error) {
     return next(error);
@@ -126,12 +127,15 @@ async function canViewShopOrder(req, res, next) {
     const order = rows[0] || null;
     if (!order) return renderAccessDenied(res, 'Order not found or inaccessible.');
 
-    if (user.role === 'runner' && String(order.buyer_mongo_user_id || '') !== String(user._id)) {
+    const eventId = String(req.params.eventId || req.body.eventId || '').trim();
+    const eventAccess = mongoose.Types.ObjectId.isValid(eventId)
+      ? await resolveEventAccess({ eventId, userId: user._id, userRole: user.role })
+      : null;
+    if (!eventAccess && user.role === 'runner' && String(order.buyer_mongo_user_id || '') !== String(user._id)) {
       return renderAccessDenied(res, 'You can only view your own shop orders.');
     }
 
-    if (user.role === 'organiser') {
-      const eventId = String(req.params.eventId || req.body.eventId || '').trim();
+    if (eventAccess || user.role === 'organiser') {
       const eventOrder = await findOrderForMongoEvent(orderId, eventId);
       if (!eventOrder) return renderAccessDenied(res, 'You can only view shop orders for your own events.');
       req.shopOrder = eventOrder;

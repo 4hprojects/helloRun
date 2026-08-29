@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en"><head><%- include('../layouts/head', { title: title }) %><link rel="stylesheet" href="/css/organizer-check-in.css"></head>
+<body><%- include('../layouts/nav') %><main class="checkin-page" id="main-content"><div class="checkin-shell"><section class="checkin-scanner">
+  <p class="checkin-kicker">Co-organizer invitation</p>
+  <% if (!resolved.ok) { %><h1>Invitation unavailable</h1><p>This invitation is expired, used, cancelled, or no longer valid.</p>
+  <% } else { %><h1><%= event ? event.title : 'HelloRun event' %></h1><p>You were invited to help manage this event while keeping your runner account.</p>
+    <% if (!accountMatches) { %><p class="checkin-alert">This invitation belongs to another account. Sign in with the email address that received it.</p>
+    <% } else if (!accountEligible) { %><p class="checkin-alert">Your account must be active and email verified before you can respond.</p>
+    <% } else { %><form method="POST" action="/organizer/co-organizer-invitations/<%= token %>" class="checkin-staff-form"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><button type="submit" name="decision" value="accept" class="nav-signup-btn">Accept invitation</button><button type="submit" name="decision" value="decline" class="nav-login-btn">Decline</button></form><% } %>
+  <% } %>
+</section></div></main><%- include('../layouts/footer') %><script src="/js/main.js"></script></body></html>

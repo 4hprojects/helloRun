@@ -7,7 +7,7 @@ const { buildPublicEventView } = require('../utils/event-public-view');
 const countries = getCountries();
 const DEFAULT_EVENT_IMAGE_URL = '/images/helloRun-icon.webp';
 
-async function buildPublicEventListPage(queryParams = {}) {
+async function buildPublicEventListPage(queryParams = {}, options = {}) {
   const filterValues = getEventsFilterValues(queryParams);
   const now = new Date();
   const matchingCountryCodes = getMatchingCountryCodes(filterValues.q);
@@ -136,11 +136,25 @@ async function buildPublicEventListPage(queryParams = {}) {
   const resultStart = totalEvents === 0 ? 0 : skip + 1;
   const resultEnd = totalEvents === 0 ? 0 : Math.min(skip + events.length, totalEvents);
 
+  const baseUrl = normalizeBaseUrl(options.baseUrl || getAppBaseUrl());
+  const listingPath = buildEventsPageUrl(filterValues, currentPage);
+  const listingShareUrl = baseUrl ? `${baseUrl}${listingPath}` : listingPath;
+  const brandImageUrl = baseUrl ? `${baseUrl}${DEFAULT_EVENT_IMAGE_URL}` : DEFAULT_EVENT_IMAGE_URL;
+
   return {
     title: pageContent.title,
     seo: {
       ...pageContent.seo,
-      canonicalUrl: buildEventsCanonicalUrl(filterValues, currentPage)
+      canonicalUrl: buildEventsCanonicalUrl(filterValues, currentPage, baseUrl),
+      ogImage: brandImageUrl,
+      ogImageWidth: 471,
+      ogImageHeight: 501,
+      ogImageType: 'image/webp'
+    },
+    share: {
+      url: listingShareUrl,
+      title: pageContent.title,
+      description: pageContent.seo.description
     },
     events: events.map((event) => {
       const raceDistances = Array.isArray(event.raceDistances)
@@ -162,7 +176,11 @@ async function buildPublicEventListPage(queryParams = {}) {
         countryLabel: getCountryName(event.country),
         availability,
         displayState: availability,
-        cardCtaLabel: availability.ctaLabel
+        cardCtaLabel: availability.ctaLabel,
+        share: {
+          url: baseUrl ? `${baseUrl}/events/${event.slug}` : `/events/${event.slug}`,
+          title: `${event.title || 'HelloRun Event'} - HelloRun`
+        }
       };
     }),
     filters: filterValues,
@@ -463,8 +481,8 @@ function normalizeSearchValue(value) {
   return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
-function buildEventsCanonicalUrl(filterValues, currentPage) {
-  const baseUrl = getAppBaseUrl();
+function buildEventsCanonicalUrl(filterValues, currentPage, requestedBaseUrl = '') {
+  const baseUrl = normalizeBaseUrl(requestedBaseUrl || getAppBaseUrl());
   if (!baseUrl) return '';
 
   const params = buildEventsQueryParams({ ...filterValues, sort: 'recommended' }, currentPage);
@@ -800,6 +818,10 @@ function escapeRegex(value) {
 
 function getAppBaseUrl() {
   return String(process.env.APP_URL || '').trim().replace(/\/+$/, '');
+}
+
+function normalizeBaseUrl(value) {
+  return String(value || '').trim().replace(/\/+$/, '');
 }
 
 module.exports = {

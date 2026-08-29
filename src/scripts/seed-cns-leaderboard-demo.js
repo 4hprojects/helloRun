@@ -17,6 +17,7 @@ const EVENT_SLUG = 'cns-move-more-challenge-2026';
 const TEST_RUN_ID = 'cns-leaderboard-demo-v1';
 const CREATED_BY_TEST = 'manual-leaderboard-demo';
 const DEMO_RUNNERS_PER_CATEGORY = 3;
+const EXPECTED_DEMO_RECORDS = DEMO_RUNNERS_PER_CATEGORY * 5;
 
 const DEMO_METRICS = [
   [{ distanceKm: 42.4, steps: 68100 }, { distanceKm: 35.7, steps: 57400 }, { distanceKm: 28.2, steps: 45100 }],
@@ -188,6 +189,20 @@ async function countDemoRecords(eventId) {
   return { users, registrations, activities };
 }
 
+async function countNonDemoEventRecords(eventId) {
+  const nonDemoFilter = { eventId, testRunId: { $ne: TEST_RUN_ID } };
+  const [registrations, activities] = await Promise.all([
+    Registration.collection.countDocuments(nonDemoFilter),
+    AccumulatedActivitySubmission.collection.countDocuments(nonDemoFilter)
+  ]);
+  return { registrations, activities };
+}
+
+function hasExpectedDemoRecords(records = {}) {
+  return ['users', 'registrations', 'activities']
+    .every((key) => records[key] === EXPECTED_DEMO_RECORDS);
+}
+
 async function cleanupDemoRecords(event) {
   const session = await mongoose.startSession();
   try {
@@ -243,7 +258,10 @@ async function main() {
   if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is required.');
   const shouldApply = process.argv.includes('--apply');
   const shouldCleanup = process.argv.includes('--cleanup');
-  if (shouldApply && shouldCleanup) throw new Error('Choose either --apply or --cleanup.');
+  const shouldReportStatus = process.argv.includes('--status');
+  if ([shouldApply, shouldCleanup, shouldReportStatus].filter(Boolean).length > 1) {
+    throw new Error('Choose only one of --apply, --cleanup, or --status.');
+  }
 
   await mongoose.connect(process.env.MONGODB_URI);
   const event = await Event.findOne({ _id: EVENT_ID, slug: EVENT_SLUG })
@@ -252,10 +270,44 @@ async function main() {
   if (!event) throw new Error(`Expected event ${EVENT_ID} (${EVENT_SLUG}) was not found.`);
 
   const host = new URL(process.env.MONGODB_URI).hostname;
+  if (shouldReportStatus) {
+    const [demo, nonDemo] = await Promise.all([
+      countDemoRecords(event._id),
+      countNonDemoEventRecords(event._id)
+    ]);
+    console.log(JSON.stringify({
+      mode: 'status',
+      host,
+      event: event.title,
+      testRunId: TEST_RUN_ID,
+      expectedPerCollection: EXPECTED_DEMO_RECORDS,
+      demo,
+      nonDemo,
+      readyForTargetedCleanup: hasExpectedDemoRecords(demo)
+    }, null, 2));
+    return;
+  }
+
   if (shouldCleanup) {
     const before = await countDemoRecords(event._id);
+    if (!hasExpectedDemoRecords(before)) {
+      throw new Error(`Refusing cleanup: expected ${EXPECTED_DEMO_RECORDS} tagged records in each collection, found ${JSON.stringify(before)}.`);
+    }
+    const nonDemoBefore = await countNonDemoEventRecords(event._id);
     await cleanupDemoRecords(event);
-    console.log(JSON.stringify({ mode: 'cleanup', host, event: event.title, removed: before }, null, 2));
+    const nonDemoAfter = await countNonDemoEventRecords(event._id);
+    if (JSON.stringify(nonDemoAfter) !== JSON.stringify(nonDemoBefore)) {
+      throw new Error(`Non-demo event records changed during cleanup: before=${JSON.stringify(nonDemoBefore)} after=${JSON.stringify(nonDemoAfter)}.`);
+    }
+    console.log(JSON.stringify({
+      mode: 'cleanup',
+      host,
+      event: event.title,
+      removed: before,
+      taggedResidue: await countDemoRecords(event._id),
+      nonDemoBefore,
+      nonDemoAfter
+    }, null, 2));
     return;
   }
 

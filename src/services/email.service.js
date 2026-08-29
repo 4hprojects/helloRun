@@ -8,8 +8,27 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : { emails: { send: async () => ({ data: { skipped: true }, error: null }) } };
 
-// Logo URL from GitHub
-const LOGO_URL = 'https://raw.githubusercontent.com/4hprojects/helloRun/main/src/public/images/helloRun-icon.webp';
+// PNG transparency is more consistently supported by email clients than WebP.
+const LOGO_URL = 'https://raw.githubusercontent.com/4hprojects/helloRun/main/src/public/images/helloRun-icon.png';
+
+function buildBrandedEmailHeader() {
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#FA9A4B" style="width:100%;background-color:#FA9A4B;background-image:linear-gradient(135deg,#FA9A4B 0%,#E0A46A 100%);">
+      <tr>
+        <td align="center" style="padding:32px 20px;text-align:center;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+            <tr>
+              <td width="40" height="40" align="center" valign="middle" bgcolor="#ffffff" style="width:40px;height:40px;background-color:#ffffff;border-radius:50%;line-height:0;text-align:center;">
+                <img src="${LOGO_URL}" alt="" width="30" height="32" style="display:block;width:30px;height:32px;margin:0 auto;border:0;" />
+              </td>
+              <td width="12" style="width:12px;font-size:0;line-height:0;">&nbsp;</td>
+              <td valign="middle" style="color:#ffffff;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:24px;line-height:30px;font-weight:700;white-space:nowrap;">HelloRun</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>`;
+}
 
 // Send password reset email
 exports.sendPasswordResetEmail = async (email, resetToken, firstName) => {
@@ -40,29 +59,6 @@ exports.sendPasswordResetEmail = async (email, resetToken, firstName) => {
               max-width: 600px;
               margin: 0 auto;
               background-color: #ffffff;
-            }
-            .header {
-              background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%);
-              padding: 40px 20px;
-              text-align: center;
-            }
-            .header-content {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 15px;
-            }
-            .logo {
-              width: 48px;
-              height: 48px;
-              vertical-align: middle;
-            }
-            .header h1 {
-              color: #ffffff;
-              margin: 0;
-              font-size: 28px;
-              font-weight: 700;
-              display: inline;
             }
             .content {
               padding: 40px 30px;
@@ -143,12 +139,7 @@ exports.sendPasswordResetEmail = async (email, resetToken, firstName) => {
         </head>
         <body>
           <div class="email-container">
-            <div class="header">
-              <div class="header-content">
-                <img src="${LOGO_URL}" alt="HelloRun" class="logo" />
-                <h1>HelloRun</h1>
-              </div>
-            </div>
+            ${buildBrandedEmailHeader()}
             
             <div class="content">
               <p class="greeting">Hi ${firstName || 'there'},</p>
@@ -235,29 +226,6 @@ exports.sendPasswordResetConfirmation = async (email, firstName) => {
               margin: 0 auto;
               background-color: #ffffff;
             }
-            .header {
-              background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-              padding: 40px 20px;
-              text-align: center;
-            }
-            .header-content {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 15px;
-            }
-            .logo {
-              width: 48px;
-              height: 48px;
-              vertical-align: middle;
-            }
-            .header h1 {
-              color: #ffffff;
-              margin: 0;
-              font-size: 28px;
-              font-weight: 700;
-              display: inline;
-            }
             .content {
               padding: 40px 30px;
             }
@@ -329,12 +297,7 @@ exports.sendPasswordResetConfirmation = async (email, firstName) => {
         </head>
         <body>
           <div class="email-container">
-            <div class="header">
-              <div class="header-content">
-                <img src="${LOGO_URL}" alt="HelloRun" class="logo" />
-                <h1>HelloRun</h1>
-              </div>
-            </div>
+            ${buildBrandedEmailHeader()}
             
             <div class="content">
               <div class="success-icon">✓</div>
@@ -425,29 +388,6 @@ exports.sendVerificationEmail = async (email, verificationToken, firstName, role
               margin: 0 auto;
               background-color: #ffffff;
             }
-            .header {
-              background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%);
-              padding: 40px 20px;
-              text-align: center;
-            }
-            .header-content {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 15px;
-            }
-            .logo {
-              width: 48px;
-              height: 48px;
-              vertical-align: middle;
-            }
-            .header h1 {
-              color: #ffffff;
-              margin: 0;
-              font-size: 28px;
-              font-weight: 700;
-              display: inline;
-            }
             .content {
               padding: 40px 30px;
             }
@@ -524,12 +464,7 @@ exports.sendVerificationEmail = async (email, verificationToken, firstName, role
         </head>
         <body>
           <div class="email-container">
-            <div class="header">
-              <div class="header-content">
-                <img src="${LOGO_URL}" alt="HelloRun" class="logo" />
-                <h1>HelloRun</h1>
-              </div>
-            </div>
+            ${buildBrandedEmailHeader()}
             
             <div class="content">
               <p class="greeting">Hi ${firstName || 'there'},</p>
@@ -614,29 +549,6 @@ exports.sendApplicationSubmittedEmail = async (email, firstName, applicationId) 
               max-width: 600px;
               margin: 0 auto;
               background-color: #ffffff;
-            }
-            .header {
-              background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%);
-              padding: 40px 20px;
-              text-align: center;
-            }
-            .header-content {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 15px;
-            }
-            .logo {
-              width: 48px;
-              height: 48px;
-              vertical-align: middle;
-            }
-            .header h1 {
-              color: #ffffff;
-              margin: 0;
-              font-size: 28px;
-              font-weight: 700;
-              display: inline;
             }
             .content {
               padding: 40px 30px;
@@ -730,12 +642,7 @@ exports.sendApplicationSubmittedEmail = async (email, firstName, applicationId) 
         </head>
         <body>
           <div class="email-container">
-            <div class="header">
-              <div class="header-content">
-                <img src="${LOGO_URL}" alt="HelloRun" class="logo" />
-                <h1>HelloRun</h1>
-              </div>
-            </div>
+            ${buildBrandedEmailHeader()}
             
             <div class="content">
               <p class="greeting">Hi ${firstName},</p>
@@ -833,29 +740,6 @@ exports.sendApplicationApprovedEmail = async (email, firstName) => {
               margin: 0 auto;
               background-color: #ffffff;
             }
-            .header {
-              background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-              padding: 40px 20px;
-              text-align: center;
-            }
-            .header-content {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 15px;
-            }
-            .logo {
-              width: 48px;
-              height: 48px;
-              vertical-align: middle;
-            }
-            .header h1 {
-              color: #ffffff;
-              margin: 0;
-              font-size: 28px;
-              font-weight: 700;
-              display: inline;
-            }
             .content {
               padding: 40px 30px;
             }
@@ -941,12 +825,7 @@ exports.sendApplicationApprovedEmail = async (email, firstName) => {
         </head>
         <body>
           <div class="email-container">
-            <div class="header">
-              <div class="header-content">
-                <img src="${LOGO_URL}" alt="HelloRun" class="logo" />
-                <h1>HelloRun</h1>
-              </div>
-            </div>
+            ${buildBrandedEmailHeader()}
             
             <div class="content">
               <div class="success-banner">
@@ -1050,29 +929,6 @@ exports.sendApplicationRejectedEmail = async (email, firstName, reason) => {
               margin: 0 auto;
               background-color: #ffffff;
             }
-            .header {
-              background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%);
-              padding: 40px 20px;
-              text-align: center;
-            }
-            .header-content {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 15px;
-            }
-            .logo {
-              width: 48px;
-              height: 48px;
-              vertical-align: middle;
-            }
-            .header h1 {
-              color: #ffffff;
-              margin: 0;
-              font-size: 28px;
-              font-weight: 700;
-              display: inline;
-            }
             .content {
               padding: 40px 30px;
             }
@@ -1137,12 +993,7 @@ exports.sendApplicationRejectedEmail = async (email, firstName, reason) => {
         </head>
         <body>
           <div class="email-container">
-            <div class="header">
-              <div class="header-content">
-                <img src="${LOGO_URL}" alt="HelloRun" class="logo" />
-                <h1>HelloRun</h1>
-              </div>
-            </div>
+            ${buildBrandedEmailHeader()}
             
             <div class="content">
               <p class="greeting">Hi ${firstName},</p>
@@ -1487,6 +1338,36 @@ exports.sendRegistrationTransferInviteEmail = async (
       throw new Error('Failed to send registration transfer invite email');
     }
 
+    return data;
+  } catch (error) {
+    logger.error('Email service error:', error);
+    throw error;
+  }
+};
+
+exports.sendEventCoOrganizerInviteEmail = async (
+  recipientEmail,
+  { firstName, eventTitle, invitationUrl, expiresAt } = {}
+) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: recipientEmail,
+      subject: `Co-organizer invitation: ${eventTitle || 'HelloRun event'}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#17623f;">You are invited to co-organize an event</h2>
+          <p>Hi ${escapeHtml(firstName || 'there')},</p>
+          <p>You have been invited to help manage <strong>${escapeHtml(eventTitle || 'a HelloRun event')}</strong>.</p>
+          <p>After accepting, you can use the organizer workspace for this event while keeping your runner account.</p>
+          <div style="background:#f4f8f5;border:1px solid #dfe7e2;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            <p style="margin:0;"><a href="${escapeHtml(invitationUrl || '')}" style="color:#17623f;font-weight:bold;">Review invitation</a></p>
+          </div>
+          <p style="color:#627067;font-size:.9em;">${expiresAt ? `This invitation expires on <strong>${escapeHtml(expiresAt)}</strong>.` : 'This invitation expires.'} Sign in with the invited email address. Do not forward this link.</p>
+        </div>
+      `
+    });
+    if (error) throw new Error('Failed to send co-organizer invitation email');
     return data;
   } catch (error) {
     logger.error('Email service error:', error);
@@ -2052,10 +1933,6 @@ exports.sendEventPromotionEmail = async (to, firstName, eventTitle, posterUrl, e
         <style>
           body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 0; }
           .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-          .header { background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%); padding: 32px 20px; text-align: center; }
-          .header-content { display: flex; align-items: center; justify-content: center; gap: 12px; }
-          .logo { width: 40px; height: 40px; vertical-align: middle; }
-          .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; display: inline; }
           .content { padding: 36px 30px; }
           .greeting { font-size: 18px; font-weight: 600; color: #1e293b; margin-bottom: 16px; }
           .event-title { font-size: 22px; font-weight: 700; color: #FA9A4B; margin: 0 0 24px; }
@@ -2070,12 +1947,7 @@ exports.sendEventPromotionEmail = async (to, firstName, eventTitle, posterUrl, e
       </head>
       <body>
         <div class="email-container">
-          <div class="header">
-            <div class="header-content">
-              <img src="${LOGO_URL}" alt="HelloRun" class="logo" />
-              <h1>HelloRun</h1>
-            </div>
-          </div>
+          ${buildBrandedEmailHeader()}
           <div class="content">
             <p class="greeting">Hi ${safeName},</p>
             <h2 class="event-title">${safeTitle}</h2>
@@ -2113,6 +1985,69 @@ exports.sendEventPromotionEmail = async (to, firstName, eventTitle, posterUrl, e
   if (error) {
     logger.error('Resend email error (event.promotion):', error);
     throw new Error('Failed to send event promotion email');
+  }
+  return data;
+};
+
+function buildEventActivationReminderEmailHtml({
+  firstName, eventTitle, actionUrl, actionLabel, scheduleText, isStart
+} = {}) {
+  const safeName = escapeHtml(firstName || 'Runner');
+  const safeTitle = escapeHtml(eventTitle || 'your event');
+  const safeActionUrl = escapeHtml(actionUrl || process.env.APP_URL || 'https://hellorun.online');
+  const safeActionLabel = escapeHtml(actionLabel || (isStart ? 'View Event Details' : 'Submit Your Run'));
+  const safeSchedule = escapeHtml(scheduleText || 'See the event page for the official schedule.');
+  const intro = isStart
+    ? `Your participation window for <strong>${safeTitle}</strong> is now open. It’s time to get moving!`
+    : `There are about 24 hours left to submit your activity for <strong>${safeTitle}</strong>.`;
+  const timeLabel = isStart ? 'Starts' : 'Submission deadline';
+  const preferenceKey = isStart ? 'event.started_reminder' : 'result.submission_reminder';
+  const preferenceUrl = `${String(process.env.APP_URL || 'https://hellorun.online').replace(/\/$/, '')}/unsubscribe?key=${encodeURIComponent(preferenceKey)}`;
+
+  return `
+    <!doctype html>
+    <html lang="en">
+    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+    <body style="margin:0;background:#f8fafc;color:#1e293b;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.6;">
+      <div style="max-width:600px;margin:0 auto;background:#fff;">
+        ${buildBrandedEmailHeader()}
+        <main style="padding:36px 30px;">
+          <p style="font-size:18px;font-weight:600;margin:0 0 16px;">Hi ${safeName},</p>
+          <h1 style="font-size:24px;line-height:1.3;margin:0 0 16px;color:#0f172a;">${isStart ? 'Your event is now open' : 'Don’t forget to submit your run'}</h1>
+          <p style="color:#475569;margin:0 0 20px;">${intro}</p>
+          <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:16px;margin:0 0 24px;">
+            <strong style="display:block;color:#9a3412;">${timeLabel}</strong>
+            <span style="color:#7c2d12;">${safeSchedule}</span>
+          </div>
+          <p style="text-align:center;margin:28px 0;"><a href="${safeActionUrl}" style="display:inline-block;background:#FA9A4B;color:#fff;text-decoration:none;font-weight:700;padding:14px 24px;border-radius:8px;">${safeActionLabel}</a></p>
+          <aside aria-label="HelloRun social pages" style="margin-top:32px;padding:20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;text-align:center;">
+            <strong style="display:block;margin-bottom:6px;">Follow HelloRun</strong>
+            <p style="color:#64748b;font-size:14px;margin:0 0 10px;">Get announcements and event details from our official social pages.</p>
+            <a href="https://instagram.com/hellorunonline" style="color:#c13584;font-weight:600;">Instagram</a>
+            <span aria-hidden="true" style="color:#94a3b8;"> &bull; </span>
+            <a href="https://facebook.com/hellorunonline" style="color:#1877f2;font-weight:600;">Facebook</a>
+          </aside>
+          <p style="margin-top:24px;color:#64748b;font-size:13px;">HelloRun’s event page and displayed deadlines remain the authoritative schedule.</p>
+          <p style="margin-top:16px;color:#94a3b8;font-size:12px;text-align:center;"><a href="${escapeHtml(preferenceUrl)}" style="color:#64748b;">Turn off this reminder email</a></p>
+        </main>
+      </div>
+    </body>
+    </html>`;
+}
+
+exports.sendEventActivationReminderEmail = async (to, payload = {}) => {
+  const subject = payload.isStart
+    ? `${payload.eventTitle || 'Your event'} is now open — let's get moving`
+    : `24 hours left to submit your run: ${payload.eventTitle || 'HelloRun event'}`;
+  const { data, error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject,
+    html: buildEventActivationReminderEmailHtml(payload)
+  });
+  if (error) {
+    logger.error('Resend email error (event activation reminder):', error);
+    throw new Error('Failed to send event activation reminder email');
   }
   return data;
 };
@@ -2172,3 +2107,4 @@ function buildEventRegistrationConfirmationEmailHtml({
 }
 
 exports.buildEventRegistrationConfirmationEmailHtml = buildEventRegistrationConfirmationEmailHtml;
+exports.buildEventActivationReminderEmailHtml = buildEventActivationReminderEmailHtml;

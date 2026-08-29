@@ -12,6 +12,26 @@ function initializeDashboard() {
   setupLoadingStates();
   setupAutoDismissMessages();
   setupCertificateActions();
+  setupSocialFollowCard();
+}
+
+function setupSocialFollowCard() {
+  const card = document.querySelector('[data-social-follow-card]');
+  if (!card) return;
+  const version = card.getAttribute('data-campaign-version') || '1';
+  const key = `hellorun.social-follow-card.dismissed.v${version}`;
+  try {
+    if (window.localStorage?.getItem(key) === '1') {
+      card.hidden = true;
+      return;
+    }
+  } catch (_) {
+    // Storage may be unavailable; the card remains usable for this visit.
+  }
+  card.querySelector('[data-dismiss-social-follow]')?.addEventListener('click', () => {
+    card.hidden = true;
+    try { window.localStorage?.setItem(key, '1'); } catch (_) { /* no-op */ }
+  });
 }
 
 function setupCertificateActions() {

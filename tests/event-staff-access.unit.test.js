@@ -64,15 +64,14 @@ test('granting access requires an existing account and at least one permission',
   assert.match(service, /it does\s*\n \* not create accounts/);
 });
 
-test('the middleware admits organiser, admin, or a staff member with that permission', () => {
+test('the middleware admits owner, co-organizer, admin, or staff with that permission', () => {
   assert.match(middleware, /const isAdmin = user\.role === 'admin'/);
   assert.match(middleware, /isOwningOrganiser/);
   assert.match(middleware, /staffPermissions\.includes\(permission\)/);
-  // Sibling of the organiser middleware rather than an edit to it.
   assert.match(
     read('src/middleware/organizer-event-access.middleware.js'),
-    /\['organiser', 'admin'\]\.includes\(user\.role\)/,
-    'the original organiser middleware must be unchanged'
+    /resolveEventAccess/,
+    'event management access must include active co-organizers'
   );
 });
 

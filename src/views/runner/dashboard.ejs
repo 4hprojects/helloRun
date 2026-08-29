@@ -45,6 +45,19 @@
       <% if (errors && Object.keys(errors).length) { %><div class="alert alert-danger" role="alert" aria-live="assertive"><%= Object.values(errors).join(' ') %></div><% } %>
       <% if (runnerDashboardPresentation.accountAlert) { %><aside class="dashboard-account-alert alert alert-warning" role="alert"><span><i data-lucide="shield-alert" aria-hidden="true"></i><%= runnerDashboardPresentation.accountAlert.text %></span><a href="<%= runnerDashboardPresentation.accountAlert.href %>"><%= runnerDashboardPresentation.accountAlert.label %></a></aside><% } %>
 
+      <aside class="dashboard-social-card" aria-labelledby="dashboard-social-title" data-social-follow-card data-campaign-version="1">
+        <span class="dashboard-social-icon" aria-hidden="true"><i data-lucide="megaphone"></i></span>
+        <div class="dashboard-social-copy">
+          <h2 id="dashboard-social-title">Follow HelloRun for event updates</h2>
+          <p>See announcements and event details on our official Instagram and Facebook pages.</p>
+          <div class="dashboard-social-links">
+            <a href="https://instagram.com/hellorunonline" target="_blank" rel="noopener noreferrer" aria-label="Follow HelloRun on Instagram (opens in a new tab)"><i data-lucide="instagram" aria-hidden="true"></i>Instagram</a>
+            <a href="https://facebook.com/hellorunonline" target="_blank" rel="noopener noreferrer" aria-label="Follow HelloRun on Facebook (opens in a new tab)"><i data-lucide="facebook" aria-hidden="true"></i>Facebook</a>
+          </div>
+        </div>
+        <button type="button" class="dashboard-social-dismiss" data-dismiss-social-follow aria-label="Dismiss social page reminder"><i data-lucide="x" aria-hidden="true"></i></button>
+      </aside>
+
       <%- include('partials/dashboard-active-journey') %>
       <%- include('partials/dashboard-summary') %>
 

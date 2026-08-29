@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Event = require('../models/Event');
 const User = require('../models/User');
+const { resolveEventAccess } = require('../services/event-access.service');
 
 async function requireOrganizerEventAccess(req, res, next) {
   try {
@@ -14,28 +15,17 @@ async function requireOrganizerEventAccess(req, res, next) {
       return renderJsonError(res, 403, 'Authentication required.');
     }
 
-    if (!['organiser', 'admin'].includes(user.role)) {
-      return renderJsonError(res, 403, 'Organizer or admin access is required.');
-    }
-
     const eventId = String(req.params.eventId || req.body.eventId || '').trim();
     if (!mongoose.Types.ObjectId.isValid(eventId)) {
       return renderJsonError(res, 400, 'Invalid event reference.');
     }
 
-    const event = await Event.findOne({ _id: eventId, isDeleted: { $ne: true } })
-      .select('organizerId')
-      .lean();
-
-    if (!event) {
+    const access = await resolveEventAccess({ eventId, userId: user._id, userRole: user.role });
+    if (!access) {
       return renderJsonError(res, 404, 'Event not found.');
     }
-
-    if (user.role !== 'admin' && String(event.organizerId || '') !== String(user._id)) {
-      return renderJsonError(res, 403, 'You can only manage onsite operations for your own events.');
-    }
-
-    req.organizerEvent = event;
+    req.eventAccess = access;
+    req.organizerEvent = access.event;
     req.user = {
       id: String(user._id),
       mongoUserId: user._id,

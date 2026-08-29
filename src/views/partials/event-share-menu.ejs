@@ -1,0 +1,47 @@
+<%
+  const shareMenuId = String(instanceId || 'eventShare').replace(/[^a-zA-Z0-9_-]/g, '');
+  const shareUrl = String(url || '');
+  const shareTitle = String(title || 'HelloRun event');
+  const encodedShareUrl = encodeURIComponent(shareUrl);
+  const encodedShareTitle = encodeURIComponent(shareTitle);
+  const shareMenuClass = String(typeof containerClass !== 'undefined' ? containerClass : '').trim();
+  const shareTriggerClass = String(typeof triggerClass !== 'undefined' ? triggerClass : 'btn btn-outline').trim();
+  const shareLabel = String(typeof triggerLabel !== 'undefined' ? triggerLabel : 'Share');
+  const accessibleShareLabel = String(typeof ariaLabel !== 'undefined' ? ariaLabel : shareLabel);
+  const showShareTriggerText = typeof showTriggerText === 'undefined' || showTriggerText !== false;
+%>
+<details
+  class="event-share-menu<%= shareMenuClass ? ` ${shareMenuClass}` : '' %>"
+  data-event-share
+  data-share-url="<%= shareUrl %>"
+>
+  <summary
+    class="<%= shareTriggerClass %> event-share-trigger"
+    aria-label="<%= accessibleShareLabel %>"
+    aria-haspopup="menu"
+    aria-controls="<%= shareMenuId %>Options"
+  >
+    <i data-lucide="share-2" aria-hidden="true"></i>
+    <% if (showShareTriggerText) { %><span><%= shareLabel %></span><% } %>
+  </summary>
+  <div class="event-share-options" id="<%= shareMenuId %>Options" role="menu" aria-label="Share options">
+    <button type="button" data-copy-event-link role="menuitem">
+      <i data-lucide="link" aria-hidden="true"></i><span>Copy link</span>
+    </button>
+    <a target="_blank" rel="noopener noreferrer" href="https://www.facebook.com/sharer/sharer.php?u=<%= encodedShareUrl %>" role="menuitem">
+      <span class="event-share-brand" aria-hidden="true">f</span><span>Facebook</span>
+    </a>
+    <a target="_blank" rel="noopener noreferrer" href="https://twitter.com/intent/tweet?url=<%= encodedShareUrl %>&amp;text=<%= encodedShareTitle %>" role="menuitem">
+      <span class="event-share-brand" aria-hidden="true">X</span><span>X</span>
+    </a>
+    <a target="_blank" rel="noopener noreferrer" href="https://www.linkedin.com/sharing/share-offsite/?url=<%= encodedShareUrl %>" role="menuitem">
+      <span class="event-share-brand" aria-hidden="true">in</span><span>LinkedIn</span>
+    </a>
+    <a target="_blank" rel="noopener noreferrer" href="https://api.whatsapp.com/send?text=<%= encodedShareTitle %>%20<%= encodedShareUrl %>" role="menuitem">
+      <i data-lucide="message-circle" aria-hidden="true"></i><span>WhatsApp</span>
+    </a>
+    <a href="mailto:?subject=<%= encodedShareTitle %>&amp;body=<%= encodedShareUrl %>" role="menuitem">
+      <i data-lucide="mail" aria-hidden="true"></i><span>Email</span>
+    </a>
+  </div>
+</details>

@@ -14,12 +14,13 @@
   <% const standingView = presentation.standing || {}; %>
   <% const standing = standingView.entry || null; %>
   <% const overviewStats = presentation.overviewStats || {}; %>
+  <% const recognitions = (presentation.recognitions || []).filter((item) => item.enabled); %>
   <% const isAccumulated = presentation.isAccumulated; %>
   <% const primaryMetric = ['steps', 'elevation', 'consistency'].includes(settings.primaryMetric) ? settings.primaryMetric : 'distance'; %>
   <% const primaryMetricLabel = primaryMetric === 'steps' ? 'Verified steps' : primaryMetric === 'elevation' ? 'Verified elevation gain' : primaryMetric === 'consistency' ? 'Active days' : 'Verified distance'; %>
   <% const officialPrimaryMetric = event.primaryChallengeMetric === 'steps' ? 'steps' : 'distance'; %>
   <% const isAlternateRanking = isAccumulated && primaryMetric !== officialPrimaryMetric; %>
-  <% const rankingViewLabel = primaryMetric === 'elevation' ? 'Most Elevation' : primaryMetric === 'consistency' ? 'Most Consistent' : primaryMetric === 'steps' ? 'Steps' : 'Distance'; %>
+  <% const rankingViewLabel = primaryMetric === 'elevation' ? 'Highest Elevation' : primaryMetric === 'consistency' ? 'Most Consistent' : primaryMetric === 'steps' ? 'Highest Steps' : 'Distance'; %>
   <% const goalMetric = ['elevation', 'consistency'].includes(primaryMetric) ? officialPrimaryMetric : primaryMetric; %>
   <% const challengeGoalLabel = goalMetric === 'steps' ? event.targetStepsLabel : event.targetDistanceLabel; %>
   <% const selectedGoalLabel = activeDistance.goalLabel || challengeGoalLabel; %>
@@ -54,23 +55,13 @@
       </header>
 
       <% if (!presentation.showCategoryCards) { %>
-        <%- include('_event-leaderboard-standing') %>
-      <% } %>
-
-      <% if (presentation.showMetricNavigation) { %>
-        <nav class="leaderboard-distance-tabs" aria-label="Leaderboard metric">
-          <% presentation.metricOptions.forEach((metric) => { %>
-            <a href="<%= presentation.getMetricUrl(metric.key) %>" class="leaderboard-distance-tab <%= metric.active ? 'is-active' : '' %>" <%= metric.active ? 'aria-current="page"' : '' %>>
-              <span><%= metric.label %></span>
-            </a>
-          <% }) %>
-        </nav>
+        <%- include('_event-leaderboard-standing', { standingView, standing, isAccumulated, primaryMetricLabel, settings, primaryMetric, activeDistance }) %>
       <% } %>
 
       <% if (presentation.showCategoryCards) { %>
         <section class="leaderboard-category-overview" aria-labelledby="leaderboard-category-overview-title">
           <div class="leaderboard-section-heading">
-            <div><p class="leaderboard-kicker">Choose your field</p><h2 id="leaderboard-category-overview-title">Category leaderboards</h2></div>
+            <div><p class="leaderboard-kicker">Progress toward each goal</p><h2 id="leaderboard-category-overview-title">Category Leaders</h2></div>
             <span><%= presentation.categoryCards.length %> categories</span>
           </div>
           <div class="leaderboard-category-grid">
@@ -101,15 +92,59 @@
         </section>
       <% } %>
 
+      <% if (recognitions.length) { %>
+        <section class="leaderboard-recognition-overview" aria-labelledby="leaderboard-recognition-title">
+          <div class="leaderboard-section-heading">
+            <div><p class="leaderboard-kicker">Across all five categories</p><h2 id="leaderboard-recognition-title">Event-wide Recognition</h2></div>
+            <span><%= recognitions.length %> awards</span>
+          </div>
+          <div class="leaderboard-recognition-grid">
+            <% recognitions.forEach((recognition) => { %>
+              <article class="leaderboard-recognition-card">
+                <div class="leaderboard-recognition-icon" aria-hidden="true"><i data-lucide="<%= recognition.icon %>"></i></div>
+                <div class="leaderboard-recognition-copy">
+                  <h3><%= recognition.title %></h3>
+                  <% if (recognition.state === 'populated') { %>
+                    <p class="leaderboard-recognition-total"><strong><%= recognition.resultLabel %></strong> from approved results across all five categories.</p>
+                    <ul class="leaderboard-recognition-leaders" aria-label="<%= recognition.title %> <%= recognition.leaders.length === 1 ? 'leader' : 'co-leaders' %>">
+                      <% recognition.leaders.forEach((leader) => { %>
+                        <li><strong><%= leader.runnerName %></strong><span><%= leader.categoryLabel %></span></li>
+                      <% }) %>
+                    </ul>
+                  <% } else if (recognition.state === 'pre_event') { %>
+                    <p class="leaderboard-recognition-empty">Recognition begins <%= recognition.startLabel %>. The overall leader will be determined from approved results across all five categories.</p>
+                  <% } else { %>
+                    <p class="leaderboard-recognition-empty"><%= recognition.emptyLabel %></p>
+                  <% } %>
+                </div>
+                <% if (recognition.state === 'populated') { %>
+                  <a href="<%= recognition.href %>" class="leaderboard-button leaderboard-button-secondary leaderboard-recognition-action">View <%= recognition.metric === 'consistency' ? 'consistency' : recognition.metric %> standings</a>
+                <% } %>
+              </article>
+            <% }) %>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (presentation.showMetricNavigation) { %>
+        <nav class="leaderboard-distance-tabs" aria-label="Leaderboard metric">
+          <% presentation.metricOptions.forEach((metric) => { %>
+            <a href="<%= presentation.getMetricUrl(metric.key) %>" class="leaderboard-distance-tab <%= metric.active ? 'is-active' : '' %>" <%= metric.active ? 'aria-current="page"' : '' %>>
+              <span><%= metric.label %></span>
+            </a>
+          <% }) %>
+        </nav>
+      <% } %>
+
       <% if (presentation.showCategoryCards) { %>
-        <%- include('_event-leaderboard-standing') %>
+        <%- include('_event-leaderboard-standing', { standingView, standing, isAccumulated, primaryMetricLabel, settings, primaryMetric, activeDistance }) %>
       <% } %>
 
       <section class="leaderboard-result-controls" aria-labelledby="result-controls-title">
         <div class="leaderboard-results-toolbar">
-          <div><p class="leaderboard-kicker"><%= isAccumulated ? `Goal: ${selectedGoalLabel}` : 'Official field' %></p><h2 id="result-controls-title"><%= activeDistance.label %> Rankings</h2><p><strong><%= leaderboard.stats.verifiedEntries %></strong> verified runner<%= leaderboard.stats.verifiedEntries === 1 ? '' : 's' %> ranked by <%= isAccumulated ? primaryMetricLabel.toLowerCase() : 'official result' %>.</p></div>
+          <div><p class="leaderboard-kicker"><%= leaderboard.isEventWideMetricView ? 'Event-wide recognition standings' : (isAccumulated ? `Goal: ${selectedGoalLabel}` : 'Official field') %></p><h2 id="result-controls-title"><%= activeDistance.label %> Rankings</h2><p><strong><%= leaderboard.stats.verifiedEntries %></strong> verified runner<%= leaderboard.stats.verifiedEntries === 1 ? '' : 's' %> ranked by <%= isAccumulated ? primaryMetricLabel.toLowerCase() : 'official result' %>.</p></div>
           <form method="GET" action="/events/<%= event.slug %>/leaderboard" class="leaderboard-runner-search" role="search">
-            <input type="hidden" name="distance" value="<%= activeDistance.key || '' %>">
+            <% if (!leaderboard.isEventWideMetricView) { %><input type="hidden" name="distance" value="<%= activeDistance.key || '' %>"><% } %>
             <% if (filters.mode) { %><input type="hidden" name="mode" value="<%= filters.mode %>"><% } %>
             <% if (filters.status) { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
             <% if (filters.metric) { %><input type="hidden" name="metric" value="<%= filters.metric %>"><% } %>
@@ -122,7 +157,7 @@
         <% if (presentation.showAdvancedFilters) { %><details class="leaderboard-filter-panel leaderboard-event-filter-panel" <%= presentation.hasActiveAdvancedFilters ? 'open' : '' %>>
           <summary><span><i data-lucide="sliders-horizontal" aria-hidden="true"></i> Result filters</span><% if (presentation.activeFilters.length) { %><span class="leaderboard-filter-count"><%= presentation.activeFilters.length %></span><% } %></summary>
           <form method="GET" action="/events/<%= event.slug %>/leaderboard" class="leaderboard-filter-form leaderboard-event-filter-form">
-            <input type="hidden" name="distance" value="<%= activeDistance.key || '' %>">
+            <% if (!leaderboard.isEventWideMetricView) { %><input type="hidden" name="distance" value="<%= activeDistance.key || '' %>"><% } %>
             <% if (filters.search) { %><input type="hidden" name="search" value="<%= filters.search %>"><% } %>
             <% if (leaderboard.pagination.limit !== 25) { %><input type="hidden" name="limit" value="<%= leaderboard.pagination.limit %>"><% } %>
             <% if (presentation.showModeFilter) { %><div class="leaderboard-field"><label for="result-mode">Participation mode</label><select id="result-mode" name="mode"><option value="">All modes</option><option value="virtual" <%= filters.mode === 'virtual' ? 'selected' : '' %>>Virtual</option><option value="onsite" <%= filters.mode === 'onsite' ? 'selected' : '' %>>Onsite</option></select></div><% } %>
@@ -135,7 +170,7 @@
       </section>
 
       <section id="official-standings" class="leaderboard-official-section" aria-labelledby="official-standings-title">
-        <div class="leaderboard-section-heading"><div><p class="leaderboard-kicker">Counts toward rank</p><h2 id="official-standings-title">Official standings</h2></div><span><%= leaderboard.stats.verifiedEntries %> verified</span></div>
+        <div class="leaderboard-section-heading"><div><p class="leaderboard-kicker">Counts toward rank</p><h2 id="official-standings-title">Official standings</h2><% if (Number(settings.publicRankCutoff || 0) > 0 && filters.status !== 'pending_review') { %><p>Public standings show rank #<%= settings.publicRankCutoff %> or better, including exact ties.</p><% } %></div><span><%= leaderboard.stats.verifiedEntries %> verified</span></div>
         <% if (leaderboard.officialEntries?.length) { %>
           <div class="leaderboard-mobile-results" aria-label="Official leaderboard result cards">
             <% leaderboard.officialEntries.forEach((entry) => { %>

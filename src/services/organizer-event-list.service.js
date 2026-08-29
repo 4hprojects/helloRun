@@ -5,6 +5,7 @@ const Event = require('../models/Event');
 const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
+const { getActiveCoOrganizerEventIds } = require('./event-access.service');
 
 const EVENT_LIST_STATUSES = Object.freeze(['draft', 'pending_review', 'published', 'closed', 'archived']);
 const EVENT_LIST_SORTS = Object.freeze(['attention', 'newest', 'oldest', 'start_asc', 'start_desc']);
@@ -54,18 +55,24 @@ function getEventListSort(sort) {
   return { attentionRank: 1, totalPendingWork: -1, updatedAt: -1, ...stable };
 }
 
-function buildEventRowsPipeline({ organizerId, filters, skip = 0, limit = 25, collections = {} }) {
+function buildEventRowsPipeline({ organizerId, accessibleEventIds = [], filters, skip = 0, limit = 25, collections = {} }) {
   const match = {
-    organizerId,
     isDeleted: { $ne: true },
     status: filters.status ? filters.status : { $ne: 'archived' }
   };
+  const accessOr = [{ organizerId }, { _id: { $in: accessibleEventIds } }];
+  if (accessibleEventIds.length) match.$or = accessOr;
+  else match.organizerId = organizerId;
   if (filters.q) {
     const search = new RegExp(escapeRegex(filters.q), 'i');
-    match.$or = [
+    const searchOr = [
       { title: search }, { organiserName: search }, { slug: search },
       { referenceCode: search }, { venueName: search }, { city: search }, { country: search }
     ];
+    if (accessibleEventIds.length) {
+      delete match.$or;
+      match.$and = [{ $or: accessOr }, { $or: searchOr }];
+    } else match.$or = searchOr;
   }
 
   const registrationCollection = collections.registrations || Registration.collection.name;
@@ -209,17 +216,29 @@ async function listOrganizerEvents(organizerId, rawFilters = {}, dependencies = 
   const normalizedOrganizerId = mongoose.Types.ObjectId.isValid(organizerId)
     ? new mongoose.Types.ObjectId(String(organizerId))
     : organizerId;
-  const baseMatch = { organizerId: normalizedOrganizerId, isDeleted: { $ne: true } };
+  const accessibleEventIds = Array.isArray(dependencies.accessibleEventIds)
+    ? dependencies.accessibleEventIds
+    : dependencies.EventModel
+      ? []
+      : await getActiveCoOrganizerEventIds(normalizedOrganizerId);
+  const accessOr = [{ organizerId: normalizedOrganizerId }, { _id: { $in: accessibleEventIds } }];
+  const baseMatch = { isDeleted: { $ne: true } };
+  if (accessibleEventIds.length) baseMatch.$or = accessOr;
+  else baseMatch.organizerId = normalizedOrganizerId;
   const filteredMatch = {
     ...baseMatch,
     status: filters.status ? filters.status : { $ne: 'archived' }
   };
   if (filters.q) {
     const search = new RegExp(escapeRegex(filters.q), 'i');
-    filteredMatch.$or = [
+    const searchOr = [
       { title: search }, { organiserName: search }, { slug: search }, { referenceCode: search },
       { venueName: search }, { city: search }, { country: search }
     ];
+    if (accessibleEventIds.length) {
+      delete filteredMatch.$or;
+      filteredMatch.$and = [{ $or: accessOr }, { $or: searchOr }];
+    } else filteredMatch.$or = searchOr;
   }
 
   const [totalItems, portfolioRows] = await Promise.all([
@@ -234,6 +253,7 @@ async function listOrganizerEvents(organizerId, rawFilters = {}, dependencies = 
   const skip = (page - 1) * filters.perPage;
   const pipeline = buildEventRowsPipeline({
     organizerId: normalizedOrganizerId,
+    accessibleEventIds,
     filters,
     skip,
     limit: filters.perPage,

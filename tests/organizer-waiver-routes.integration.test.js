@@ -726,6 +726,7 @@ test('event form normalizes and applies leaderboard settings', () => {
     leaderboardSettingsRankingBasis: 'fastest_time',
     leaderboardSettingsNameDisplayMode: 'anonymous_runner_id',
     leaderboardSettingsShowPending: '1',
+    leaderboardSettingsShowHighestElevationCard: '1',
     leaderboardSettingsHideFlagged: '1',
     leaderboardSettingsVisibleColumns: ['rank', 'runner', 'time', 'status']
   });
@@ -740,6 +741,10 @@ test('event form normalizes and applies leaderboard settings', () => {
     rankingBasis: 'fastest_time',
     visibility: 'public',
     showPending: true,
+    showHighestStepsCard: false,
+    showHighestElevationCard: false,
+    showMostConsistentCard: false,
+    publicRankCutoff: 0,
     hideFlagged: true,
     nameDisplayMode: 'anonymous_runner_id',
     visibleColumns: ['rank', 'runner', 'time', 'status']

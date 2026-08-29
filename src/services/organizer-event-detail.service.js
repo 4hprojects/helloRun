@@ -439,6 +439,7 @@ async function getOrganizerEventDetailPresentation({
   hasActiveCertificate = false,
   eventBadgeCount = 0,
   publishReadinessErrors = [],
+  canManageTeam = true,
   now = new Date()
 }, dependencies = {}) {
   const [counts, accumulatedOperations] = await Promise.all([
@@ -587,8 +588,9 @@ async function getOrganizerEventDetailPresentation({
         ...(publicVisibleNow ? [{ label: 'Public page', href: `/events/${event.slug}`, icon: 'globe' }] : [])
       ] },
       { group: 'Records', items: [
+        ...(canManageTeam ? [{ label: 'Co-organizers', href: `/organizer/events/${id}/co-organizers`, icon: 'users' }] : []),
         { label: 'Audit trail', href: `/organizer/events/${id}/audit`, icon: 'scroll-text' },
-        { label: 'Clone event', href: `/organizer/events/${id}/clone`, icon: 'copy-plus' }
+        ...(canManageTeam ? [{ label: 'Clone event', href: `/organizer/events/${id}/clone`, icon: 'copy-plus' }] : [])
       ] }
     ]
   };
