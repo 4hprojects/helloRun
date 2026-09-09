@@ -5,11 +5,13 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
+const User = require('../models/User');
 const Event = require('../models/Event');
 const Registration = require('../models/Registration');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const CertificateTemplate = require('../models/CertificateTemplate');
 const { invalidateLeaderboardCache } = require('../services/leaderboard.service');
+const { syncAppUserFromMongoUser } = require('../services/user-bridge.service');
 const { syncEventShadow } = require('../services/event-shadow.service');
 const { syncRegistrationPaymentShadow } = require('../services/registration-payment-shadow.service');
 const { syncSubmissionShadow } = require('../services/submission-shadow.service');
@@ -235,6 +237,15 @@ async function main() {
   const updatedEvent = await Event.findById(event._id);
   const updatedRegistrations = await Registration.find({ eventId: event._id, testRunId: { $ne: TEST_RUN_ID } });
   const updatedActivities = await AccumulatedActivitySubmission.find({ eventId: event._id, testRunId: { $ne: TEST_RUN_ID } });
+  const referencedUserIds = [...new Set([
+    ...updatedRegistrations.map((registration) => registration.userId),
+    ...updatedActivities.flatMap((activity) => [activity.runnerId, activity.reviewedBy])
+  ].filter(Boolean).map(String))];
+  const referencedUsers = await User.find({ _id: { $in: referencedUserIds } });
+  if (referencedUsers.length !== referencedUserIds.length) {
+    throw new Error(`CNS migration cannot reconcile shadows: expected ${referencedUserIds.length} referenced MongoDB users, found ${referencedUsers.length}.`);
+  }
+  for (const user of referencedUsers) await syncAppUserFromMongoUser(user, { operation: 'repair' });
   await syncEventShadow(updatedEvent, { operation: 'repair' });
   for (const registration of updatedRegistrations) await syncRegistrationPaymentShadow(registration, { operation: 'repair' });
   for (const activity of updatedActivities) await syncSubmissionShadow(activity, { operation: 'repair' });
