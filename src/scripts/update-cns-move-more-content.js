@@ -10,6 +10,7 @@ const Registration = require('../models/Registration');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const CertificateTemplate = require('../models/CertificateTemplate');
 const { invalidateLeaderboardCache } = require('../services/leaderboard.service');
+const { syncEventShadow } = require('../services/event-shadow.service');
 const { syncRegistrationPaymentShadow } = require('../services/registration-payment-shadow.service');
 const { syncSubmissionShadow } = require('../services/submission-shadow.service');
 const { recordCriticalAuditEvent } = require('../services/critical-audit.service');
@@ -42,6 +43,10 @@ const EVENT_UPDATE_FIELDS = [
 
 function selectEventUpdate(payload) {
   return Object.fromEntries(EVENT_UPDATE_FIELDS.map((key) => [key, payload[key]]));
+}
+
+function comparableEventValue(value) {
+  return JSON.stringify(value, (key, item) => (key === '_id' ? undefined : item));
 }
 
 function isPostMigration(counts) {
@@ -159,7 +164,7 @@ async function main() {
     mode: APPLY ? 'apply' : 'dry-run',
     slug: event.slug,
     countsBefore,
-    eventWillChange: EVENT_UPDATE_FIELDS.some((key) => JSON.stringify(event.get(key)) !== JSON.stringify(payload[key])),
+    eventWillChange: EVENT_UPDATE_FIELDS.some((key) => comparableEventValue(event.get(key)) !== comparableEventValue(payload[key])),
     registrationsToMap: registrations.filter((row) => row.raceDistance !== '50K' || row.pricingSnapshot?.raceCategoryId !== CATEGORY.categoryId).length,
     activitiesToMap: activities.filter((row) => row.raceDistance !== '50K').length,
     earlyActivitiesToRequeue: earlyActivities.filter((row) => row.status !== 'needs_clarification' || row.reviewNotes !== EARLY_REVIEW_NOTE).length,
@@ -174,65 +179,65 @@ async function main() {
   }
   const needsMutation = preview.eventWillChange || preview.registrationsToMap || preview.activitiesToMap
     || preview.earlyActivitiesToRequeue || preview.certificateTemplateWillChange || preview.demoRegistrationsToRemove || preview.demoActivitiesToRemove;
-  if (!needsMutation) {
-    console.log(JSON.stringify(preview, null, 2));
-    return;
-  }
-
   await assertShadowSchemaReady();
 
-  const backupPath = await writeBackup(event.toObject(), registrations, activities, demoRegistrations, demoActivities, certificateTemplates);
-  const session = await mongoose.startSession();
-  try {
-    await session.withTransaction(async () => {
-      await Event.updateOne({ _id: event._id }, { $set: selectEventUpdate(payload) }, { session, runValidators: true });
-      await Registration.updateMany(legitimateFilter, { $set: {
-        raceDistance: '50K',
-        'pricingSnapshot.raceCategoryId': CATEGORY.categoryId,
-        'pricingSnapshot.raceCategoryName': CATEGORY.name,
-        'pricingSnapshot.raceCategoryType': CATEGORY.type,
-        'pricingSnapshot.raceDistance': '50K',
-        'accumulatedCertificateFinalization.state': '',
-        'accumulatedCertificateFinalization.activityId': null,
-        'accumulatedCertificateFinalization.certificateNumber': '',
-        'accumulatedCertificateFinalization.lockedAt': null,
-        'accumulatedCertificateFinalization.finalizedAt': null,
-        'accumulatedCertificateFinalization.lastAttemptAt': null,
-        'accumulatedCertificateFinalization.error': ''
-      } }, { session, runValidators: true });
-      await AccumulatedActivitySubmission.bulkWrite(activities.map((activity) => ({
-        updateOne: {
-          filter: { _id: activity._id, eventId: event._id },
-          update: { $set: {
-            raceDistance: '50K',
-            trackingAppDevice: String(activity.trackingAppDevice || '').trim() || inferLegacyTrackingAppDevice(activity)
-          } }
-        }
-      })), { session });
-      await AccumulatedActivitySubmission.updateMany({ ...legitimateFilter, runDate: { $lt: DATES.activityStartAt } }, { $set: {
-        status: 'needs_clarification',
-        reviewNotes: EARLY_REVIEW_NOTE,
-        'certificate.type': '',
-        'certificate.status': '',
-        'certificate.revokedAt': null,
-        'certificate.finalizedAt': null
-      } }, { session, runValidators: true });
-      await CertificateTemplate.updateOne({ _id: certificateTemplates[0]._id, eventId: event._id }, { $set: {
-        name: 'CNS Wellness In Motion Certificate',
-        'content.heading': 'Certificate of Completion',
-        'content.bodyText': OFFICIAL_FINISHER_CERTIFICATE_BODY
-      } }, { session, runValidators: true });
-      await Registration.collection.deleteMany({ eventId: event._id, testRunId: TEST_RUN_ID }, { session });
-      await AccumulatedActivitySubmission.collection.deleteMany({ eventId: event._id, testRunId: TEST_RUN_ID }, { session });
-    });
-  } finally {
-    await session.endSession();
+  let backupPath = null;
+  if (needsMutation) {
+    backupPath = await writeBackup(event.toObject(), registrations, activities, demoRegistrations, demoActivities, certificateTemplates);
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        await Event.updateOne({ _id: event._id }, { $set: selectEventUpdate(payload) }, { session, runValidators: true });
+        await Registration.updateMany(legitimateFilter, { $set: {
+          raceDistance: '50K',
+          'pricingSnapshot.raceCategoryId': CATEGORY.categoryId,
+          'pricingSnapshot.raceCategoryName': CATEGORY.name,
+          'pricingSnapshot.raceCategoryType': CATEGORY.type,
+          'pricingSnapshot.raceDistance': '50K',
+          'accumulatedCertificateFinalization.state': '',
+          'accumulatedCertificateFinalization.activityId': null,
+          'accumulatedCertificateFinalization.certificateNumber': '',
+          'accumulatedCertificateFinalization.lockedAt': null,
+          'accumulatedCertificateFinalization.finalizedAt': null,
+          'accumulatedCertificateFinalization.lastAttemptAt': null,
+          'accumulatedCertificateFinalization.error': ''
+        } }, { session, runValidators: true });
+        await AccumulatedActivitySubmission.bulkWrite(activities.map((activity) => ({
+          updateOne: {
+            filter: { _id: activity._id, eventId: event._id },
+            update: { $set: {
+              raceDistance: '50K',
+              trackingAppDevice: String(activity.trackingAppDevice || '').trim() || inferLegacyTrackingAppDevice(activity)
+            } }
+          }
+        })), { session });
+        await AccumulatedActivitySubmission.updateMany({ ...legitimateFilter, runDate: { $lt: DATES.activityStartAt } }, { $set: {
+          status: 'needs_clarification',
+          reviewNotes: EARLY_REVIEW_NOTE,
+          'certificate.type': '',
+          'certificate.status': '',
+          'certificate.revokedAt': null,
+          'certificate.finalizedAt': null
+        } }, { session, runValidators: true });
+        await CertificateTemplate.updateOne({ _id: certificateTemplates[0]._id, eventId: event._id }, { $set: {
+          name: 'CNS Wellness In Motion Certificate',
+          'content.heading': 'Certificate of Completion',
+          'content.bodyText': OFFICIAL_FINISHER_CERTIFICATE_BODY
+        } }, { session, runValidators: true });
+        await Registration.collection.deleteMany({ eventId: event._id, testRunId: TEST_RUN_ID }, { session });
+        await AccumulatedActivitySubmission.collection.deleteMany({ eventId: event._id, testRunId: TEST_RUN_ID }, { session });
+      });
+    } finally {
+      await session.endSession();
+    }
   }
 
+  const updatedEvent = await Event.findById(event._id);
   const updatedRegistrations = await Registration.find({ eventId: event._id, testRunId: { $ne: TEST_RUN_ID } });
   const updatedActivities = await AccumulatedActivitySubmission.find({ eventId: event._id, testRunId: { $ne: TEST_RUN_ID } });
-  for (const registration of updatedRegistrations) await syncRegistrationPaymentShadow(registration, { operation: 'cns_event_migration' });
-  for (const activity of updatedActivities) await syncSubmissionShadow(activity, { operation: 'cns_event_migration' });
+  await syncEventShadow(updatedEvent, { operation: 'repair' });
+  for (const registration of updatedRegistrations) await syncRegistrationPaymentShadow(registration, { operation: 'repair' });
+  for (const activity of updatedActivities) await syncSubmissionShadow(activity, { operation: 'repair' });
   await invalidateLeaderboardCache(SLUG);
   const countsAfter = await getCounts(event._id);
   if (!isPostMigration(countsAfter)) throw new Error(`CNS migration verification failed: ${JSON.stringify(countsAfter)}`);
@@ -248,7 +253,7 @@ async function main() {
     notes: JSON.stringify({ countsBefore, countsAfter, backupPath, earlyActivitiesRequeued: earlyActivities.length }),
     idempotencyKey: `event:cns-wellness-migration:${event._id}`
   });
-  console.log(JSON.stringify({ ...preview, backupPath, countsAfter, mutationApplied: true }, null, 2));
+  console.log(JSON.stringify({ ...preview, backupPath, countsAfter, mutationApplied: Boolean(needsMutation), shadowReconciliationApplied: true }, null, 2));
 }
 
 if (require.main === module) {
@@ -259,4 +264,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { selectEventUpdate, assertExpectedCounts, assertExpectedRecordShape, inferLegacyTrackingAppDevice, assertShadowSchemaReady, isPostMigration, EARLY_REVIEW_NOTE, EXPECTED_INITIAL };
+module.exports = { selectEventUpdate, comparableEventValue, assertExpectedCounts, assertExpectedRecordShape, inferLegacyTrackingAppDevice, assertShadowSchemaReady, isPostMigration, EARLY_REVIEW_NOTE, EXPECTED_INITIAL };

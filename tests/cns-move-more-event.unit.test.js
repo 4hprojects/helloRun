@@ -13,7 +13,7 @@ const {
   EVENT_DETAILS_MARKDOWN,
   buildCnsMoveMoreChallengeEventPayload
 } = require('../src/content/events/cns-move-more-challenge-2026');
-const { assertExpectedCounts, isPostMigration, EARLY_REVIEW_NOTE } = require('../src/scripts/update-cns-move-more-content');
+const { assertExpectedCounts, comparableEventValue, isPostMigration, EARLY_REVIEW_NOTE } = require('../src/scripts/update-cns-move-more-content');
 
 test('CNS source follows the official dates and one distance-only goal', () => {
   assert.equal(DATES.registrationOpenAt.toISOString(), '2026-09-08T16:00:00.000Z');
@@ -62,4 +62,10 @@ test('CNS migration count guard supports only exact initial or post-migration st
   assert.equal(isPostMigration({ registrations: 10, activities: 7, demoRegistrations: 0, demoActivities: 0 }), true);
   assert.throws(() => assertExpectedCounts({ registrations: 11, activities: 7, demoRegistrations: 15, demoActivities: 15 }), /Unexpected live CNS record counts/);
   assert.match(EARLY_REVIEW_NOTE, /must manually approve an exception/i);
+});
+
+test('CNS migration comparison ignores MongoDB-generated nested ids', () => {
+  const persisted = [{ _id: 'generated-id', categoryId: '50k', distanceKm: 50 }];
+  const expected = [{ categoryId: '50k', distanceKm: 50 }];
+  assert.equal(comparableEventValue(persisted), comparableEventValue(expected));
 });
