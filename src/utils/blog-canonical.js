@@ -9,6 +9,7 @@ const CANONICAL_BLOG_REDIRECTS = Object.freeze({
 
 const DUPLICATE_BLOG_SLUGS = Object.freeze(Object.keys(CANONICAL_BLOG_REDIRECTS));
 const { BLOG_CONTENT_POLICY_VERSION } = require('./blog-content-eligibility');
+const { getSearchIndexingQuery } = require('./blog-indexing');
 
 function normalizeBlogSlug(value) {
   return String(value || '').trim().toLowerCase();
@@ -39,6 +40,7 @@ function getEligiblePublicBlogQuery(baseQuery = {}) {
     'publicationReview.originalityConfirmed': true,
     $and: [
       ...(Array.isArray(baseQuery.$and) ? baseQuery.$and : []),
+      getSearchIndexingQuery(),
       { $expr: { $eq: ['$contentEligibility.sourceHash', '$publicationReview.sourceHash'] } },
       {
         $or: [

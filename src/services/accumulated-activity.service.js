@@ -32,7 +32,7 @@ async function createAccumulatedActivitySubmission(input) {
     runnerId: input.runnerId
   });
   const event = await Event.findById(registration.eventId)
-    .select('virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm minimumActivityDistanceKm acceptedRunTypes raceCategories title')
+    .select('virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm minimumActivityDistanceKm acceptedRunTypes raceCategories title requireActivityScreenshot requireTrackingAppDevice')
     .lean();
 
   assertAccumulatedEvent(event);
@@ -260,9 +260,14 @@ function buildAccumulatedProgress({ activities = [], targetDistanceKm, targetSte
   const approvedDistanceKm = sumDistance(approved);
   const pendingDistanceKm = sumDistance(pending);
   const rejectedDistanceKm = sumDistance(rejected);
+  const needsClarificationDistanceKm = sumDistance(needsClarification);
   const approvedSteps = sumSteps(approved);
   const pendingSteps = sumSteps(pending);
   const rejectedSteps = sumSteps(rejected);
+  const needsClarificationSteps = sumSteps(needsClarification);
+  const approvedElevationGain = sumElevation(approved);
+  const pendingElevationGain = sumElevation(pending);
+  const needsClarificationElevationGain = sumElevation(needsClarification);
   const approvedPrimaryValue = safePrimaryMetric === 'steps' ? approvedSteps : approvedDistanceKm;
   const pendingPrimaryValue = safePrimaryMetric === 'steps' ? pendingSteps : pendingDistanceKm;
   // A registration may carry both a distance goal and a steps goal at once
@@ -308,9 +313,14 @@ function buildAccumulatedProgress({ activities = [], targetDistanceKm, targetSte
     approvedDistanceKm,
     pendingDistanceKm,
     rejectedDistanceKm,
+    needsClarificationDistanceKm,
     approvedSteps,
     pendingSteps,
     rejectedSteps,
+    needsClarificationSteps,
+    approvedElevationGain,
+    pendingElevationGain,
+    needsClarificationElevationGain,
     approvedActivityCount: approved.length,
     pendingActivityCount: pending.length,
     rejectedActivityCount: rejected.length,
@@ -441,6 +451,16 @@ function validateActivityAgainstEvent(input, event) {
       throw new Error('Activity type is not accepted for this event.');
     }
   }
+  if (event.requireTrackingAppDevice && !String(input.trackingAppDevice || '').trim()) {
+    throw new Error('Tracking app or device is required for this event.');
+  }
+  if (event.requireActivityScreenshot) {
+    const proofUrl = String(input.proof?.url || '').trim();
+    const proofMimeType = String(input.proof?.mimeType || '').trim().toLowerCase();
+    if (!proofUrl || !proofMimeType.startsWith('image/')) {
+      throw new Error('An activity screenshot is required for this event.');
+    }
+  }
 }
 
 function sumSteps(items = []) {
@@ -545,6 +565,10 @@ function sumDistance(items) {
   return items.reduce((sum, item) => sum + Number(item.distanceKm || 0), 0);
 }
 
+function sumElevation(items = []) {
+  return items.reduce((sum, item) => sum + Number(item.elevationGain || 0), 0);
+}
+
 function formatDistance(value) {
   const numeric = Number(value || 0);
   if (!Number.isFinite(numeric)) return '0';
@@ -567,5 +591,6 @@ module.exports = {
   getRegistrationAccumulatedProgress,
   getAccumulatedActivitiesForRegistrations,
   getAccumulatedLeaderboardRows,
-  buildAccumulatedProgress
+  buildAccumulatedProgress,
+  validateActivityAgainstEvent
 };

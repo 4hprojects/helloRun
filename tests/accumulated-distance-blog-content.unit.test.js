@@ -82,7 +82,7 @@ test('documented target, progress, ranking, and finalization behavior remains gr
   assert.match(LEADERBOARD_SOURCE, /compareAccumulatedRows\(a, b, primaryMetric\)/);
 
   assert.match(FINALIZATION_SOURCE, /event\.finalSubmissionDeadlineAt \|\|/);
-  assert.match(FINALIZATION_SOURCE, /status: 'submitted'/);
+  assert.match(FINALIZATION_SOURCE, /status: \{ \$in: \['submitted', 'needs_clarification'\] \}/);
   assert.match(FINALIZATION_SOURCE, /if \(pendingCount > 0\)/);
   assert.match(FINALIZATION_SOURCE, /goalDistanceKm: progress\.targetDistanceKm/);
   assert.match(FINALIZATION_SOURCE, /verifiedDistanceKm: progress\.approvedDistanceKm/);

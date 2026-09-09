@@ -72,6 +72,7 @@ test('safe virtual-run route guide builds a substantive race-tips payload', () =
   assert.match(payload.contentText, /Pending evidence awaits the applicable checks/i);
   assert.match(payload.contentText, /reviewed in August 2026 using current Philippine Atmospheric/i);
   assert.match(payload.contentText, /Choose two candidate routes and complete the assessment/i);
+  assert.match(payload.contentHtml, /href="\/blog\/how-accurate-is-phone-gps-for-running"/);
 
   for (const heading of REQUIRED_HEADINGS) {
     assert.ok(payload.contentHtml.includes(`<h2>${heading}</h2>`), `missing required heading: ${heading}`);
@@ -85,6 +86,7 @@ test('safe virtual-run route guide sanitizes sources and passes publication elig
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const eligibility = evaluateBlogContentEligibility({
     ...payload,
+    contentRisk: 'health_safety',
     coverImageUrl: COVER_IMAGE_URL
   }, { evaluatedAt: new Date('2026-08-02T00:00:00.000Z') });
 
@@ -118,7 +120,7 @@ test('safe virtual-run route guide is registered and seeded once for August 10',
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 38);
+  assert.equal(listArticleSlugs().length, 52);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -129,6 +131,7 @@ test('safe virtual-run route guide is registered and seeded once for August 10',
   assert.equal(seededPost.publishedAt, '2026-08-10T11:00:00.000Z');
   assert.equal(seededPost.featured, false);
   assert.equal(seededPost.authorEmail, GUIDE_AUTHOR_EMAIL);
+  assert.ok(seededPost.links.includes('/blog/how-accurate-is-phone-gps-for-running'));
 });
 
 test('safe virtual-run route guide supports exact future scheduling and updates', () => {
@@ -149,12 +152,19 @@ test('safe virtual-run route guide supports exact future scheduling and updates'
   assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.contentEligibility.eligible, true);
-  assert.equal(payload.publicationReview.policyVersion, 'ugc-adsense-v1');
-  assert.equal(payload.publicationReview.originalityConfirmed, true);
+  assert.equal(payload.contentRisk, 'health_safety');
+  assert.equal(payload.publicationReview, null);
+  assert.equal(payload.searchIndexingStatus, 'noindex');
   assert.match(packageJson.scripts['blog:update-safe-virtual-run-route'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
 test('safe virtual-run route guide rejects unsafe or unsupported claims', () => {
+  const comparisonHref = '/blog/gps-watch-vs-running-app';
+  assert.ok(REQUIRED_LINKS.includes(`href="${comparisonHref}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(comparisonHref));
+  const href = '/blog/how-to-run-your-first-10k-virtual-run';
+  assert.ok(REQUIRED_LINKS.includes(`href="${href}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const withClaim = (claim) => ({
     ...payload,

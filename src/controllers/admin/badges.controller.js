@@ -12,7 +12,7 @@ const {
   acceptsJson, normalizePositiveInt, buildAdminRedirect, getAdminPageMessage, renderServerError,
   buildCommunicationLogHref, buildCommunicationRetryHref, buildCommunicationRetryActionHref,
   buildCommunicationFailureDetailHref, normalizeAdminReviewType, normalizeAdminReviewSort,
-  buildReviewQueueParams, getCountMap, formatAdminReviewDate, appendAdminPageMessage,
+  buildReviewQueueParams, getCountMap, formatAdminReviewDate, formatAdminDateTime, appendAdminPageMessage,
   canPublishFromMessage
 } = require('./_shared');
 

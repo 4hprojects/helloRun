@@ -110,7 +110,7 @@ const RAW_CONTENT_HTML = `
 <h2>Handle corrections and exceptions explicitly</h2>
 <p>Define which correction requests are still permitted under the published rules and platform workflow. A correction may replace missing or incorrect evidence; it should not silently create a new eligible activity after the activity window or bypass an expired submission boundary.</p>
 <p>For an unusual exception, record the rule, evidence, decision, reviewer, timestamp, participant communication, and whether comparable records require the same treatment. Escalate conflicts of interest or high-impact cases to an authorized person who did not make the original disputed decision where practical.</p>
-<p>The <a href="/blog/why-a-virtual-run-submission-may-be-rejected">submission-rejection guide</a> explains participant-facing correction context, while the <a href="/blog/what-counts-as-valid-run-proof-for-a-virtual-event">valid-proof guide</a> keeps evidence expectations distinct from unsupported fraud conclusions.</p>
+<p>The <a href="/blog/why-a-virtual-run-submission-may-be-rejected">submission-rejection guide</a> explains participant-facing correction context, while the <a href="/blog/what-counts-as-valid-run-proof">valid-proof guide</a> keeps evidence expectations distinct from unsupported fraud conclusions.</p>
 
 <h2>Calibrate multiple reviewers before the final batch</h2>
 <p>If more than one reviewer is working, compare a small set of representative cases before dividing the remainder. Discuss which published rule controls each decision, what evidence is sufficient, when detail is required, and what must be escalated.</p>
@@ -290,7 +290,7 @@ const REQUIRED_LINKS = Object.freeze([
   '/blog/how-to-design-fair-distance-categories-and-challenge-goals',
   '/blog/fair-and-consistent-run-proof-review-checklist-for-organizers',
   '/blog/why-a-virtual-run-submission-may-be-rejected',
-  '/blog/what-counts-as-valid-run-proof-for-a-virtual-event',
+  '/blog/what-counts-as-valid-run-proof',
   '/blog/how-accumulated-distance-challenges-work'
 ]);
 

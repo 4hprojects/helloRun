@@ -164,7 +164,13 @@
               <fieldset class="registration-choice-group <%= errors.raceDistance ? 'has-error' : '' %>" id="raceDistanceGroup">
                 <legend>Goal or category <span aria-hidden="true">*</span></legend>
                 <p class="choice-helper"><%= presentation.isAccumulated ? 'Your approved activities add together toward this goal.' : 'Choose the category that will determine your event goal and result grouping.' %></p>
-                <% if (distanceControl.kind === 'cards') { %>
+                <% if (distanceControl.kind === 'fixed') { const goal = distanceControl.items[0]; %>
+                  <input type="hidden" id="raceDistance" name="raceDistance" value="<%= goal?.value || '' %>">
+                  <div class="registration-fixed-choice">
+                    <i data-lucide="target" aria-hidden="true"></i>
+                    <span><strong><%= goal?.goalLabel || 'Challenge goal' %></strong><small><%= goal?.title || '' %> · approved activities accumulate toward this goal</small></span>
+                  </div>
+                <% } else if (distanceControl.kind === 'cards') { %>
                   <div class="registration-goal-cards">
                     <% distanceControl.items.forEach((goal, index) => { %>
                       <label class="registration-goal-card <%= goal.available ? '' : 'is-unavailable' %>" for="raceDistance-<%= index %>">
@@ -179,7 +185,7 @@
                       </label>
                     <% }) %>
                   </div>
-                  <small id="raceDistanceHelp">Choose the goal that feels realistic for your month. You may go beyond it.</small>
+                  <small id="raceDistanceHelp">Choose the goal that fits this event. You may go beyond it.</small>
                 <% } else { %>
                 <label class="form-group" for="raceDistance">
                   <span class="sr-only">Goal or category</span>
@@ -202,6 +208,24 @@
                 <% if (errors.raceDistance) { %><small class="error-text" id="raceDistanceError"><%= errors.raceDistance %></small><% } %>
                 <% if (errors.pricing) { %><small class="error-text" id="registrationPricingError"><%= errors.pricing %></small><% } %>
               </fieldset>
+
+              <% const requiredFields = new Set(event.requiredRegistrationFields || []); %>
+              <% if (requiredFields.size) { %>
+                <fieldset class="registration-choice-group" id="participantEventDetails">
+                  <legend>Participant details</legend>
+                  <div class="register-field-grid">
+                    <div class="form-group <%= errors.mobile ? 'has-error' : '' %>"><label for="mobile">Contact number</label><input id="mobile" name="mobile" type="tel" maxlength="25" value="<%= formData.mobile || '' %>" <%= requiredFields.has('mobile') ? 'required' : '' %>><% if (errors.mobile) { %><small class="error-text"><%= errors.mobile %></small><% } %></div>
+                    <div class="form-group <%= errors.department ? 'has-error' : '' %>"><label for="department">Department or office</label><input id="department" name="department" maxlength="120" value="<%= formData.department || '' %>" <%= requiredFields.has('department') ? 'required' : '' %>><% if (errors.department) { %><small class="error-text"><%= errors.department %></small><% } %></div>
+                    <div class="form-group <%= errors.position ? 'has-error' : '' %>"><label for="position">Position or designation</label><input id="position" name="position" maxlength="120" value="<%= formData.position || '' %>" <%= requiredFields.has('position') ? 'required' : '' %>><% if (errors.position) { %><small class="error-text"><%= errors.position %></small><% } %></div>
+                    <div class="form-group <%= errors.preferredFitnessApp ? 'has-error' : '' %>"><label for="preferredFitnessApp">Preferred tracking app or device</label><input id="preferredFitnessApp" name="preferredFitnessApp" maxlength="80" value="<%= formData.preferredFitnessApp || '' %>" placeholder="Strava, Garmin, COROS, or another tracker" <%= requiredFields.has('preferred_fitness_app') ? 'required' : '' %>><% if (errors.preferredFitnessApp) { %><small class="error-text"><%= errors.preferredFitnessApp %></small><% } %></div>
+                  </div>
+                  <label class="form-group" for="leaderboardDisplayPreference">Leaderboard name display
+                    <select id="leaderboardDisplayPreference" name="leaderboardDisplayPreference"><option value="full_name" <%= formData.leaderboardDisplayPreference === 'full_name' ? 'selected' : '' %>>Full name</option><option value="abbreviated" <%= formData.leaderboardDisplayPreference === 'abbreviated' ? 'selected' : '' %>>First name and last initial</option><option value="hidden" <%= formData.leaderboardDisplayPreference === 'hidden' ? 'selected' : '' %>>Do not show me</option></select>
+                  </label>
+                  <label class="waiver-checkbox-row" for="consentToLeaderboard"><input id="consentToLeaderboard" name="consentToLeaderboard" type="checkbox" value="1" <%= formData.consentToLeaderboard ? 'checked' : '' %> aria-invalid="<%= errors.consentToLeaderboard ? 'true' : 'false' %>"><span>I consent to the selected leaderboard display. I can opt out by choosing “Do not show me.”</span></label>
+                  <% if (errors.consentToLeaderboard) { %><small class="error-text"><%= errors.consentToLeaderboard %></small><% } %>
+                </fieldset>
+              <% } %>
 
               <% if (presentation.isAccumulated) { %>
                 <div class="registration-mobile-goal-summary" data-mobile-goal-summary aria-live="polite">

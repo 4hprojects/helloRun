@@ -85,6 +85,7 @@ test('post-run recovery guide sanitizes official sources and passes health eligi
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const eligibility = evaluateBlogContentEligibility({
     ...payload,
+    contentRisk: 'health_safety',
     coverImageUrl: COVER_IMAGE_URL
   }, { evaluatedAt: new Date('2026-08-02T00:00:00.000Z') });
 
@@ -119,7 +120,7 @@ test('post-run recovery guide is registered and seeded once for August 15', () =
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 38);
+  assert.equal(listArticleSlugs().length, 52);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -151,11 +152,8 @@ test('post-run recovery guide supports exact health-reviewed scheduling and upda
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.contentEligibility.eligible, true);
   assert.equal(payload.contentEligibility.healthReviewRequired, true);
-  assert.equal(payload.publicationReview.healthSafetyConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthExperienceConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthSourcesConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthSafetyConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthCredentialsConfirmed, true);
+  assert.equal(payload.publicationReview, null);
+  assert.equal(payload.searchIndexingStatus, 'noindex');
   assert.match(packageJson.scripts['blog:update-post-run-recovery'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 

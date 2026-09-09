@@ -44,6 +44,7 @@ const {
   inspectBlogLinks,
   sanitizeUserBlogHtml
 } = require('../../utils/blog-content-eligibility');
+const { buildIndexingDecision } = require('../../utils/blog-indexing');
 
 const {
   normalizeTemplateKey,
@@ -63,7 +64,7 @@ const {
 
 const EDITABLE_STATUSES = new Set(['draft', 'pending', 'rejected']);
 
-const ADMIN_REVIEW_STATUSES = new Set(['pending', 'published', 'rejected', 'archived', 'draft']);
+const ADMIN_REVIEW_STATUSES = new Set(['all', 'pending', 'published', 'scheduled', 'rejected', 'archived', 'draft']);
 
 const MIN_REJECTION_REASON_LENGTH = 15;
 
@@ -521,6 +522,7 @@ async function getOrCreateAuthorRevision(post, actorId) {
       editedBy: actorId,
       source: 'author_revision',
       status: 'draft',
+      baseContentVersion: Number(post.contentVersion || 0),
       changedFields: [],
       before: liveSnapshot,
       after: liveSnapshot,
@@ -528,6 +530,33 @@ async function getOrCreateAuthorRevision(post, actorId) {
     });
   }
   syncBlogRevisionState(post, revision);
+  return revision;
+}
+
+async function getOrCreateAdminRevision(post, actorId) {
+  let revision = await BlogRevision.findOne({
+    postId: post._id,
+    source: 'admin_revision',
+    status: 'pending'
+  }).sort({ editedAt: -1 });
+  if (!revision) {
+    const liveSnapshot = createRevisionSnapshot(post);
+    revision = await BlogRevision.create({
+      postId: post._id,
+      editedBy: actorId,
+      source: 'admin_revision',
+      status: 'pending',
+      baseContentVersion: Number(post.contentVersion || 0),
+      editVersion: 0,
+      changedFields: [],
+      before: liveSnapshot,
+      after: liveSnapshot,
+      submittedAt: new Date(),
+      editedAt: new Date()
+    });
+    syncBlogRevisionState(post, revision);
+    await post.save();
+  }
   return revision;
 }
 
@@ -601,7 +630,7 @@ async function saveAuthorRevision({ post, payload, actorId, shouldSubmit }) {
 async function getActivePendingRevision(postId) {
   return BlogRevision.findOne({
     postId,
-    source: 'author_revision',
+    source: { $in: ['author_revision', 'admin_revision'] },
     status: 'pending'
   }).sort({ submittedAt: -1, editedAt: -1 });
 }
@@ -693,15 +722,44 @@ function buildPublicationReview({ reviewData, moderationFlags = [], reviewInput 
   };
 }
 
+function resolvePublicationSchedule(reviewInput = {}, now = new Date()) {
+  const publicationMode = String(reviewInput.publicationMode || 'now').trim().toLowerCase();
+  if (!['now', 'scheduled'].includes(publicationMode)) {
+    const error = new Error('Choose whether to publish now or schedule publication.');
+    error.status = 400;
+    throw error;
+  }
+  if (publicationMode === 'now') return { publicationMode, scheduledFor: null };
+  const scheduledFor = new Date(reviewInput.scheduledFor || '');
+  if (!Number.isFinite(scheduledFor.getTime()) || scheduledFor.getTime() <= now.getTime()) {
+    const error = new Error('Scheduled publication requires a valid future date and time.');
+    error.status = 400;
+    throw error;
+  }
+  return { publicationMode, scheduledFor };
+}
+
 async function approveReviewTarget({ post, actorId, reviewInput = {} }) {
   const revision = await getActivePendingRevision(post._id);
   const now = new Date();
+  const schedule = resolvePublicationSchedule(reviewInput, now);
 
   if (revision) {
+    if (Number(revision.baseContentVersion || 0) !== Number(post.contentVersion || 0)) {
+      const error = new Error('The live post changed after this revision was created. Reload and reconcile the revision before publishing.');
+      error.status = 409;
+      throw error;
+    }
     const snapshot = revision.after || {};
     const publication = buildPublicationReview({
-      reviewData: { ...post.toObject(), ...snapshot },
+      reviewData: { ...post.toObject(), ...snapshot, contentRisk: reviewInput.contentRisk || post.contentRisk },
       moderationFlags: revision.moderationFlags || [],
+      reviewInput,
+      actorId,
+      reviewedAt: now
+    });
+    const indexing = buildIndexingDecision({
+      reviewData: { ...post.toObject(), ...snapshot, contentEligibility: publication.eligibility },
       reviewInput,
       actorId,
       reviewedAt: now
@@ -739,24 +797,48 @@ async function approveReviewTarget({ post, actorId, reviewInput = {} }) {
     post.moderationFlagSummary = moderation.summary;
     post.contentEligibility = publication.eligibility;
     post.publicationReview = publication.review;
-    post.status = 'published';
-    post.publishedAt = now;
+    post.contentRisk = indexing.contentRisk;
+    post.searchIndexingStatus = indexing.searchIndexingStatus;
+    post.searchIndexingReason = indexing.searchIndexingReason;
+    post.indexingReview = indexing.indexingReview;
+    post.status = schedule.publicationMode === 'scheduled' ? 'scheduled' : 'published';
+    post.scheduledFor = schedule.scheduledFor;
+    post.scheduledPublishFailures = 0;
+    post.scheduledPublishLastAttemptAt = null;
+    post.scheduledPublishLastError = '';
+    post.publishedAt = schedule.publicationMode === 'scheduled' ? null : now;
     post.reviewedAt = now;
     post.approvedAt = now;
     post.approvedBy = actorId || null;
     post.rejectedAt = null;
     post.rejectedBy = null;
     post.rejectionReason = '';
+    post.contentVersion = Number(post.contentVersion || 0) + 1;
     syncBlogRevisionState(post, null);
-    await post.save();
-
     revision.status = 'approved';
     revision.reviewedAt = now;
     revision.appliedAt = now;
     revision.editedAt = now;
     revision.eligibilitySnapshot = publication.eligibility;
     revision.publicationReview = publication.review;
-    await revision.save();
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        post.$where = { contentVersion: Number(revision.baseContentVersion || 0) };
+        revision.$where = { status: 'pending', editVersion: Number(revision.editVersion || 0) };
+        await post.save({ session });
+        await revision.save({ session });
+      });
+    } catch (error) {
+      if (['DocumentNotFoundError', 'VersionError'].includes(error?.name)) {
+        const conflict = new Error('This post or revision changed during approval. Reload before continuing.');
+        conflict.status = 409;
+        throw conflict;
+      }
+      throw error;
+    } finally {
+      await session.endSession();
+    }
     return { revisionApplied: true, revision, post };
   }
 
@@ -764,22 +846,37 @@ async function approveReviewTarget({ post, actorId, reviewInput = {} }) {
     throw new Error(`Cannot approve a post from "${post.status}" status.`);
   }
   const publication = buildPublicationReview({
-    reviewData: post.toObject ? post.toObject() : post,
+    reviewData: { ...(post.toObject ? post.toObject() : post), contentRisk: reviewInput.contentRisk || post.contentRisk },
     moderationFlags: post.moderationFlags || [],
+    reviewInput,
+    actorId,
+    reviewedAt: now
+  });
+  const indexing = buildIndexingDecision({
+    reviewData: { ...(post.toObject ? post.toObject() : post), contentEligibility: publication.eligibility },
     reviewInput,
     actorId,
     reviewedAt: now
   });
   post.contentEligibility = publication.eligibility;
   post.publicationReview = publication.review;
-  post.status = 'published';
-  post.publishedAt = now;
+  post.contentRisk = indexing.contentRisk;
+  post.searchIndexingStatus = indexing.searchIndexingStatus;
+  post.searchIndexingReason = indexing.searchIndexingReason;
+  post.indexingReview = indexing.indexingReview;
+  post.status = schedule.publicationMode === 'scheduled' ? 'scheduled' : 'published';
+  post.scheduledFor = schedule.scheduledFor;
+  post.scheduledPublishFailures = 0;
+  post.scheduledPublishLastAttemptAt = null;
+  post.scheduledPublishLastError = '';
+  post.publishedAt = schedule.publicationMode === 'scheduled' ? null : now;
   post.reviewedAt = now;
   post.approvedAt = now;
   post.approvedBy = actorId || null;
   post.rejectedAt = null;
   post.rejectedBy = null;
   post.rejectionReason = '';
+  post.contentVersion = Number(post.contentVersion || 0) + 1;
   await post.save();
   return { revisionApplied: false, revision: null, post };
 }
@@ -1050,11 +1147,13 @@ module.exports = {
   getRevisionChangedFields,
   syncBlogRevisionState,
   getOrCreateAuthorRevision,
+  getOrCreateAdminRevision,
   applyRevisionSnapshotToPost,
   saveAuthorRevision,
   getActivePendingRevision,
   resolveReviewTarget,
   approveReviewTarget,
+  resolvePublicationSchedule,
   buildPublicationReview,
   getBlockingModerationFlags,
   rejectReviewTarget,

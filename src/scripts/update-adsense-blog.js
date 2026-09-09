@@ -6,9 +6,10 @@ const mongoose = require('mongoose');
 const Blog = require('../models/Blog');
 const { getArticleModule, listArticleSlugs } = require('../content/adsense-blog-article-registry');
 const {
-  buildTrustedEditorialReview,
+  evaluateBlogContentEligibility,
   isCurrentEligibleBlog
 } = require('../utils/blog-content-eligibility');
+const { getInitialIndexingClassification } = require('../content/adsense-content-indexing');
 
 const EDITORIAL_FIELDS = Object.freeze([
   'title',
@@ -83,11 +84,12 @@ async function updateAdsenseBlog({ slug, mode = 'dry-run' } = {}) {
     const payload = articleModule.buildArticlePayload(post);
     const changedFields = changedEditorialFields(post, payload);
     const eligibilityNeedsUpdate = !isCurrentEligibleBlog(post);
-    const publicationMetadata = buildTrustedEditorialReview(
-      { ...post, ...payload },
-      post.authorId,
-      post.contentEligibility?.evaluatedAt || new Date()
-    );
+    const classification = getInitialIndexingClassification(slug);
+    const indexingNeedsReset = post.contentRisk !== classification.contentRisk
+      || post.searchIndexingStatus !== 'noindex'
+      || post.indexingReview != null;
+    const reviewData = { ...post, ...payload, contentRisk: classification.contentRisk };
+    const contentEligibility = evaluateBlogContentEligibility(reviewData);
     let legacyRecord = null;
 
     if (articleModule.LEGACY_SLUG) {
@@ -97,10 +99,20 @@ async function updateAdsenseBlog({ slug, mode = 'dry-run' } = {}) {
         : null;
     }
 
-    if (mode === 'apply' && (changedFields.length || eligibilityNeedsUpdate)) {
+    if (mode === 'apply' && (changedFields.length || eligibilityNeedsUpdate || indexingNeedsReset)) {
       const result = await Blog.updateOne(
         { _id: post._id, slug },
-        { $set: { ...payload, ...publicationMetadata } },
+        {
+          $set: {
+            ...payload,
+            contentRisk: classification.contentRisk,
+            contentEligibility,
+            publicationReview: null,
+            searchIndexingStatus: 'noindex',
+            searchIndexingReason: classification.contentRisk === 'health_safety' ? 'pending_expert_review' : 'pending_value_review',
+            indexingReview: null
+          }
+        },
         { runValidators: true }
       );
       if (result.matchedCount !== 1 || result.modifiedCount > 1) {
@@ -114,6 +126,7 @@ async function updateAdsenseBlog({ slug, mode = 'dry-run' } = {}) {
       title: articleModule.ARTICLE.title,
       changedFields,
       eligibilityNeedsUpdate,
+      indexingNeedsReset,
       wordCount: payload.contentText.split(/\s+/).filter(Boolean).length,
       readingTime: payload.readingTime,
       preservedFields: ['slug', 'authorId', 'publishedAt', 'featured', 'coverImageUrl', 'views', 'likesCount', 'commentsCount'],

@@ -45,6 +45,7 @@ test('best-apps article builds a complete canonical editorial payload', () => {
   assert.match(payload.contentHtml, /researched guide, not a laboratory accuracy test/i);
   assert.doesNotMatch(payload.contentHtml, /<h[12]>Best Apps to Track Your Virtual Run(?:<|:)/i);
   assert.doesNotMatch(payload.contentHtml, /<em>Best for:<\/em>\s*\*/i);
+  assert.match(payload.contentHtml, /href="\/blog\/how-accurate-is-phone-gps-for-running"/);
 
   for (const heading of REQUIRED_APP_HEADINGS) {
     assert.match(payload.contentHtml, new RegExp(`<h2>${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</h2>`));
@@ -61,6 +62,9 @@ test('AdSense seed uses the canonical rich article and no longer recreates the l
   assert.equal(POSTS.some((post) => post.slug === LEGACY_SLUG), false);
   assert.equal(buildContentHtml(canonicalPost), canonicalPost.contentHtml);
   assert.equal(htmlToText(canonicalPost.contentHtml), buildArticlePayload({ coverImageUrl: canonicalPost.coverImageUrl }).contentText);
+  assert.ok(canonicalPost.links.includes('/blog/how-accurate-is-phone-gps-for-running'));
+  assert.ok(REQUIRED_LINKS.includes('/blog/gps-watch-vs-running-app'));
+  assert.ok(canonicalPost.links.includes('/blog/gps-watch-vs-running-app'));
 });
 
 test('single-article updater defaults to dry-run and detects editorial-only changes', () => {

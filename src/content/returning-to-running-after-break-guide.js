@@ -209,6 +209,8 @@ const RAW_CONTENT_HTML = `
 <p>Complete the worksheet before choosing a comeback distance. Write the reason for the break, what movement continued, current fixed commitments, any guidance needed, the first suitable route and time, and the old target you are willing to release. Then select one conditional activity opportunity with an easy way to shorten or stop.</p>
 <p>Afterward, record the three checkpoints without grading yourself: what happened during the activity, how ordinary life felt later, and what changed the next day. Let those facts shape the next decision. If anything is concerning or outside an ordinary non-medical break, postpone the restart and use qualified guidance.</p>
 <p>For a separate beginner progression, review the <a href="/blog/beginner-5k-training-plan-new-runners">beginner 5K guide</a>. Use it only when running is currently appropriate, and adapt or replace it when individual advice, recovery, weather, or real life requires a different path.</p>
+<p>When the restart is an ordinary non-medical routine decision, the <a href="/blog/30-day-running-challenge-for-beginners">flexible 30-day running challenge</a> can provide a walking-first, run-walk, or easy-running calendar with recovery and weekly reviews.</p>
+<p>When a wider horizon would help, use the <a href="/blog/how-to-set-running-goals-for-the-rest-of-the-year">year-end running-goals guide</a> to turn the current restart—not an old personal best—into adjustable checkpoints.</p>
 
 <h2>Review note</h2>
 <p>Sources, safety boundaries, and current HelloRun behavior were reviewed in August 2026. Search Console validation of the working title remains pending and is not represented as complete. Future source, platform, event, local-authority, and individual-guidance updates take precedence.</p>
@@ -241,6 +243,7 @@ const REQUIRED_HEADINGS = Object.freeze([
 ]);
 
 const REQUIRED_LINKS = Object.freeze([
+  'href="/blog/30-day-running-challenge-for-beginners"',
   '/events',
   '/faq',
   '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
@@ -251,7 +254,8 @@ const REQUIRED_LINKS = Object.freeze([
   '/blog/how-to-run-safely-during-hot-and-humid-weather',
   '/blog/how-to-stay-consistent-during-a-month-long-virtual-run',
   '/blog/how-to-set-a-realistic-monthly-running-goal',
-  '/blog/beginner-5k-training-plan-new-runners'
+  '/blog/beginner-5k-training-plan-new-runners',
+  'href="/blog/how-to-set-running-goals-for-the-rest-of-the-year"'
 ]);
 
 function buildArticlePayload({ coverImageUrl } = {}) {

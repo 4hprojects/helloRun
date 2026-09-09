@@ -147,6 +147,9 @@ const RAW_CONTENT_HTML = `
 <h2>Plan recording without letting the device lead</h2>
 <p>Choose a supported recording method and test it before the event. Wait for the expected outdoor location lock where applicable, use the correct activity profile, and understand pause settings. Preserve the original record. For evidence requirements, read <a href="/blog/what-counts-as-valid-run-proof">What Counts as Valid Run Proof?</a>.</p>
 <p>GPS can drift around tall buildings, trees, bridges, tunnels, switchbacks, and tight loops. A poor signal does not justify stepping into a road to “fix” the track. If tracking stops, move to a suitable place before troubleshooting and use the <a href="/blog/what-to-do-when-gps-tracking-stops-during-a-run">GPS interruption guide</a>.</p>
+<p>The <a href="/blog/how-accurate-is-phone-gps-for-running">phone-GPS accuracy guide</a> explains why an open route may record differently from a covered or building-lined route without turning signal quality into the only route criterion.</p>
+<p>The <a href="/blog/gps-watch-vs-running-app">GPS watch versus running app guide</a> can help choose a primary recorder based on tested controls, battery, accessibility, budget, and proof while keeping route attention ahead of live data.</p>
+<p>For a prepared beginner applying these decisions to ten kilometres, the <a href="/blog/how-to-run-your-first-10k-virtual-run">first virtual 10K guide</a> combines route choice with pacing, tracking, event-day checks, and proof submission.</p>
 <p>Do not edit distance, route, or timestamps to make an unsafe or incomplete attempt appear eligible. Submit accurate evidence and use the published review or correction process.</p>
 
 <h2>Know when an indoor alternative is better</h2>
@@ -202,6 +205,7 @@ const RAW_CONTENT_HTML = `
 <h2>Your practical next step</h2>
 <p>Choose two candidate routes and complete the assessment for both. Inspect their crossings, continuity, exits, opening hours, and conditions at the intended time. Check current PAGASA and local information again before the activity. Keep the better candidate and one genuine fallback.</p>
 <p>If neither route remains suitable, change the time, location, distance or event category where permitted, use an accepted indoor option, or postpone within the rules. A virtual run is flexible precisely so the route can respond to real conditions.</p>
+<p>Once the main surface is known, the <a href="/blog/how-to-choose-running-shoes-for-beginners">beginner running-shoe guide</a> explains how to compare fit, comfort, road or trail use, wet-weather limitations, and budget without treating footwear as a substitute for route safety.</p>
 
 <h2>Sources and review notes</h2>
 <p><strong>Official and platform sources:</strong> route-weather and pedestrian principles come from the official sources below; HelloRun descriptions come from current application behavior and policies.</p>
@@ -239,7 +243,11 @@ const REQUIRED_LINKS = Object.freeze([
   'href="/blog/running-safety-tips-early-morning-night-runs"',
   'href="/blog/what-counts-as-valid-run-proof"',
   'href="/blog/what-to-do-when-gps-tracking-stops-during-a-run"',
-  'href="/blog/how-to-record-a-treadmill-run-for-a-virtual-event"'
+  'href="/blog/how-to-record-a-treadmill-run-for-a-virtual-event"',
+  'href="/blog/how-to-choose-running-shoes-for-beginners"',
+  'href="/blog/how-accurate-is-phone-gps-for-running"',
+  'href="/blog/how-to-run-your-first-10k-virtual-run"',
+  'href="/blog/gps-watch-vs-running-app"'
 ]);
 
 function buildArticlePayload({ coverImageUrl } = {}) {

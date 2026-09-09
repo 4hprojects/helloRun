@@ -1,0 +1,77 @@
+'use strict';
+
+const INDEX_CANDIDATE_SLUGS = Object.freeze([
+  'how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers',
+  'what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers',
+  'how-leaderboards-work-virtual-running-events',
+  'what-counts-as-valid-run-proof',
+  'how-accumulated-distance-challenges-work',
+  'how-to-submit-run-proof-correctly-hellorun',
+  'how-to-join-a-virtual-run-philippines',
+  'hellorun-a-smarter-way-to-manage-running-events',
+  'what-to-do-when-gps-tracking-stops-during-a-run',
+  'how-to-record-a-treadmill-run-for-a-virtual-event',
+  'why-a-virtual-run-submission-may-be-rejected',
+  'virtual-run-checklist-for-first-time-organizers',
+  'how-schools-and-organizations-can-use-virtual-runs',
+  'how-to-write-clear-virtual-run-rules-participants-can-follow',
+  'participant-communication-timeline-virtual-running-events',
+  'how-to-design-fair-distance-categories-and-challenge-goals',
+  'fair-and-consistent-run-proof-review-checklist-for-organizers',
+  'data-privacy-checklist-running-event-organizers',
+  'how-to-make-running-event-instructions-inclusive-accessible',
+  'how-to-close-a-virtual-run-final-reviews-results-recognition'
+]);
+
+const NOINDEX_SLUGS = Object.freeze([
+  'best-apps-to-track-your-virtual-run',
+  'running-safety-tips-early-morning-night-runs',
+  'virtual-run-vs-traditional-race-which-one-should-you-join',
+  'beginner-5k-training-plan-new-runners',
+  'how-to-prepare-for-your-first-virtual-run',
+  'how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
+  'beginners-guide-to-running-pace',
+  'running-during-rainy-season-philippines',
+  'how-to-run-safely-during-hot-and-humid-weather',
+  'how-to-complete-a-50k-accumulated-distance-challenge',
+  'how-to-stay-consistent-during-a-month-long-virtual-run',
+  'how-to-set-a-realistic-monthly-running-goal',
+  'run-walk-method-beginner-friendly-way-build-endurance',
+  'how-to-choose-a-safe-route-for-your-virtual-run',
+  'post-run-recovery-basics-rest-hydration-when-to-ease-back',
+  'how-to-build-a-weekly-running-schedule-around-work-or-school',
+  'what-to-bring-race-day-onsite-hybrid-events',
+  'returning-to-running-after-a-break-gradual-restart-plan',
+  '30-day-running-challenge-for-beginners',
+  '10k-training-plan-for-beginners',
+  'how-to-breathe-while-running',
+  'how-long-to-run-5k-10k-21k',
+  'how-to-choose-running-shoes-for-beginners',
+  'running-cadence-explained',
+  'how-accurate-is-phone-gps-for-running',
+  'can-you-walk-a-virtual-run',
+  'how-to-run-your-first-10k-virtual-run',
+  'gps-watch-vs-running-app',
+  'how-to-promote-a-virtual-run',
+  'virtual-run-registration-fee-pricing',
+  '21k-half-marathon-for-beginners',
+  'how-to-set-running-goals-for-the-rest-of-the-year'
+]);
+
+const HEALTH_SAFETY_SLUGS = Object.freeze(NOINDEX_SLUGS.filter((slug) => ![
+  'best-apps-to-track-your-virtual-run',
+  'virtual-run-vs-traditional-race-which-one-should-you-join',
+  'how-to-promote-a-virtual-run',
+  'virtual-run-registration-fee-pricing'
+].includes(slug)));
+
+function getInitialIndexingClassification(slug) {
+  const normalized = String(slug || '').trim();
+  return {
+    contentRisk: HEALTH_SAFETY_SLUGS.includes(normalized) ? 'health_safety' : 'general',
+    indexCandidate: INDEX_CANDIDATE_SLUGS.includes(normalized),
+    plannedNoindex: NOINDEX_SLUGS.includes(normalized)
+  };
+}
+
+module.exports = { HEALTH_SAFETY_SLUGS, INDEX_CANDIDATE_SLUGS, NOINDEX_SLUGS, getInitialIndexingClassification };

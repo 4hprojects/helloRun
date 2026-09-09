@@ -44,7 +44,7 @@ Complete this section during the authenticated account review:
 
 | Check | Result | Date | Evidence or note |
 | --- | --- | --- | --- |
-| `hellorun.online` ownership | Pending | — | — |
+| `hellorun.online` ownership | Confirmed | 2026-08-30 | Supplied AdSense Sites screenshot shows ownership verification complete. |
 | Site status | Pending | — | — |
 | `ads.txt` status | Pending | — | — |
 | Account setup tasks | Pending | — | — |
@@ -71,4 +71,4 @@ The repository-controlled release gate passed without changing deployment infras
 - Privacy and Cookie Policy notice delivery completed successfully for 482 eligible accounts each with no recorded delivery error.
 - Post-publication link and metadata audits remained clean: 46 sitemap pages, 106 internal links, and zero findings.
 
-This production evidence does not verify Google’s account-side ownership, `ads.txt` authorization result, Policy Center, account tasks, CMP publication, Search Console indexing, or site-review status. Those rows remain pending until checked in the authenticated Google interfaces.
+The supplied August 30 AdSense screenshot confirms Google’s account-side ownership. This production evidence still does not verify `ads.txt` authorization, Policy Center, account tasks, CMP publication, Search Console indexing, or site-review status; those rows remain pending until checked in the authenticated Google interfaces.

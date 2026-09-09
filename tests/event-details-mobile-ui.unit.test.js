@@ -152,11 +152,9 @@ test('recap, submission rules, and organizer details use compact semantic patter
   assert.match(viewSource, /Complete challenge guide/);
   assert.match(viewSource, /structured sections above are the current event settings/);
   assert.match(viewSource, /class="event-rich-details-shell"/);
-  assert.match(viewSource, /<dt>Beginner-friendly apps<\/dt>/);
-  assert.match(viewSource, /Apple Health on iPhone, Google Fit on Android, or Samsung Health/);
-  assert.match(viewSource, /Strava import alone is not enough/);
+  assert.match(viewSource, /<dt>Tracking apps and devices<\/dt>/);
+  assert.match(viewSource, /Use Strava, Garmin, or another sports tracking app or device/);
   assert.match(viewSource, /<dt>A good screenshot shows<\/dt>/);
-  assert.match(viewSource, /both for a combined goal/);
   assert.match(viewSource, /JPG, PNG, or WebP image up to 5 MB/);
 });
 
@@ -176,7 +174,7 @@ test('supporting content follows the decision-first semantic order', () => {
 
 test('CNS beginner infographic has descriptive gallery alternative text', () => {
   assert.match(viewSource, /cns-move-more-beginner-guide/);
-  assert.match(viewSource, /CNS Move More beginner guide to activity-tracking apps and valid screenshots/);
+  assert.match(viewSource, /CNS Wellness In Motion guide to activity-tracking apps and valid screenshots/);
   assert.match(viewSource, /aria-label="Open <%= galleryAlt %>"/);
   assert.match(viewSource, /alt="<%= galleryAlt %>"/);
 });
@@ -189,14 +187,15 @@ test('a single gallery image is balanced on desktop and full-width on mobile', (
 
 test('accumulated challenges prioritize goal choice and personalized progress', () => {
   assert.match(viewSource, /class="event-challenge-decision/);
-  assert.match(viewSource, /Choose one virtual goal for September/);
+  assert.match(viewSource, /hasSingleAccumulatedGoal/);
+  assert.match(viewSource, /Every participant joins the same challenge/);
   assert.match(viewSource, /class="event-challenge-goal-grid"/);
   assert.match(viewSource, /option\.compactName \|\| option\.name/);
   assert.match(viewSource, /option\.goalLabel \|\| option\.compactName \|\| option\.name \|\| option\.distanceKmLabel/);
   assert.match(viewSource, /<strong><%= visibleGoalLabel %><\/strong>/);
   assert.doesNotMatch(viewSource, /Accumulated distance · choose during registration/);
-  assert.match(viewSource, /Choose a goal and register free/);
-  assert.match(viewSource, /Select one category during registration/);
+  assert.match(viewSource, /Register for this challenge/);
+  assert.doesNotMatch(viewSource, /Choose one virtual goal for September/);
   assert.match(viewSource, /runnerState\.progressMetrics/);
   assert.match(viewSource, /metric\.approvedLabel/);
   assert.match(viewSource, /metric\.pendingLabel/);
@@ -236,7 +235,7 @@ test('decision-support section labels align beside their icons', () => {
 test('accumulated guest journey ends with a desktop registration prompt', () => {
   assert.match(viewSource, /details\.isAccumulatedChallenge && !runnerState && !isPreviewMode/);
   assert.match(viewSource, /class="event-challenge-closing-cta"/);
-  assert.match(viewSource, /Choose a goal and register free/);
+  assert.match(viewSource, /Join the 50 km challenge/);
   assert.match(cssSource, /\.event-challenge-closing-cta\s*\{[\s\S]*display:\s*flex/);
   assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*\.event-challenge-closing-cta\s*\{[\s\S]*display:\s*none/);
 });

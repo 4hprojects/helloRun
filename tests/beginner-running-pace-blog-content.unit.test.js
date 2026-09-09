@@ -74,7 +74,7 @@ test('beginner pace guide is registered and seeded once with its CDN cover', () 
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 38);
+  assert.equal(listArticleSlugs().length, 52);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -108,5 +108,16 @@ test('beginner pace guide supports safe creation and ongoing updates', () => {
 });
 
 test('beginner pace payload rejects a missing cover image', () => {
+  const href = '/blog/how-to-run-your-first-10k-virtual-run';
+  assert.ok(REQUIRED_LINKS.includes(href));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
   assert.throws(() => buildArticlePayload({}), /existing cover image is required/);
+});
+
+test('beginner pace guide links 21K pacing to the separate preparation framework', () => {
+  const href = '/blog/21k-half-marathon-for-beginners';
+  const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
+  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
+  assert.ok(payload.contentHtml.includes(`href="${href}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
 });

@@ -22,7 +22,7 @@
     "url": _postCanonical,
     "datePublished": _postPublished,
     "dateModified": _postModified,
-    "author": { "@type": authorDisplay.schemaType || "Person", "name": authorDisplay.name },
+    "author": { "@type": "Person", "name": authorDisplay.name, ...(authorDisplay.url ? { "url": authorDisplay.url } : {}) },
     "publisher": {
       "@type": "Organization",
       "name": "HelloRun",
@@ -64,7 +64,7 @@
           <h1><%= post.title %></h1>
         </div>
         <div class="post-audience-chips">
-          <% (articlePresentation?.tags || []).forEach(function(tag) { %>
+          <% (articlePresentation?.tags || []).slice(0, 2).forEach(function(tag) { %>
             <span class="post-audience-chip post-audience-chip-tag">#<%= tag %></span>
           <% }) %>
         </div>
@@ -80,11 +80,8 @@
             <% } %>
           </span>
           <div class="blog-post-author-copy">
-            <a href="<%= post.authorId?._id ? `/blog?author=${post.authorId._id}` : '/blog' %>" class="blog-post-author-name">
+            <a href="<%= post.authorId?.authorSlug ? `/blog/authors/${post.authorId.authorSlug}` : '/blog' %>" class="blog-post-author-name">
               <%= authorDisplay?.name || `${post.authorId?.firstName || 'HelloRun'} ${post.authorId?.lastName || ''}` %>
-              <% if (post.authorId?.verifiedAuthor) { %>
-                <i data-lucide="badge-check" class="verified-author-icon" aria-label="Verified writer"></i>
-              <% } %>
             </a>
             <p class="blog-post-submeta">
               <%= post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '' %>
@@ -189,14 +186,6 @@
             }) %>
           </section>
 
-          <% if (post.tags && post.tags.length) { %>
-            <div class="blog-tag-list">
-              <% post.tags.forEach((tag) => { %>
-                <span class="blog-tag">#<%= tag %></span>
-              <% }) %>
-            </div>
-          <% } %>
-
           <div class="post-next-step">
             <span class="post-next-step-text">Ready to take the next step?</span>
             <a href="<%= articlePresentation?.nextStep?.href || '/events' %>" class="post-next-step-cta">
@@ -250,23 +239,23 @@
             <div class="author-details">
               <h4>
                 <%= authorDisplay?.name || `${post.authorId?.firstName || 'HelloRun'} ${post.authorId?.lastName || ''}` %>
-                <% if (post.authorId?.verifiedAuthor) { %>
-                  <span class="verified-author-badge" title="Verified Author" style="color:#2196f3;vertical-align:middle;">
-                    <i data-lucide="badge-check" aria-hidden="true"></i> Verified
-                  </span>
-                <% } %>
               </h4>
+              <% if (authorDisplay?.role) { %><p class="author-role"><%= authorDisplay.role %></p><% } %>
               <p class="author-bio"><%= authorDisplay?.bio || 'HelloRun publishes practical guides for runners and event organizers.' %></p>
-              <% if (typeof post.authorId?.trustScore === 'number') { %>
-                <div class="author-trust-score" style="font-size:0.95em;color:#4caf50;">
-                  Trust Score: <strong><%= post.authorId.trustScore %></strong>/100
-                </div>
-              <% } %>
-              <% if (post.authorId?._id) { %>
-                <a href="/blog?author=<%= post.authorId._id %>" class="author-more-posts">More posts by this author →</a>
+              <% if (post.authorId?.authorSlug) { %>
+                <a href="/blog/authors/<%= post.authorId.authorSlug %>" class="author-more-posts">More posts by this author →</a>
               <% } %>
             </div>
           </section>
+
+          <% if (expertReviewer) { %>
+            <section class="blog-reviewer-box" aria-label="Qualified content review">
+              <h4>Reviewed by <%= expertReviewer.name %></h4>
+              <p><%= expertReviewer.credentials %><% if (expertReviewer.organization) { %>, <%= expertReviewer.organization %><% } %></p>
+              <p>Reviewed <%= new Date(expertReviewer.reviewedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %></p>
+              <% if (expertReviewer.profileUrl) { %><a href="<%= expertReviewer.profileUrl %>" rel="noopener noreferrer">Reviewer profile</a><% } %>
+            </section>
+          <% } %>
 
         </div>
       </div>

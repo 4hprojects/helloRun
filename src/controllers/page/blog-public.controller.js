@@ -2,8 +2,8 @@
 
 const { buildPublicBlogListPage } = require('../../services/public-blog-list.service');
 const { getBlogArticlePresentation } = require('../../services/public-blog-presentation.service');
-const { EDITORIAL_TEAM_NAME, formatBlogAuthorName } = require('../../utils/blog-author');
-const { isCurrentEligibleBlog } = require('../../utils/blog-content-eligibility');
+const { formatBlogAuthorName } = require('../../utils/blog-author');
+const { isSearchIndexableBlog, hasCompleteExpertReviewer } = require('../../utils/blog-indexing');
 
 const {
   crypto,
@@ -99,6 +99,7 @@ exports.getBlogCategoryPage = async (req, res) => {
   }
   req.query.category = category;
   req.blogListingKind = 'category';
+  req.blogCategorySlug = categorySlug;
   return exports.getBlogList(req, res);
 };
 
@@ -122,7 +123,9 @@ exports.getBlogList = async (req, res) => {
   try {
     const pageData = await buildPublicBlogListPage(req.query, {
       listingKind: req.blogListingKind,
-      baseUrl: getAppBaseUrl()
+      categorySlug: req.blogCategorySlug,
+      baseUrl: getAppBaseUrl(),
+      authorProfile: req.authorProfile || null
     });
     if (pageData.isThinFilteredListing) {
       res.setHeader('X-Robots-Tag', 'noindex, follow');
@@ -136,6 +139,22 @@ exports.getBlogList = async (req, res) => {
       status: 500,
       message: 'An error occurred while loading blog posts.'
     });
+  }
+};
+
+exports.getBlogAuthorPage = async (req, res) => {
+  try {
+    const author = await User.findOne({ authorSlug: String(req.params.authorSlug || '').trim().toLowerCase() })
+      .select('_id displayName firstName lastName avatarUrl authorSlug authorRole authorBio')
+      .lean();
+    if (!author) return res.status(404).render('error', { title: '404 - Author Not Found', status: 404, message: 'This author profile is not available.' });
+    req.query.author = String(author._id);
+    req.blogListingKind = 'author';
+    req.authorProfile = author;
+    return exports.getBlogList(req, res);
+  } catch (error) {
+    logger.error('Error loading blog author:', error);
+    return res.status(500).render('error', { title: 'Server Error', status: 500, message: 'An error occurred while loading the author profile.' });
   }
 };
 
@@ -168,7 +187,7 @@ exports.getBlogPost = async (req, res) => {
       isDeleted: { $ne: true },
       publishedAt: { $lte: new Date() }
     })
-      .populate('authorId', 'displayName firstName lastName avatarUrl verifiedAuthor trustScore');
+      .populate('authorId', 'displayName firstName lastName avatarUrl authorSlug authorRole authorBio');
 
     if (!post) {
       return res.status(404).render('error', {
@@ -177,8 +196,8 @@ exports.getBlogPost = async (req, res) => {
         message: 'This blog post is not available.'
       });
     }
-    const adsenseEligible = isCurrentEligibleBlog(post);
-    if (!adsenseEligible) {
+    const searchIndexable = isSearchIndexableBlog(post);
+    if (!searchIndexable) {
       res.setHeader('X-Robots-Tag', 'noindex, follow');
       disableAdLocals(res);
     }
@@ -233,10 +252,8 @@ exports.getBlogPost = async (req, res) => {
       ? Boolean(await BlogLike.exists({ blogId: post._id, userId: currentUserId }))
       : false;
     const authorName = formatBlogAuthorName(post.authorId || {}, 'HelloRun');
-    const isEditorialTeam = authorName === EDITORIAL_TEAM_NAME;
-    const authorBio = isEditorialTeam
-      ? 'The HelloRun Editorial Team publishes researched, practical guidance for runners and event organisers, with transparent sourcing and event-specific limitations.'
-      : 'HelloRun publishes practical guides for runners and event organizers, with a focus on virtual runs, proof submission, leaderboards, and community fitness events.';
+    const authorBio = String(post.authorId?.authorBio || '').trim()
+      || 'HelloRun publishes practical guides grounded in its running-event platform and community operations.';
 
     return res.render('pages/blog-post', {
       title: `${post.title} - HelloRun Blog`,
@@ -244,8 +261,11 @@ exports.getBlogPost = async (req, res) => {
       authorDisplay: {
         name: authorName,
         bio: authorBio,
-        schemaType: isEditorialTeam ? 'Organization' : 'Person'
+        role: String(post.authorId?.authorRole || '').trim(),
+        url: post.authorId?.authorSlug ? `${baseUrl}/blog/authors/${post.authorId.authorSlug}` : '',
+        schemaType: 'Person'
       },
+      expertReviewer: hasCompleteExpertReviewer(post.indexingReview) ? post.indexingReview.expertReviewer : null,
       blogContentParts: splitBlogContentForAd(post.contentHtml || ''),
       relatedPosts,
       interactionState: {
@@ -262,7 +282,7 @@ exports.getBlogPost = async (req, res) => {
         ogTitle: seoTitle || `${post.title} - HelloRun Blog`,
         twitterTitle: seoTitle || `${post.title} - HelloRun Blog`,
         ogImage: ogImage || '',
-        robots: adsenseEligible ? '' : 'noindex, follow'
+        robots: searchIndexable ? '' : 'noindex, follow'
       }
     });
   } catch (error) {

@@ -46,7 +46,7 @@ async function assignEditorialTeam({ mode = 'dry-run' } = {}) {
         role: 'admin',
         emailVerified: true,
         accountStatus: { $nin: ['suspended', 'closed'] }
-      }).select('_id email role displayName verifiedAuthor trustScore').lean(),
+      }).select('_id email role displayName verifiedAuthor trustScore authorSlug authorRole authorBio').lean(),
       Blog.find({ slug: { $in: slugs } }).select('_id slug authorId status isDeleted').lean()
     ]);
 
@@ -56,8 +56,9 @@ async function assignEditorialTeam({ mode = 'dry-run' } = {}) {
     const reassigned = posts.filter((post) => String(post.authorId || '') !== String(team._id));
     const profileChanges = [];
     if (team.displayName !== EDITORIAL_TEAM_NAME) profileChanges.push('displayName');
-    if (team.verifiedAuthor !== true) profileChanges.push('verifiedAuthor');
-    if (Number(team.trustScore || 0) < 90) profileChanges.push('trustScore');
+    if (team.verifiedAuthor !== false) profileChanges.push('verifiedAuthor');
+    if (Number(team.trustScore || 0) !== 0) profileChanges.push('trustScore');
+    if (team.authorSlug !== 'henson-m-sagorsor') profileChanges.push('authorSlug');
 
     if (mode === 'apply') {
       await User.updateOne(
@@ -65,8 +66,11 @@ async function assignEditorialTeam({ mode = 'dry-run' } = {}) {
         {
           $set: {
             displayName: EDITORIAL_TEAM_NAME,
-            verifiedAuthor: true,
-            trustScore: Math.max(90, Number(team.trustScore || 0))
+            verifiedAuthor: false,
+            trustScore: 0,
+            authorSlug: 'henson-m-sagorsor',
+            authorRole: 'HelloRun developer, operator, and editor',
+            authorBio: 'Henson M. Sagorsor develops and operates HelloRun through 4HProjects in Benguet, Philippines, and edits platform guidance based on HelloRun event and submission workflows.'
           }
         },
         { runValidators: true }

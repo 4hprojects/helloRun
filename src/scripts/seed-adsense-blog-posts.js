@@ -5,7 +5,8 @@ const bcrypt = require('bcryptjs');
 const Blog = require('../models/Blog');
 const User = require('../models/User');
 const { EDITORIAL_TEAM_EMAIL, EDITORIAL_TEAM_NAME } = require('../utils/blog-author');
-const { buildTrustedEditorialReview } = require('../utils/blog-content-eligibility');
+const { evaluateBlogContentEligibility } = require('../utils/blog-content-eligibility');
+const { getInitialIndexingClassification } = require('../content/adsense-content-indexing');
 const {
   ARTICLE: BEST_APPS_ARTICLE,
   buildArticlePayload: buildBestAppsArticlePayload
@@ -158,6 +159,62 @@ const {
   ARTICLE: CLOSE_VIRTUAL_RUN_FINAL_REVIEWS_RESULTS_RECOGNITION_ARTICLE,
   buildArticlePayload: buildCloseVirtualRunFinalReviewsResultsRecognitionPayload
 } = require('../content/close-virtual-run-final-reviews-results-recognition-guide');
+const {
+  ARTICLE: THIRTY_DAY_RUNNING_CHALLENGE_BEGINNERS_ARTICLE,
+  buildArticlePayload: buildThirtyDayRunningChallengeBeginnersPayload
+} = require('../content/thirty-day-running-challenge-beginners');
+const {
+  ARTICLE: TEN_K_TRAINING_PLAN_BEGINNERS_ARTICLE,
+  buildArticlePayload: buildTenKTrainingPlanBeginnersPayload
+} = require('../content/ten-k-training-plan-beginners');
+const {
+  ARTICLE: HOW_TO_BREATHE_WHILE_RUNNING_ARTICLE,
+  buildArticlePayload: buildHowToBreatheWhileRunningPayload
+} = require('../content/how-to-breathe-while-running');
+const {
+  ARTICLE: HOW_LONG_TO_RUN_5K_10K_21K_ARTICLE,
+  buildArticlePayload: buildHowLongToRun5k10k21kPayload
+} = require('../content/how-long-to-run-5k-10k-21k');
+const {
+  ARTICLE: HOW_TO_CHOOSE_RUNNING_SHOES_FOR_BEGINNERS_ARTICLE,
+  buildArticlePayload: buildHowToChooseRunningShoesForBeginnersPayload
+} = require('../content/how-to-choose-running-shoes-for-beginners');
+const {
+  ARTICLE: RUNNING_CADENCE_EXPLAINED_ARTICLE,
+  buildArticlePayload: buildRunningCadenceExplainedPayload
+} = require('../content/running-cadence-explained');
+const {
+  ARTICLE: HOW_ACCURATE_PHONE_GPS_RUNNING_ARTICLE,
+  buildArticlePayload: buildHowAccuratePhoneGpsRunningPayload
+} = require('../content/how-accurate-phone-gps-running');
+const {
+  ARTICLE: CAN_YOU_WALK_VIRTUAL_RUN_ARTICLE,
+  buildArticlePayload: buildCanYouWalkVirtualRunPayload
+} = require('../content/can-you-walk-virtual-run');
+const {
+  ARTICLE: HOW_TO_RUN_FIRST_10K_VIRTUAL_RUN_ARTICLE,
+  buildArticlePayload: buildHowToRunFirst10kVirtualRunPayload
+} = require('../content/how-to-run-first-10k-virtual-run');
+const {
+  ARTICLE: GPS_WATCH_VS_RUNNING_APP_ARTICLE,
+  buildArticlePayload: buildGpsWatchVsRunningAppPayload
+} = require('../content/gps-watch-vs-running-app');
+const {
+  ARTICLE: HOW_TO_PROMOTE_VIRTUAL_RUN_ARTICLE,
+  buildArticlePayload: buildHowToPromoteVirtualRunPayload
+} = require('../content/how-to-promote-virtual-run');
+const {
+  ARTICLE: VIRTUAL_RUN_REGISTRATION_FEE_PRICING_ARTICLE,
+  buildArticlePayload: buildVirtualRunRegistrationFeePricingPayload
+} = require('../content/virtual-run-registration-fee-pricing');
+const {
+  ARTICLE: TWENTY_ONE_K_HALF_MARATHON_BEGINNERS_ARTICLE,
+  buildArticlePayload: buildTwentyOneKHalfMarathonBeginnersPayload
+} = require('../content/twenty-one-k-half-marathon-beginners');
+const {
+  ARTICLE: RUNNING_GOALS_REST_OF_YEAR_ARTICLE,
+  buildArticlePayload: buildRunningGoalsRestOfYearPayload
+} = require('../content/running-goals-rest-of-year');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -238,6 +295,34 @@ const RETURNING_TO_RUNNING_AFTER_BREAK_COVER_IMAGE_URL = 'https://cdn.hellorun.o
 const RETURNING_TO_RUNNING_AFTER_BREAK_PAYLOAD = buildReturningToRunningAfterBreakPayload({ coverImageUrl: RETURNING_TO_RUNNING_AFTER_BREAK_COVER_IMAGE_URL });
 const CLOSE_VIRTUAL_RUN_FINAL_REVIEWS_RESULTS_RECOGNITION_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1785690759825-213037969-close-virtual-run-final-reviews-results-recognition.webp';
 const CLOSE_VIRTUAL_RUN_FINAL_REVIEWS_RESULTS_RECOGNITION_PAYLOAD = buildCloseVirtualRunFinalReviewsResultsRecognitionPayload({ coverImageUrl: CLOSE_VIRTUAL_RUN_FINAL_REVIEWS_RESULTS_RECOGNITION_COVER_IMAGE_URL });
+const THIRTY_DAY_RUNNING_CHALLENGE_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/30-day-running-challenge-for-beginners.webp';
+const THIRTY_DAY_RUNNING_CHALLENGE_BEGINNERS_PAYLOAD = buildThirtyDayRunningChallengeBeginnersPayload({ coverImageUrl: THIRTY_DAY_RUNNING_CHALLENGE_BEGINNERS_COVER_IMAGE_URL });
+const TEN_K_TRAINING_PLAN_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/10k-training-plan-for-beginners.webp';
+const TEN_K_TRAINING_PLAN_BEGINNERS_PAYLOAD = buildTenKTrainingPlanBeginnersPayload({ coverImageUrl: TEN_K_TRAINING_PLAN_BEGINNERS_COVER_IMAGE_URL });
+const HOW_TO_BREATHE_WHILE_RUNNING_COVER_IMAGE_URL = '/images/blog/covers/how-to-breathe-while-running.webp';
+const HOW_TO_BREATHE_WHILE_RUNNING_PAYLOAD = buildHowToBreatheWhileRunningPayload({ coverImageUrl: HOW_TO_BREATHE_WHILE_RUNNING_COVER_IMAGE_URL });
+const HOW_LONG_TO_RUN_5K_10K_21K_COVER_IMAGE_URL = '/images/blog/covers/how-long-to-run-5k-10k-21k.webp';
+const HOW_LONG_TO_RUN_5K_10K_21K_PAYLOAD = buildHowLongToRun5k10k21kPayload({ coverImageUrl: HOW_LONG_TO_RUN_5K_10K_21K_COVER_IMAGE_URL });
+const HOW_TO_CHOOSE_RUNNING_SHOES_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/how-to-choose-running-shoes-for-beginners.webp';
+const HOW_TO_CHOOSE_RUNNING_SHOES_FOR_BEGINNERS_PAYLOAD = buildHowToChooseRunningShoesForBeginnersPayload({ coverImageUrl: HOW_TO_CHOOSE_RUNNING_SHOES_FOR_BEGINNERS_COVER_IMAGE_URL });
+const RUNNING_CADENCE_EXPLAINED_COVER_IMAGE_URL = '/images/blog/covers/running-cadence-explained.webp';
+const RUNNING_CADENCE_EXPLAINED_PAYLOAD = buildRunningCadenceExplainedPayload({ coverImageUrl: RUNNING_CADENCE_EXPLAINED_COVER_IMAGE_URL });
+const HOW_ACCURATE_PHONE_GPS_RUNNING_COVER_IMAGE_URL = '/images/blog/covers/how-accurate-is-phone-gps-for-running.webp';
+const HOW_ACCURATE_PHONE_GPS_RUNNING_PAYLOAD = buildHowAccuratePhoneGpsRunningPayload({ coverImageUrl: HOW_ACCURATE_PHONE_GPS_RUNNING_COVER_IMAGE_URL });
+const CAN_YOU_WALK_VIRTUAL_RUN_COVER_IMAGE_URL = '/images/blog/covers/can-you-walk-a-virtual-run.webp';
+const CAN_YOU_WALK_VIRTUAL_RUN_PAYLOAD = buildCanYouWalkVirtualRunPayload({ coverImageUrl: CAN_YOU_WALK_VIRTUAL_RUN_COVER_IMAGE_URL });
+const HOW_TO_RUN_FIRST_10K_VIRTUAL_RUN_COVER_IMAGE_URL = '/images/blog/covers/how-to-run-your-first-10k-virtual-run.webp';
+const HOW_TO_RUN_FIRST_10K_VIRTUAL_RUN_PAYLOAD = buildHowToRunFirst10kVirtualRunPayload({ coverImageUrl: HOW_TO_RUN_FIRST_10K_VIRTUAL_RUN_COVER_IMAGE_URL });
+const GPS_WATCH_VS_RUNNING_APP_COVER_IMAGE_URL = '/images/blog/covers/gps-watch-vs-running-app.webp';
+const GPS_WATCH_VS_RUNNING_APP_PAYLOAD = buildGpsWatchVsRunningAppPayload({ coverImageUrl: GPS_WATCH_VS_RUNNING_APP_COVER_IMAGE_URL });
+const HOW_TO_PROMOTE_VIRTUAL_RUN_COVER_IMAGE_URL = '/images/blog/covers/how-to-promote-a-virtual-run.webp';
+const HOW_TO_PROMOTE_VIRTUAL_RUN_PAYLOAD = buildHowToPromoteVirtualRunPayload({ coverImageUrl: HOW_TO_PROMOTE_VIRTUAL_RUN_COVER_IMAGE_URL });
+const VIRTUAL_RUN_REGISTRATION_FEE_PRICING_COVER_IMAGE_URL = '/images/blog/covers/virtual-run-registration-fee-pricing.webp';
+const VIRTUAL_RUN_REGISTRATION_FEE_PRICING_PAYLOAD = buildVirtualRunRegistrationFeePricingPayload({ coverImageUrl: VIRTUAL_RUN_REGISTRATION_FEE_PRICING_COVER_IMAGE_URL });
+const TWENTY_ONE_K_HALF_MARATHON_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/21k-half-marathon-for-beginners.webp';
+const TWENTY_ONE_K_HALF_MARATHON_BEGINNERS_PAYLOAD = buildTwentyOneKHalfMarathonBeginnersPayload({ coverImageUrl: TWENTY_ONE_K_HALF_MARATHON_BEGINNERS_COVER_IMAGE_URL });
+const RUNNING_GOALS_REST_OF_YEAR_COVER_IMAGE_URL = '/images/blog/covers/how-to-set-running-goals-for-the-rest-of-the-year.webp';
+const RUNNING_GOALS_REST_OF_YEAR_PAYLOAD = buildRunningGoalsRestOfYearPayload({ coverImageUrl: RUNNING_GOALS_REST_OF_YEAR_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -317,7 +402,9 @@ const POSTS = [
       '/blog/running-safety-tips-early-morning-night-runs',
       '/blog/virtual-run-vs-traditional-race-which-one-should-you-join',
       '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers',
-      '/blog/beginner-5k-training-plan-new-runners'
+      '/blog/beginner-5k-training-plan-new-runners',
+      '/blog/how-accurate-is-phone-gps-for-running',
+      '/blog/how-to-run-your-first-10k-virtual-run'
     ],
   },
   {
@@ -332,7 +419,9 @@ const POSTS = [
       '/how-it-works',
       '/faq',
       '/blog/what-counts-as-valid-run-proof',
-      '/blog/how-to-submit-run-proof-correctly-hellorun'
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/how-accurate-is-phone-gps-for-running',
+      '/blog/gps-watch-vs-running-app'
     ]
   },
   {
@@ -353,7 +442,8 @@ const POSTS = [
       '/blog/best-apps-to-track-your-virtual-run',
       '/blog/what-counts-as-valid-run-proof',
       '/blog/how-to-submit-run-proof-correctly-hellorun',
-      '/blog/how-accumulated-distance-challenges-work'
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/10k-training-plan-for-beginners'
     ],
   },
   {
@@ -468,7 +558,10 @@ const POSTS = [
       '/blog/how-leaderboards-work-virtual-running-events',
       '/blog/running-safety-tips-early-morning-night-runs',
       '/blog/virtual-run-vs-traditional-race-which-one-should-you-join',
-      '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers'
+      '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers',
+      '/blog/can-you-walk-a-virtual-run',
+      '/blog/how-to-run-your-first-10k-virtual-run',
+      '/blog/how-to-promote-a-virtual-run'
     ]
   },
   {
@@ -581,7 +674,10 @@ const POSTS = [
       '/blog/what-counts-as-valid-run-proof',
       '/blog/how-to-submit-run-proof-correctly-hellorun',
       '/blog/how-leaderboards-work-virtual-running-events',
-      '/blog/running-safety-tips-early-morning-night-runs'
+      '/blog/running-safety-tips-early-morning-night-runs',
+      '/blog/how-long-to-run-5k-10k-21k',
+      '/blog/how-to-run-your-first-10k-virtual-run',
+      '/blog/21k-half-marathon-for-beginners'
     ]
   },
   {
@@ -858,7 +954,8 @@ const POSTS = [
       '/blog/how-accumulated-distance-challenges-work',
       '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
       '/blog/how-to-stay-consistent-during-a-month-long-virtual-run',
-      '/blog/beginner-5k-training-plan-new-runners'
+      '/blog/beginner-5k-training-plan-new-runners',
+      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
     ]
   },
   {
@@ -879,7 +976,9 @@ const POSTS = [
       '/privacy',
       '/refund-and-cancellation-policy',
       '/blog/what-counts-as-valid-run-proof',
-      '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers'
+      '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers',
+      '/blog/how-to-promote-a-virtual-run',
+      '/blog/virtual-run-registration-fee-pricing'
     ]
   },
   {
@@ -902,7 +1001,12 @@ const POSTS = [
       '/blog/how-to-train-safely-for-virtual-runs-in-hot-and-humid-weather',
       '/blog/running-during-rainy-season-philippines',
       '/blog/how-to-record-a-treadmill-run-for-a-virtual-event',
-      '/blog/running-safety-tips-early-morning-night-runs'
+      '/blog/running-safety-tips-early-morning-night-runs',
+      '/blog/30-day-running-challenge-for-beginners',
+      '/blog/can-you-walk-a-virtual-run',
+      '/blog/how-to-run-your-first-10k-virtual-run',
+      '/blog/21k-half-marathon-for-beginners',
+      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
     ]
   },
   {
@@ -925,7 +1029,9 @@ const POSTS = [
       '/blog/how-to-write-clear-virtual-run-rules-participants-can-follow',
       '/blog/what-counts-as-valid-run-proof',
       '/blog/how-to-submit-run-proof-correctly-hellorun',
-      '/blog/why-a-virtual-run-submission-may-be-rejected'
+      '/blog/why-a-virtual-run-submission-may-be-rejected',
+      '/blog/how-to-promote-a-virtual-run',
+      '/blog/virtual-run-registration-fee-pricing'
     ]
   },
   {
@@ -947,7 +1053,11 @@ const POSTS = [
       '/blog/running-safety-tips-early-morning-night-runs',
       '/blog/what-counts-as-valid-run-proof',
       '/blog/what-to-do-when-gps-tracking-stops-during-a-run',
-      '/blog/how-to-record-a-treadmill-run-for-a-virtual-event'
+      '/blog/how-to-record-a-treadmill-run-for-a-virtual-event',
+      '/blog/how-to-choose-running-shoes-for-beginners',
+      '/blog/how-accurate-is-phone-gps-for-running',
+      '/blog/how-to-run-your-first-10k-virtual-run',
+      '/blog/gps-watch-vs-running-app'
     ]
   },
   {
@@ -968,7 +1078,9 @@ const POSTS = [
       '/blog/how-to-write-clear-virtual-run-rules-participants-can-follow',
       '/blog/how-accumulated-distance-challenges-work',
       '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
-      '/blog/how-leaderboards-work-virtual-running-events'
+      '/blog/how-leaderboards-work-virtual-running-events',
+      '/blog/how-to-promote-a-virtual-run',
+      '/blog/virtual-run-registration-fee-pricing'
     ]
   },
   {
@@ -1034,7 +1146,10 @@ const POSTS = [
       '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
       '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
       '/blog/how-to-run-safely-during-hot-and-humid-weather',
-      '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge'
+      '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
+      '/blog/30-day-running-challenge-for-beginners',
+      '/blog/21k-half-marathon-for-beginners',
+      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
     ]
   },
   {
@@ -1115,7 +1230,9 @@ const POSTS = [
       '/blog/run-walk-method-beginner-friendly-way-build-endurance',
       '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
       '/blog/how-to-run-safely-during-hot-and-humid-weather',
-      '/blog/beginner-5k-training-plan-new-runners'
+      '/blog/beginner-5k-training-plan-new-runners',
+      '/blog/30-day-running-challenge-for-beginners',
+      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
     ]
   },
   {
@@ -1137,6 +1254,319 @@ const POSTS = [
       '/blog/fair-and-consistent-run-proof-review-checklist-for-organizers',
       '/blog/how-accumulated-distance-challenges-work'
     ]
+  },
+  {
+    ...THIRTY_DAY_RUNNING_CHALLENGE_BEGINNERS_ARTICLE,
+    contentHtml: THIRTY_DAY_RUNNING_CHALLENGE_BEGINNERS_PAYLOAD.contentHtml,
+    coverImageUrl: THIRTY_DAY_RUNNING_CHALLENGE_BEGINNERS_COVER_IMAGE_URL,
+    coverImageAlt: THIRTY_DAY_RUNNING_CHALLENGE_BEGINNERS_ARTICLE.coverImageAlt,
+    ogImageUrl: THIRTY_DAY_RUNNING_CHALLENGE_BEGINNERS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-09-01T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/blog/returning-to-running-after-a-break-gradual-restart-plan',
+      '/blog/run-walk-method-beginner-friendly-way-build-endurance',
+      '/blog/how-to-build-a-weekly-running-schedule-around-work-or-school',
+      '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
+      '/blog/how-to-set-a-realistic-monthly-running-goal',
+      '/blog/10k-training-plan-for-beginners',
+      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
+    ]
+  },
+  {
+    ...TEN_K_TRAINING_PLAN_BEGINNERS_ARTICLE,
+    contentHtml: TEN_K_TRAINING_PLAN_BEGINNERS_PAYLOAD.contentHtml,
+    coverImageUrl: TEN_K_TRAINING_PLAN_BEGINNERS_COVER_IMAGE_URL,
+    coverImageAlt: TEN_K_TRAINING_PLAN_BEGINNERS_ARTICLE.coverImageAlt,
+    ogImageUrl: TEN_K_TRAINING_PLAN_BEGINNERS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-09-03T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/blog/beginner-5k-training-plan-new-runners',
+      '/blog/30-day-running-challenge-for-beginners',
+      '/blog/run-walk-method-beginner-friendly-way-build-endurance',
+      '/blog/how-to-build-a-weekly-running-schedule-around-work-or-school',
+      '/blog/returning-to-running-after-a-break-gradual-restart-plan',
+      '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
+      '/blog/beginners-guide-to-running-pace',
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
+      '/blog/how-to-breathe-while-running',
+      '/blog/can-you-walk-a-virtual-run',
+      '/blog/how-to-run-your-first-10k-virtual-run',
+      '/blog/21k-half-marathon-for-beginners',
+      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
+    ]
+  },
+  {
+    ...HOW_TO_BREATHE_WHILE_RUNNING_ARTICLE,
+    contentHtml: HOW_TO_BREATHE_WHILE_RUNNING_PAYLOAD.contentHtml,
+    coverImageUrl: HOW_TO_BREATHE_WHILE_RUNNING_COVER_IMAGE_URL,
+    coverImageAlt: HOW_TO_BREATHE_WHILE_RUNNING_ARTICLE.coverImageAlt,
+    ogImageUrl: HOW_TO_BREATHE_WHILE_RUNNING_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-09-05T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/blog/run-walk-method-beginner-friendly-way-build-endurance',
+      '/blog/returning-to-running-after-a-break-gradual-restart-plan',
+      '/blog/10k-training-plan-for-beginners',
+      '/blog/beginners-guide-to-running-pace',
+      '/blog/how-to-run-safely-during-hot-and-humid-weather',
+      '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
+      '/blog/running-cadence-explained'
+    ]
+  },
+  {
+    ...HOW_LONG_TO_RUN_5K_10K_21K_ARTICLE,
+    contentHtml: HOW_LONG_TO_RUN_5K_10K_21K_PAYLOAD.contentHtml,
+    coverImageUrl: HOW_LONG_TO_RUN_5K_10K_21K_COVER_IMAGE_URL,
+    coverImageAlt: HOW_LONG_TO_RUN_5K_10K_21K_ARTICLE.coverImageAlt,
+    ogImageUrl: HOW_LONG_TO_RUN_5K_10K_21K_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-09-08T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/blog/beginners-guide-to-running-pace',
+      '/blog/run-walk-method-beginner-friendly-way-build-endurance',
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
+      '/blog/10k-training-plan-for-beginners',
+      '/blog/how-to-breathe-while-running',
+      '/blog/how-to-run-safely-during-hot-and-humid-weather',
+      '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
+      '/blog/beginner-5k-training-plan-new-runners',
+      '/blog/how-to-run-your-first-10k-virtual-run',
+      '/blog/21k-half-marathon-for-beginners',
+      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
+    ]
+  },
+  {
+    ...HOW_TO_CHOOSE_RUNNING_SHOES_FOR_BEGINNERS_ARTICLE,
+    contentHtml: HOW_TO_CHOOSE_RUNNING_SHOES_FOR_BEGINNERS_PAYLOAD.contentHtml,
+    coverImageUrl: HOW_TO_CHOOSE_RUNNING_SHOES_FOR_BEGINNERS_COVER_IMAGE_URL,
+    coverImageAlt: HOW_TO_CHOOSE_RUNNING_SHOES_FOR_BEGINNERS_ARTICLE.coverImageAlt,
+    ogImageUrl: HOW_TO_CHOOSE_RUNNING_SHOES_FOR_BEGINNERS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-09-10T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
+      '/blog/what-to-bring-race-day-onsite-hybrid-events',
+      '/blog/30-day-running-challenge-for-beginners',
+      '/blog/10k-training-plan-for-beginners',
+      '/blog/running-during-rainy-season-philippines',
+      '/blog/how-to-run-safely-during-hot-and-humid-weather'
+    ]
+  },
+  {
+    ...RUNNING_CADENCE_EXPLAINED_ARTICLE,
+    contentHtml: RUNNING_CADENCE_EXPLAINED_PAYLOAD.contentHtml,
+    coverImageUrl: RUNNING_CADENCE_EXPLAINED_COVER_IMAGE_URL,
+    coverImageAlt: RUNNING_CADENCE_EXPLAINED_ARTICLE.coverImageAlt,
+    ogImageUrl: RUNNING_CADENCE_EXPLAINED_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-09-12T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/blog/beginners-guide-to-running-pace',
+      '/blog/run-walk-method-beginner-friendly-way-build-endurance',
+      '/blog/how-to-build-a-weekly-running-schedule-around-work-or-school',
+      '/blog/how-to-breathe-while-running',
+      '/blog/10k-training-plan-for-beginners',
+      '/blog/gps-watch-vs-running-app',
+      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
+    ]
+  },
+  {
+    ...HOW_ACCURATE_PHONE_GPS_RUNNING_ARTICLE,
+    contentHtml: HOW_ACCURATE_PHONE_GPS_RUNNING_PAYLOAD.contentHtml,
+    coverImageUrl: HOW_ACCURATE_PHONE_GPS_RUNNING_COVER_IMAGE_URL,
+    coverImageAlt: HOW_ACCURATE_PHONE_GPS_RUNNING_ARTICLE.coverImageAlt,
+    ogImageUrl: HOW_ACCURATE_PHONE_GPS_RUNNING_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-09-15T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
+      '/blog/best-apps-to-track-your-virtual-run',
+      '/blog/what-to-do-when-gps-tracking-stops-during-a-run',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/how-to-run-your-first-10k-virtual-run',
+      '/blog/gps-watch-vs-running-app'
+    ]
+  },
+  {
+    ...CAN_YOU_WALK_VIRTUAL_RUN_ARTICLE,
+    contentHtml: CAN_YOU_WALK_VIRTUAL_RUN_PAYLOAD.contentHtml,
+    coverImageUrl: CAN_YOU_WALK_VIRTUAL_RUN_COVER_IMAGE_URL,
+    coverImageAlt: CAN_YOU_WALK_VIRTUAL_RUN_ARTICLE.coverImageAlt,
+    ogImageUrl: CAN_YOU_WALK_VIRTUAL_RUN_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-09-17T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/faq',
+      '/blog/what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers',
+      '/blog/run-walk-method-beginner-friendly-way-build-endurance',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
+      '/blog/10k-training-plan-for-beginners',
+      '/blog/30-day-running-challenge-for-beginners',
+      '/blog/how-to-run-your-first-10k-virtual-run'
+    ]
+  },
+  {
+    ...HOW_TO_RUN_FIRST_10K_VIRTUAL_RUN_ARTICLE,
+    contentHtml: HOW_TO_RUN_FIRST_10K_VIRTUAL_RUN_PAYLOAD.contentHtml,
+    coverImageUrl: HOW_TO_RUN_FIRST_10K_VIRTUAL_RUN_COVER_IMAGE_URL,
+    coverImageAlt: HOW_TO_RUN_FIRST_10K_VIRTUAL_RUN_ARTICLE.coverImageAlt,
+    ogImageUrl: HOW_TO_RUN_FIRST_10K_VIRTUAL_RUN_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-09-19T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/blog/what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers',
+      '/blog/10k-training-plan-for-beginners',
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
+      '/blog/run-walk-method-beginner-friendly-way-build-endurance',
+      '/blog/can-you-walk-a-virtual-run',
+      '/blog/how-accurate-is-phone-gps-for-running',
+      '/blog/beginners-guide-to-running-pace',
+      '/blog/how-long-to-run-5k-10k-21k',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/gps-watch-vs-running-app',
+      '/blog/21k-half-marathon-for-beginners',
+      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
+    ]
+  },
+  {
+    ...GPS_WATCH_VS_RUNNING_APP_ARTICLE,
+    contentHtml: GPS_WATCH_VS_RUNNING_APP_PAYLOAD.contentHtml,
+    coverImageUrl: GPS_WATCH_VS_RUNNING_APP_COVER_IMAGE_URL,
+    coverImageAlt: GPS_WATCH_VS_RUNNING_APP_ARTICLE.coverImageAlt,
+    ogImageUrl: GPS_WATCH_VS_RUNNING_APP_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-09-22T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/blog/best-apps-to-track-your-virtual-run',
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
+      '/blog/how-accurate-is-phone-gps-for-running',
+      '/blog/running-cadence-explained',
+      '/blog/how-to-run-your-first-10k-virtual-run',
+      '/blog/how-to-submit-run-proof-correctly-hellorun'
+    ]
+  },
+  {
+    ...HOW_TO_PROMOTE_VIRTUAL_RUN_ARTICLE,
+    contentHtml: HOW_TO_PROMOTE_VIRTUAL_RUN_PAYLOAD.contentHtml,
+    coverImageUrl: HOW_TO_PROMOTE_VIRTUAL_RUN_COVER_IMAGE_URL,
+    coverImageAlt: HOW_TO_PROMOTE_VIRTUAL_RUN_ARTICLE.coverImageAlt,
+    ogImageUrl: HOW_TO_PROMOTE_VIRTUAL_RUN_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-09-24T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/organizer/create-event',
+      '/blog/participant-communication-timeline-virtual-running-events',
+      '/blog/what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers',
+      '/blog/how-to-write-clear-virtual-run-rules-participants-can-follow',
+      '/blog/how-to-design-fair-distance-categories-and-challenge-goals',
+      '/blog/how-schools-and-organizations-can-use-virtual-runs',
+      '/blog/virtual-run-registration-fee-pricing'
+    ]
+  },
+  {
+    ...VIRTUAL_RUN_REGISTRATION_FEE_PRICING_ARTICLE,
+    contentHtml: VIRTUAL_RUN_REGISTRATION_FEE_PRICING_PAYLOAD.contentHtml,
+    coverImageUrl: VIRTUAL_RUN_REGISTRATION_FEE_PRICING_COVER_IMAGE_URL,
+    coverImageAlt: VIRTUAL_RUN_REGISTRATION_FEE_PRICING_ARTICLE.coverImageAlt,
+    ogImageUrl: VIRTUAL_RUN_REGISTRATION_FEE_PRICING_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-09-26T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/organizer/create-event',
+      '/refund-and-cancellation-policy',
+      '/blog/participant-communication-timeline-virtual-running-events',
+      '/blog/how-to-design-fair-distance-categories-and-challenge-goals',
+      '/blog/how-to-write-clear-virtual-run-rules-participants-can-follow',
+      '/blog/how-to-promote-a-virtual-run'
+    ]
+  },
+  {
+    ...TWENTY_ONE_K_HALF_MARATHON_BEGINNERS_ARTICLE,
+    contentHtml: TWENTY_ONE_K_HALF_MARATHON_BEGINNERS_PAYLOAD.contentHtml,
+    coverImageUrl: TWENTY_ONE_K_HALF_MARATHON_BEGINNERS_COVER_IMAGE_URL,
+    coverImageAlt: TWENTY_ONE_K_HALF_MARATHON_BEGINNERS_ARTICLE.coverImageAlt,
+    ogImageUrl: TWENTY_ONE_K_HALF_MARATHON_BEGINNERS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-09-28T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/blog/10k-training-plan-for-beginners',
+      '/blog/how-long-to-run-5k-10k-21k',
+      '/blog/how-to-build-a-weekly-running-schedule-around-work-or-school',
+      '/blog/run-walk-method-beginner-friendly-way-build-endurance',
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
+      '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
+      '/blog/beginners-guide-to-running-pace',
+      '/blog/running-cadence-explained',
+      '/blog/gps-watch-vs-running-app',
+      '/blog/how-to-run-your-first-10k-virtual-run',
+      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
+    ]
+  },
+  {
+    ...RUNNING_GOALS_REST_OF_YEAR_ARTICLE,
+    contentHtml: RUNNING_GOALS_REST_OF_YEAR_PAYLOAD.contentHtml,
+    coverImageUrl: RUNNING_GOALS_REST_OF_YEAR_COVER_IMAGE_URL,
+    coverImageAlt: RUNNING_GOALS_REST_OF_YEAR_ARTICLE.coverImageAlt,
+    ogImageUrl: RUNNING_GOALS_REST_OF_YEAR_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-09-30T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/blog/how-to-build-a-weekly-running-schedule-around-work-or-school',
+      '/blog/returning-to-running-after-a-break-gradual-restart-plan',
+      '/blog/run-walk-method-beginner-friendly-way-build-endurance',
+      '/blog/how-to-set-a-realistic-monthly-running-goal',
+      '/blog/30-day-running-challenge-for-beginners',
+      '/blog/10k-training-plan-for-beginners',
+      '/blog/how-long-to-run-5k-10k-21k',
+      '/blog/how-to-run-your-first-10k-virtual-run',
+      '/blog/21k-half-marathon-for-beginners'
+    ]
   }
 ];
 
@@ -1157,7 +1587,9 @@ async function main() {
         ? await findExistingAuthor(post.authorEmail)
         : author;
       const payload = buildPostPayload(post, postAuthor, index);
-      const existing = await Blog.findOne({ slug: post.slug }).select('_id title status approvedAt publishedAt').lean();
+      const existing = await Blog.findOne({ slug: post.slug })
+        .select('_id title status approvedAt publishedAt publicationReview contentRisk searchIndexingStatus searchIndexingReason indexingReview')
+        .lean();
       preservePublishedSeedState(payload, existing);
       results.push({
         slug: post.slug,
@@ -1204,8 +1636,11 @@ async function ensureAuthor(dryRun) {
     if (!dryRun) {
       existing.displayName = EDITORIAL_TEAM_NAME;
       existing.emailVerified = true;
-      existing.verifiedAuthor = true;
-      existing.trustScore = 90;
+      existing.verifiedAuthor = false;
+      existing.trustScore = 0;
+      existing.authorSlug = 'henson-m-sagorsor';
+      existing.authorRole = 'HelloRun developer, operator, and editor';
+      existing.authorBio = 'Henson M. Sagorsor develops and operates HelloRun through 4HProjects in Benguet, Philippines, and edits platform guidance based on HelloRun event and submission workflows.';
       await existing.save();
     }
     return existing;
@@ -1220,8 +1655,11 @@ async function ensureAuthor(dryRun) {
     lastName: 'Admin',
     displayName: EDITORIAL_TEAM_NAME,
     emailVerified: true,
-    verifiedAuthor: true,
-    trustScore: 90
+    verifiedAuthor: false,
+    trustScore: 0,
+    authorSlug: 'henson-m-sagorsor',
+    authorRole: 'HelloRun developer, operator, and editor',
+    authorBio: 'Henson M. Sagorsor develops and operates HelloRun through 4HProjects in Benguet, Philippines, and edits platform guidance based on HelloRun event and submission workflows.'
   });
 
   if (!dryRun) {
@@ -1268,7 +1706,13 @@ function buildPostPayload(post, author, index) {
     moderationFlags: [],
     moderationFlagSummary: ''
   };
-  Object.assign(payload, buildTrustedEditorialReview(payload, author._id, publishedAt));
+  const classification = getInitialIndexingClassification(post.slug);
+  payload.contentRisk = classification.contentRisk;
+  payload.searchIndexingStatus = 'noindex';
+  payload.searchIndexingReason = classification.contentRisk === 'health_safety' ? 'pending_expert_review' : 'pending_value_review';
+  payload.indexingReview = null;
+  payload.contentEligibility = evaluateBlogContentEligibility(payload, { evaluatedAt: publishedAt });
+  payload.publicationReview = null;
   return payload;
 }
 
@@ -1278,6 +1722,11 @@ function preservePublishedSeedState(payload, existing) {
     payload.status = 'published';
     payload.approvedAt = existing.approvedAt || existing.publishedAt || payload.publishedAt;
   }
+  payload.publicationReview = existing.publicationReview || payload.publicationReview;
+  payload.contentRisk = existing.contentRisk || payload.contentRisk;
+  payload.searchIndexingStatus = existing.searchIndexingStatus || payload.searchIndexingStatus;
+  payload.searchIndexingReason = existing.searchIndexingReason || payload.searchIndexingReason;
+  payload.indexingReview = existing.indexingReview || payload.indexingReview;
   return payload;
 }
 

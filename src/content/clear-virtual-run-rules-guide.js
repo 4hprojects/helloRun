@@ -137,6 +137,7 @@ const RAW_CONTENT_HTML = `
 
 <h2>Make payment and refund language specific</h2>
 <p>If entry is free, say so and remove old transfer instructions. If it is paid, state the exact fee logic, currency, payee, external transfer method, receipt requirement, review status, deadline, and what the fee includes. HelloRun records organizer-provided payment instructions and receipt-review states; it does not directly process the external transfer.</p>
+<p>Use the <a href="/blog/virtual-run-registration-fee-pricing">virtual-run registration fee guide</a> to calculate costs, compare free and paid models, account for physical fulfilment, and disclose the total participant outlay before copying the final amounts into these rules.</p>
 <p>Separate registration, payment, and confirmation. A runner may submit a registration and receipt while payment review remains pending. Explain whether activity can begin during that period and what happens if the receipt is rejected or never corrected.</p>
 <p>List physical and digital inclusions without presenting them as unconditional. State size selection, delivery limits, shipping charges, collection options, production timing, stock substitutions, and eligibility where relevant. Link the applicable <a href="/refund-and-cancellation-policy">Refund and Cancellation Policy</a> and identify any event-specific terms that have received appropriate review.</p>
 
@@ -230,6 +231,7 @@ const RAW_CONTENT_HTML = `
 <h2>Take the practical next step</h2>
 <p>Open the current event preview and copy the participant-rules template into a working document. Complete the timeline and completion sections first, because they influence registration, categories, evidence, review, results, and recognition. Then compare every public sentence with the live HelloRun fields.</p>
 <p>Use the <a href="/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers">organizer playbook</a> for the wider operating plan. Rules are ready only when the team can deliver them consistently and a participant can understand them without private clarification.</p>
+<p>Once the authoritative page and rules agree, the <a href="/blog/how-to-promote-a-virtual-run">virtual-run promotion guide</a> shows how to bring suitable participants to that page without replacing clear information with repeated registration posts.</p>
 
 <h2>Official and platform sources</h2>
 <ul>
@@ -269,6 +271,8 @@ const REQUIRED_LINKS = Object.freeze([
   'href="/refund-and-cancellation-policy"',
   'href="/blog/what-counts-as-valid-run-proof"',
   'href="/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers"',
+  'href="/blog/how-to-promote-a-virtual-run"',
+  'href="/blog/virtual-run-registration-fee-pricing"',
   'www.w3.org/WAI/tutorials/forms/instructions/'
 ]);
 

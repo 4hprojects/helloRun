@@ -30,6 +30,7 @@ function buildRegistrationPagePresentation({
     selectedValue: formData.raceDistance,
     isFree: String(event.feeMode || '').trim() !== 'paid',
     accumulated,
+    suppressDailyGuidance: Boolean(event.suppressDailyGuidance),
     activityDays: getInclusiveDayCount(
       event.virtualWindow?.startAt || event.eventStartAt,
       event.virtualWindow?.endAt || event.eventEndAt
@@ -69,7 +70,7 @@ function buildRegistrationPagePresentation({
       items: modes
     },
     distances: {
-      kind: accumulated ? 'cards' : 'select',
+      kind: distances.length === 1 ? 'fixed' : (accumulated ? 'cards' : 'select'),
       items: distances
     },
     profile,
@@ -106,6 +107,7 @@ function buildDistanceChoices({
   selectedValue = '',
   isFree = false,
   accumulated = false,
+  suppressDailyGuidance = false,
   activityDays = null
 } = {}) {
   const categories = Array.isArray(raceCategoryOptions) ? raceCategoryOptions : [];
@@ -137,7 +139,7 @@ function buildDistanceChoices({
         value: normalized,
         title,
         goalLabel: buildGoalLabel(distanceKm, targetSteps, title),
-        helper: accumulated ? buildDailyGuidance(distanceKm, targetSteps, activityDays) : [
+        helper: accumulated ? (suppressDailyGuidance ? '' : buildDailyGuidance(distanceKm, targetSteps, activityDays)) : [
           distanceKm !== null && title.toUpperCase() !== `${distanceKm}K` ? `${formatNumber(distanceKm)} km goal` : '',
           // Only worth saying when it is nearly gone; a healthy count is noise.
           !isFull && remaining !== null && remaining <= 10 ? `${remaining} slot${remaining === 1 ? '' : 's'} left` : ''

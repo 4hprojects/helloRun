@@ -224,6 +224,7 @@ router.get('/promote/preview', requireAdmin, adminController.promotePreview);
 router.post('/promote', requireAdmin, requireFullAdmin, adminPromotionLimiter, adminController.promoteSend);
 
 // Blog moderation queue
+router.get('/blog', requireAdmin, (req, res) => res.redirect('/admin/blog/review'));
 router.get('/blog/review', requireAdmin, blogController.renderAdminQueuePage);
 router.get('/blog/posts/:id/review', requireAdmin, blogController.renderAdminReviewPage);
 router.post('/blog/posts/:id/assets-upload', requireAdmin, adminModerationLimiter, uploadService.uploadBlogAssets, requireCsrfProtection, blogController.uploadAdminBlogAssets);
@@ -236,10 +237,15 @@ router.get('/blog/posts/:id', requireAdmin, blogController.previewBlogPost);
 router.post('/blog/posts/:id/approve', requireAdmin, adminModerationLimiter, blogController.approveBlogPost);
 router.post('/blog/posts/:id/reject', requireAdmin, adminModerationLimiter, blogController.rejectBlogPost);
 router.post('/blog/posts/:id/archive', requireAdmin, adminModerationLimiter, blogController.archiveBlogPost);
+router.post('/blog/posts/:id/restore', requireAdmin, adminModerationLimiter, blogController.restoreBlogPost);
+router.post('/blog/posts/:id/feature', requireAdmin, adminModerationLimiter, blogController.featureBlogPost);
+router.post('/blog/posts/:id/unfeature', requireAdmin, adminModerationLimiter, blogController.unfeatureBlogPost);
+router.post('/blog/posts/:id/submit-review', requireAdmin, adminModerationLimiter, blogController.submitBlogPostForReview);
 router.patch('/blog/posts/:id/autosave', requireAdmin, adminBlogAutosaveLimiter, uploadService.uploadBlogAssets, requireCsrfProtection, blogController.autosaveBlogPostAdmin);
 
 // Blog comment moderation
 router.get('/blog/comments', requireAdmin, blogInteractionController.adminListComments);
+router.get('/blog/comments.json', requireAdmin, blogInteractionController.adminListCommentsJson);
 router.post('/blog/comments/:commentId/remove', requireAdmin, adminModerationLimiter, blogInteractionController.adminRemoveComment);
 router.post('/blog/comments/:commentId/restore', requireAdmin, adminModerationLimiter, blogInteractionController.adminRestoreComment);
 router.get('/blog/reports', requireAdmin, blogInteractionController.adminListReports);

@@ -7,15 +7,16 @@ function readSource(relativePath) {
   return fs.readFileSync(path.resolve(__dirname, '..', relativePath), 'utf8');
 }
 
-test('admin published blog queue cards show cover previews and open review in a new tab', () => {
-  // blog.controller.js is a barrel since the CQ-2 split — admin handlers live in blog/admin.controller.js
+test('admin blog management queue uses the shared paginated service and clear manage cards', () => {
   const controller = readSource('src/controllers/blog/admin.controller.js');
+  const service = readSource('src/services/admin-blog-management.service.js');
   const queueView = readSource('src/views/admin/blog-queue.ejs');
 
-  assert.match(controller, /\.select\('title slug status category customCategory coverImageUrl/);
-  assert.match(queueView, /const opensInNewTab = selectedStatus === 'published'/);
-  assert.match(queueView, /<% if \(post\.coverImageUrl\) \{ %>[\s\S]*<img src="<%= post\.coverImageUrl %>"/);
-  assert.match(queueView, /object-fit: cover/);
-  assert.match(queueView, /justify-content: flex-end/);
-  assert.match(queueView, /opensInNewTab \? ' target="_blank" rel="noopener noreferrer"'/);
+  assert.match(controller, /listManagedPosts\(req\.query\)/);
+  assert.match(service, /\.select\('title slug status category customCategory coverImageUrl/);
+  assert.match(service, /\.skip\(skip\)[\s\S]*\.limit\(PAGE_SIZE\)/);
+  assert.match(queueView, /post\.coverImageUrl/);
+  assert.match(queueView, /Revision review/);
+  assert.match(queueView, />Manage<\/a>/);
+  assert.doesNotMatch(queueView, /target="_blank"/);
 });

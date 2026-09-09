@@ -121,6 +121,7 @@ const RAW_CONTENT_HTML = `
 <h2>Review OCR-assisted values carefully</h2>
 <p>Screenshot analysis can propose distance, duration, date, location, activity type, elevation, steps, source, and name information. The form can display an autofill notice, an extraction summary, and mismatch warnings. Every proposed value remains the runner's responsibility to check.</p>
 <p>OCR can confuse decimal separators, small fonts, stylized digits, low contrast, cropped labels, or miles and kilometres. A visible 5.01 can be read as 501; a duration can be mistaken for pace; an account nickname can look like another person. Correct an ordinary reading error to match the original evidence rather than changing the evidence to match the extraction.</p>
+<p>If the source route or distance itself looks unusual, preserve it and review <a href="/blog/how-accurate-is-phone-gps-for-running">the phone-GPS accuracy guide</a> before deciding whether to contact the organizer. OCR can read a displayed total; it does not validate the satellite track behind it.</p>
 <p>If the detected name differs from the HelloRun account, the form warns the runner and offers a chance to replace the screenshot. Continuing with a genuine mismatch places the result into manual review rather than guaranteeing rejection or approval. A name warning is an integrity signal, not a public accusation.</p>
 <p>Eligible clean OCR or validated Strava submissions can meet current conditional automatic-approval rules. Missing fields, mismatches, below-minimum values, or other integrity signals can keep an entry submitted for organiser or admin review. OCR is fallible and does not independently prove accuracy.</p>
 
@@ -207,6 +208,7 @@ const RAW_CONTENT_HTML = `
 <p>Imani's screenshot hides the decimal and date. The result is rejected with an unclear-proof reason. She opens Fix entry, selects the original full activity summary, confirms the same genuine values, and resubmits before the deadline.</p>
 
 <h2>Before-upload checklist</h2>
+<p>If this evidence comes from a prepared first ten-kilometre attempt, the <a href="/blog/how-to-run-your-first-10k-virtual-run">first virtual 10K guide</a> covers the earlier route, tracking, pacing, save, and review decisions that make this upload step easier to execute honestly.</p>
 <ul>
   <li>Confirm the correct account, registration, category, payment state, and event rules.</li>
   <li>Check the activity date, final submission deadline, and timezone.</li>
@@ -328,6 +330,8 @@ const REQUIRED_LINKS = Object.freeze([
   '/blog/virtual-run-vs-traditional-race-which-one-should-you-join',
   '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers',
   '/blog/beginner-5k-training-plan-new-runners',
+  '/blog/how-accurate-is-phone-gps-for-running',
+  '/blog/how-to-run-your-first-10k-virtual-run',
   'worldathletics.org/news/news/how-run-best-virtual-race-advice',
   'support.strava.com/en-us/articles/15401804-moving-time-speed-and-pace-calculations',
   'support.strava.com/en-us/articles/15401776-strava-s-privacy-controls-faq',

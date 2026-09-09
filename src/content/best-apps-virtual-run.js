@@ -153,6 +153,7 @@ const RAW_CONTENT_HTML = `
 <h2>Outdoor GPS, treadmills, and synced wearables</h2>
 <h3>Outdoor GPS runs</h3>
 <p>Wait for a usable GPS signal before starting, especially near tall buildings, dense tree cover, or other obstructions. Keep the recording device positioned where it can maintain reception. If the route shows a straight line, a large jump, or missing sections, save the original record and follow the organiser's instructions rather than editing the image to hide the problem.</p>
+<p>For the difference between position estimates, route distance, GPS drift, and app processing, read <a href="/blog/how-accurate-is-phone-gps-for-running">how accurate phone GPS is for running</a>.</p>
 <h3>Treadmill runs</h3>
 <p>Indoor runs do not produce a normal outdoor GPS map. Depending on the app and device, distance may come from a watch estimate, calibrated sensor, connected equipment, or the treadmill display. Check the event rules before running: some organisers accept a workout summary, some require a treadmill-console photo, and others do not allow indoor activities.</p>
 <h3>Wearable sync</h3>
@@ -200,6 +201,7 @@ const RAW_CONTENT_HTML = `
 <h2>Final recommendation</h2>
 <p>Start with the ecosystem you already own. Use Strava or adidas Running for a phone-first outdoor run, Nike Run Club when guided training is important, Garmin Connect for a Garmin watch, Apple Workout and Fitness for an Apple Watch, or Huawei Health for a compatible Huawei wearable. Then test the complete workflow before the event: record, save, sync, open the summary, and confirm that the required proof is visible.</p>
 <p>The best virtual run app is not the one with the longest feature list. It is the one that records your permitted activity consistently, protects your privacy, and produces evidence your organiser can review.</p>
+<p>If you are deciding whether to keep recording on your phone or buy separate hardware, the <a href="/blog/gps-watch-vs-running-app">GPS watch versus running app guide</a> compares cost, battery, controls, metrics, proof, and beginner suitability without naming a universal accuracy winner.</p>
 
 <h2>Official sources</h2>
 <p>Product capabilities were checked against the following official documentation in July 2026:</p>
@@ -233,6 +235,8 @@ const REQUIRED_LINKS = Object.freeze([
   '/faq',
   '/blog/what-counts-as-valid-run-proof',
   '/blog/how-to-submit-run-proof-correctly-hellorun',
+  '/blog/how-accurate-is-phone-gps-for-running',
+  '/blog/gps-watch-vs-running-app',
   'support.strava.com',
   'nike.com/help',
   'support.garmin.com',

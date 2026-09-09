@@ -1,5 +1,6 @@
 // publish-scheduled-blogs.js
-// Script to auto-publish scheduled blog posts whose publishedAt <= now
+// Script to auto-publish scheduled blog posts whose scheduledFor <= now.
+// The publishedAt fallback supports records created before scheduledFor existed.
 
 require('dotenv').config();
 
@@ -14,7 +15,10 @@ const MONGODB_URI = process.env.MONGODB_URI;
 async function publishEligibleScheduledPosts({ BlogModel = Blog, now = new Date(), dryRun = false } = {}) {
   const scheduledPosts = await BlogModel.find({
     status: 'scheduled',
-    publishedAt: { $lte: now },
+    $or: [
+      { scheduledFor: { $lte: now } },
+      { scheduledFor: null, publishedAt: { $lte: now } }
+    ],
     isDeleted: { $ne: true }
   });
   const summary = { eligible: 0, published: 0, skipped: 0, titles: [] };
@@ -28,6 +32,8 @@ async function publishEligibleScheduledPosts({ BlogModel = Blog, now = new Date(
     summary.titles.push(post.title);
     if (dryRun) continue;
     post.status = 'published';
+    post.publishedAt = now;
+    post.scheduledFor = null;
     post.approvedAt = now;
     post.approvedBy = post.approvedBy || null;
     await post.save();

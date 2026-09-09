@@ -30,6 +30,7 @@
     const elapsedInput = document.getElementById('runProofElapsedTime');
     const locationInput = document.getElementById('runProofLocation');
     const elevationInput = document.getElementById('runProofElevationGain');
+    const trackingAppDeviceInput = document.getElementById('runProofTrackingAppDevice');
     const stepsInput = document.getElementById('runProofSteps');
 
     const chipList = document.getElementById('runProofTypeChips');
@@ -1414,6 +1415,16 @@
       return true;
     };
 
+    const validateTrackingAppDevice = () => {
+      const value = String(trackingAppDeviceInput?.value || '').trim();
+      if (!value) {
+        setFieldError('runProofTrackingAppDeviceError', 'trackingAppDevice', 'Enter the tracking app or device used.');
+        return false;
+      }
+      setFieldError('runProofTrackingAppDeviceError', 'trackingAppDevice', '');
+      return true;
+    };
+
     const validateOptionalMetrics = () => {
       let valid = true;
       const elevationRaw = String(elevationInput?.value || '').trim();
@@ -1471,6 +1482,7 @@
         validateDuration(),
         validateLocation(),
         validateRunType(),
+        validateTrackingAppDevice(),
         validateOptionalMetrics(),
         validateImage()
       ].every(Boolean);
@@ -1801,6 +1813,7 @@
           runType: [chipList, 'runProofRunTypeError', 'runType'],
           resultProofFile: [fileInput, 'runProofImageError', 'image'],
           elevationGain: [elevationInput, 'runProofElevationError', 'elevationGain'],
+          trackingAppDevice: [trackingAppDeviceInput, 'runProofTrackingAppDeviceError', 'trackingAppDevice'],
           steps: [stepsInput, 'runProofStepsError', 'steps'],
           selectedRegistrationIds: [eventsList, 'runProofEventsError', 'events']
         };
@@ -2355,16 +2368,18 @@
       }
     });
 
-    [runDateInput, distanceInput, locationInput].forEach((input) => {
+    [runDateInput, distanceInput, locationInput, trackingAppDeviceInput].filter(Boolean).forEach((input) => {
       input.addEventListener('input', () => {
         if (input === runDateInput) { validateDate(); recomputeAlignment(); updateOcrComparison(); }
         if (input === distanceInput) { validateDistance(); updateOcrComparison(); if (state.hasReachedTargetStep) recomputeAlignment(); }
         if (input === locationInput) { validateLocation(); updateOcrComparison(); }
+        if (input === trackingAppDeviceInput) validateTrackingAppDevice();
       });
       input.addEventListener('blur', () => {
         if (input === runDateInput) { validateDate(); recomputeAlignment(); updateOcrComparison(); }
         if (input === distanceInput) { validateDistance(); updateOcrComparison(); if (state.hasReachedTargetStep) recomputeAlignment(); }
         if (input === locationInput) { validateLocation(); updateOcrComparison(); }
+        if (input === trackingAppDeviceInput) validateTrackingAppDevice();
       });
     });
 

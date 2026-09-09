@@ -222,6 +222,9 @@ const RAW_CONTENT_HTML = `
 <h2>Practical next step</h2>
 <p>Take one blank seven-day view and add fixed commitments, sleep opportunities, and travel before adding running. Mark every remaining window as fixed, flexible, backup, or unavailable. Choose one weekly purpose, one anchor opportunity, and no more than two meaningful alternatives. Then write the condition that would cancel or replace each activity.</p>
 <p>At the end of the week, complete the review once. Keep the useful structure, remove fictional availability, and rebuild the next seven days from current facts. A practical weekly schedule is not one that survives unchanged. It is one that changes without turning disruption into unsafe debt.</p>
+<p>If a defined month would help you practise this weekly system, the <a href="/blog/30-day-running-challenge-for-beginners">flexible 30-day running challenge</a> supplies walking-first, run-walk, and easy-running options without requiring daily running.</p>
+<p>If a repeatable 10K base later makes a half marathon appropriate, apply the same fixed, flexible, backup, and recovery logic to the <a href="/blog/21k-half-marathon-for-beginners">beginner 21K framework</a>.</p>
+<p>For a longer planning horizon, the <a href="/blog/how-to-set-running-goals-for-the-rest-of-the-year">year-end running-goals guide</a> connects this weekly method to Establish, Build, Consolidate, and Review checkpoints.</p>
 `;
 
 const REQUIRED_HEADINGS = Object.freeze([
@@ -245,6 +248,7 @@ const REQUIRED_HEADINGS = Object.freeze([
 ]);
 
 const REQUIRED_LINKS = Object.freeze([
+  'href="/blog/30-day-running-challenge-for-beginners"',
   '/events',
   '/faq',
   '/blog/how-to-set-a-realistic-monthly-running-goal',
@@ -254,7 +258,9 @@ const REQUIRED_LINKS = Object.freeze([
   '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
   '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
   '/blog/how-to-run-safely-during-hot-and-humid-weather',
-  '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge'
+  '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
+  'href="/blog/21k-half-marathon-for-beginners"',
+  'href="/blog/how-to-set-running-goals-for-the-rest-of-the-year"'
 ]);
 
 function buildArticlePayload({ coverImageUrl } = {}) {

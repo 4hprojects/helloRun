@@ -34,7 +34,10 @@ const FAQ_CATEGORIES = Object.freeze([
         question: 'Can I walk, hike, or use another activity instead of running?',
         answer: 'Only when the event lists that activity as accepted. Some challenges accept walking, hiking, trail running, or mixed eligible activities; others require a particular activity type. Follow the event page rather than assuming every movement will count.',
         keywords: ['walk', 'hike', 'trail run', 'activity type'],
-        links: [{ label: 'Review event listings', href: '/events' }]
+        links: [
+          { label: 'Check when walking can count', href: '/blog/can-you-walk-a-virtual-run' },
+          { label: 'Review event listings', href: '/events' }
+        ]
       },
       {
         id: 'tracking-device',

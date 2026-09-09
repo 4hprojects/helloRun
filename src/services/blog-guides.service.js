@@ -29,7 +29,7 @@ async function getGuidesAndResources({ limitPerGroup = 12 } = {}) {
     .sort({ publishedAt: -1 })
     .limit(limitPerGroup * guideCategories.length)
     .select('title slug excerpt category coverImageUrl publishedAt authorId')
-    .populate('authorId', 'displayName firstName lastName verifiedAuthor trustScore');
+    .populate('authorId', 'displayName firstName lastName authorSlug authorRole');
 
   // Organizer resources: category = 'Organizer Guide'
   const organizerResources = await Blog.find(getEligiblePublicBlogQuery({
@@ -41,7 +41,7 @@ async function getGuidesAndResources({ limitPerGroup = 12 } = {}) {
     .sort({ publishedAt: -1 })
     .limit(limitPerGroup)
     .select('title slug excerpt category coverImageUrl publishedAt authorId')
-    .populate('authorId', 'displayName firstName lastName verifiedAuthor trustScore');
+    .populate('authorId', 'displayName firstName lastName authorSlug authorRole');
 
   return { guides, organizerResources };
 }

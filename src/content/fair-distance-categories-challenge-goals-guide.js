@@ -109,6 +109,7 @@ const RAW_CONTENT_HTML = `
 <p>HelloRun supports structured race categories with a category identifier, name, type, distance label, numeric distance, optional slots, cutoff description, age-group description, and rewards description. Use only fields that have a defined purpose, and keep narrative rules consistent with them.</p>
 <h3>Pricing and capacity</h3>
 <p>Category-linked pricing must point to a real category. Test the amount shown for every representative choice, including pricing periods, packages, add-ons, physical rewards, and delivery charges where used. A higher goal does not automatically justify a higher fee; explain actual inclusions rather than charging for perceived status.</p>
+<p>The <a href="/blog/virtual-run-registration-fee-pricing">virtual-run registration fee guide</a> provides the companion cost worksheet, free-versus-paid decision, fulfilment model, and event-page disclosure checklist. Use it to price real differences rather than distance labels alone.</p>
 <p>If category slots are limited, publish how availability and confirmation work. A submitted registration or payment receipt is not necessarily an approved place when review remains pending. Do not oversell a reward quantity shared across categories.</p>
 <h3>Rewards and recognition</h3>
 <p>State whether each category receives a configured certificate, badge, physical item, prize eligibility, leaderboard presence, or completion acknowledgement. Avoid vague “finisher rewards” when different categories receive different items. Recognition availability depends on event configuration, eligible approved results, final review, and successful generation or fulfilment.</p>
@@ -193,6 +194,7 @@ const RAW_CONTENT_HTML = `
 <h2>Your practical next step</h2>
 <p>Draft no more than the categories the event genuinely needs, then complete the matrix for each one. Test one representative registration per category from selection through price, evidence expectation, result grouping, and recognition. Remove or merge any option whose difference cannot be explained in one plain sentence.</p>
 <p>Keep the design in draft until the event owner, reviewer, support lead, and a person outside the setup team can describe the same mechanics. Fairer category design comes from visible, supportable decisions—not from a persuasive label or a larger headline number.</p>
+<p>After those choices are ready for participants, use the <a href="/blog/how-to-promote-a-virtual-run">virtual-run promotion guide</a> to present them through one complete event page, audience-specific messages, and measurable campaign channels.</p>
 
 <h2>Sources and review notes</h2>
 <p><strong>Official and platform sources:</strong> the event-design principles below come from the named organizations, while HelloRun behavior comes from the current application fields and services reviewed for this article.</p>
@@ -231,7 +233,9 @@ const REQUIRED_LINKS = Object.freeze([
   'href="/blog/how-to-write-clear-virtual-run-rules-participants-can-follow"',
   'href="/blog/how-accumulated-distance-challenges-work"',
   'href="/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge"',
-  'href="/blog/how-leaderboards-work-virtual-running-events"'
+  'href="/blog/how-leaderboards-work-virtual-running-events"',
+  'href="/blog/how-to-promote-a-virtual-run"',
+  'href="/blog/virtual-run-registration-fee-pricing"'
 ]);
 
 function buildArticlePayload({ coverImageUrl } = {}) {

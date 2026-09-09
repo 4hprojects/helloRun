@@ -12,7 +12,6 @@ const MIN_UNIT_WORDS = 12;
 const MIN_UNIQUE_WORDS = 90;
 
 const HEALTH_CATEGORIES = new Set(['Nutrition', 'Injury Prevention', 'Mental Health']);
-const HEALTH_SIGNAL_PATTERN = /\b(?:diagnos(?:e|ed|is)|treat(?:ment|ed|ing)?|cure[sd]?|medic(?:al|ation|ine)|doctor|physician|therap(?:y|ist)|injur(?:y|ies|ed)|pain|symptom|illness|disease|supplement|dosage|dose|recovery|recover(?:y|ing)?|nutrition|diet|calorie|pregnan(?:t|cy)|chronic|heart|blood pressure|mental health|anxiety|depression|weight loss|hydration)\b/i;
 const DEFAULT_SHORTENER_HOSTS = Object.freeze([
   'bit.ly', 'buff.ly', 'cutt.ly', 'is.gd', 'ow.ly', 'rebrand.ly', 't.co', 'tiny.cc',
   'tinyurl.com', 'trib.al'
@@ -140,11 +139,7 @@ function buildBlogContentSourceHash(input = {}) {
 }
 
 function requiresHealthReview(input = {}) {
-  if (HEALTH_CATEGORIES.has(String(input.category || '').trim())) return true;
-  const text = [input.title, input.excerpt, input.contentText || htmlToPlainText(input.contentHtml)]
-    .filter(Boolean)
-    .join(' ');
-  return HEALTH_SIGNAL_PATTERN.test(text);
+  return String(input.contentRisk || '').trim() === 'health_safety';
 }
 
 function evaluateBlogContentEligibility(input = {}, options = {}) {

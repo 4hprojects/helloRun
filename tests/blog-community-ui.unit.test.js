@@ -29,14 +29,14 @@ test('community listing and article templates compile', () => {
   assert.doesNotThrow(() => ejs.compile(sharePartial, { filename: sharePartialPath }));
 });
 
-test('blog listing leads with community discovery and contribution actions', () => {
+test('blog listing leads with guide discovery and contribution actions', () => {
   assert.match(listing, /class="blog-community-header"/);
-  assert.match(listing, /Stories from the running community/);
+  assert.match(listing, /HelloRun resources/);
   assert.match(listing, />\s*Write a post\s*</);
   assert.match(listing, />\s*My Blogs\s*</);
   assert.match(listing, /class="blog-topic-paths"/);
-  assert.match(listing, /Community spotlight/);
-  assert.match(listing, />Top writers</);
+  assert.match(listing, /Featured guide/);
+  assert.match(listing, />HelloRun authors</i);
 });
 
 test('blog filters are labelled, balanced, explicit, and do not auto-submit', () => {
@@ -118,13 +118,12 @@ test('share partial renders unique controls and encoded canonical destinations',
   assert.equal((html.match(/role="menuitem"/g) || []).length, 6);
 });
 
-test('end-of-reading share prompt precedes tags and the next-step action', () => {
+test('end-of-reading share prompt precedes the next-step action without repeating hashtags', () => {
   const endShareIndex = article.indexOf('class="blog-end-share-card"');
-  const tagsIndex = article.indexOf('class="blog-tag-list"');
   const nextStepIndex = article.indexOf('class="post-next-step"');
   assert.ok(endShareIndex > article.indexOf('class="blog-content"'));
   assert.ok(endShareIndex > article.indexOf('class="blog-gallery"'));
-  assert.ok(tagsIndex > endShareIndex);
+  assert.equal(article.includes('class="blog-tag-list"'), false);
   assert.ok(nextStepIndex > endShareIndex);
   assert.match(article, /Found this helpful\?/);
   assert.match(article, /Share this guide/);

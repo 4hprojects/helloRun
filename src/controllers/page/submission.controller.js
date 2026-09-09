@@ -501,7 +501,7 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
         _id: { $in: selectedEventRegistrationIds },
         userId: user._id
       })
-        .populate('eventId', 'organizerId virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps title targetDistanceKm eventStartAt eventEndAt')
+        .populate('eventId', 'organizerId virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps title targetDistanceKm eventStartAt eventEndAt requireTrackingAppDevice')
         .select('_id eventId')
         .lean()
       : [];
@@ -594,6 +594,10 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
     const proofNotes = String(req.body.proofNotes || '').trim().slice(0, 1200);
     const runType = parseRunType(req.body.runType);
     const elevationGain = parseElevationGain(req.body.elevationGain);
+    const trackingAppDevice = String(req.body.trackingAppDevice || '').trim().slice(0, 120);
+    if (selectedRegistrations.some((item) => item.eventId?.requireTrackingAppDevice) && !trackingAppDevice) {
+      return respond('error', 'Tracking app or device is required for this event.', { code: 'TRACKER_REQUIRED', fieldErrors: { trackingAppDevice: 'Enter the app or device used to record this activity.' } });
+    }
     const steps = parseSteps(req.body.steps, requiresSteps);
 
     const ocrData = parseOcrData(req.body, distanceKm, elapsedMs, user);
@@ -672,6 +676,7 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
             proofNotes,
             runType,
             elevationGain,
+            trackingAppDevice,
             steps,
             ocrData,
             submissionAttemptId,

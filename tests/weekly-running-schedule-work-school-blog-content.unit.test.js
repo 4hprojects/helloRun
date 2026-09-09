@@ -73,10 +73,20 @@ test('weekly running schedule builds a substantive, flexible planning guide', ()
   }
 });
 
+test('weekly schedule guide links readers to the year-end running-goals hub', () => {
+  const href = '/blog/how-to-set-running-goals-for-the-rest-of-the-year';
+  const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
+
+  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
+  assert.ok(payload.contentHtml.includes(`href="${href}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
+});
+
 test('weekly running schedule sanitizes official sources and passes health eligibility', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const eligibility = evaluateBlogContentEligibility({
     ...payload,
+    contentRisk: 'health_safety',
     coverImageUrl: COVER_IMAGE_URL
   }, { evaluatedAt: new Date('2026-08-03T00:00:00.000Z') });
 
@@ -109,7 +119,7 @@ test('weekly running schedule is registered and seeded once for August 20', () =
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 38);
+  assert.equal(listArticleSlugs().length, 52);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -140,13 +150,8 @@ test('weekly running schedule supports exact eligible scheduling and updates', (
   assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.contentEligibility.eligible, true);
   assert.equal(payload.contentEligibility.healthReviewRequired, true);
-  assert.equal(payload.publicationReview.originalityConfirmed, true);
-  assert.equal(payload.publicationReview.externalLinksConfirmed, true);
-  assert.equal(payload.publicationReview.healthSafetyConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthExperienceConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthSourcesConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthSafetyConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthCredentialsConfirmed, true);
+  assert.equal(payload.publicationReview, null);
+  assert.equal(payload.searchIndexingStatus, 'noindex');
   assert.match(packageJson.scripts['blog:update-weekly-running-schedule'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
@@ -167,4 +172,12 @@ test('weekly running schedule rejects unsafe or unsupported planning claims', ()
   assert.throws(() => validateArticlePayload(withClaim('Pending distance counts as approved progress.')), /unapproved distance/);
   assert.throws(() => validateArticlePayload(withClaim('Platform approval proves physical readiness.')), /physical readiness/);
   assert.throws(() => buildArticlePayload(), /cover artwork/);
+});
+
+test('weekly schedule links its planning method to the beginner 21K framework', () => {
+  const href = '/blog/21k-half-marathon-for-beginners';
+  const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
+  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
+  assert.ok(payload.contentHtml.includes(`href="${href}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
 });

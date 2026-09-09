@@ -184,6 +184,7 @@ const RAW_CONTENT_HTML = `
 <p>Walk easily while breathing settles, reach a safe location, and complete any planned check-in. Eat and drink in a familiar way appropriate to your circumstances. Keep the following day easy if that is what recovery requires.</p>
 <p>For a virtual event, save the original activity and review date, distance, unit, duration, and activity type before submission. Uploaded proof may remain pending while it is reviewed; pending is not an approved result. If the event is an <a href="/blog/how-accumulated-distance-challenges-work">accumulated-distance challenge</a>, confirm whether one 5K activity is part of a larger registration goal rather than a standalone finish.</p>
 <p>Celebrate the process as well as the result: consistent sessions, learning an appropriate effort, and making a sound decision to adjust are meaningful outcomes. Wait until recovery is clear before selecting a faster 5K or longer-distance plan.</p>
+<p>When several comfortable 5K activities have become repeatable, use the <a href="/blog/10k-training-plan-for-beginners">beginner 10K training framework</a> to decide whether and how to extend one longer activity.</p>
 
 <h2>Frequently asked questions</h2>
 <h3>Must I run continuously to complete a 5K?</h3>
@@ -259,6 +260,7 @@ const REQUIRED_LINKS = Object.freeze([
   '/blog/what-counts-as-valid-run-proof',
   '/blog/how-to-submit-run-proof-correctly-hellorun',
   '/blog/how-accumulated-distance-challenges-work',
+  '/blog/10k-training-plan-for-beginners',
   'who.int/news-room/fact-sheets/detail/physical-activity',
   'cdc.gov/healthy-weight-growth/physical-activity/getting-started.html',
   'nhs.uk/better-health/get-active/get-running-with-couch-to-5k',

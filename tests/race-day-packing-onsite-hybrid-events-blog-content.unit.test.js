@@ -71,7 +71,7 @@ test('race-day packing guide builds a substantive flexible checklist', () => {
 
 test('race-day packing guide sanitizes official sources and passes health eligibility', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
-  const eligibility = evaluateBlogContentEligibility(payload, {
+  const eligibility = evaluateBlogContentEligibility({ ...payload, contentRisk: 'health_safety' }, {
     evaluatedAt: new Date('2026-08-03T00:00:00.000Z')
   });
 
@@ -103,7 +103,7 @@ test('race-day packing guide is registered and seeded once for August 24', () =>
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 38);
+  assert.equal(listArticleSlugs().length, 52);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -136,12 +136,8 @@ test('race-day packing guide supports exact eligible scheduling and updates', ()
   assert.equal(payload.featured, false);
   assert.equal(payload.contentEligibility.eligible, true);
   assert.equal(payload.contentEligibility.healthReviewRequired, true);
-  assert.equal(payload.publicationReview.originalityConfirmed, true);
-  assert.equal(payload.publicationReview.externalLinksConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthExperienceConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthSourcesConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthSafetyConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthCredentialsConfirmed, true);
+  assert.equal(payload.publicationReview, null);
+  assert.equal(payload.searchIndexingStatus, 'noindex');
   assert.match(packageJson.scripts['blog:update-race-day-packing'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 

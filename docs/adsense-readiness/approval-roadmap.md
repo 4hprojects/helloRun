@@ -14,9 +14,20 @@ Current active state:
 | 2 | Event heading hierarchy | **Complete** | Priority 1 complete |
 | 3 | Metadata and crawl hygiene | **Complete** | Priority 2 complete |
 | 4 | Advertising consent architecture | Policies published; Google account verification pending | Priority 3 complete |
-| 5 | SEO keyword quality | Repository mapping complete; Search Console review pending | Priority 4 account verification |
+| 5 | SEO and content quality | Selective indexing implemented; migration evidence and Search Console review pending | Priority 4 account verification |
 | 6 | Production quality audit | **Complete** | Priority 5 complete |
-| 7 | Indexing and approval gate | Blocked | Priority 6 complete |
+| 7 | Indexing and approval gate | Hold review request; production rollout and account evidence pending | Priority 6 complete |
+
+## Content-Quality Remediation — August 30, 2026
+
+- Scheduled publishing remains enabled. Publication and search-indexing approval are now separate decisions.
+- New posts default to `noindex`; only hash-current, human-reviewed posts enter the sitemap, homepage, blog discovery, related posts, feeds, and AdSense-eligible surfaces.
+- The migration manifest retains 20 first-party HelloRun/platform guides as indexing candidates and keeps 18 generic or health/safety guides out of discovery pending revision.
+- Health/safety indexing requires a named qualified reviewer with credentials and a review date.
+- The dry-run found all 38 planned records and correctly reported missing human evidence for all 20 indexing candidates. Apply remains pending Henson's evidence note and the production deployment sequence.
+- The supplied AdSense screenshot confirms site ownership for `hellorun.online`.
+- Still pending: Search Console crawl/index evidence, AdSense `ads.txt: Authorized`, account tasks, Policy Center, and certified CMP status.
+- Manual AdSense placements remain disabled. Do not request another AdSense review until the reduced sitemap has been deployed, accepted, and allowed time to recrawl.
 
 ## One-Priority Operating Rule
 

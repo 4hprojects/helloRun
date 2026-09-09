@@ -23,6 +23,10 @@ function buildEligiblePost(overrides = {}) {
     contentHtml: `<p>${words}</p><p>${words}</p><p>${words}</p>`,
     contentText: words,
     contentRaw: words,
+    contentRisk: 'general',
+    searchIndexingStatus: 'noindex',
+    searchIndexingReason: 'pending_value_review',
+    indexingReview: null,
     status: 'scheduled',
     isDeleted: false
   };
@@ -84,6 +88,7 @@ test('scheduled publisher publishes only eligible due posts', async () => {
   assert.equal(summary.published, 1);
   assert.equal(summary.skipped, 1);
   assert.equal(eligible.status, 'published');
+  assert.equal(eligible.searchIndexingStatus, 'noindex');
   assert.equal(eligible.approvedAt, now);
   assert.equal(eligible.saveCalls, 1);
   assert.equal(ineligible.status, 'scheduled');

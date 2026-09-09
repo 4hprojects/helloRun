@@ -40,13 +40,14 @@ test('admin image autosave rolls back uploads and cleans replaced managed object
 
 test('review UI coordinates pending image uploads with autosave and moderation', () => {
   const view = read('src/views/admin/blog-review.ejs');
+  const script = read('src/public/js/admin-blog-review.js');
 
   assert.match(view, /id="adminCoverImageFile"/);
   assert.match(view, /id="adminGalleryPreview"/);
-  assert.match(view, /data-field="inline-file"/);
-  assert.match(view, /formData\.append\("payload", JSON\.stringify\(payload\)\)/);
-  assert.match(view, /const saved = await flushAutosave\(\)/);
-  assert.match(view, /Only ["'] \+ remaining[\s\S]*gallery slot/);
+  assert.match(script, /data-field="inline-file"/);
+  assert.match(script, /formData\.append\("payload", JSON\.stringify\(payload\)\)/);
+  assert.match(script, /const saved = await flushAutosave\(\)/);
+  assert.match(script, /Only ["'] \+ remaining[\s\S]*gallery slot/);
 });
 
 test('admin image fields allow existing site-relative paths without browser URL blocking', () => {

@@ -83,6 +83,26 @@ const userSchema = new mongoose.Schema({
     max: 100,
     default: 0
   },
+  authorSlug: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    maxlength: 100,
+    default: undefined,
+    index: { unique: true, sparse: true }
+  },
+  authorRole: {
+    type: String,
+    trim: true,
+    maxlength: 120,
+    default: ''
+  },
+  authorBio: {
+    type: String,
+    trim: true,
+    maxlength: 700,
+    default: ''
+  },
   country: {
     type: String,
     trim: true,

@@ -1,95 +1,65 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Event = require('../src/models/Event');
-
+const AccumulatedActivitySubmission = require('../src/models/AccumulatedActivitySubmission');
+const { resolveEventLeaderboardSettings } = require('../src/services/leaderboard.service');
 const {
   DATES,
-  VENUE_NAME,
-  BRAND_ASSETS,
+  OFFICIAL_TITLE,
+  SHORT_TITLE,
+  AWARDING_VENUE,
   EVENT_DESCRIPTION,
   RACE_CATEGORIES,
-  GALLERY_IMAGE_URLS,
   EVENT_DETAILS_MARKDOWN,
   buildCnsMoveMoreChallengeEventPayload
 } = require('../src/content/events/cns-move-more-challenge-2026');
-const { removeTreadmillOption } = require('../src/scripts/update-cns-move-more-content');
+const { assertExpectedCounts, isPostMigration, EARLY_REVIEW_NOTE } = require('../src/scripts/update-cns-move-more-content');
 
-test('CNS content updater removes only the legacy treadmill option', () => {
-  const legacy = `## Walk, jog, run, hike, or use a treadmill
-
-Valid activities: walking, jogging, running, hiking, and treadmill walking or running. Cycling distance does not count.
-
-You may use another smartphone pedometer, a smartwatch companion app, or a treadmill activity record.
-
-Keep this custom organizer note.`;
-  const updated = removeTreadmillOption(legacy);
-
-  assert.doesNotMatch(updated, /treadmill/i);
-  assert.match(updated, /## Walk, jog, run, or hike/);
-  assert.match(updated, /Keep this custom organizer note\./);
+test('CNS source follows the official dates and one distance-only goal', () => {
+  assert.equal(DATES.registrationOpenAt.toISOString(), '2026-09-08T16:00:00.000Z');
+  assert.equal(DATES.registrationCloseAt.toISOString(), '2026-09-13T15:59:00.000Z');
+  assert.equal(DATES.activityStartAt.toISOString(), '2026-09-13T16:00:00.000Z');
+  assert.equal(DATES.activityEndAt.toISOString(), '2026-11-03T15:59:00.000Z');
+  assert.equal(DATES.submissionDeadlineAt.toISOString(), DATES.activityEndAt.toISOString());
+  assert.deepEqual(RACE_CATEGORIES.map((category) => [category.distanceKm, category.targetSteps]), [[50, 0]]);
+  assert.match(EVENT_DETAILS_MARKDOWN, /50 km in 50 days/i);
+  assert.match(EVENT_DETAILS_MARKDOWN, /September 14 to November 3, 2026/i);
+  assert.match(EVENT_DETAILS_MARKDOWN, /CAS Little Theater/i);
+  assert.doesNotMatch(`${EVENT_DESCRIPTION}\n${EVENT_DETAILS_MARKDOWN}`, /120,000|25.?Kilometer|dual challenge|4,000 steps/i);
 });
 
-test('CNS Move More source keeps all five mixed-metric goals and the confirmed deadline', () => {
-  assert.deepEqual(
-    RACE_CATEGORIES.map((category) => [category.distanceKm, category.targetSteps]),
-    [[25, 0], [50, 0], [0, 120000], [25, 120000], [50, 120000]]
-  );
-  assert.equal(DATES.submissionDeadlineAt.toISOString(), '2026-10-02T15:59:00.000Z');
-  assert.match(EVENT_DETAILS_MARKDOWN, /accumulated virtual run\/walk distance challenges/i);
-  assert.match(EVENT_DETAILS_MARKDOWN, /combined category requires you to reach both/i);
-  assert.match(EVENT_DETAILS_MARKDOWN, /same eligible activity can count toward both/i);
-  assert.match(EVENT_DETAILS_MARKDOWN, /Apple Health on iPhone/i);
-  assert.match(EVENT_DETAILS_MARKDOWN, /Google Fit on Android/i);
-  assert.match(EVENT_DETAILS_MARKDOWN, /Samsung Health on a Samsung phone/i);
-  assert.match(EVENT_DETAILS_MARKDOWN, /Strava import by itself does not satisfy a step-only or combined goal/i);
-  assert.match(EVENT_DETAILS_MARKDOWN, /both distance and steps.*combined goal/i);
-  assert.doesNotMatch(EVENT_DETAILS_MARKDOWN, /treadmill/i);
-  assert.match(EVENT_DETAILS_MARKDOWN, /five category leaders.*three event-wide recognitions/is);
-  assert.match(EVENT_DETAILS_MARKDOWN, /combined categories use the lower of distance-goal and step-goal progress/is);
-  assert.match(EVENT_DETAILS_MARKDOWN, /across all five categories/i);
-  assert.match(EVENT_DETAILS_MARKDOWN, /ranked \*\*#10 or better\*\*/i);
-  assert.match(EVENT_DETAILS_MARKDOWN, /own exact current standing privately/i);
-  assert.match(EVENT_DETAILS_MARKDOWN, /JPG, PNG, or WebP/i);
-  assert.doesNotMatch(EVENT_DETAILS_MARKDOWN, /proposed final submission deadline|subject to confirmation/i);
+test('CNS payload is free, screenshot-backed, and distance-only', () => {
+  const payload = buildCnsMoveMoreChallengeEventPayload({ organizerId: 'owner', approvedBy: 'admin', referenceCode: 'CNS-TEST' });
+  assert.equal(payload.title, OFFICIAL_TITLE);
+  assert.equal(payload.shortTitle, SHORT_TITLE);
+  assert.equal(payload.awardingVenue, AWARDING_VENUE);
+  assert.deepEqual(payload.raceDistances, ['50K']);
+  assert.deepEqual(payload.challengeMetrics, ['distance']);
+  assert.equal(payload.targetSteps, null);
+  assert.deepEqual(payload.acceptedRunTypes, ['run', 'walk', 'hike']);
+  assert.deepEqual(payload.proofTypesAllowed, ['photo']);
+  assert.equal(payload.requireActivityScreenshot, true);
+  assert.equal(payload.requireTrackingAppDevice, true);
+  assert.equal(payload.suppressDailyGuidance, true);
+  assert.equal(payload.participationCertificateEnabled, true);
+  assert.equal(payload.noActivityCertificateEnabled, false);
+  assert.equal(payload.leaderboardSettings.showHighestStepsCard, false);
+  assert.equal(payload.leaderboardSettings.showHighestElevationCard, false);
+  assert.equal(payload.leaderboardSettings.showMostConsistentCard, false);
+  assert.equal(payload.awardSettings.rankingBasis, 'unconfirmed');
+  assert.equal(payload.awardSettings.autoSelectTopFinishers, false);
+  const standings = resolveEventLeaderboardSettings(payload, 'elevation');
+  assert.equal(standings.primaryMetric, 'distance');
+  assert.deepEqual(standings.trackedMetrics, ['distance']);
+  assert.ok(Event.schema.path('awardingAt'));
+  assert.ok(Event.schema.path('requiredRegistrationFields'));
+  assert.ok(AccumulatedActivitySubmission.schema.path('trackingAppDevice'));
+  assert.deepEqual(AccumulatedActivitySubmission.schema.path('certificate.type').enumValues, ['finisher', 'participation', '']);
 });
 
-test('CNS Move More payload remains free, public, and configured for distance and steps', () => {
-  const payload = buildCnsMoveMoreChallengeEventPayload({
-    organizerId: 'organizer-id',
-    approvedBy: 'admin-id',
-    referenceCode: 'CNS-TEST',
-    now: new Date('2026-08-10T00:00:00+08:00')
-  });
-
-  assert.equal(payload.slug, 'cns-move-more-challenge-2026');
-  assert.equal(payload.feeMode, 'free');
-  assert.equal(payload.status, 'published');
-  assert.equal(payload.leaderboardSettings.showHighestStepsCard, true);
-  assert.equal(payload.leaderboardSettings.showHighestElevationCard, true);
-  assert.equal(payload.leaderboardSettings.showMostConsistentCard, true);
-  assert.equal(payload.leaderboardSettings.publicRankCutoff, 10);
-  assert.equal(Event.schema.path('leaderboardSettings.showHighestStepsCard').defaultValue, false);
-  assert.equal(Event.schema.path('leaderboardSettings.showHighestElevationCard').defaultValue, false);
-  assert.equal(Event.schema.path('leaderboardSettings.showMostConsistentCard').defaultValue, false);
-  assert.equal(Event.schema.path('leaderboardSettings.publicRankCutoff').defaultValue, 0);
-  assert.deepEqual(payload.challengeMetrics, ['distance', 'steps']);
-  assert.equal(payload.venueName, VENUE_NAME);
-  assert.equal(payload.raceCategories.length, 5);
-  assert.match(payload.description, /CNS teaching, non-teaching, administrative, and support personnel/i);
-  assert.equal(payload.description, EVENT_DESCRIPTION);
-  assert.match(payload.description, /25K or 50K virtual run\/walk goal/i);
-  assert.match(payload.description, /there is no onsite race/i);
-  assert.match(payload.description, /no smartwatch is required/i);
-  assert.deepEqual(
-    {
-      logoUrl: payload.logoUrl,
-      bannerImageUrl: payload.bannerImageUrl,
-      posterImageUrl: payload.posterImageUrl
-    },
-    BRAND_ASSETS
-  );
-  assert.deepEqual(payload.galleryImageUrls, [...GALLERY_IMAGE_URLS]);
-  assert.deepEqual(GALLERY_IMAGE_URLS, [
-    '/images/events/cns-move-more-challenge-2026/cns-move-more-beginner-guide-landscape.webp'
-  ]);
+test('CNS migration count guard supports only exact initial or post-migration states', () => {
+  assert.doesNotThrow(() => assertExpectedCounts({ registrations: 10, activities: 7, demoRegistrations: 15, demoActivities: 15 }));
+  assert.equal(isPostMigration({ registrations: 10, activities: 7, demoRegistrations: 0, demoActivities: 0 }), true);
+  assert.throws(() => assertExpectedCounts({ registrations: 11, activities: 7, demoRegistrations: 15, demoActivities: 15 }), /Unexpected live CNS record counts/);
+  assert.match(EARLY_REVIEW_NOTE, /must manually approve an exception/i);
 });

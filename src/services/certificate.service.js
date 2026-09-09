@@ -134,7 +134,11 @@ async function buildCertificateRenderData({
   const finishTime = accumulatedSnapshot ? '' : formatElapsedMs(submission.elapsedMs);
   const eventDate = formatCertificateDate(event.eventStartAt || event.eventEndAt || issuedAt || new Date());
   const content = { ...(renderTemplate.content || {}) };
-  if (accumulatedSnapshot && isDefaultCertificateBody(content.bodyText)) {
+  const certificateType = accumulatedSnapshot?.certificateType === 'participation' ? 'participation' : 'finisher';
+  if (accumulatedSnapshot && certificateType === 'participation') {
+    content.heading = 'Certificate of Participation';
+    content.bodyText = 'Participated in {{eventTitle}} with {{verifiedDistance}} verified across {{approvedActivityCount}} approved activities.';
+  } else if (accumulatedSnapshot && isDefaultCertificateBody(content.bodyText)) {
     content.bodyText = 'Completed the {{goalDistance}} goal at {{eventTitle}} with {{verifiedDistance}} verified.';
   }
 
@@ -150,6 +154,7 @@ async function buildCertificateRenderData({
     goalSteps: Number(accumulatedSnapshot?.goalSteps || 0),
     verifiedSteps: Number(accumulatedSnapshot?.verifiedSteps || 0),
     approvedActivityCount: Number(accumulatedSnapshot?.approvedActivityCount || 0),
+    certificateType,
     isAccumulatedChallenge: Boolean(accumulatedSnapshot),
     finishTime,
     elapsedLabel: finishTime,
@@ -900,6 +905,7 @@ function renderTemplateText(templateText, data) {
     distance: data.raceDistance,
     goalDistance: data.goalDistance,
     verifiedDistance: data.verifiedDistance,
+    approvedActivityCount: data.approvedActivityCount,
     finishTime: data.elapsedLabel,
     rank: data.rank,
     eventDate: data.eventDate,

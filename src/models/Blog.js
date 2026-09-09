@@ -168,6 +168,11 @@ const blogSchema = new mongoose.Schema(
       maxlength: 500,
       default: ''
     },
+    contentVersion: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
     submittedAt: {
       type: Date,
       default: null
@@ -227,6 +232,27 @@ const blogSchema = new mongoose.Schema(
       default: null
     },
     publicationReview: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null
+    },
+    contentRisk: {
+      type: String,
+      enum: ['general', 'health_safety'],
+      default: 'general',
+      index: true
+    },
+    searchIndexingStatus: {
+      type: String,
+      enum: ['index', 'noindex'],
+      default: 'noindex',
+      index: true
+    },
+    searchIndexingReason: {
+      type: String,
+      enum: ['first_party_value', 'pending_value_review', 'pending_expert_review', 'consolidated'],
+      default: 'pending_value_review'
+    },
+    indexingReview: {
       type: mongoose.Schema.Types.Mixed,
       default: null
     },
@@ -291,6 +317,26 @@ const blogSchema = new mongoose.Schema(
     publishedAt: {
       type: Date,
       default: null
+    },
+    scheduledFor: {
+      type: Date,
+      default: null,
+      index: true
+    },
+    scheduledPublishFailures: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    scheduledPublishLastAttemptAt: {
+      type: Date,
+      default: null
+    },
+    scheduledPublishLastError: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: ''
     }
   },
   {
@@ -299,8 +345,11 @@ const blogSchema = new mongoose.Schema(
 );
 
 blogSchema.index({ status: 1, publishedAt: -1 });
+blogSchema.index({ status: 1, scheduledFor: 1, isDeleted: 1 });
+blogSchema.index({ isDeleted: 1, status: 1, activeRevisionStatus: 1, updatedAt: -1 });
 blogSchema.index({ status: 1, featured: 1, publishedAt: -1 });
 blogSchema.index({ status: 1, isDeleted: 1, publishedAt: -1 });
+blogSchema.index({ status: 1, searchIndexingStatus: 1, publishedAt: -1 });
 blogSchema.index({ activeRevisionStatus: 1, activeRevisionSubmittedAt: -1 });
 blogSchema.index({ authorId: 1, createdAt: -1 });
 blogSchema.index({ authorId: 1, status: 1, updatedAt: -1 });

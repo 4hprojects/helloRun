@@ -16,7 +16,20 @@ function eligibleSitemapBlogRecord(fields, actorId) {
   const words = Array.from({ length: 510 }, (_, index) => `sitemaprunner${index}`);
   const contentHtml = [0, 170, 340].map((start) => `<p>${words.slice(start, start + 170).join(' ')}</p>`).join('');
   const record = { ...fields, contentHtml, contentText: words.join(' '), status: 'published', isDeleted: false };
-  return { ...record, ...buildTrustedEditorialReview(record, actorId, new Date()) };
+  const reviewed = { ...record, ...buildTrustedEditorialReview(record, actorId, new Date()) };
+  return {
+    ...reviewed,
+    contentRisk: 'general',
+    searchIndexingStatus: 'index',
+    searchIndexingReason: 'first_party_value',
+    indexingReview: {
+      sourceHash: reviewed.contentEligibility.sourceHash,
+      valueBasis: 'first_party_platform',
+      evidenceNote: 'Test fixture documents unique first-party platform guidance for search discovery.',
+      reviewedBy: actorId,
+      reviewedAt: new Date()
+    }
+  };
 }
 
 const ROOT = path.resolve(__dirname, '..');
@@ -193,7 +206,7 @@ async function seedFixtures() {
 
   const now = Date.now();
   const event = await Event.create({
-      isTestData: true,
+    isTestData: false,
     organizerId: organizer._id,
     slug: `sitemap-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `SM-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -203,6 +216,7 @@ async function seedFixtures() {
     status: 'published',
     eventType: 'virtual',
     eventTypesAllowed: ['virtual'],
+    digitalBadgeEnabled: true,
     raceDistances: ['5K'],
     registrationOpenAt: new Date(now - 24 * 60 * 60 * 1000),
     registrationCloseAt: new Date(now + 24 * 60 * 60 * 1000),

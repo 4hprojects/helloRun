@@ -96,7 +96,7 @@ test('fair run-proof review checklist sanitizes official sources and passes elig
   assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/WAI\/tutorials\/forms\/notifications\/" rel="noopener noreferrer" target="_blank"/);
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
-  assert.equal(eligibility.healthReviewRequired, true);
+  assert.equal(eligibility.healthReviewRequired, false);
   assert.ok(eligibility.wordCount >= 3200);
   assert.ok(eligibility.semanticUnitCount >= 3);
   assert.equal(eligibility.externalLinkCount, 3);
@@ -117,7 +117,7 @@ test('fair run-proof review checklist is registered and seeded once for August 1
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 38);
+  assert.equal(listArticleSlugs().length, 52);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -149,14 +149,9 @@ test('fair run-proof review checklist supports exact eligible scheduling and upd
   assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.contentEligibility.eligible, true);
-  assert.equal(payload.contentEligibility.healthReviewRequired, true);
-  assert.equal(payload.publicationReview.originalityConfirmed, true);
-  assert.equal(payload.publicationReview.externalLinksConfirmed, true);
-  assert.equal(payload.publicationReview.healthSafetyConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthExperienceConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthSourcesConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthSafetyConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthCredentialsConfirmed, true);
+  assert.equal(payload.contentEligibility.healthReviewRequired, false);
+  assert.equal(payload.publicationReview, null);
+  assert.equal(payload.searchIndexingStatus, 'noindex');
   assert.match(packageJson.scripts['blog:update-fair-run-proof-review'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 

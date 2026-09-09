@@ -519,6 +519,7 @@
                     <label><input type="checkbox" name="acceptedRunTypes" value="walk" <%= selectedRunTypes.includes('walk') ? 'checked' : '' %>> Walk</label>
                     <label><input type="checkbox" name="acceptedRunTypes" value="hike" <%= selectedRunTypes.includes('hike') ? 'checked' : '' %>> Hike</label>
                     <label><input type="checkbox" name="acceptedRunTypes" value="trail_run" <%= selectedRunTypes.includes('trail_run') ? 'checked' : '' %>> Trail run</label>
+                    <label><input type="checkbox" name="acceptedRunTypes" value="treadmill" <%= selectedRunTypes.includes('treadmill') ? 'checked' : '' %>> Treadmill</label>
                   </div>
                   <small class="field-hint">Accepted activity types limit what can count toward accumulated progress.</small>
                   <% if (errors.acceptedRunTypes) { %><small class="error-text"><%= errors.acceptedRunTypes %></small><% } %>
@@ -590,7 +591,7 @@
                     <div class="form-group form-group-full">
                       <label>Visible Columns</label>
                       <div class="checkbox-row">
-                        <% ['rank', 'runner', 'category', 'distance', 'steps', 'time', 'pace', 'status'].forEach((column) => { %>
+                        <% ['rank', 'runner', 'category', 'department', 'distance', 'elevation', 'activities', 'steps', 'time', 'pace', 'status'].forEach((column) => { %>
                           <label><input type="checkbox" name="leaderboardSettingsVisibleColumns" value="<%= column %>" <%= selectedLeaderboardColumns.includes(column) ? 'checked' : '' %>> <%= column.charAt(0).toUpperCase() + column.slice(1) %></label>
                         <% }) %>
                       </div>

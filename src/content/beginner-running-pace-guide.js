@@ -117,7 +117,7 @@ const RAW_CONTENT_HTML = `
 <h3>Intervals</h3>
 <p>Intervals alternate defined work and recovery. The appropriate pace depends on interval duration, recovery, purpose, surface, and experience. Short repetitions are not a license to sprint uncontrollably. Warm-up, recovery, and form matter more than matching another person's number.</p>
 <h3>Event or race pace</h3>
-<p>Event pace is the planned average for a specific distance and setting. A sustainable 5K pace is not automatically sustainable for 10K or 21K. Virtual routes and onsite courses also differ, so a goal should reflect the actual course, conditions, support, and timing method.</p>
+<p>Event pace is the planned average for a specific distance and setting. A sustainable 5K pace is not automatically sustainable for 10K or 21K. Virtual routes and onsite courses also differ, so a goal should reflect the actual course, conditions, support, and timing method. The <a href="/blog/21k-half-marathon-for-beginners">beginner 21K guide</a> treats pacing as one part of a separate readiness, long-activity, recovery, and logistics progression.</p>
 
 <h2>Why the same effort produces different pace</h2>
 <ul>
@@ -151,6 +151,7 @@ const RAW_CONTENT_HTML = `
 <h2>Estimate an event pace without making a promise</h2>
 <p>Begin with recent activities that resemble the event in distance, surface, elevation, and conditions. A comfortable 3K on a cool flat route is incomplete evidence for a hot hilly 10K. Consider whether the goal is completion, consistent effort, or performance.</p>
 <p>To estimate finish time, multiply pace by distance. At 7:30 min/km, a mathematically even 5K is 37:30 and a 10K is 1:15:00. That does not mean both distances are equally sustainable. The calculation is arithmetic, not a physiological prediction.</p>
+<p>The <a href="/blog/how-long-to-run-5k-10k-21k">5K, 10K, and half-marathon finish-time guide</a> provides a broader pace-to-time reference and explains why historical race-result averages are context rather than beginner standards.</p>
 <p>Allow for the event setting. Onsite starts can include crowding and course markers; virtual runs can include crossings, navigation, and runner-managed support. If an organizer asks for an estimated time to assign a start wave, provide an honest, conservative estimate based on recent relevant activity, not an aspirational number chosen to enter a faster group.</p>
 
 <h2>A simple pacing plan for a first event</h2>
@@ -166,6 +167,7 @@ const RAW_CONTENT_HTML = `
 <p>An onsite result can use gun time, chip time, officially measured course distance, or another event rule. The course may be certified, but onsite does not automatically mean certified. A virtual result may use consumer-device distance and an approved submitted duration on a runner-selected route.</p>
 <p>Different elevation, turns, weather, surfaces, crossings, GPS devices, treadmill estimates, and pause rules make direct comparisons uncertain. A virtual 5K average pace can be meaningful within that event and personal record without becoming a certified qualifying result.</p>
 <p>Check whether the event ranks elapsed time or another verified field, whether walking or treadmills are allowed, and what evidence is accepted. Use <a href="/blog/virtual-run-vs-traditional-race-which-one-should-you-join">Virtual Run vs Traditional Race</a> for the broader format comparison.</p>
+<p>For a prepared beginner putting these pace decisions into one ten-kilometre event, the <a href="/blog/how-to-run-your-first-10k-virtual-run">first virtual 10K guide</a> adds readiness, route, tracker, proof, and recovery checks without promising a finish time.</p>
 
 <h2>Pace in HelloRun results and proof</h2>
 <p>HelloRun events use event-specific categories and rules. Registration can be free or paid; paid registration can involve an external transfer and manual payment-receipt review. HelloRun does not directly process that transfer. Payment evidence is separate from activity proof.</p>
@@ -308,6 +310,9 @@ const REQUIRED_LINKS = Object.freeze([
   '/blog/how-to-submit-run-proof-correctly-hellorun',
   '/blog/how-leaderboards-work-virtual-running-events',
   '/blog/running-safety-tips-early-morning-night-runs',
+  '/blog/how-long-to-run-5k-10k-21k',
+  '/blog/21k-half-marathon-for-beginners',
+  '/blog/how-to-run-your-first-10k-virtual-run',
   'cdc.gov/physicalactivity/basics/measuring/index.html',
   'acsm.org/docs/default-source/files-for-resource-library/exercise-intensity-infographic.pdf',
   'nhs.uk/better-health/get-active/get-running-with-couch-to-5k',

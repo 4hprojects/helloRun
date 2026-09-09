@@ -189,6 +189,7 @@ const RAW_CONTENT_HTML = `
 <h2>Take the practical next step</h2>
 <p>Write the purpose and recent-week review before choosing the number. Then open the actual calendar, mark unavailable and recovery time, and test the proposed target against the remaining suitable opportunities. If it only works in a perfect month, reduce it or choose a later event.</p>
 <p>When an event is part of the goal, browse <a href="/events">current HelloRun events</a> and read the live rules before registering. A realistic monthly goal should make the next responsible decision clearer—even when that decision is to rest, adjust, or choose a different challenge.</p>
+<p>To coordinate several monthly decisions around one larger outcome, continue with the <a href="/blog/how-to-set-running-goals-for-the-rest-of-the-year">September-to-December running-goals guide</a>. It uses this monthly evidence inside four adjustable checkpoints rather than choosing four unrelated targets.</p>
 
 <h2>Official and platform sources</h2>
 <ul>
@@ -224,6 +225,7 @@ const REQUIRED_LINKS = Object.freeze([
   'href="/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge"',
   'href="/blog/how-to-stay-consistent-during-a-month-long-virtual-run"',
   'href="/blog/beginner-5k-training-plan-new-runners"',
+  'href="/blog/how-to-set-running-goals-for-the-rest-of-the-year"',
   'www.who.int/publications/i/item/9789240015128',
   'www.cdc.gov/physical-activity-basics/measuring/index.html'
 ]);

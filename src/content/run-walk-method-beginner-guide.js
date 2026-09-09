@@ -138,7 +138,7 @@ const RAW_CONTENT_HTML = `
 <p>Record the warm-up, run-walk pattern, total duration, route, weather, overall effort, any symptoms, and how recovery felt later. “Six relaxed cycles, sentences remained comfortable, hot final ten minutes, walked longer, normal next day” is often more actionable than “average pace 8:42.”</p>
 
 <h2>Adapt the method to weather, routes, and treadmills</h2>
-<p>In hot and humid conditions, normal pace may require more effort. Choose a cooler safe time when possible, reduce the session, use shade, and respond to official local weather advice. Do not use the scheduled running interval as a reason to ignore heat symptoms. The <a href="/blog/how-to-train-safely-for-virtual-runs-in-hot-and-humid-weather">hot and humid weather guide</a> provides broader planning guidance.</p>
+<p>In hot and humid conditions, normal pace may require more effort. Choose a cooler safe time when possible, reduce the session, use shade, and respond to official local weather advice. Do not use the scheduled running interval as a reason to ignore heat symptoms. The <a href="/blog/how-to-run-safely-during-hot-and-humid-weather">hot and humid weather guide</a> provides broader planning guidance.</p>
 <p>Rain changes visibility, grip, drainage, and traffic behavior. Walking breaks do not make lightning, flooding, or an unsafe surface acceptable. Reschedule, move indoors where appropriate, or choose another safe activity when conditions require it. See the <a href="/blog/running-during-rainy-season-philippines">rainy-season running guide</a>.</p>
 <p>On a treadmill, use changes that allow stable transitions. Do not jump onto the side rails at speed as a substitute for reducing the belt safely. A watch and treadmill may report different distance or pace. For virtual-event evidence, follow the event’s treadmill rules and the <a href="/blog/how-to-record-a-treadmill-run-for-a-virtual-event">treadmill evidence guide</a>.</p>
 <p>On public routes, prioritize predictable movement. Look before changing direction or pace, keep enough awareness to hear or see hazards, and avoid staring at the timer. Low-light conditions need suitable visibility choices; use the <a href="/blog/running-safety-tips-early-morning-night-runs">low-light safety guide</a>.</p>
@@ -218,6 +218,11 @@ const RAW_CONTENT_HTML = `
 <h2>Your practical next step</h2>
 <p>Write one small run-walk session using the worksheet. Choose a familiar safe route, a modest minimum, controlled running cues, generous walking recovery, and a clear reason to shorten or stop. If running is not appropriate today, make the session a walk or seek the guidance you need.</p>
 <p>Afterward, record how the whole experience felt and how normal activity feels later. Repeat a manageable pattern before increasing it. Sustainable endurance begins with sessions you can understand, recover from, and choose again—not with proving that you can avoid walking.</p>
+<p>To practise this method inside a month without turning it into daily running, use the <a href="/blog/30-day-running-challenge-for-beginners">flexible 30-day running challenge</a>. Its run-walk track includes recovery, backup, and review days while leaving each session adaptable.</p>
+<p>If the session is for an event, read <a href="/blog/can-you-walk-a-virtual-run">when walking can count toward a virtual run</a>. Planned walking can support training without being accepted automatically by every category.</p>
+<p>Once ten kilometres is a realistic prepared next step and the event accepts the strategy, the <a href="/blog/how-to-run-your-first-10k-virtual-run">first virtual 10K guide</a> shows how to rehearse the pattern, pace the attempt, preserve the activity, and submit it honestly.</p>
+<p>When 10K becomes repeatable and a longer goal fits, the <a href="/blog/21k-half-marathon-for-beginners">beginner half-marathon guide</a> keeps planned walking available throughout a gradual 21K bridge.</p>
+<p>To choose between consistency, distance, and event outcomes through December, use the <a href="/blog/how-to-set-running-goals-for-the-rest-of-the-year">year-end running-goals guide</a> while keeping this run-walk process adaptable.</p>
 
 <h2>Sources and review notes</h2>
 <p><strong>Official and platform sources:</strong> the health guidance below supports the general training principles, while current HelloRun source and workflows support the platform descriptions.</p>
@@ -249,8 +254,13 @@ const REQUIRED_LINKS = Object.freeze([
   'href="/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge"',
   'href="/blog/what-counts-as-valid-run-proof"',
   'href="/blog/how-to-submit-run-proof-correctly-hellorun"',
-  'href="/blog/how-to-train-safely-for-virtual-runs-in-hot-and-humid-weather"',
-  'href="/blog/running-during-rainy-season-philippines"'
+  'href="/blog/30-day-running-challenge-for-beginners"',
+  'href="/blog/can-you-walk-a-virtual-run"',
+  'href="/blog/how-to-run-your-first-10k-virtual-run"',
+  'href="/blog/how-to-run-safely-during-hot-and-humid-weather"',
+  'href="/blog/running-during-rainy-season-philippines"',
+  'href="/blog/21k-half-marathon-for-beginners"',
+  'href="/blog/how-to-set-running-goals-for-the-rest-of-the-year"'
 ]);
 
 function buildArticlePayload({ coverImageUrl } = {}) {

@@ -18,7 +18,7 @@ const blogRevisionSchema = new mongoose.Schema(
     source: {
       type: String,
       required: true,
-      enum: ['admin_autosave', 'author_revision'],
+      enum: ['admin_autosave', 'admin_revision', 'author_revision'],
       default: 'admin_autosave'
     },
     status: {
@@ -26,6 +26,16 @@ const blogRevisionSchema = new mongoose.Schema(
       enum: ['draft', 'pending', 'rejected', 'approved', 'discarded', ''],
       default: '',
       index: true
+    },
+    baseContentVersion: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    editVersion: {
+      type: Number,
+      min: 0,
+      default: 0
     },
     changedFields: {
       type: [String],

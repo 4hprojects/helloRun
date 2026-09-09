@@ -31,6 +31,12 @@ const eventSchema = new mongoose.Schema(
       trim: true,
       maxlength: 150
     },
+    shortTitle: {
+      type: String,
+      trim: true,
+      maxlength: 80,
+      default: ''
+    },
     organiserName: {
       type: String,
       required: true,
@@ -246,6 +252,8 @@ const eventSchema = new mongoose.Schema(
       trim: true,
       maxlength: 150
     },
+    awardingAt: { type: Date, default: null },
+    awardingVenue: { type: String, trim: true, maxlength: 150, default: '' },
     venueAddress: {
       type: String,
       trim: true,
@@ -289,6 +297,9 @@ const eventSchema = new mongoose.Schema(
       ],
       default: []
     },
+    requireActivityScreenshot: { type: Boolean, default: false },
+    requireTrackingAppDevice: { type: Boolean, default: false },
+    suppressDailyGuidance: { type: Boolean, default: false },
     virtualCompletionMode: {
       type: String,
       enum: ['single_activity', 'accumulated_activity', 'accumulated_distance'],
@@ -323,7 +334,7 @@ const eventSchema = new mongoose.Schema(
       type: [
         {
           type: String,
-          enum: ['run', 'walk', 'hike', 'trail_run']
+          enum: ['run', 'walk', 'hike', 'trail_run', 'treadmill']
         }
       ],
       default: []
@@ -398,6 +409,21 @@ const eventSchema = new mongoose.Schema(
       type: Boolean,
       default: true
     },
+    participationCertificateEnabled: { type: Boolean, default: false },
+    noActivityCertificateEnabled: { type: Boolean, default: false },
+    requiredRegistrationFields: {
+      type: [{ type: String, enum: ['mobile', 'department', 'position', 'preferred_fitness_app', 'leaderboard_consent'] }],
+      default: []
+    },
+    awardSettings: {
+      rankingBasis: {
+        type: String,
+        enum: ['unconfirmed', 'highest_distance', 'highest_elevation', 'first_to_50k', 'manual'],
+        default: 'unconfirmed'
+      },
+      autoSelectTopFinishers: { type: Boolean, default: false },
+      topFinisherCount: { type: Number, min: 0, max: 100, default: 3 }
+    },
     leaderboardRecognitionEnabled: {
       type: Boolean,
       default: true
@@ -457,7 +483,7 @@ const eventSchema = new mongoose.Schema(
         type: [
           {
             type: String,
-            enum: ['rank', 'runner', 'category', 'distance', 'steps', 'time', 'pace', 'status']
+            enum: ['rank', 'runner', 'category', 'department', 'distance', 'elevation', 'activities', 'steps', 'time', 'pace', 'status']
           }
         ],
         default: ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status']

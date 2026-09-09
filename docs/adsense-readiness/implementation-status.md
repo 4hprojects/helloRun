@@ -8,6 +8,18 @@ The work focused on public content depth, crawl hygiene, event page quality, tru
 
 Current approval work is controlled by [`approval-roadmap.md`](approval-roadmap.md). This file remains the historical implementation and verification record.
 
+## August 30, 2026 Content-Quality Remediation
+
+- Added explicit content-risk, search-indexing status/reason, and hash-bound human indexing-review data.
+- Kept scheduled publishing active while defaulting unapproved scheduled articles to `noindex` discovery state.
+- Restricted homepage, blog discovery, related posts, feeds, sitemap, category discovery, and AdSense-eligible surfaces to currently approved indexed articles.
+- Added qualified-reviewer requirements for health/safety indexing and removed automatic editorial confirmations from content seed/update helpers.
+- Replaced the generic editorial identity with Henson M. Sagorsor's factual developer/operator/editor profile and stable author URL; removed public verified/trust-score presentation.
+- Added the exact 20/18 migration manifest, dry-run/apply reporting, source-hash invalidation, and a registry-wide internal-link validator.
+- Fixed the hot-weather and run-proof internal links and removed repeated article hashtags and misleading collection claims.
+- AdSense ownership is confirmed by the supplied account screenshot. Search Console, `ads.txt: Authorized`, account tasks, Policy Center, and certified CMP evidence remain pending.
+- The migration dry-run found all 38 articles; apply is intentionally pending a human evidence note after deployment.
+
 ## Implemented Phases
 
 | Phase | Status | Notes |
@@ -137,7 +149,7 @@ These original follow-up steps are retained for traceability and are superseded 
 - The Privacy Policy meta description was too short to be useful.
 - The custom preference UI and the planned Google-certified advertising CMP need one authoritative consent model.
 - Search Console crawl/index coverage was not independently verified.
-- AdSense ownership status, `ads.txt: Authorized`, account setup, Policy Center, and certified CMP status were not independently verified.
+- AdSense ownership was later confirmed by the supplied August 30 screenshot; `ads.txt: Authorized`, account setup, Policy Center, and certified CMP status remain pending.
 
 ### Decision
 

@@ -12,7 +12,7 @@
     <nav>
       <a href="/blog">Home</a>
       <a href="/blog/trending">Trending</a>
-      <a href="/blog/top-writers">Top Writers</a>
+      <a href="/blog/authors/henson-m-sagorsor">HelloRun Author</a>
       <a href="/blog/guides">Guides & Resources</a>
       <a href="/feed.xml" target="_blank">RSS Feed</a>
     </nav>
@@ -35,7 +35,7 @@
       <% } %>
     </section>
     <section id="top-writers">
-      <h2>Top Writers</h2>
+      <h2>HelloRun Authors</h2>
       <% if (topWriters && topWriters.length) { %>
         <ol>
           <% topWriters.forEach(function(writer) { %>
@@ -48,7 +48,7 @@
           <% }); %>
         </ol>
       <% } else { %>
-        <p>No top writers yet.</p>
+        <p>No author profiles are available yet.</p>
       <% } %>
     </section>
     <section id="guides-resources">

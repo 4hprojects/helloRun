@@ -9,7 +9,7 @@ const User = require('../models/User');
 const { inviteCoOrganizer } = require('../services/event-co-organizer.service');
 
 const EVENT_SLUG = 'cns-move-more-challenge-2026';
-const INVITEE_EMAIL = 'j.balangen@bsu.edu.ph';
+const INVITEE_EMAIL = 'a.baniaga@bsu.edu.ph';
 const APPLY = process.argv.includes('--apply');
 
 async function main() {

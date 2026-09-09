@@ -15,6 +15,10 @@ const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const User = require('../models/User');
 const Blog = require('../models/Blog');
+const {
+  hasCurrentEligibleContent,
+  hasCurrentPublicationReview
+} = require('../utils/blog-content-eligibility');
 const { syncEventShadow } = require('../services/event-shadow.service');
 const { syncRegistrationPaymentShadow } = require('../services/registration-payment-shadow.service');
 const { syncSubmissionShadow } = require('../services/submission-shadow.service');
@@ -176,7 +180,10 @@ async function publishScheduledBlogs() {
   const now = new Date();
   const due = await Blog.find({
     status: 'scheduled',
-    publishedAt: { $lte: now },
+    $or: [
+      { scheduledFor: { $lte: now } },
+      { scheduledFor: null, publishedAt: { $lte: now } }
+    ],
     isDeleted: { $ne: true }
   }).limit(20);
 
@@ -185,11 +192,28 @@ async function publishScheduledBlogs() {
   logger.info(`[blog-scheduler] Publishing ${due.length} scheduled post(s)`);
   for (const post of due) {
     try {
+      if (!hasCurrentEligibleContent(post) || !hasCurrentPublicationReview(post)) {
+        post.scheduledPublishFailures = Number(post.scheduledPublishFailures || 0) + 1;
+        post.scheduledPublishLastAttemptAt = now;
+        post.scheduledPublishLastError = 'Content eligibility or publication review is no longer current.';
+        await post.save();
+        logger.warn(`[blog-scheduler] Skipped ineligible scheduled post: "${post.title}" (${post._id})`);
+        continue;
+      }
       post.status = 'published';
+      post.publishedAt = now;
+      post.scheduledFor = null;
+      post.scheduledPublishFailures = 0;
+      post.scheduledPublishLastAttemptAt = now;
+      post.scheduledPublishLastError = '';
       if (!post.approvedAt) post.approvedAt = now;
       await post.save();
       logger.info(`[blog-scheduler] Published: "${post.title}" (${post._id})`);
     } catch (err) {
+      await Blog.updateOne({ _id: post._id }, {
+        $inc: { scheduledPublishFailures: 1 },
+        $set: { scheduledPublishLastAttemptAt: now, scheduledPublishLastError: String(err?.message || err).slice(0, 500) }
+      }).catch(() => {});
       logger.error(`[blog-scheduler] Failed to publish ${post._id}: ${err?.message || String(err)}`);
     }
   }

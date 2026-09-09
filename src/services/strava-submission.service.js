@@ -89,9 +89,12 @@ async function submitStravaActivity({ runnerId, eventId, stravaActivityId }) {
   }
 
   const event = await Event.findById(registration.eventId)
-    .select('title eventStartAt eventEndAt virtualWindow acceptedRunTypes virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps minimumActivityDistanceKm')
+    .select('title eventStartAt eventEndAt virtualWindow acceptedRunTypes virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps minimumActivityDistanceKm requireActivityScreenshot requireTrackingAppDevice')
     .lean();
   validateAgainstEvent(activity, event);
+  if (event.requireActivityScreenshot) {
+    throw new Error('This event requires a screenshot for every activity. Upload the Strava screenshot through the run-proof form.');
+  }
   if (resolveChallengeConfig(event).tracksSteps) {
     throw new Error('Strava-only activities cannot enter a steps competition. Upload tracker proof with verified steps.');
   }
@@ -182,6 +185,7 @@ function buildSubmissionInput({ registration, activity, connection }) {
     },
     proofNotes: `Imported from Strava activity ${activity.id}.`,
     runType,
+    trackingAppDevice: 'Strava',
     elevationGain: activity.elevationGain,
     steps: null,
     source: 'strava',

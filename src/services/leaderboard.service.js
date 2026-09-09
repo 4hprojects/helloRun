@@ -13,7 +13,8 @@ const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/cha
 const LEADERBOARD_CACHE_TTL_SECONDS = 60;
 const HOMEPAGE_LEADERBOARD_EVENT_SLUG = '2026k-hellorun-challenge-4';
 
-const DEFAULT_EVENT_LEADERBOARD_COLUMNS = ['rank', 'runner', 'category', 'distance', 'steps', 'time', 'pace', 'status'];
+const ALLOWED_EVENT_LEADERBOARD_COLUMNS = ['rank', 'runner', 'category', 'department', 'distance', 'elevation', 'activities', 'steps', 'time', 'pace', 'status'];
+const DEFAULT_EVENT_LEADERBOARD_COLUMNS = ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status'];
 const DEFAULT_EVENT_IMAGE_URL = '/images/helloRun-icon.webp';
 
 async function getLeaderboardDiscoveryData(rawFilters = {}) {
@@ -1029,10 +1030,13 @@ function resolveEventLeaderboardSettings(event = {}, requestedMetric = '') {
   // A registration may track more than one metric (e.g. a distance-and-steps
   // "dual challenge" category) — a caller can request which metric to rank
   // by; otherwise fall back to the event's configured primary metric.
-  // Elevation and consistency are always requestable on accumulated events:
-  // they're ranking-only views (no completion goal), not one of the event's
-  // configured challengeMetrics.
-  const rankingOnlyMetrics = new Set(['elevation', 'consistency']);
+  // Ranking-only views are available only when the organizer explicitly enables
+  // their recognition card. Elevation may still be displayed as a secondary
+  // total without becoming an independent ranking.
+  const rankingOnlyMetrics = new Set([
+    ...(existing.showHighestElevationCard ? ['elevation'] : []),
+    ...(existing.showMostConsistentCard ? ['consistency'] : [])
+  ]);
   const primaryMetric = normalizedRequestedMetric && (
     challengeConfig.metrics.includes(normalizedRequestedMetric) ||
     (rankingOnlyMetrics.has(normalizedRequestedMetric) && type === 'accumulated_challenge')
@@ -1043,7 +1047,9 @@ function resolveEventLeaderboardSettings(event = {}, requestedMetric = '') {
     enabled: typeof existing.enabled === 'boolean' ? existing.enabled : event.leaderboardRecognitionEnabled !== false,
     type,
     primaryMetric,
-    trackedMetrics: type === 'accumulated_challenge' ? [...challengeConfig.metrics, 'elevation', 'consistency'] : challengeConfig.metrics,
+    trackedMetrics: type === 'accumulated_challenge'
+      ? [...new Set([...challengeConfig.metrics, ...rankingOnlyMetrics])]
+      : challengeConfig.metrics,
     rankingBasis: type === 'accumulated_challenge'
       ? (primaryMetric === 'steps'
         ? 'highest_verified_steps'
@@ -1064,7 +1070,7 @@ function resolveEventLeaderboardSettings(event = {}, requestedMetric = '') {
       ? existing.nameDisplayMode
       : 'first_name_last_initial',
     visibleColumns: Array.isArray(existing.visibleColumns) && existing.visibleColumns.length
-      ? existing.visibleColumns.filter((item) => DEFAULT_EVENT_LEADERBOARD_COLUMNS.includes(item))
+      ? existing.visibleColumns.filter((item) => ALLOWED_EVENT_LEADERBOARD_COLUMNS.includes(item))
       : DEFAULT_EVENT_LEADERBOARD_COLUMNS.slice()
   };
 }
@@ -2023,6 +2029,8 @@ function buildEventLeaderboardPresentation(leaderboard = {}, options = {}) {
     showAdvancedFilters: showModeFilter || showStatusFilter,
     hasActiveAdvancedFilters: Boolean(filters.mode || filters.status),
     showCategoryColumn: Boolean(leaderboard.isEventWideMetricView) || (categoryCards.length <= 1 && (leaderboard.distanceOptions || []).length > 1),
+    showDepartmentColumn: Array.isArray(settings.visibleColumns) && settings.visibleColumns.includes('department'),
+    showElevationColumn: isAccumulated && Array.isArray(settings.visibleColumns) && settings.visibleColumns.includes('elevation') && activeMetric !== 'elevation',
     showMetricNavigation: isAccumulated && trackedMetrics.length > 1,
     metricOptions: trackedMetrics.map((metric) => ({
       key: metric,
@@ -2087,6 +2095,7 @@ function formatRaceEntry(row, event, settings, rank) {
     runnerName: formatRunnerName(row.runnerId, settings.nameDisplayMode, registration),
     category,
     categoryLabel: resolveEventLeaderboardCategoryLabel(category, event),
+    department: String(registration?.participant?.department || ''),
     participationMode: registration.participationMode || row.participationMode || '',
     distanceKm,
     distanceLabel: distanceKm > 0 ? `${formatDistance(distanceKm)} km` : '',

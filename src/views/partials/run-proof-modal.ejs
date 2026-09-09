@@ -227,6 +227,7 @@
               <button type="button" class="run-proof-chip" role="radio" aria-checked="false" data-run-type="walk">Walk</button>
               <button type="button" class="run-proof-chip" role="radio" aria-checked="false" data-run-type="hike">Hike</button>
               <button type="button" class="run-proof-chip" role="radio" aria-checked="false" data-run-type="trail_run">Trail Run</button>
+              <button type="button" class="run-proof-chip" role="radio" aria-checked="false" data-run-type="treadmill">Treadmill</button>
             </div>
             <input type="hidden" id="runProofRunType" name="runType" value="">
             <p class="run-proof-field-error" id="runProofRunTypeError" aria-live="polite"></p>
@@ -286,6 +287,14 @@
               <div class="run-proof-field-row-input">
                 <input id="runProofElevationGain" name="elevationGain" type="number" min="0" max="20000" step="1" placeholder="Optional">
                 <p class="run-proof-field-error" id="runProofElevationError" aria-live="polite"></p>
+              </div>
+            </div>
+
+            <div class="run-proof-field run-proof-field-row" data-field-wrapper="trackingAppDevice">
+              <label for="runProofTrackingAppDevice">Tracking app or device</label>
+              <div class="run-proof-field-row-input">
+                <input id="runProofTrackingAppDevice" name="trackingAppDevice" type="text" maxlength="120" placeholder="Strava, Garmin, COROS, Apple Health…" required>
+                <p class="run-proof-field-error" id="runProofTrackingAppDeviceError" aria-live="polite"></p>
               </div>
             </div>
 

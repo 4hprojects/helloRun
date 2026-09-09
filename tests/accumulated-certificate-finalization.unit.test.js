@@ -78,12 +78,31 @@ test('accumulated certificate rendering exposes selected goal and final verified
   assert.match(renderTemplateText(data.content.bodyText, data), /21 km goal.*30 km verified/i);
 });
 
+test('participation certificate rendering uses the participation identity', async () => {
+  const data = await buildCertificateRenderData({
+    submission: { _id: 'activity-2', eventId: 'event-1', raceDistance: '50K', elapsedMs: 1000 },
+    registration: { raceDistance: '50K', confirmationCode: 'HR-PART123' },
+    event: { _id: 'event-1', title: 'Wellness In Motion', eventStartAt: '2026-09-14T00:00:00.000Z' },
+    runner: { firstName: 'Maria', lastName: 'Runner' },
+    template: { content: { heading: 'Certificate of Completion', bodyText: 'Officially completed {{distance}} at {{eventTitle}}.' } },
+    certificateNumber: 'HR-CERT-PART',
+    verificationUrl: '/certificates/verify/HR-CERT-PART',
+    issuedAt: new Date('2026-11-04T00:00:00.000Z'),
+    accumulatedSnapshot: { certificateType: 'participation', goalDistanceKm: 50, verifiedDistanceKm: 12.5, approvedActivityCount: 2 }
+  });
+
+  assert.equal(data.certificateType, 'participation');
+  assert.equal(data.content.heading, 'Certificate of Participation');
+  assert.match(renderTemplateText(data.content.bodyText, data), /12\.5 km verified across 2 approved activities/i);
+});
+
 test('finalizer waits for the event review queue and approval no longer issues certificates', () => {
   const finalizer = fs.readFileSync(path.join(root, 'src/services/accumulated-certificate-finalization.service.js'), 'utf8');
   const activityService = fs.readFileSync(path.join(root, 'src/services/accumulated-activity.service.js'), 'utf8');
   const worker = fs.readFileSync(path.join(root, 'src/workers/accumulated-certificate-worker.js'), 'utf8');
 
-  assert.match(finalizer, /countDocuments\(\{\s*eventId: event\._id,\s*status: 'submitted'/);
+  assert.match(finalizer, /countDocuments\(\{\s*eventId: event\._id,\s*status: \{ \$in: \['submitted', 'needs_clarification'\] \}/);
+  assert.match(finalizer, /certificateType === 'participation'/);
   assert.match(finalizer, /accumulatedCertificateFinalization\.state': 'generating'/);
   assert.match(finalizer, /certificateNumber: priorNumber/);
   assert.match(finalizer, /existingSnapshotMatches/);

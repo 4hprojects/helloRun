@@ -38,8 +38,22 @@ const raceDayPackingOnsiteHybridEventsGuide = require('./race-day-packing-onsite
 const inclusiveAccessibleRunningEventInstructionsGuide = require('./inclusive-accessible-running-event-instructions-guide');
 const returningToRunningAfterBreakGuide = require('./returning-to-running-after-break-guide');
 const closeVirtualRunFinalReviewsResultsRecognitionGuide = require('./close-virtual-run-final-reviews-results-recognition-guide');
+const thirtyDayRunningChallengeBeginners = require('./thirty-day-running-challenge-beginners');
+const tenKTrainingPlanBeginners = require('./ten-k-training-plan-beginners');
+const howToBreatheWhileRunning = require('./how-to-breathe-while-running');
+const howLongToRun5k10k21k = require('./how-long-to-run-5k-10k-21k');
+const howToChooseRunningShoesForBeginners = require('./how-to-choose-running-shoes-for-beginners');
+const runningCadenceExplained = require('./running-cadence-explained');
+const howAccuratePhoneGpsRunning = require('./how-accurate-phone-gps-running');
+const canYouWalkVirtualRun = require('./can-you-walk-virtual-run');
+const howToRunFirst10kVirtualRun = require('./how-to-run-first-10k-virtual-run');
+const gpsWatchVsRunningApp = require('./gps-watch-vs-running-app');
+const howToPromoteVirtualRun = require('./how-to-promote-virtual-run');
+const virtualRunRegistrationFeePricing = require('./virtual-run-registration-fee-pricing');
+const twentyOneKHalfMarathonBeginners = require('./twenty-one-k-half-marathon-beginners');
+const runningGoalsRestOfYear = require('./running-goals-rest-of-year');
 
-const ARTICLE_MODULES = Object.freeze([bestApps, runningSafety, organizerGuide, raceComparison, virtualRunGuide, leaderboardGuide, validRunProofGuide, accumulatedDistanceGuide, beginner5kGuide, proofSubmissionGuide, joinPhilippinesGuide, hellorunPlatformGuide, firstVirtualRunGuide, distanceChoiceGuide, beginnerPaceGuide, rainySeasonRunningGuide, hotHumidWeatherRunningGuide, complete50kChallengeGuide, monthLongConsistencyGuide, gpsTrackingStopsGuide, treadmillVirtualEventGuide, submissionRejectionGuide, firstTimeOrganizerChecklist, schoolsOrganizationsGuide, realisticMonthlyRunningGoal, clearVirtualRunRulesGuide, runWalkMethodBeginnerGuide, participantCommunicationTimelineGuide, chooseSafeVirtualRunRouteGuide, fairDistanceCategoriesChallengeGoalsGuide, postRunRecoveryBasicsGuide, fairConsistentRunProofReviewChecklistGuide, weeklyRunningScheduleWorkSchoolGuide, dataPrivacyChecklistRunningEventOrganizersGuide, raceDayPackingOnsiteHybridEventsGuide, inclusiveAccessibleRunningEventInstructionsGuide, returningToRunningAfterBreakGuide, closeVirtualRunFinalReviewsResultsRecognitionGuide]);
+const ARTICLE_MODULES = Object.freeze([bestApps, runningSafety, organizerGuide, raceComparison, virtualRunGuide, leaderboardGuide, validRunProofGuide, accumulatedDistanceGuide, beginner5kGuide, proofSubmissionGuide, joinPhilippinesGuide, hellorunPlatformGuide, firstVirtualRunGuide, distanceChoiceGuide, beginnerPaceGuide, rainySeasonRunningGuide, hotHumidWeatherRunningGuide, complete50kChallengeGuide, monthLongConsistencyGuide, gpsTrackingStopsGuide, treadmillVirtualEventGuide, submissionRejectionGuide, firstTimeOrganizerChecklist, schoolsOrganizationsGuide, realisticMonthlyRunningGoal, clearVirtualRunRulesGuide, runWalkMethodBeginnerGuide, participantCommunicationTimelineGuide, chooseSafeVirtualRunRouteGuide, fairDistanceCategoriesChallengeGoalsGuide, postRunRecoveryBasicsGuide, fairConsistentRunProofReviewChecklistGuide, weeklyRunningScheduleWorkSchoolGuide, dataPrivacyChecklistRunningEventOrganizersGuide, raceDayPackingOnsiteHybridEventsGuide, inclusiveAccessibleRunningEventInstructionsGuide, returningToRunningAfterBreakGuide, closeVirtualRunFinalReviewsResultsRecognitionGuide, thirtyDayRunningChallengeBeginners, tenKTrainingPlanBeginners, howToBreatheWhileRunning, howLongToRun5k10k21k, howToChooseRunningShoesForBeginners, runningCadenceExplained, howAccuratePhoneGpsRunning, canYouWalkVirtualRun, howToRunFirst10kVirtualRun, gpsWatchVsRunningApp, howToPromoteVirtualRun, virtualRunRegistrationFeePricing, twentyOneKHalfMarathonBeginners, runningGoalsRestOfYear]);
 const ARTICLE_REGISTRY = Object.freeze(Object.fromEntries(
   ARTICLE_MODULES.map((articleModule) => [articleModule.ARTICLE.slug, articleModule])
 ));

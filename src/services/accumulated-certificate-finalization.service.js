@@ -41,7 +41,7 @@ async function finalizeDueAccumulatedCertificates(options = {}) {
   for (const event of events) {
     const pendingCount = await AccumulatedActivitySubmission.countDocuments({
       eventId: event._id,
-      status: 'submitted'
+      status: { $in: ['submitted', 'needs_clarification'] }
     });
     if (pendingCount > 0) {
       summary.blockedByReviews += 1;
@@ -96,7 +96,10 @@ async function finalizeRegistrationCertificate({ registration, event, now = new 
   });
 
   const existingCertificateActivity = activities.find((activity) => activity.certificate?.certificateNumber);
-  if (!progress.completed) {
+  const certificateType = progress.completed
+    ? 'finisher'
+    : (event.participationCertificateEnabled && progress.approvedActivityCount > 0 ? 'participation' : '');
+  if (!certificateType) {
     if (
       existingCertificateActivity &&
       ['generated', 'regenerated'].includes(existingCertificateActivity.certificate?.status)
@@ -135,6 +138,7 @@ async function finalizeRegistrationCertificate({ registration, event, now = new 
     existingCertificateActivity?.certificate?.finalizedAt &&
     ['generated', 'regenerated'].includes(existingCertificateActivity.certificate.status) &&
     String(existingCertificateActivity.certificate.completionMetric || 'distance') === progress.primaryMetric &&
+    String(existingCertificateActivity.certificate.type || 'finisher') === certificateType &&
     Number(existingCertificateActivity.certificate.goalDistanceKm || 0) === Number(progress.targetDistanceKm || 0) &&
     Number(existingCertificateActivity.certificate.verifiedDistanceKm || 0) === Number(progress.approvedDistanceKm || 0) &&
     Number(existingCertificateActivity.certificate.goalSteps || 0) === Number(progress.targetSteps || 0) &&
@@ -146,11 +150,9 @@ async function finalizeRegistrationCertificate({ registration, event, now = new 
     return 'skipped';
   }
 
-  const certificateActivity = existingCertificateActivity || findThresholdCrossingActivity(
-    activities,
-    progress.primaryTarget,
-    progress.primaryMetric
-  );
+  const certificateActivity = existingCertificateActivity || (certificateType === 'finisher'
+    ? findThresholdCrossingActivity(activities, progress.primaryTarget, progress.primaryMetric)
+    : activities.filter((activity) => activity.status === 'approved').at(-1));
   if (!certificateActivity) return 'skipped';
 
   if (registration.accumulatedCertificateFinalization?.state === 'generated') {
@@ -203,6 +205,7 @@ async function finalizeRegistrationCertificate({ registration, event, now = new 
       runner,
       certificateNumber: priorNumber,
       accumulatedSnapshot: {
+        certificateType,
         completionMetric: progress.primaryMetric,
         goalDistanceKm: progress.targetDistanceKm,
         verifiedDistanceKm: progress.approvedDistanceKm,
@@ -214,6 +217,7 @@ async function finalizeRegistrationCertificate({ registration, event, now = new 
     });
 
     certificateActivity.certificate = {
+      type: certificateType,
       url: certificate.url || '',
       key: certificate.key || '',
       issuedAt: certificate.issuedAt || now,
@@ -247,7 +251,9 @@ async function finalizeRegistrationCertificate({ registration, event, now = new 
       targetId: String(certificateActivity._id),
       statusFrom: wasRevoked ? 'revoked' : '',
       statusTo: 'issued',
-      notes: progress.primaryMetric === 'steps'
+      notes: certificateType === 'participation'
+        ? `Finalized participation certificate with ${progress.approvedActivityCount} approved activities and ${progress.approvedDistanceKm} km.`
+        : progress.primaryMetric === 'steps'
         ? `Finalized accumulated certificate at ${progress.approvedSteps} steps for a ${progress.targetSteps} step goal.`
         : `Finalized accumulated certificate at ${progress.approvedDistanceKm} km for a ${progress.targetDistanceKm} km goal.`,
       occurredAt: now
@@ -310,7 +316,7 @@ async function reconcilePrematureAccumulatedCertificates(options = {}) {
       summary.revoked += 1;
     }
 
-    const pendingCount = await AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'submitted' });
+    const pendingCount = await AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: { $in: ['submitted', 'needs_clarification'] } });
     const state = isAccumulatedCertificateFinalizationDue(event, now)
       ? (pendingCount > 0 ? 'waiting_reviews' : '')
       : 'waiting_deadline';

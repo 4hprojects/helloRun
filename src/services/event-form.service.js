@@ -15,14 +15,14 @@ const countries = getCountries();
 const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K', '42K']);
 const MAX_GALLERY_IMAGES = 12;
 const VIRTUAL_COMPLETION_MODES = new Set(['single_activity', 'accumulated_activity', 'accumulated_distance']);
-const ACCEPTED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run']);
+const ACCEPTED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run', 'treadmill']);
 const RECOGNITION_MODES = new Set(['completion_only', 'completion_with_optional_ranking']);
 const LEADERBOARD_MODES = new Set(['finishers', 'top_metric', 'finishers_and_top_metric', 'top_distance', 'finishers_and_top_distance']);
 const LEADERBOARD_SETTING_TYPES = new Set(['race_result', 'accumulated_challenge']);
 const LEADERBOARD_RANKING_BASES = new Set(['fastest_time', 'highest_verified_distance', 'highest_verified_steps']);
 const LEADERBOARD_VISIBILITIES = new Set(['public', 'registered_only', 'private_until_published']);
 const LEADERBOARD_NAME_DISPLAY_MODES = new Set(['full_name', 'first_name_last_initial', 'display_name', 'anonymous_runner_id']);
-const LEADERBOARD_VISIBLE_COLUMNS = new Set(['rank', 'runner', 'category', 'distance', 'steps', 'time', 'pace', 'status']);
+const LEADERBOARD_VISIBLE_COLUMNS = new Set(['rank', 'runner', 'category', 'department', 'distance', 'elevation', 'activities', 'steps', 'time', 'pace', 'status']);
 const DEFAULT_LEADERBOARD_VISIBLE_COLUMNS = ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status'];
 const FEE_MODES = new Set(['free', 'paid']);
 const PRICING_MODES = new Set([
@@ -901,6 +901,7 @@ function getCreateEventFormData(body = {}, options = {}) {
 
   return {
     title: String(body.title || '').trim(),
+    shortTitle: String(body.shortTitle || '').trim().slice(0, 80),
     organiserName: String(body.organiserName || '').trim(),
     description: String(body.description || '').trim(),
     eventDetailsMarkdown: String(body.eventDetailsMarkdown || '').trim().slice(0, 20000),
@@ -924,6 +925,12 @@ function getCreateEventFormData(body = {}, options = {}) {
     homeFeaturedUntil: body.homeFeaturedUntil || '',
     eventStartAt: body.eventStartAt || '',
     eventEndAt: body.eventEndAt || '',
+    awardingAt: body.awardingAt || '',
+    awardingVenue: String(body.awardingVenue || '').trim().slice(0, 150),
+    awardRankingBasis: ['unconfirmed', 'highest_distance', 'highest_elevation', 'first_to_50k', 'manual'].includes(body.awardRankingBasis) ? body.awardRankingBasis : 'unconfirmed',
+    autoSelectTopFinishers: normalizeBoolean(body.autoSelectTopFinishers),
+    participationCertificateEnabled: normalizeBoolean(body.participationCertificateEnabled),
+    noActivityCertificateEnabled: normalizeBoolean(body.noActivityCertificateEnabled),
     venueName: String(body.venueName || '').trim(),
     venueAddress: String(body.venueAddress || '').trim(),
     city: String(body.city || '').trim(),
@@ -1065,6 +1072,7 @@ function getCreateEventFormDataFromEvent(event) {
 
   return {
     title: event.title || '',
+    shortTitle: event.shortTitle || '',
     organiserName: event.organiserName || '',
     description: event.description || '',
     eventDetailsMarkdown: event.eventDetailsMarkdown || '',
@@ -1100,6 +1108,12 @@ function getCreateEventFormDataFromEvent(event) {
     homeFeaturedUntil: formatDateForInput(event.homeFeaturedUntil),
     eventStartAt: formatDateForInput(event.eventStartAt),
     eventEndAt: formatDateForInput(event.eventEndAt),
+    awardingAt: formatDateForInput(event.awardingAt),
+    awardingVenue: event.awardingVenue || '',
+    awardRankingBasis: event.awardSettings?.rankingBasis || 'unconfirmed',
+    autoSelectTopFinishers: Boolean(event.awardSettings?.autoSelectTopFinishers),
+    participationCertificateEnabled: Boolean(event.participationCertificateEnabled),
+    noActivityCertificateEnabled: Boolean(event.noActivityCertificateEnabled),
     venueName: event.venueName || '',
     venueAddress: event.venueAddress || '',
     city: event.city || '',
@@ -1984,6 +1998,7 @@ function applyEventFormData(event, formData, user) {
       );
   const primaryChallengeMetric = normalizePrimaryChallengeMetric(formData.primaryChallengeMetric, challengeMetrics);
   event.title = formData.title;
+  event.shortTitle = formData.shortTitle || '';
   event.organiserName = formData.organiserName || organiserNameFromUser || 'HelloRun Organizer';
   event.description = formData.description;
   event.eventDetailsMarkdown = formData.eventDetailsMarkdown || '';
@@ -2016,6 +2031,15 @@ function applyEventFormData(event, formData, user) {
   }
   event.eventStartAt = parseDateSafe(formData.eventStartAt);
   event.eventEndAt = parseDateSafe(formData.eventEndAt);
+  event.awardingAt = parseDateSafe(formData.awardingAt);
+  event.awardingVenue = formData.awardingVenue || '';
+  event.awardSettings = {
+    rankingBasis: formData.awardRankingBasis || 'unconfirmed',
+    autoSelectTopFinishers: Boolean(formData.autoSelectTopFinishers),
+    topFinisherCount: Number(event.awardSettings?.topFinisherCount || 3)
+  };
+  event.participationCertificateEnabled = Boolean(formData.participationCertificateEnabled);
+  event.noActivityCertificateEnabled = Boolean(formData.noActivityCertificateEnabled);
   event.venueName = formData.venueName || '';
   event.venueAddress = formData.venueAddress || '';
   event.city = formData.city || '';

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: title || 'Runner Stories & Guides - HelloRun', seo: seo }) %>
+  <%- include('../layouts/head', { title: title || 'Running & Event Guides - HelloRun', seo: seo }) %>
   <link rel="stylesheet" href="/css/blog.css">
 </head>
 <body>
@@ -13,9 +13,13 @@
       <div class="container">
         <div class="blog-community-intro">
           <div>
-            <p class="blog-kicker">HelloRun community</p>
-            <h1 id="blogPageTitle"><%= pageContent?.heading || 'Stories from the running community' %></h1>
-            <p class="blog-community-support"><%= pageContent?.supportCopy || 'Read real experiences, practical advice, and fresh perspectives—or share your own.' %></p>
+            <p class="blog-kicker">HelloRun resources</p>
+            <h1 id="blogPageTitle"><%= pageContent?.heading || 'HelloRun guides and event resources' %></h1>
+            <p class="blog-community-support"><%= pageContent?.supportCopy || 'Practical guidance for runners and organisers, grounded in HelloRun event workflows.' %></p>
+            <% if (authorProfile) { %>
+              <% if (authorProfile.authorRole) { %><p><strong><%= authorProfile.authorRole %></strong></p><% } %>
+              <% if (authorProfile.authorBio) { %><p class="blog-community-support"><%= authorProfile.authorBio %></p><% } %>
+            <% } %>
           </div>
           <div class="blog-community-actions">
             <% if (locals.isAuthenticated) { %>
@@ -34,23 +38,23 @@
         <form method="GET" action="/blog#blog-results" class="blog-discovery-form" id="blogFilterForm">
           <div class="blog-search-row">
             <div class="blog-search-field">
-              <label for="blogSearch" class="sr-only">Search community stories</label>
+              <label for="blogSearch" class="sr-only">Search HelloRun guides</label>
               <i data-lucide="search" aria-hidden="true"></i>
-              <input id="blogSearch" type="search" name="q" value="<%= filters?.q || '' %>" placeholder="Search stories, writers, or topics...">
+              <input id="blogSearch" type="search" name="q" value="<%= filters?.q || '' %>" placeholder="Search guides, authors, or topics...">
             </div>
             <button type="submit" class="btn btn-primary">
-              Search stories
+              Search guides
               <i data-lucide="arrow-right" aria-hidden="true"></i>
             </button>
           </div>
 
           <nav class="blog-topic-paths" aria-label="Browse popular topics">
             <span>Explore:</span>
-            <a href="/blog?category=Community">Community</a>
-            <a href="/blog?category=Training">Training</a>
-            <a href="/blog?category=Race+Tips">Race prep</a>
-            <a href="/blog?category=Virtual+Run+Guide">Virtual runs</a>
-            <a href="/blog?category=Organizer+Guide">Organiser stories</a>
+            <a href="/blog/category/community">Community</a>
+            <a href="/blog/category/training">Training</a>
+            <a href="/blog/category/race-tips">Race prep</a>
+            <a href="/blog/category/virtual-run-guide">Virtual runs</a>
+            <a href="/blog/category/organizer-guide">Organiser guides</a>
           </nav>
 
           <div class="blog-control-row">
@@ -80,7 +84,7 @@
                     <label for="blogAuthor">Writer</label>
                     <input id="blogAuthor" type="text" value="<%= filters?.authorName || 'All community writers' %>" disabled aria-describedby="blogAuthorHint">
                     <input type="hidden" name="author" value="<%= filters?.author || '' %>">
-                    <small id="blogAuthorHint"><%= filters?.author ? 'Remove the writer chip below to browse everyone.' : 'Choose a writer from a story or Top Writers.' %></small>
+                    <small id="blogAuthorHint"><%= filters?.author ? 'Remove the author chip below to browse everyone.' : 'Choose an author from a guide or HelloRun Authors.' %></small>
                   </div>
                 </div>
                 <div class="blog-filter-actions">
@@ -110,11 +114,11 @@
       <div class="container">
         <div class="blog-results-heading">
           <div>
-            <p class="blog-kicker">Community feed</p>
-            <h2 id="blog-results" tabindex="-1"><%= filterMeta?.summary || 'Community stories' %></h2>
+            <p class="blog-kicker">Guide library</p>
+            <h2 id="blog-results" tabindex="-1"><%= filterMeta?.summary || 'HelloRun guides' %></h2>
           </div>
           <% if ((filterMeta?.totalPosts || 0) > 0) { %>
-            <p>Showing <strong><%= pagination?.resultStart || 0 %>–<%= pagination?.resultEnd || 0 %></strong> of <strong><%= pagination?.totalPosts || 0 %></strong> feed stories</p>
+            <p>Showing <strong><%= pagination?.resultStart || 0 %>–<%= pagination?.resultEnd || 0 %></strong> of <strong><%= pagination?.totalPosts || 0 %></strong> guides</p>
           <% } else { %>
             <p>No matches yet</p>
           <% } %>
@@ -137,7 +141,7 @@
             <div class="blog-section-heading">
               <div>
                 <p class="blog-kicker">Editor’s pick</p>
-                <h2 id="communitySpotlightTitle">Community spotlight</h2>
+                <h2 id="communitySpotlightTitle">Featured guide</h2>
               </div>
               <span>Selected from recent community voices</span>
             </div>
@@ -154,7 +158,7 @@
                     <% if (spotlight.author.avatarUrl) { %><img src="<%= spotlight.author.avatarUrl %>" alt=""><% } else { %><%= spotlight.author.name.charAt(0) %><% } %>
                   </span>
                   <div>
-                    <a href="<%= spotlight.author.id ? `/blog?author=${spotlight.author.id}` : spotlight.href %>" class="blog-writer-name"><%= spotlight.author.name %></a>
+                    <a href="<%= spotlight.author.authorSlug ? `/blog/authors/${spotlight.author.authorSlug}` : spotlight.href %>" class="blog-writer-name"><%= spotlight.author.name %></a>
                     <% if (spotlight.author.verified) { %><i data-lucide="badge-check" class="blog-verified" aria-label="Verified writer"></i><% } %>
                     <small><%= spotlight.publishedAt ? new Date(spotlight.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' %> · <%= spotlight.readingTimeLabel %></small>
                   </div>
@@ -175,7 +179,7 @@
             <div class="blog-section-heading">
               <div>
                 <p class="blog-kicker">People to follow</p>
-                <h2 id="topWritersTitle">Top writers</h2>
+                <h2 id="topWritersTitle">HelloRun authors</h2>
               </div>
               <span>Community members sharing consistently</span>
             </div>
@@ -223,7 +227,7 @@
                         <% if (post.author.avatarUrl) { %><img src="<%= post.author.avatarUrl %>" alt=""><% } else { %><%= post.author.name.charAt(0) %><% } %>
                       </span>
                       <div>
-                        <a href="<%= post.author.id ? `/blog?author=${post.author.id}` : post.href %>" class="blog-writer-name"><%= post.author.name %></a>
+                        <a href="<%= post.author.authorSlug ? `/blog/authors/${post.author.authorSlug}` : post.href %>" class="blog-writer-name"><%= post.author.name %></a>
                         <% if (post.author.verified) { %><i data-lucide="badge-check" class="blog-verified" aria-label="Verified writer"></i><% } %>
                         <small><%= post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' %></small>
                       </div>
@@ -268,7 +272,7 @@
           <div class="blog-empty-state">
             <i data-lucide="messages-square" aria-hidden="true"></i>
             <h2><%= filterMeta?.hasActiveFilters ? 'No stories match yet' : 'The first story starts with you' %></h2>
-            <p><%= filterMeta?.hasActiveFilters ? 'Try a broader search or return to all community stories.' : 'Share a running experience, lesson, race recap, or idea with the HelloRun community.' %></p>
+            <p><%= filterMeta?.hasActiveFilters ? 'Try a broader search or return to all guides.' : 'No approved guides are available yet.' %></p>
             <a href="<%= filterMeta?.hasActiveFilters ? filterMeta.clearFiltersUrl : (locals.isAuthenticated ? '/blogs/me/new' : '/login?redirect=/blogs/me/new') %>" class="btn btn-primary"><%= filterMeta?.hasActiveFilters ? 'View all stories' : 'Write the first post' %></a>
           </div>
         <% } %>
@@ -286,7 +290,7 @@
         if (image.dataset.fallbackApplied === '1') return;
         image.dataset.fallbackApplied = '1';
         image.src = fallbackCover;
-        image.alt = 'HelloRun community story';
+        image.alt = 'HelloRun guide';
         image.closest('.blog-story-image, .blog-spotlight-image')?.classList.add('is-fallback');
       };
       document.querySelectorAll('[data-blog-cover-image]').forEach((image) => {

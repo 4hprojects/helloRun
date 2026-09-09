@@ -35,6 +35,7 @@ test('FAQ presentation provides one normalized substantial content source', () =
   assert.ok(entries.every((entry) => entry.anchor === `faq-${entry.id}`));
   assert.ok(entries.every((entry) => entry.answer.length >= 120));
   assert.ok(entries.every((entry) => entry.keywords.length > 0));
+  assert.ok(entries.find((entry) => entry.id === 'walk-or-other-activity').links.some((link) => link.href === '/blog/can-you-walk-a-virtual-run'));
   assert.deepEqual(normalizeKeywords([' Pending ', 'pending', 'DISTANCE']), ['pending', 'distance']);
 });
 

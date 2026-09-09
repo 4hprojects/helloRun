@@ -3,8 +3,7 @@
 
 const Blog = require('../models/Blog');
 const User = require('../models/User');
-const { DUPLICATE_BLOG_SLUGS } = require('../utils/blog-canonical');
-const { BLOG_CONTENT_POLICY_VERSION } = require('../utils/blog-content-eligibility');
+const { getEligiblePublicBlogQuery } = require('../utils/blog-canonical');
 
 /**
  * Returns top writers ranked by published blog count, likes, and trending score.
@@ -16,31 +15,11 @@ async function getTopWriters({ limit = 10 } = {}) {
   // Aggregate published, non-deleted blogs
   const pipeline = [
     {
-      $match: {
+      $match: getEligiblePublicBlogQuery({
         status: 'published',
         isDeleted: { $ne: true },
-        slug: { $nin: DUPLICATE_BLOG_SLUGS },
-        publishedAt: { $lte: new Date() },
-        'contentEligibility.eligible': true,
-        'contentEligibility.policyVersion': BLOG_CONTENT_POLICY_VERSION,
-        'publicationReview.policyVersion': BLOG_CONTENT_POLICY_VERSION,
-        'publicationReview.originalityConfirmed': true,
-        $and: [
-          { $expr: { $eq: ['$contentEligibility.sourceHash', '$publicationReview.sourceHash'] } },
-          {
-            $or: [
-              { 'contentEligibility.externalLinkCount': { $lte: 0 } },
-              { 'publicationReview.externalLinksConfirmed': true }
-            ]
-          },
-          {
-            $or: [
-              { 'contentEligibility.healthReviewRequired': { $ne: true } },
-              { 'publicationReview.healthSafetyConfirmed': true }
-            ]
-          }
-        ]
-      }
+        publishedAt: { $lte: new Date() }
+      })
     },
     {
       $group: {
@@ -80,8 +59,7 @@ async function getTopWriters({ limit = 10 } = {}) {
         displayName: '$author.displayName',
         firstName: '$author.firstName',
         lastName: '$author.lastName',
-        verifiedAuthor: '$author.verifiedAuthor',
-        trustScore: '$author.trustScore',
+        authorSlug: '$author.authorSlug',
         avatarUrl: '$author.avatarUrl',
         country: '$author.country'
       }

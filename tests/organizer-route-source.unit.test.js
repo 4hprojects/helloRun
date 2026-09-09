@@ -11,6 +11,12 @@ test('organizer registrant export routes use the shared export limiter', () => {
   assert.match(source, /\/events\/:id\/registrants\/export-xlsx'[\s\S]*registrantExportLimiter/);
 });
 
+test('accumulated activity and participant total exports use the shared export limiter', () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '../src/routes/organiser/review.js'), 'utf8');
+  assert.match(source, /\/events\/:id\/submissions\/export'[\s\S]*registrantExportLimiter/);
+  assert.match(source, /\/events\/:id\/participant-totals\/export'[\s\S]*registrantExportLimiter/);
+});
+
 test('organizer submission review routes use the shared review action limiter', () => {
   const source = fs.readFileSync(path.resolve(__dirname, '../src/routes/organiser/review.js'), 'utf8');
 

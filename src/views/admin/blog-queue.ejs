@@ -1,78 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <%- include('../layouts/head', { title: title || 'Blog Moderation - HelloRun Admin' }) %>
-</head>
-<body>
-  <%- include('../layouts/nav') %>
-  <main style="padding: 2rem; max-width: 1100px; margin: 0 auto;">
-    <header style="display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1rem;">
-      <div>
-        <h1 style="margin-bottom: 0.25rem;">Blog Moderation Queue</h1>
-        <p style="margin: 0; color: #64748b;">Review pending posts and manage published/archived content.</p>
-      </div>
-      <a href="/admin/dashboard" class="btn btn-secondary">Back to Admin Dashboard</a>
-    </header>
-
-    <% if (message) { %>
-      <div style="margin-bottom: 0.8rem; padding: 0.7rem; border-radius: 8px; font-weight: 600; border: 1px solid <%= message.type === 'error' ? '#fecaca' : '#86efac' %>; background: <%= message.type === 'error' ? '#fee2e2' : '#dcfce7' %>; color: <%= message.type === 'error' ? '#991b1b' : '#166534' %>;">
-        <%= message.text %>
-      </div>
-    <% } %>
-
-    <form method="GET" action="/admin/blog/review" style="display: grid; grid-template-columns: 1fr 180px auto; gap: 0.5rem; margin-bottom: 1rem;">
-      <input type="search" name="q" value="<%= searchQuery || '' %>" placeholder="Title, slug, category" style="padding: 0.55rem;">
-      <select name="status" style="padding: 0.55rem;">
-        <option value="pending" <%= selectedStatus === 'pending' ? 'selected' : '' %>>Pending</option>
-        <option value="published" <%= selectedStatus === 'published' ? 'selected' : '' %>>Published</option>
-        <option value="rejected" <%= selectedStatus === 'rejected' ? 'selected' : '' %>>Rejected</option>
-        <option value="archived" <%= selectedStatus === 'archived' ? 'selected' : '' %>>Archived</option>
-        <option value="draft" <%= selectedStatus === 'draft' ? 'selected' : '' %>>Draft</option>
-      </select>
-      <button type="submit" class="btn">Apply</button>
-    </form>
-
-    <% if (posts && posts.length) { %>
-      <div style="display: grid; grid-template-columns: 1fr; gap: 0.65rem;">
-        <% posts.forEach((post) => { %>
-          <% const opensInNewTab = selectedStatus === 'published'; %>
-          <article style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.8rem; display: grid; gap: 0.75rem;">
-            <div style="display: grid; grid-template-columns: <%= post.coverImageUrl ? '150px minmax(0, 1fr)' : '1fr' %>; gap: 0.8rem; align-items: start;">
-              <% if (post.coverImageUrl) { %>
-                <img src="<%= post.coverImageUrl %>" alt="<%= post.title %> cover image" loading="lazy" style="width: 100%; height: 96px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc;">
-              <% } %>
-              <div style="min-width: 0;">
-                <div style="display: flex; justify-content: space-between; align-items: start; gap: 0.65rem; flex-wrap: wrap;">
-                  <div style="min-width: 0;">
-                    <h3 style="margin: 0 0 0.3rem;"><%= post.title %></h3>
-                    <p style="margin: 0; color: #64748b; font-size: 0.9rem; overflow-wrap: anywhere;">
-                      <%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %> | /blog/<%= post.slug %> | <%= post.readingTime || 1 %> min read
-                    </p>
-                    <p style="margin: 0.25rem 0 0; color: #64748b; font-size: 0.85rem;">
-                      Author: <%= post.authorId?.firstName || '' %> <%= post.authorId?.lastName || '' %> (<%= post.authorId?.email || 'N/A' %>)
-                    </p>
-                  </div>
-                  <span style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 999px; background: #f1f5f9; color: #334155;"><%= post.status %></span>
-                </div>
-                <% if (post.status === 'rejected' && post.rejectionReason) { %>
-                  <p style="margin: 0.5rem 0 0; color: #991b1b;"><strong>Reason:</strong> <%= post.rejectionReason %></p>
-                <% } %>
-              </div>
-            </div>
-            <div style="display: flex; justify-content: flex-end;">
-              <a href="/admin/blog/posts/<%= post._id %>/review" class="btn btn-secondary btn-sm"<%= opensInNewTab ? ' target="_blank" rel="noopener noreferrer"' : '' %>>Review Post</a>
-            </div>
-          </article>
-        <% }) %>
-      </div>
-    <% } else { %>
-      <div style="padding: 1.2rem; border: 1px dashed #cbd5e1; border-radius: 10px; text-align: center; color: #64748b;">
-        No posts found for this filter.
-      </div>
-    <% } %>
-  </main>
-  <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>if(window.lucide) lucide.createIcons();</script>
-</body>
-</html>
+<html lang="en"><head><%- include('../layouts/head', { title: title || 'Blog Management - HelloRun Admin' }) %><link rel="stylesheet" href="/css/admin.css"><link rel="stylesheet" href="/css/admin-blog.css"></head><body><%- include('../layouts/nav') %>
+<main class="blog-admin-page">
+  <% const buildHref = (overrides = {}) => { const next = {...filters,...overrides}; const params = new URLSearchParams(); ['q','status','sort','category','author','reviewType','dateFrom','dateTo'].forEach((key)=>{if(next[key] && !(key==='status'&&next[key]==='pending') && !(key==='sort'&&next[key]==='newest') && !(key==='reviewType'&&next[key]==='all'))params.set(key,next[key]);}); if(next.flagged)params.set('flagged','1');if(next.reported)params.set('reported','1');if(Number(next.page||1)>1)params.set('page',String(next.page));return `/admin/blog/review${params.toString()?`?${params}`:''}`; }; %>
+  <header class="blog-admin-header"><div><h1>Blog Management</h1><p>Review submissions, revisions, scheduled posts, and published content.</p></div><a href="/admin/dashboard" class="btn btn-secondary">Admin Dashboard</a></header>
+  <%- include('partials/blog-management-nav', { active: 'posts' }) %>
+  <% if(message){ %><div class="blog-admin-alert <%= message.type === 'error' ? 'error' : '' %>" role="<%= message.type === 'error' ? 'alert' : 'status' %>"><%= message.text %></div><% } %>
+  <nav class="blog-admin-statuses" aria-label="Post status filters"><% ['all','pending','scheduled','published','rejected','draft','archived'].forEach((status)=>{ %><a href="<%= buildHref({status,page:1}) %>" class="<%= filters.status===status?'is-active':'' %>" <%= filters.status===status?'aria-current="page"':'' %>><span><%= status[0].toUpperCase()+status.slice(1) %></span><strong><%= Number(counts[status]||0) %></strong></a><% }) %><a href="<%= buildHref({status:'pending',reviewType:'revision',page:1}) %>" class="<%= filters.reviewType==='revision'?'is-active':'' %>"><span>Revisions</span><strong><%= Number(counts.pendingRevisions||0) %></strong></a></nav>
+  <form method="GET" action="/admin/blog/review" class="blog-admin-filters"><label>Search<input type="search" name="q" value="<%= filters.q %>" placeholder="Title, slug, or category"></label><label>Status<select name="status"><% ['all','pending','scheduled','published','rejected','draft','archived'].forEach((status)=>{ %><option value="<%= status %>" <%= filters.status===status?'selected':'' %>><%= status %></option><% }) %></select></label><label>Category<select name="category"><option value="">All categories</option><% categories.forEach((category)=>{ %><option value="<%= category %>" <%= filters.category===category?'selected':'' %>><%= category %></option><% }) %></select></label><label>Review type<select name="reviewType"><option value="all" <%= filters.reviewType==='all'?'selected':'' %>>All</option><option value="post" <%= filters.reviewType==='post'?'selected':'' %>>New posts</option><option value="revision" <%= filters.reviewType==='revision'?'selected':'' %>>Revisions</option></select></label><label>Sort<select name="sort"><option value="newest" <%= filters.sort==='newest'?'selected':'' %>>Newest</option><option value="oldest" <%= filters.sort==='oldest'?'selected':'' %>>Oldest</option><option value="updated" <%= filters.sort==='updated'?'selected':'' %>>Recently updated</option><option value="popular" <%= filters.sort==='popular'?'selected':'' %>>Most popular</option></select></label><label>Author ID<input name="author" value="<%= filters.author %>" placeholder="Mongo user ID"></label><label>Updated from<input type="date" name="dateFrom" value="<%= filters.dateFrom %>"></label><label>Updated through<input type="date" name="dateTo" value="<%= filters.dateTo %>"></label><div class="blog-admin-checks"><label><input type="checkbox" name="flagged" value="1" <%= filters.flagged?'checked':'' %>> Flagged</label><label><input type="checkbox" name="reported" value="1" <%= filters.reported?'checked':'' %>> Open reports</label></div><button class="btn" type="submit">Apply filters</button><a class="btn btn-secondary" href="/admin/blog/review">Clear</a></form>
+  <p class="blog-admin-meta">Showing <strong><%= posts.length %></strong> of <strong><%= pagination.total %></strong> matching posts.</p>
+  <div class="blog-admin-list"><% posts.forEach((post)=>{const isRevision=post.activeRevisionStatus==='pending';const isOverdue=post.status==='scheduled'&&post.scheduledFor&&new Date(post.scheduledFor)<new Date();%><article class="blog-admin-card <%= post.coverImageUrl?'':'no-image' %>"><% if(post.coverImageUrl){%><img src="<%= post.coverImageUrl %>" alt="" loading="lazy"><%}%><div><div class="blog-admin-badges"><span class="blog-admin-badge <%= post.status %>"><%= post.status %></span><%if(isOverdue){%><span class="blog-admin-badge flagged">Overdue — check eligibility/worker</span><%}%><%if(post.scheduledPublishFailures){%><span class="blog-admin-badge flagged"><%= post.scheduledPublishFailures %> publish failure(s)</span><%}%><%if(isRevision){%><span class="blog-admin-badge pending">Revision review</span><%}%><%if(post.featured){%><span class="blog-admin-badge">Featured</span><%}%><%if(post.moderationFlags?.length){%><span class="blog-admin-badge flagged"><%= post.moderationFlags.length %> flag(s)</span><%}%><%if(post.openReportCount){%><span class="blog-admin-badge flagged"><%= post.openReportCount %> report(s)</span><%}%></div><h2><%= post.title %></h2><p class="blog-admin-meta"><%= post.category==='Other'&&post.customCategory?post.customCategory:post.category %> · <%= post.readingTime||1 %> min · <%= post.views||0 %> views · <%= post.likesCount||0 %> likes · <%= post.commentsCount||0 %> comments</p><p class="blog-admin-meta">Author: <%= [post.authorId?.firstName,post.authorId?.lastName].filter(Boolean).join(' ')||post.authorId?.email||'Unavailable' %> · Updated <%= new Date(post.updatedAt).toLocaleString() %></p><%if(post.scheduledFor){%><p class="blog-admin-meta"><strong>Scheduled:</strong> <%= new Date(post.scheduledFor).toLocaleString() %></p><%}%><%if(post.scheduledPublishLastError){%><p class="blog-admin-meta"><strong>Last publish error:</strong> <%= post.scheduledPublishLastError %><%if(post.scheduledPublishLastAttemptAt){%> · <%= new Date(post.scheduledPublishLastAttemptAt).toLocaleString() %><%}%></p><%}%><%if(post.status==='rejected'&&post.rejectionReason){%><p class="blog-admin-meta"><strong>Reason:</strong> <%= post.rejectionReason %></p><%}%></div><div class="blog-admin-actions"><a href="/admin/blog/posts/<%= post._id %>/review" class="btn btn-secondary btn-sm">Manage</a></div></article><% }) %></div>
+  <%if(!posts.length){%><div class="blog-admin-empty">No posts match these filters.</div><%}%><%if(pagination.totalPages>1){%><nav class="blog-admin-pagination" aria-label="Post pages"><%if(pagination.page>1){%><a class="btn btn-secondary" href="<%= buildHref({page:pagination.page-1}) %>">Previous</a><%}%><span>Page <%= pagination.page %> of <%= pagination.totalPages %></span><%if(pagination.page<pagination.totalPages){%><a class="btn btn-secondary" href="<%= buildHref({page:pagination.page+1}) %>">Next</a><%}%></nav><%}%>
+</main><%- include('../layouts/footer') %><script src="/js/main.js"></script><script>if(window.lucide)lucide.createIcons();</script></body></html>

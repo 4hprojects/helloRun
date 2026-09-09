@@ -8,7 +8,8 @@ const User = require('../models/User');
 const { POSTS } = require('./seed-adsense-blog-posts');
 const { getArticleModule, listArticleSlugs } = require('../content/adsense-blog-article-registry');
 const { EDITORIAL_TEAM_EMAIL } = require('../utils/blog-author');
-const { buildTrustedEditorialReview } = require('../utils/blog-content-eligibility');
+const { evaluateBlogContentEligibility } = require('../utils/blog-content-eligibility');
+const { getInitialIndexingClassification } = require('../content/adsense-content-indexing');
 
 const GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 
@@ -93,7 +94,13 @@ function buildCreatePayload({ slug, authorId, now = new Date(), publishAt = null
     moderationFlags: [],
     moderationFlagSummary: ''
   };
-  Object.assign(payload, buildTrustedEditorialReview(payload, authorId, reviewedAt));
+  const classification = getInitialIndexingClassification(slug);
+  payload.contentRisk = classification.contentRisk;
+  payload.contentEligibility = evaluateBlogContentEligibility(payload, { evaluatedAt: reviewedAt });
+  payload.publicationReview = null;
+  payload.searchIndexingStatus = 'noindex';
+  payload.searchIndexingReason = classification.contentRisk === 'health_safety' ? 'pending_expert_review' : 'pending_value_review';
+  payload.indexingReview = null;
 
   const validationError = new Blog(payload).validateSync();
   if (validationError) throw validationError;

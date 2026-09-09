@@ -64,6 +64,7 @@ test('proof-submission guide builds a substantive procedural payload', () => {
   assert.match(payload.contentText, /ordinary correction path applies to rejected results/i);
   assert.match(payload.contentText, /Pending distance is not approved completion/i);
   assert.match(payload.contentText, /payment receipt and submitting activity proof are separate actions/i);
+  assert.match(payload.contentHtml, /href="\/blog\/how-accurate-is-phone-gps-for-running"/);
   assert.doesNotMatch(payload.contentHtml, /<h[12]>How to Submit Run Proof Correctly on HelloRun<\/h[12]>/i);
   assert.doesNotMatch(payload.contentText, /guaranteed approval|perfect OCR|every event accepts treadmills|public leaderboard shows proof files/i);
 
@@ -117,6 +118,9 @@ test('proof-submission guide is registered and stored as canonical rich seed con
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
   assert.equal(htmlToText(seededPost.contentHtml), buildArticlePayload({ coverImageUrl: seededPost.coverImageUrl }).contentText);
   assert.equal(seededPost.publishedAt, '2026-06-02T01:00:00.000Z');
+  assert.ok(seededPost.links.includes('/blog/how-accurate-is-phone-gps-for-running'));
+  assert.ok(REQUIRED_LINKS.includes('/blog/how-to-run-your-first-10k-virtual-run'));
+  assert.ok(seededPost.links.includes('/blog/how-to-run-your-first-10k-virtual-run'));
   assert.equal(seededPost.coverImageUrl, 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1784201986565-267859622-chatgpt_image_jul_16__2026__07_39_09_pm.webp');
 });
 

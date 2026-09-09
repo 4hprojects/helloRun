@@ -66,6 +66,7 @@ const {
   getRevisionChangedFields,
   syncBlogRevisionState,
   getOrCreateAuthorRevision,
+  getOrCreateAdminRevision,
   applyRevisionSnapshotToPost,
   saveAuthorRevision,
   getActivePendingRevision,
@@ -82,6 +83,8 @@ const {
   getBlogPageMessage
 } = require('./_shared');
 const { recordCriticalAuditEventInBackground } = require('../../services/critical-audit.service');
+const { invalidateIndexingReview } = require('../../utils/blog-indexing');
+const { listManagedPosts } = require('../../services/admin-blog-management.service');
 
 function recordBlogModerationAudit(req, input = {}) {
   recordCriticalAuditEventInBackground({
@@ -100,33 +103,11 @@ function recordBlogModerationAudit(req, input = {}) {
 
 exports.listPendingBlogs = async (req, res) => {
   try {
-    const status = normalizeAdminStatusFilter(req.query.status) || 'pending';
-    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-
-    const query = status === 'pending'
-      ? {
-          isDeleted: { $ne: true },
-          $or: [{ status }, { activeRevisionStatus: 'pending' }]
-        }
-      : { isDeleted: { $ne: true }, status };
-    if (q) {
-      const safePattern = new RegExp(escapeRegex(q), 'i');
-      query.$and = query.$and || [];
-      query.$and.push({
-        $or: [{ title: safePattern }, { slug: safePattern }, { category: safePattern }, { customCategory: safePattern }]
-      });
-    }
-
-    const posts = await Blog.find(query)
-      .populate('authorId', 'firstName lastName email')
-      .sort({ activeRevisionSubmittedAt: -1, submittedAt: -1, updatedAt: -1 })
-      .select('title slug status category customCategory submittedAt updatedAt publishedAt rejectionReason readingTime createdAt activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason');
+    const result = await listManagedPosts(req.query);
 
     return res.json({
       success: true,
-      status,
-      count: posts.length,
-      posts
+      ...result
     });
   } catch (error) {
     logger.error('listPendingBlogs error:', error);
@@ -192,7 +173,7 @@ exports.approveBlogPost = async (req, res) => {
         : 'admin.blog.approved',
       postId: post._id,
       statusFrom: 'pending',
-      statusTo: 'published',
+      statusTo: result.post.status,
       details: {
         revisionApplied: result.revisionApplied,
         policyVersion: result.post.contentEligibility?.policyVersion,
@@ -203,7 +184,9 @@ exports.approveBlogPost = async (req, res) => {
 
     return res.json({
       success: true,
-      message: result.revisionApplied ? 'Revision approved and applied successfully.' : 'Post approved and published successfully.',
+      message: result.post.status === 'scheduled'
+        ? 'Post approved and scheduled successfully.'
+        : (result.revisionApplied ? 'Revision approved and applied successfully.' : 'Post approved and published successfully.'),
       post: result.post
     });
   } catch (error) {
@@ -289,16 +272,21 @@ exports.archiveBlogPost = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found.' });
     }
 
-    if (post.status !== 'published') {
+    if (!['published', 'scheduled'].includes(post.status)) {
       return res.status(409).json({
         success: false,
-        message: `Only published posts can be archived. Current status: "${post.status}".`
+        message: `Only published or scheduled posts can be archived. Current status: "${post.status}".`
       });
     }
 
+    const previousStatus = post.status;
     post.status = 'archived';
+    post.scheduledFor = null;
     post.reviewedAt = new Date();
     await post.save();
+    recordBlogModerationAudit(req, {
+      action: 'admin.blog.archived', postId: post._id, statusFrom: previousStatus, statusTo: 'archived'
+    });
 
     return res.json({
       success: true,
@@ -308,6 +296,82 @@ exports.archiveBlogPost = async (req, res) => {
   } catch (error) {
     logger.error('archiveBlogPost error:', error);
     return res.status(500).json({ success: false, message: 'Failed to archive post.' });
+  }
+};
+
+async function changeBlogManagementState(req, res, action) {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Invalid post id.' });
+    }
+    const post = await Blog.findOne({ _id: req.params.id, isDeleted: { $ne: true } });
+    if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
+    const statusFrom = post.status;
+    if (action === 'restore') {
+      if (post.status !== 'archived') return res.status(409).json({ success: false, message: 'Only archived posts can be restored.' });
+      post.status = 'draft';
+      post.scheduledFor = null;
+      post.publicationReview = null;
+    } else if (action === 'feature' || action === 'unfeature') {
+      post.featured = action === 'feature';
+      const revision = await getActivePendingRevision(post._id);
+      if (revision?.after) {
+        revision.after.featured = post.featured;
+        revision.editVersion = Number(revision.editVersion || 0) + 1;
+        revision.editedAt = new Date();
+        await revision.save();
+      }
+    }
+    await post.save();
+    recordBlogModerationAudit(req, {
+      action: `admin.blog.${action}d`,
+      postId: post._id,
+      statusFrom,
+      statusTo: post.status,
+      details: { featured: post.featured }
+    });
+    if (req.accepts(['html', 'json']) === 'html') {
+      return res.redirect(`/admin/blog/posts/${post._id}/review?type=success&msg=${encodeURIComponent(`Post ${action}d successfully.`)}`);
+    }
+    return res.json({ success: true, message: `Post ${action}d successfully.`, post });
+  } catch (error) {
+    logger.error(`changeBlogManagementState ${action} error:`, error);
+    return res.status(500).json({ success: false, message: `Failed to ${action} post.` });
+  }
+}
+
+exports.restoreBlogPost = (req, res) => changeBlogManagementState(req, res, 'restore');
+exports.featureBlogPost = (req, res) => changeBlogManagementState(req, res, 'feature');
+exports.unfeatureBlogPost = (req, res) => changeBlogManagementState(req, res, 'unfeature');
+
+exports.submitBlogPostForReview = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Invalid post id.' });
+    }
+    const post = await Blog.findOne({ _id: req.params.id, isDeleted: { $ne: true } });
+    if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
+    if (post.status !== 'draft') return res.status(409).json({ success: false, message: 'Only draft posts can be submitted for review.' });
+    const errors = [...validateBlogPayload(post.toObject(), { requireCover: true }), ...validateReadyForReview(post.toObject())];
+    if (errors.length) {
+      if (req.accepts(['html', 'json']) === 'html') {
+        return res.redirect(`/admin/blog/posts/${post._id}/review?type=error&msg=${encodeURIComponent(errors[0])}`);
+      }
+      return res.status(400).json({ success: false, message: 'The draft is not ready for review.', errors });
+    }
+    post.status = 'pending';
+    post.submittedAt = new Date();
+    await post.save();
+    recordBlogModerationAudit(req, {
+      action: 'admin.blog.submitted_for_review', postId: post._id, statusFrom: 'draft', statusTo: 'pending'
+    });
+    if (req.accepts(['html', 'json']) === 'html') {
+      return res.redirect(`/admin/blog/posts/${post._id}/review?type=success&msg=Draft%20submitted%20for%20review.`);
+    }
+    return res.json({ success: true, message: 'Draft submitted for review.', post });
+  } catch (error) {
+    logger.error('submitBlogPostForReview error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to submit draft for review.' });
   }
 };
 
@@ -343,12 +407,25 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
       }
     }
 
-    const pendingRevision = await getActivePendingRevision(post._id);
+    const requestedContentVersion = Number(requestBody.contentVersion);
+    if (Number.isFinite(requestedContentVersion) && requestedContentVersion !== Number(post.contentVersion || 0)) {
+      return res.status(409).json({ success: false, message: 'This post changed in another session. Reload before continuing.' });
+    }
+
+    let pendingRevision = await getActivePendingRevision(post._id);
+    if (!pendingRevision && ['published', 'scheduled'].includes(post.status)) {
+      pendingRevision = await getOrCreateAdminRevision(post, req.session?.userId || null);
+    }
+    const requestedEditVersion = Number(requestBody.editVersion);
+    if (pendingRevision && Number.isFinite(requestedEditVersion) && requestedEditVersion !== Number(pendingRevision.editVersion || 0)) {
+      return res.status(409).json({ success: false, message: 'This revision changed in another session. Reload before continuing.' });
+    }
     const reviewSource = pendingRevision ? { ...post.toObject(), ...pendingRevision.after } : post;
     const beforeSnapshot = pendingRevision
       ? createRevisionSnapshot(reviewSource)
       : getAdminAutosaveSnapshot(post);
     const nextPayload = normalizeAdminAutosavePayload(requestBody, reviewSource);
+    nextPayload.status = String(reviewSource.status || post.status || 'draft');
 
     const coverImageFile = getUploadedFile(req, 'coverImageFile');
     const galleryImageFiles = getUploadedFiles(req, 'galleryImageFiles');
@@ -423,6 +500,7 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
         nextSnapshot
       );
       pendingRevision.editedAt = new Date();
+      pendingRevision.editVersion = Number(pendingRevision.editVersion || 0) + 1;
       pendingRevision.moderationFlags = moderation.flags;
       pendingRevision.moderationFlagSummary = moderation.summary;
       pendingRevision.eligibilitySnapshot = evaluateBlogContentEligibility(nextSnapshot);
@@ -447,17 +525,12 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
       const nextEligibility = evaluateBlogContentEligibility(nextPayload);
       const contentChangedSinceReview = post.contentEligibility?.sourceHash !== nextEligibility.sourceHash;
       post.contentEligibility = nextEligibility;
-      if (contentChangedSinceReview) post.publicationReview = null;
-
-      if (nextPayload.status !== post.status) {
-        if (['published', 'scheduled'].includes(nextPayload.status)) {
-          const error = new Error('Use the pending review decision and required moderation checklist before publishing or scheduling this post.');
-          error.status = 400;
-          throw error;
-        }
-        applyAdminAutosaveStatusTransition(post, nextPayload.status, req.session?.userId || null);
+      if (contentChangedSinceReview) {
+        post.publicationReview = null;
+        invalidateIndexingReview(post);
       }
 
+      post.contentVersion = Number(post.contentVersion || 0) + 1;
       await post.save();
       assetsPersisted = true;
     }
@@ -503,7 +576,11 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
       .map((url) => uploadService.extractObjectKeyFromPublicUrl(url))
       .filter(Boolean)
       .forEach((key) => keysToDelete.push(key));
-    if (keysToDelete.length) await uploadService.deleteObjects(Array.from(new Set(keysToDelete)));
+    // A staged revision must not delete media still referenced by the live post.
+    // Superseded revision assets are reclaimed by the normal storage cleanup job.
+    if (!pendingRevision && keysToDelete.length) {
+      await uploadService.deleteObjects(Array.from(new Set(keysToDelete)));
+    }
 
     return res.json({
       success: true,
@@ -531,7 +608,9 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
         ogImageUrl: pendingRevision ? afterSnapshot.ogImageUrl : post.ogImageUrl,
         moderationNotes: pendingRevision ? afterSnapshot.moderationNotes : post.moderationNotes,
         updatedAt: pendingRevision ? pendingRevision.updatedAt : post.updatedAt,
-        changedFields
+        changedFields,
+        contentVersion: Number(post.contentVersion || 0),
+        editVersion: pendingRevision ? Number(pendingRevision.editVersion || 0) : null
       }
     });
   } catch (error) {
@@ -548,33 +627,13 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
 
 exports.renderAdminQueuePage = async (req, res) => {
   try {
-    const status = normalizeAdminStatusFilter(req.query.status) || 'pending';
-    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-
-    const query = status === 'pending'
-      ? {
-          isDeleted: { $ne: true },
-          $or: [{ status }, { activeRevisionStatus: 'pending' }]
-        }
-      : { isDeleted: { $ne: true }, status };
-    if (q) {
-      const safePattern = new RegExp(escapeRegex(q), 'i');
-      query.$and = query.$and || [];
-      query.$and.push({
-        $or: [{ title: safePattern }, { slug: safePattern }, { category: safePattern }, { customCategory: safePattern }]
-      });
-    }
-
-    const posts = await Blog.find(query)
-      .populate('authorId', 'firstName lastName email')
-      .sort({ activeRevisionSubmittedAt: -1, submittedAt: -1, updatedAt: -1 })
-      .select('title slug status category customCategory coverImageUrl submittedAt publishedAt rejectedAt rejectionReason readingTime createdAt updatedAt activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason');
+    const result = await listManagedPosts(req.query);
 
     return res.render('admin/blog-queue', {
       title: 'Blog Moderation - HelloRun Admin',
-      posts,
-      selectedStatus: status,
-      searchQuery: q,
+      ...result,
+      selectedStatus: result.filters.status,
+      searchQuery: result.filters.q,
       message: getBlogPageMessage(req.query)
     });
   } catch (error) {
@@ -632,11 +691,14 @@ exports.renderAdminReviewPage = async (req, res) => {
       acc[item._id] = item.count;
       return acc;
     }, {});
-    const revisions = await BlogRevision.find({ postId: post._id })
+    const historyPage = Math.max(1, Number.parseInt(req.query.historyPage, 10) || 1);
+    const historyPageSize = 10;
+    const [revisions, revisionTotal] = await Promise.all([BlogRevision.find({ postId: post._id })
       .populate('editedBy', 'firstName lastName email')
       .sort({ editedAt: -1 })
-      .limit(25)
-      .lean();
+      .skip((historyPage - 1) * historyPageSize)
+      .limit(historyPageSize)
+      .lean(), BlogRevision.countDocuments({ postId: post._id })]);
     const publicationEligibility = evaluateBlogContentEligibility(reviewTarget.reviewData);
     const publicationOverrideFlags = getBlockingModerationFlags(reviewTarget.reviewData.moderationFlags || []);
 
@@ -651,6 +713,11 @@ exports.renderAdminReviewPage = async (req, res) => {
       blockTypes: getComposerBlockTypeOptions(),
       templateBlocksByKey: getComposerTemplateBlocksByKey(),
       revisions,
+      historyPagination: {
+        page: historyPage,
+        total: revisionTotal,
+        totalPages: Math.max(1, Math.ceil(revisionTotal / historyPageSize))
+      },
       reviewTarget,
       openReportCounts,
       publicationEligibility,
@@ -730,7 +797,7 @@ exports.approveBlogPostPage = async (req, res) => {
         : 'admin.blog.approved',
       postId: post._id,
       statusFrom: 'pending',
-      statusTo: 'published',
+      statusTo: result.post.status,
       details: {
         revisionApplied: result.revisionApplied,
         policyVersion: result.post.contentEligibility?.policyVersion,
@@ -740,7 +807,7 @@ exports.approveBlogPostPage = async (req, res) => {
     });
 
     return res.redirect(
-      `/admin/blog/posts/${post._id}/review?type=success&msg=${encodeURIComponent(result.revisionApplied ? 'Revision approved and applied.' : 'Post approved and published.')}`
+      `/admin/blog/posts/${post._id}/review?type=success&msg=${encodeURIComponent(result.post.status === 'scheduled' ? 'Post approved and scheduled.' : (result.revisionApplied ? 'Revision approved and applied.' : 'Post approved and published.'))}`
     );
   } catch (error) {
     logger.error('approveBlogPostPage error:', error);
@@ -814,13 +881,18 @@ exports.archiveBlogPostPage = async (req, res) => {
     if (!post) {
       return res.redirect('/admin/blog/review?type=error&msg=Post%20not%20found.');
     }
-    if (post.status !== 'published') {
-      return res.redirect(`/admin/blog/posts/${post._id}/review?type=error&msg=Only%20published%20posts%20can%20be%20archived.`);
+    if (!['published', 'scheduled'].includes(post.status)) {
+      return res.redirect(`/admin/blog/posts/${post._id}/review?type=error&msg=Only%20published%20or%20scheduled%20posts%20can%20be%20archived.`);
     }
 
+    const previousStatus = post.status;
     post.status = 'archived';
+    post.scheduledFor = null;
     post.reviewedAt = new Date();
     await post.save();
+    recordBlogModerationAudit(req, {
+      action: 'admin.blog.archived', postId: post._id, statusFrom: previousStatus, statusTo: 'archived'
+    });
 
     return res.redirect(`/admin/blog/posts/${post._id}/review?type=success&msg=Post%20archived.`);
   } catch (error) {

@@ -28,6 +28,7 @@ const ARTICLE = Object.freeze({
 const RAW_CONTENT_HTML = `
 <p>A virtual run is an organised running event that participants complete away from one shared event course. The organiser publishes a goal, activity window, eligibility rules, and evidence process. Runners register, complete an allowed activity, record or document it, and submit or import the required information for review.</p>
 <p>That definition sounds simple, but virtual events differ widely. One may require a single outdoor 5K recorded by GPS. Another may let a participant accumulate 25 kilometres across several runs or walks. Some are free and completion-only; others charge a fee, publish approved results, or provide configured recognition. The individual event rules determine what counts.</p>
+<p>Walking is therefore event-specific, not a universal feature of the format. The guide to <a href="/blog/can-you-walk-a-virtual-run">walking in a virtual run</a> explains accepted activity types, single versus accumulated completion, and proof questions.</p>
 
 <h2>A virtual run in one minute</h2>
 <ol>
@@ -151,6 +152,7 @@ const RAW_CONTENT_HTML = `
   <li>Know where to ask about an ambiguity before the deadline.</li>
 </ul>
 <p>If you are new to the distance, the <a href="/blog/beginner-5k-training-plan-new-runners">beginner 5K guide</a> offers a simple starting framework. It is general information rather than individual medical guidance.</p>
+<p>When the chosen category is ten kilometres and preparation is already in place, the <a href="/blog/how-to-run-your-first-10k-virtual-run">first virtual 10K guide</a> turns these general mechanics into a route, pacing, tracking, proof, and recovery plan for one event opportunity.</p>
 
 <h2>Proof-submission checklist</h2>
 <ul>
@@ -214,6 +216,7 @@ const RAW_CONTENT_HTML = `
 <h2>Final takeaway</h2>
 <p>A virtual run is not simply an ordinary workout with an online label. It is an event with a defined goal, participant rules, a completion window, recorded evidence, review, and an event-specific outcome.</p>
 <p>For runners, the best first step is to read before registering and test before recording. For organisers, the standard is clear mechanics, proportionate data, fair human review, accurate promises, responsive support, and complete fulfilment. When those parts align, a flexible activity can become a trustworthy shared event.</p>
+<p>Organisers who are ready to explain that experience to a wider audience can continue with the <a href="/blog/how-to-promote-a-virtual-run">virtual-run promotion guide</a>, which keeps one accurate event page at the centre of every campaign message.</p>
 
 <h2>Official and platform sources</h2>
 <p>This guide was reviewed against the following resources in July 2026:</p>
@@ -265,6 +268,9 @@ const REQUIRED_LINKS = Object.freeze([
   '/blog/running-safety-tips-early-morning-night-runs',
   '/blog/virtual-run-vs-traditional-race-which-one-should-you-join',
   '/blog/how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers',
+  '/blog/can-you-walk-a-virtual-run',
+  '/blog/how-to-run-your-first-10k-virtual-run',
+  '/blog/how-to-promote-a-virtual-run',
   'rrca.org/covid-19-information-and-resources',
   'rrca.org/education/event-directors/safe-event-guidelines',
   'worldathletics.org/personal-best/performance/how-run-best-virtual-race-advice',

@@ -1,6 +1,6 @@
 'use strict';
 
-const EDITORIAL_TEAM_NAME = 'HelloRun Editorial Team';
+const EDITORIAL_TEAM_NAME = 'Henson M. Sagorsor';
 const EDITORIAL_TEAM_EMAIL = String(
   process.env.ADSENSE_GUIDE_AUTHOR_EMAIL || 'hellorunonline@gmail.com'
 ).trim().toLowerCase();

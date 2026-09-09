@@ -61,9 +61,18 @@ test('gradual running restart builds a substantive, flexible Training payload', 
   for (const link of REQUIRED_LINKS) assert.ok(payload.contentHtml.includes(link));
 });
 
+test('returning-to-running guide links readers to the year-end running-goals hub', () => {
+  const href = '/blog/how-to-set-running-goals-for-the-rest-of-the-year';
+  const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
+
+  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
+  assert.ok(payload.contentHtml.includes(`href="${href}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
+});
+
 test('gradual running restart sanitizes official sources and passes health eligibility', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
-  const eligibility = evaluateBlogContentEligibility(payload, {
+  const eligibility = evaluateBlogContentEligibility({ ...payload, contentRisk: 'health_safety' }, {
     evaluatedAt: new Date('2026-08-03T00:00:00.000Z')
   });
 
@@ -96,7 +105,7 @@ test('gradual running restart is registered and seeded once for August 29', () =
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 38);
+  assert.equal(listArticleSlugs().length, 52);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -129,13 +138,8 @@ test('gradual running restart supports exact health-reviewed scheduling and upda
   assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.contentEligibility.eligible, true);
   assert.equal(payload.contentEligibility.healthReviewRequired, true);
-  assert.equal(payload.publicationReview.originalityConfirmed, true);
-  assert.equal(payload.publicationReview.externalLinksConfirmed, true);
-  assert.equal(payload.publicationReview.healthSafetyConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthExperienceConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthSourcesConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthSafetyConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthCredentialsConfirmed, true);
+  assert.equal(payload.publicationReview, null);
+  assert.equal(payload.searchIndexingStatus, 'noindex');
   assert.match(packageJson.scripts['blog:update-returning-to-running'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 

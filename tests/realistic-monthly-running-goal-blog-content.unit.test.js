@@ -73,10 +73,20 @@ test('monthly running goal draft builds a substantive goal-calibration payload',
   }
 });
 
+test('monthly goal guide links readers to the year-end running-goals hub', () => {
+  const href = '/blog/how-to-set-running-goals-for-the-rest-of-the-year';
+  const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
+
+  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
+  assert.ok(payload.contentHtml.includes(`href="${href}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
+});
+
 test('monthly running goal draft sanitizes content and passes publication eligibility', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const eligibility = evaluateBlogContentEligibility({
     ...payload,
+    contentRisk: 'health_safety',
     coverImageUrl: COVER_IMAGE_URL
   }, { evaluatedAt: new Date('2026-08-02T00:00:00.000Z') });
 
@@ -99,7 +109,7 @@ test('monthly running goal is registered and seeded once with its CDN cover', ()
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 38);
+  assert.equal(listArticleSlugs().length, 52);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);

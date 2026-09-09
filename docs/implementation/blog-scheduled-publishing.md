@@ -15,8 +15,11 @@ The blog system supported `status: 'scheduled'` and `publishedAt` fields, and th
 ## What Was Built
 
 ### `publishScheduledBlogs()` in `src/workers/pg-sync-worker.js`
-- Finds all blogs with `status = 'scheduled'` AND `publishedAt <= now` AND `isDeleted != true`
-- For each due post: sets `status = 'published'`, sets `approvedAt` if not already set, saves
+- Finds all blogs with `status = 'scheduled'` AND `scheduledFor <= now` AND `isDeleted != true`.
+- Falls back to the legacy `publishedAt` schedule field during migration.
+- Rechecks the content-eligibility and publication-review hashes before publishing.
+- For each due post: sets `status = 'published'`, records the real `publishedAt`, clears `scheduledFor`, and saves.
+- Tracks failed/blocked attempts so overdue posts are visible in the admin queue.
 - Batch limit: 20 posts per run
 - Logs each published post by title and ID
 
@@ -35,7 +38,7 @@ The blog system supported `status: 'scheduled'` and `publishedAt` fields, and th
 ## How Admin Scheduling Works (already existed)
 
 1. Author submits post → `status = 'pending'`
-2. Admin reviews → can choose **Publish Now** (immediate) OR set `status = 'scheduled'` + future `publishedAt` date via the datetime picker on the review page
+2. Admin completes the publication checklist and chooses **Publish Now** or **Schedule** with a future `scheduledFor` date.
 3. Worker runs every 5 minutes → finds due scheduled posts → publishes them automatically
 
 ---
@@ -53,6 +56,13 @@ The blog system supported `status: 'scheduled'` and `publishedAt` fields, and th
 
 ```
 BLOG_SCHEDULER_INTERVAL_MS=300000   # 5 minutes default
+```
+
+Before deployment, preview and apply the legacy-field migration:
+
+```bash
+npm run blog:migrate-scheduled-for
+npm run blog:migrate-scheduled-for -- --apply
 ```
 
 ---

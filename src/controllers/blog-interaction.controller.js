@@ -4,6 +4,8 @@ const Blog = require('../models/Blog');
 const BlogComment = require('../models/BlogComment');
 const BlogLike = require('../models/BlogLike');
 const BlogReport = require('../models/BlogReport');
+const User = require('../models/User');
+const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
 const {
   COMMENTS_PAGE_SIZE,
   BlogCommentError,
@@ -26,6 +28,44 @@ function getSessionUserId(req) {
 function normalizeReportReason(value) {
   const safe = String(value || '').trim().toLowerCase();
   return REPORT_REASONS.includes(safe) ? safe : '';
+}
+
+function recordBlogCommunityAudit(req, action, targetType, targetId, details = {}) {
+  recordCriticalAuditEventInBackground({
+    action,
+    targetType,
+    targetId: String(targetId || ''),
+    actorMongoUserId: req.session?.userId || '',
+    notes: JSON.stringify(details).slice(0, 4000),
+    ipAddress: req.ip,
+    userAgent: req.get?.('user-agent') || '',
+    occurredAt: new Date()
+  });
+}
+
+async function loadAdminComments(queryInput = {}) {
+  const page = Math.max(1, parseInt(queryInput.page, 10) || 1);
+  const status = queryInput.status === 'removed' ? 'removed' : 'active';
+  const q = String(queryInput.q || '').trim().slice(0, 120);
+  const skip = (page - 1) * COMMENTS_PAGE_SIZE;
+  const query = { status, isDeleted: status === 'removed' ? true : { $ne: true } };
+  if (q) {
+    const pattern = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const [blogIds, authorIds] = await Promise.all([
+      Blog.find({ title: pattern }).distinct('_id'),
+      User.find({ $or: [{ firstName: pattern }, { lastName: pattern }, { email: pattern }] }).distinct('_id')
+    ]);
+    query.$or = [{ content: pattern }, { blogId: { $in: blogIds } }, { authorId: { $in: authorIds } }];
+  }
+  const [comments, total] = await Promise.all([
+    BlogComment.find(query).sort({ createdAt: -1 }).skip(skip).limit(COMMENTS_PAGE_SIZE)
+      .populate({ path: 'authorId', select: 'firstName lastName email' })
+      .populate({ path: 'blogId', select: 'title slug' }).lean(),
+    BlogComment.countDocuments(query)
+  ]);
+  return { comments, selectedStatus: status, searchQuery: q, pagination: {
+    page, pageSize: COMMENTS_PAGE_SIZE, total, totalPages: Math.max(1, Math.ceil(total / COMMENTS_PAGE_SIZE))
+  } };
 }
 
 exports.listComments = async (req, res) => {
@@ -281,35 +321,18 @@ exports.reportComment = async (req, res) => {
 
 exports.adminListComments = async (req, res) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const status = req.query.status === 'removed' ? 'removed' : 'active';
-    const skip = (page - 1) * COMMENTS_PAGE_SIZE;
-
-    const query = { status, isDeleted: status === 'removed' ? true : { $ne: true } };
-
-    const [comments, total] = await Promise.all([
-      BlogComment.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(COMMENTS_PAGE_SIZE)
-        .populate({ path: 'authorId', select: 'firstName lastName email' })
-        .populate({ path: 'blogId', select: 'title slug' })
-        .lean(),
-      BlogComment.countDocuments(query)
-    ]);
-
-    return res.json({
-      success: true,
-      comments,
-      pagination: {
-        page,
-        pageSize: COMMENTS_PAGE_SIZE,
-        total,
-        totalPages: Math.ceil(total / COMMENTS_PAGE_SIZE)
-      }
-    });
+    return res.render('admin/blog-comments', { title: 'Blog Comments - HelloRun Admin', ...(await loadAdminComments(req.query)) });
   } catch (error) {
     logger.error('adminListComments error:', error);
+    return res.status(500).render('error', { title: 'Server Error', status: 500, message: 'Failed to load comments.' });
+  }
+};
+
+exports.adminListCommentsJson = async (req, res) => {
+  try {
+    return res.json({ success: true, ...(await loadAdminComments(req.query)) });
+  } catch (error) {
+    logger.error('adminListCommentsJson error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load comments.' });
   }
 };
@@ -322,6 +345,9 @@ exports.adminRemoveComment = async (req, res) => {
       userId,
       isAdmin: true,
       moderationNote: req.body.moderationNote
+    });
+    recordBlogCommunityAudit(req, 'admin.blog_comment.removed', 'blog_comment', req.params.commentId, {
+      moderationNote: req.body.moderationNote || ''
     });
     return res.json({ success: true, ...result });
   } catch (error) {
@@ -357,6 +383,7 @@ exports.adminRestoreComment = async (req, res) => {
     });
 
     await Blog.updateOne({ _id: comment.blogId }, { $inc: { commentsCount: 1 } });
+    recordBlogCommunityAudit(req, 'admin.blog_comment.restored', 'blog_comment', comment._id);
 
     return res.json({ success: true });
   } catch (error) {
@@ -369,19 +396,40 @@ exports.adminListReports = async (req, res) => {
   try {
     const status = String(req.query.status || 'open').trim().toLowerCase();
     const safeStatus = ['open', 'resolved', 'dismissed'].includes(status) ? status : 'open';
-    const reports = await BlogReport.find({ status: safeStatus })
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const targetType = ['post', 'comment'].includes(req.query.targetType) ? req.query.targetType : '';
+    const reason = REPORT_REASONS.includes(req.query.reason) ? req.query.reason : '';
+    const dateFrom = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.dateFrom || '')) ? String(req.query.dateFrom) : '';
+    const dateTo = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.dateTo || '')) ? String(req.query.dateTo) : '';
+    const query = { status: safeStatus };
+    if (targetType) query.targetType = targetType;
+    if (reason) query.reason = reason;
+    if (dateFrom || dateTo) {
+      query.createdAt = {};
+      if (dateFrom) query.createdAt.$gte = new Date(`${dateFrom}T00:00:00.000Z`);
+      if (dateTo) query.createdAt.$lte = new Date(`${dateTo}T23:59:59.999Z`);
+    }
+    const [reports, total] = await Promise.all([BlogReport.find(query)
       .sort({ createdAt: -1 })
+      .skip((page - 1) * COMMENTS_PAGE_SIZE)
+      .limit(COMMENTS_PAGE_SIZE)
       .populate('reporterId', 'firstName lastName email')
       .populate('blogId', 'title slug')
       .populate('commentId', 'content')
       .populate('commentAuthorIdSnapshot', 'firstName lastName email')
       .populate('resolvedBy', 'firstName lastName email')
-      .lean();
+      .lean(), BlogReport.countDocuments(query)]);
 
     return res.render('admin/blog-reports', {
       title: 'Blog Reports - HelloRun Admin',
       reports,
-      selectedStatus: safeStatus
+      selectedStatus: safeStatus,
+      selectedTargetType: targetType,
+      selectedReason: reason,
+      dateFrom,
+      dateTo,
+      reasons: REPORT_REASONS,
+      pagination: { page, pageSize: COMMENTS_PAGE_SIZE, total, totalPages: Math.max(1, Math.ceil(total / COMMENTS_PAGE_SIZE)) }
     });
   } catch (error) {
     logger.error('adminListReports error:', error);
@@ -403,11 +451,37 @@ exports.adminResolveReport = async (req, res) => {
       return res.redirect('/admin/blog/reports?status=open');
     }
 
-    report.status = 'resolved';
+    if (report.status !== 'open') {
+      return res.redirect('/admin/blog/reports?status=open&type=error&msg=Report%20is%20already%20closed.');
+    }
+    const outcome = ['remove_target', 'retain_target', 'escalate'].includes(req.body.outcome)
+      ? req.body.outcome
+      : '';
+    const resolutionNote = String(req.body.resolutionNote || '').trim().slice(0, 500);
+    if (!outcome || resolutionNote.length < 10) {
+      return res.redirect('/admin/blog/reports?status=open&type=error&msg=Choose%20an%20outcome%20and%20provide%20a%20resolution%20note.');
+    }
+    if (outcome === 'remove_target') {
+      if (report.targetType === 'comment' && report.commentId) {
+        await removeComment({ commentId: report.commentId, userId: req.session?.userId, isAdmin: true, moderationNote: resolutionNote });
+        recordBlogCommunityAudit(req, 'admin.blog_comment.removed', 'blog_comment', report.commentId, { moderationNote: resolutionNote, reportId: report._id });
+      } else if (report.targetType === 'post') {
+        await Blog.updateOne(
+          { _id: report.blogId, status: { $in: ['published', 'scheduled'] } },
+          { $set: { status: 'archived', scheduledFor: null, reviewedAt: new Date() } }
+        );
+        recordBlogCommunityAudit(req, 'admin.blog.archived', 'blog', report.blogId, { reportId: report._id, resolutionNote });
+      }
+    }
+    report.status = outcome === 'retain_target' ? 'dismissed' : 'resolved';
     report.resolvedAt = new Date();
     report.resolvedBy = req.session?.userId || null;
-    report.resolutionNote = String(req.body.resolutionNote || '').trim().slice(0, 500);
+    report.resolutionNote = resolutionNote;
+    report.outcome = outcome;
     await report.save();
+    recordBlogCommunityAudit(req, 'admin.blog_report.resolved', 'blog_report', report._id, {
+      outcome, targetType: report.targetType, targetId: report.commentId || report.blogId, resolutionNote
+    });
 
     return res.redirect('/admin/blog/reports?status=open');
   } catch (error) {
@@ -426,11 +500,18 @@ exports.adminDismissReport = async (req, res) => {
       return res.redirect('/admin/blog/reports?status=open');
     }
 
+    if (report.status !== 'open') return res.redirect('/admin/blog/reports?status=open');
+    const resolutionNote = String(req.body.resolutionNote || '').trim().slice(0, 500);
+    if (resolutionNote.length < 10) return res.redirect('/admin/blog/reports?status=open&type=error&msg=A%20dismissal%20note%20is%20required.');
     report.status = 'dismissed';
     report.resolvedAt = new Date();
     report.resolvedBy = req.session?.userId || null;
-    report.resolutionNote = String(req.body.resolutionNote || '').trim().slice(0, 500);
+    report.resolutionNote = resolutionNote;
+    report.outcome = 'retain_target';
     await report.save();
+    recordBlogCommunityAudit(req, 'admin.blog_report.dismissed', 'blog_report', report._id, {
+      targetType: report.targetType, targetId: report.commentId || report.blogId, resolutionNote: report.resolutionNote
+    });
 
     return res.redirect('/admin/blog/reports?status=open');
   } catch (error) {

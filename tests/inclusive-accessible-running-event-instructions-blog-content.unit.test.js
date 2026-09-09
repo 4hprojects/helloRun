@@ -71,7 +71,7 @@ test('inclusive event instructions guide sanitizes W3C sources and passes eligib
   assert.match(payload.contentHtml, /href="https:\/\/www\.w3\.org\/TR\/WCAG22\/" rel="noopener noreferrer" target="_blank"/);
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
-  assert.equal(eligibility.healthReviewRequired, true);
+  assert.equal(eligibility.healthReviewRequired, false);
   assert.ok(eligibility.wordCount >= 3200);
   assert.equal(eligibility.externalLinkCount, 5);
 });
@@ -91,7 +91,7 @@ test('inclusive event instructions guide is registered and seeded once for Augus
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 38);
+  assert.equal(listArticleSlugs().length, 52);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -121,13 +121,9 @@ test('inclusive event instructions guide supports exact eligible scheduling and 
   assert.equal(payload.approvedAt, null);
   assert.equal(payload.featured, false);
   assert.equal(payload.contentEligibility.eligible, true);
-  assert.equal(payload.contentEligibility.healthReviewRequired, true);
-  assert.equal(payload.publicationReview.originalityConfirmed, true);
-  assert.equal(payload.publicationReview.externalLinksConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthExperienceConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthSourcesConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthSafetyConfirmed, true);
-  assert.equal(payload.publicationReview.healthChecks.healthCredentialsConfirmed, true);
+  assert.equal(payload.contentEligibility.healthReviewRequired, false);
+  assert.equal(payload.publicationReview, null);
+  assert.equal(payload.searchIndexingStatus, 'noindex');
   assert.match(packageJson.scripts['blog:update-accessible-event-instructions'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 

@@ -97,7 +97,7 @@ test('fair distance categories guide sanitizes sources and passes eligibility', 
   assert.match(payload.contentHtml, /href="https:\/\/worldathletics\.org\/about-iaaf\/documents\/book-of-rules" rel="noopener noreferrer" target="_blank"/);
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
-  assert.equal(eligibility.healthReviewRequired, true);
+  assert.equal(eligibility.healthReviewRequired, false);
   assert.ok(eligibility.wordCount >= 3200);
   assert.ok(eligibility.semanticUnitCount >= 3);
   assert.equal(eligibility.externalLinkCount, 4);
@@ -118,7 +118,7 @@ test('fair distance categories guide is registered and seeded once for August 13
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 38);
+  assert.equal(listArticleSlugs().length, 52);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -149,8 +149,9 @@ test('fair distance categories guide supports exact future scheduling and update
   assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.contentEligibility.eligible, true);
-  assert.equal(payload.publicationReview.policyVersion, 'ugc-adsense-v1');
-  assert.equal(payload.publicationReview.originalityConfirmed, true);
+  assert.equal(payload.contentEligibility.healthReviewRequired, false);
+  assert.equal(payload.publicationReview, null);
+  assert.equal(payload.searchIndexingStatus, 'noindex');
   assert.match(packageJson.scripts['blog:update-fair-distance-categories'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
@@ -170,4 +171,20 @@ test('fair distance categories guide rejects unsupported fairness and result cla
   assert.throws(() => validateArticlePayload(withClaim('Certificates are guaranteed.')), /recognition/);
   assert.throws(() => validateArticlePayload(withClaim('Leaderboard placement is guaranteed.')), /recognition/);
   assert.throws(() => buildArticlePayload(), /cover artwork/);
+});
+
+test('distance-category guide links ready categories to the promotion guide', () => {
+  const href = '/blog/how-to-promote-a-virtual-run';
+  const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
+  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
+  assert.ok(payload.contentHtml.includes(`href="${href}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
+});
+
+test('distance-category guide links real category costs to the pricing guide', () => {
+  const href = '/blog/virtual-run-registration-fee-pricing';
+  const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
+  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
+  assert.ok(payload.contentHtml.includes(`href="${href}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
 });

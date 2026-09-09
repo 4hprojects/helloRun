@@ -153,6 +153,7 @@ router.get('/sitemap.xml', pageController.getSitemapXml);
 
 // Blog public routes
 router.get('/blog', pageController.getBlogList);
+router.get('/blog/authors/:authorSlug', pageController.getBlogAuthorPage);
 router.get('/blog/category/:categorySlug', pageController.getBlogCategoryPage);
 router.get('/blog/tag/:tagSlug', pageController.getBlogTagPage);
 router.get('/blog/:slug', pageController.getBlogPost);

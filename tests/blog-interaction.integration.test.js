@@ -581,9 +581,12 @@ test('liking a non-existent post returns 404', async () => {
 test('admin can list all blog comments', async () => {
   const cookie = await login(seed.admin.email, seed.password);
   await waitForAdminSessionReady(cookie);
-  const response = await fetch(`${BASE_URL}/admin/blog/comments`, {
+  const pageResponse = await fetch(`${BASE_URL}/admin/blog/comments`, {
     headers: { Cookie: cookie }
   });
+  assert.equal(pageResponse.status, 200);
+  assert.match(await pageResponse.text(), /Blog Management/);
+  const response = await fetch(`${BASE_URL}/admin/blog/comments.json`, { headers: { Cookie: cookie } });
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.success, true);

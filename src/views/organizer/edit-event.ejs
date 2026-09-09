@@ -907,6 +907,17 @@
                 <input id="eventEndAt" name="eventEndAt" type="datetime-local" value="<%= formData.eventEndAt %>" required>
                 <button type="button" class="btn-now" data-target="eventEndAt">Now</button>
               </div>
+              <label for="shortTitle">Short display name</label>
+              <input id="shortTitle" name="shortTitle" maxlength="80" value="<%= formData.shortTitle || '' %>">
+              <label for="awardingAt">Awarding date</label>
+              <input id="awardingAt" name="awardingAt" type="datetime-local" value="<%= formData.awardingAt || '' %>">
+              <label for="awardingVenue">Awarding venue</label>
+              <input id="awardingVenue" name="awardingVenue" maxlength="150" value="<%= formData.awardingVenue || '' %>">
+              <label for="awardRankingBasis">Top-finisher ranking basis</label>
+              <select id="awardRankingBasis" name="awardRankingBasis"><option value="unconfirmed" <%= formData.awardRankingBasis === 'unconfirmed' ? 'selected' : '' %>>Unconfirmed / do not award automatically</option><option value="highest_distance" <%= formData.awardRankingBasis === 'highest_distance' ? 'selected' : '' %>>Highest distance</option><option value="highest_elevation" <%= formData.awardRankingBasis === 'highest_elevation' ? 'selected' : '' %>>Highest elevation</option><option value="first_to_50k" <%= formData.awardRankingBasis === 'first_to_50k' ? 'selected' : '' %>>First to 50 km</option><option value="manual" <%= formData.awardRankingBasis === 'manual' ? 'selected' : '' %>>Manual selection</option></select>
+              <label><input type="checkbox" name="autoSelectTopFinishers" value="1" <%= formData.autoSelectTopFinishers ? 'checked' : '' %>> Automatically select top finishers</label>
+              <label><input type="checkbox" name="participationCertificateEnabled" value="1" <%= formData.participationCertificateEnabled ? 'checked' : '' %>> Issue participation certificates after final review</label>
+              <label><input type="checkbox" name="noActivityCertificateEnabled" value="1" <%= formData.noActivityCertificateEnabled ? 'checked' : '' %>> Issue certificates with no approved activity</label>
             </div>
           </div>
         </div>
@@ -1032,6 +1043,7 @@
                     <label><input type="checkbox" name="acceptedRunTypes" value="walk" <%= selectedRunTypes.includes('walk') ? 'checked' : '' %>> Walk</label>
                     <label><input type="checkbox" name="acceptedRunTypes" value="hike" <%= selectedRunTypes.includes('hike') ? 'checked' : '' %>> Hike</label>
                     <label><input type="checkbox" name="acceptedRunTypes" value="trail_run" <%= selectedRunTypes.includes('trail_run') ? 'checked' : '' %>> Trail run</label>
+                    <label><input type="checkbox" name="acceptedRunTypes" value="treadmill" <%= selectedRunTypes.includes('treadmill') ? 'checked' : '' %>> Treadmill</label>
                   </div>
                   <% if (errors.acceptedRunTypes) { %><small class="error-text"><%= errors.acceptedRunTypes %></small><% } %>
                 </div>
@@ -1102,7 +1114,7 @@
                     <div class="form-group form-group-full">
                       <label>Visible Columns</label>
                       <div class="checkbox-row">
-                        <% ['rank', 'runner', 'category', 'distance', 'steps', 'time', 'pace', 'status'].forEach((column) => { %>
+                        <% ['rank', 'runner', 'category', 'department', 'distance', 'elevation', 'activities', 'steps', 'time', 'pace', 'status'].forEach((column) => { %>
                           <label><input type="checkbox" name="leaderboardSettingsVisibleColumns" value="<%= column %>" <%= selectedLeaderboardColumns.includes(column) ? 'checked' : '' %>> <%= column.charAt(0).toUpperCase() + column.slice(1) %></label>
                         <% }) %>
                       </div>

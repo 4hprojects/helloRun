@@ -7,12 +7,20 @@ const { formatBlogAuthorName } = require('../utils/blog-author');
 
 const BLOG_PAGE_SIZE = 12;
 const BLOG_SORTS = new Set(['latest', 'oldest', 'popular']);
-const BLOG_AUTHOR_FIELDS = 'displayName firstName lastName avatarUrl verifiedAuthor trustScore';
+const BLOG_AUTHOR_FIELDS = 'displayName firstName lastName avatarUrl authorSlug authorRole authorBio';
 const BLOG_CARD_FIELDS = 'title slug excerpt category customCategory tags coverImageUrl readingTime views trendingScore likesCount commentsCount featured publishedAt createdAt';
+const BLOG_CATEGORY_INTROS = Object.freeze({
+  'Organizer Guide': 'Plan fair, understandable virtual events with HelloRun workflow guides covering rules, participant communication, proof review, privacy, accessibility, and event closeout.',
+  'Virtual Run Guide': 'Learn how HelloRun virtual events work, from joining and recording activity to submitting valid proof and understanding accumulated-distance results.',
+  'Race Tips': 'Use practical event-participation guidance grounded in the proof and recording requirements runners encounter on HelloRun.',
+  Community: 'Read HelloRun platform updates and operational guidance from the people who build and run the service.'
+});
 
 async function buildPublicBlogListPage(queryParams = {}, options = {}) {
   const filters = getBlogFilterValues(queryParams);
   const listingKind = String(options.listingKind || '').trim();
+  const authorProfile = options.authorProfile || null;
+  const categorySlug = String(options.categorySlug || '').trim();
   const baseUrl = String(options.baseUrl || '').trim().replace(/\/+$/, '');
   const query = getEligiblePublicBlogQuery({ status: 'published', isDeleted: { $ne: true } });
 
@@ -77,7 +85,11 @@ async function buildPublicBlogListPage(queryParams = {}, options = {}) {
   const normalizedFilters = { ...filters, authorName };
   const activeFilters = getBlogActiveFilters(normalizedFilters);
   const hasActiveFilters = activeFilters.length > 0;
-  const isThinFilteredListing = totalMatchingPosts < 3;
+  const isAuthorProfile = listingKind === 'author' && Boolean(authorProfile?.authorSlug);
+  const isStableCategoryPage = listingKind === 'category' && Boolean(categorySlug) && Boolean(filters.category);
+  const isThinFilteredListing = (hasDiscoveryFilters && !isAuthorProfile && !isStableCategoryPage)
+    || filters.sort !== 'latest'
+    || currentPage > 1;
   const spotlight = showCommunityModules && spotlightCandidate
     ? normalizeBlogCard(spotlightCandidate)
     : null;
@@ -86,6 +98,7 @@ async function buildPublicBlogListPage(queryParams = {}, options = {}) {
   return {
     title: pageContent.documentTitle,
     pageContent,
+    authorProfile: isAuthorProfile ? authorProfile : null,
     posts: posts.map(normalizeBlogCard),
     spotlight,
     topWriters: topWriters.map(normalizeTopWriter),
@@ -111,7 +124,11 @@ async function buildPublicBlogListPage(queryParams = {}, options = {}) {
     },
     seo: {
       description: pageContent.description,
-      canonicalUrl: buildBlogCanonicalUrl(filters, currentPage, baseUrl),
+      canonicalUrl: isAuthorProfile
+        ? `${baseUrl}/blog/authors/${authorProfile.authorSlug}${currentPage > 1 ? `?page=${currentPage}` : ''}`
+        : isStableCategoryPage
+          ? `${baseUrl}/blog/category/${categorySlug}${currentPage > 1 ? `?page=${currentPage}` : ''}`
+        : buildBlogCanonicalUrl(filters, currentPage, baseUrl),
       robots: isThinFilteredListing ? 'noindex, follow' : ''
     },
     isThinFilteredListing
@@ -163,8 +180,9 @@ function normalizeBlogCard(post = {}) {
       id: String(author._id || ''),
       name: formatAuthorName(author),
       avatarUrl: String(author.avatarUrl || ''),
-      verified: Boolean(author.verifiedAuthor),
-      trustScore: typeof author.trustScore === 'number' ? author.trustScore : null
+      authorSlug: String(author.authorSlug || ''),
+      verified: false,
+      trustScore: null
     },
     readingTimeLabel: `${Math.max(1, Number(post.readingTime || 1))} min read`,
     viewsLabel: formatCount(post.views),
@@ -178,10 +196,10 @@ function normalizeTopWriter(writer = {}) {
     authorId: String(writer.authorId || ''),
     name: formatAuthorName(writer),
     avatarUrl: String(writer.avatarUrl || ''),
-    verified: Boolean(writer.verifiedAuthor),
+    verified: false,
     publishedCount: Number(writer.publishedCount || 0),
     totalLikes: Number(writer.totalLikes || 0),
-    href: buildBlogPageUrl({ author: String(writer.authorId || ''), sort: 'latest' }, 1)
+    href: writer.authorSlug ? `/blog/authors/${writer.authorSlug}` : buildBlogPageUrl({ author: String(writer.authorId || ''), sort: 'latest' }, 1)
   };
 }
 
@@ -231,43 +249,44 @@ function getBlogPageContent(filters = {}, pagination = {}) {
   const pageSuffix = pagination.currentPage > 1 ? ` — Page ${pagination.currentPage}` : '';
   if (filters.q) {
     return {
-      heading: `Stories matching “${filters.q}”`,
-      supportCopy: 'Fresh perspectives and practical ideas from the HelloRun community.',
-      documentTitle: `Search: ${filters.q}${pageSuffix} - HelloRun Community`,
-      description: `Read HelloRun community posts matching ${filters.q}.`
+      heading: `Guides matching “${filters.q}”`,
+      supportCopy: 'Practical platform and event guidance published by HelloRun.',
+      documentTitle: `Search: ${filters.q}${pageSuffix} - HelloRun Guides`,
+      description: `Find HelloRun guides and event resources matching ${filters.q}.`
     };
   }
   if (filters.category) {
     return {
-      heading: `${filters.category} stories`,
-      supportCopy: 'Experiences, advice, and conversations shared by runners and organisers.',
-      documentTitle: `${filters.category}${pageSuffix} - HelloRun Community`,
-      description: `Explore ${filters.category} stories from the HelloRun community.`
+      heading: `${filters.category} guides`,
+      supportCopy: BLOG_CATEGORY_INTROS[filters.category]
+        || `Explore HelloRun's practical ${filters.category.toLowerCase()} resources for runners and event organisers.`,
+      documentTitle: `${filters.category}${pageSuffix} - HelloRun Guides`,
+      description: `Explore HelloRun's ${filters.category} guides and operational resources.`
     };
   }
   if (filters.author) {
     const authorName = filters.authorName || 'Community writer';
     return {
-      heading: `Stories by ${authorName}`,
-      supportCopy: 'Follow this writer’s experiences, advice, and running perspective.',
-      documentTitle: `${authorName}${pageSuffix} - HelloRun Community`,
-      description: `Read community stories by ${authorName} on HelloRun.`
+      heading: `Guides by ${authorName}`,
+      supportCopy: 'Read practical guidance from this HelloRun author.',
+      documentTitle: `${authorName}${pageSuffix} - HelloRun Guides`,
+      description: `Read HelloRun guides and event resources by ${authorName}.`
     };
   }
   return {
-    heading: 'Stories from the running community',
-    supportCopy: 'Read real experiences, practical advice, and fresh perspectives—or share your own.',
-    documentTitle: `Runner Stories & Guides${pageSuffix} - HelloRun`,
-    description: 'Read running stories, practical guides, and community perspectives from HelloRun runners and organisers.'
+    heading: 'HelloRun guides and event resources',
+    supportCopy: 'Practical guidance for runners and organisers, grounded in HelloRun event workflows.',
+    documentTitle: `Running & Event Guides${pageSuffix} - HelloRun`,
+    description: 'Read practical running and event guides grounded in HelloRun platform workflows.'
   };
 }
 
 function buildBlogResultsSummary(filters = {}, total = 0) {
   const count = Number(total || 0);
-  if (filters.q) return `${count} ${count === 1 ? 'story' : 'stories'} matching “${filters.q}”`;
-  if (filters.category) return `${count} ${filters.category} ${count === 1 ? 'story' : 'stories'}`;
-  if (filters.authorName) return `${count} ${count === 1 ? 'story' : 'stories'} by ${filters.authorName}`;
-  return `${count} community ${count === 1 ? 'story' : 'stories'}`;
+  if (filters.q) return `${count} ${count === 1 ? 'guide' : 'guides'} matching “${filters.q}”`;
+  if (filters.category) return `${count} ${filters.category} ${count === 1 ? 'guide' : 'guides'}`;
+  if (filters.authorName) return `${count} ${count === 1 ? 'guide' : 'guides'} by ${filters.authorName}`;
+  return `${count} published ${count === 1 ? 'guide' : 'guides'}`;
 }
 
 function formatAuthorName(author = {}) {

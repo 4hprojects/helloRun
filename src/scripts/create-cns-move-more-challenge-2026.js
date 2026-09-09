@@ -13,6 +13,7 @@ const {
 } = require('../services/certificateTemplate.service');
 const {
   SLUG,
+  OFFICIAL_TITLE,
   buildCnsMoveMoreChallengeEventPayload
 } = require('../content/events/cns-move-more-challenge-2026');
 
@@ -87,7 +88,7 @@ async function main() {
   let event = null;
   try {
     const referenceCode = await generateUniqueReferenceCode({
-      title: 'CNS Move More Challenge 2026',
+      title: OFFICIAL_TITLE,
       date: new Date(),
       existsFn: async (candidate) => Event.exists({ referenceCode: candidate })
     });
@@ -101,7 +102,7 @@ async function main() {
 
     const template = await getOrCreateDefaultTemplate(event._id, { event, organizer: owner });
     template.content.heading = 'Certificate of Completion';
-    template.content.bodyText = 'This certifies that {{runnerName}} completed the CNS Move More Challenge 2026, {{eventTitle}}, through consistent movement and effort.';
+    template.content.bodyText = 'Completed the {{goalDistance}} goal at {{eventTitle}} with {{verifiedDistance}} verified.';
     await template.save();
     await publishTemplate(template);
 

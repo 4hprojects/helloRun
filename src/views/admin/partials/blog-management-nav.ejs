@@ -1,0 +1,5 @@
+<nav class="blog-admin-tabs" aria-label="Blog management">
+  <a href="/admin/blog/review" class="<%= active === 'posts' ? 'is-active' : '' %>" <%= active === 'posts' ? 'aria-current="page"' : '' %>><i data-lucide="files" aria-hidden="true"></i>Posts</a>
+  <a href="/admin/blog/comments" class="<%= active === 'comments' ? 'is-active' : '' %>" <%= active === 'comments' ? 'aria-current="page"' : '' %>><i data-lucide="messages-square" aria-hidden="true"></i>Comments</a>
+  <a href="/admin/blog/reports" class="<%= active === 'reports' ? 'is-active' : '' %>" <%= active === 'reports' ? 'aria-current="page"' : '' %>><i data-lucide="flag" aria-hidden="true"></i>Reports</a>
+</nav>

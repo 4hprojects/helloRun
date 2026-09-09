@@ -72,9 +72,9 @@ test('admin blog review neutralises hostile author-controlled values', () => {
   const source = readTemplate('src/views/admin/blog-review.ejs');
   const lines = source.split('\n');
   const titleLine = lines.find((line) => line.includes('id="adminTitle"'));
-  const blocksLine = lines.find((line) => line.includes('let adminBlocks ='));
+  const configLine = lines.find((line) => line.includes('id="adminBlogReviewConfig"'));
   assert.ok(titleLine, 'expected the adminTitle input line to exist');
-  assert.ok(blocksLine, 'expected the adminBlocks bootstrap line to exist');
+  assert.ok(configLine, 'expected the hardened review config bootstrap to exist');
 
   const post = {
     title: '"><img src=x onerror=alert(1)>',
@@ -85,11 +85,15 @@ test('admin blog review neutralises hostile author-controlled values', () => {
   assert.ok(!renderedTitle.includes('<img'), 'hostile title must not break out of the value attribute');
   assert.ok(renderedTitle.includes('&lt;img'), 'hostile title should render as escaped text');
 
-  const renderedBlocks = ejs.render(blocksLine, { post });
-  assert.ok(!renderedBlocks.includes('</script>'), 'content blocks must not be able to close the script tag');
+  const renderedConfig = ejs.render(configLine, {
+    post: { ...post, status: 'pending', featured: false },
+    sourcePost: { contentVersion: 0 }, reviewTarget: null,
+    templateBlocksByKey: {}, blockTypes: [], locals: { csrfToken: 'token' }
+  });
+  assert.equal(renderedConfig.match(/<\/script>/g)?.length, 1, 'content blocks must not inject a second closing script tag');
 
   // The emitted JSON must still parse back to the original author content.
-  const jsonText = renderedBlocks.trim().replace(/^let adminBlocks = /, '').replace(/;$/, '');
+  const jsonText = renderedConfig.slice(renderedConfig.indexOf('>') + 1, renderedConfig.lastIndexOf('</script>'));
   const parsed = JSON.parse(jsonText);
-  assert.equal(parsed[0].text, post.contentBlocks[0].text);
+  assert.equal(parsed.contentBlocks[0].text, post.contentBlocks[0].text);
 });

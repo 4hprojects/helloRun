@@ -217,7 +217,7 @@ const COMMUNITY_MODERATION = Object.freeze([
 ]);
 
 const COMMUNITY_REPORTING = Object.freeze([
-  { icon: 'flag', title: 'Posts, comments, and replies', text: 'Use the reason-based Report action on eligible content. Choose the closest reason and include only useful context.', href: '/blog', label: 'Visit community stories' },
+  { icon: 'flag', title: 'Posts, comments, and replies', text: 'Use the reason-based Report action on eligible content. Choose the closest reason and include only useful context.', href: '/blog', label: 'Visit HelloRun guides' },
   { icon: 'life-buoy', title: 'Profiles, groups, events, and messages', text: 'Use Contact for concerns without a dedicated report action. Do not send sensitive files unless requested.', href: '/contact', label: 'Contact HelloRun' },
   { icon: 'siren', title: 'Immediate physical danger', text: 'HelloRun is not an emergency or medical service. Contact the appropriate local emergency or health service.', href: '', label: '' }
 ]);

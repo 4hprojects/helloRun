@@ -2,24 +2,34 @@
 <html lang="en">
 <head>
   <%- include('../layouts/head', { title: title || 'Blog Reports - HelloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/admin-blog.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  <main style="max-width: 1100px; margin: 0 auto; padding: 2rem; display: grid; gap: 1rem;">
+  <main class="blog-admin-page">
     <header style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
       <div>
-        <h1 style="margin:0;">Blog Reports</h1>
+        <h1 style="margin:0;">Blog Management</h1>
         <p style="margin:.35rem 0 0;color:#64748b;">Moderate reported blog posts and comments.</p>
       </div>
-      <form method="GET" action="/admin/blog/reports" style="display:flex;gap:.5rem;align-items:center;">
+      <a class="btn btn-secondary" href="/admin/dashboard">Admin Dashboard</a>
+    </header>
+    <%- include('partials/blog-management-nav', { active: 'reports' }) %>
+      <form method="GET" action="/admin/blog/reports" class="blog-admin-filters">
+        <label>Status
         <select name="status">
           <option value="open" <%= selectedStatus === 'open' ? 'selected' : '' %>>Open</option>
           <option value="resolved" <%= selectedStatus === 'resolved' ? 'selected' : '' %>>Resolved</option>
           <option value="dismissed" <%= selectedStatus === 'dismissed' ? 'selected' : '' %>>Dismissed</option>
         </select>
-        <button type="submit">Apply</button>
+        </label>
+        <label>Target<select name="targetType"><option value="">All targets</option><option value="post" <%= selectedTargetType === 'post' ? 'selected' : '' %>>Posts</option><option value="comment" <%= selectedTargetType === 'comment' ? 'selected' : '' %>>Comments</option></select></label>
+        <label>Reason<select name="reason"><option value="">All reasons</option><% reasons.forEach((reason) => { %><option value="<%= reason %>" <%= selectedReason === reason ? 'selected' : '' %>><%= reason %></option><% }) %></select></label>
+        <label>Reported from<input type="date" name="dateFrom" value="<%= dateFrom %>"></label>
+        <label>Reported through<input type="date" name="dateTo" value="<%= dateTo %>"></label>
+        <button class="btn" type="submit">Apply</button>
       </form>
-    </header>
 
     <% if (reports && reports.length) { %>
       <div style="display:grid;gap:.85rem;">
@@ -30,7 +40,7 @@
                 <strong><%= report.targetType === 'post' ? 'Post report' : 'Comment report' %></strong>
                 <p style="margin:.35rem 0 0;color:#64748b;">
                   Reason: <strong><%= report.reason %></strong>
-                  <% if (report.blogId?.slug) { %>| <a href="/blog/<%= report.blogId.slug %>" target="_blank" rel="noopener noreferrer">View content</a><% } %>
+                  <% if (report.blogId?.slug) { %>| <a href="/blog/<%= report.blogId.slug %><%= report.commentId?._id ? `?focus=${report.commentId._id}#comment-${report.commentId._id}` : '' %>" target="_blank" rel="noopener noreferrer">View content</a><% } %>
                 </p>
               </div>
               <span style="text-transform:uppercase;font-size:.8rem;font-weight:700;color:#334155;"><%= report.status %></span>
@@ -54,15 +64,11 @@
             <% if (report.note) { %><p style="margin:.45rem 0 0;"><strong>Note:</strong> <%= report.note %></p><% } %>
             <% if (selectedStatus === 'open') { %>
               <div style="display:flex;gap:.65rem;flex-wrap:wrap;margin-top:.85rem;">
-                <form method="POST" action="/admin/blog/reports/<%= report._id %>/resolve" style="display:flex;gap:.5rem;align-items:center;">
+                <form method="POST" action="/admin/blog/reports/<%= report._id %>/resolve" style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
                   <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-                  <input type="text" name="resolutionNote" placeholder="Resolution note" maxlength="500">
-                  <button type="submit">Resolve</button>
-                </form>
-                <form method="POST" action="/admin/blog/reports/<%= report._id %>/dismiss" style="display:flex;gap:.5rem;align-items:center;">
-                  <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-                  <input type="text" name="resolutionNote" placeholder="Dismiss note" maxlength="500">
-                  <button type="submit">Dismiss</button>
+                  <select name="outcome" required><option value="">Choose outcome</option><option value="remove_target">Remove/archive target</option><option value="retain_target">Retain target</option><option value="escalate">Escalate</option></select>
+                  <input type="text" name="resolutionNote" placeholder="Resolution note (required)" required minlength="10" maxlength="500">
+                  <button class="btn" type="submit">Close report</button>
                 </form>
               </div>
             <% } else if (report.resolutionNote) { %>
@@ -74,6 +80,7 @@
     <% } else { %>
       <div style="border:1px dashed #cbd5e1;border-radius:12px;padding:1.2rem;color:#64748b;">No reports found.</div>
     <% } %>
+    <% if (pagination.totalPages > 1) { const params = new URLSearchParams({status:selectedStatus,targetType:selectedTargetType,reason:selectedReason,dateFrom,dateTo}); %><nav class="blog-admin-pagination"><% if (pagination.page > 1) { params.set('page', pagination.page - 1); %><a class="btn btn-secondary" href="?<%= params %>">Previous</a><% } %><span>Page <%= pagination.page %> of <%= pagination.totalPages %></span><% if (pagination.page < pagination.totalPages) { params.set('page', pagination.page + 1); %><a class="btn btn-secondary" href="?<%= params %>">Next</a><% } %></nav><% } %>
   </main>
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>

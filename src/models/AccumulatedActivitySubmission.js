@@ -85,9 +85,15 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
     },
     runType: {
       type: String,
-      enum: ['run', 'walk', 'hike', 'trail_run'],
+      enum: ['run', 'walk', 'hike', 'trail_run', 'treadmill'],
       default: 'run',
       index: true
+    },
+    trackingAppDevice: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 120
     },
     elevationGain: {
       type: Number,
@@ -185,6 +191,11 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
       maxlength: 80
     },
     certificate: {
+      type: {
+        type: String,
+        enum: ['finisher', 'participation', ''],
+        default: ''
+      },
       url: { type: String, default: '' },
       key: { type: String, default: '' },
       issuedAt: { type: Date, default: null },

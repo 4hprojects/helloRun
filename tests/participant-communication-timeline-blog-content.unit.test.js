@@ -99,7 +99,7 @@ test('participant communication timeline sanitizes sources and passes publicatio
   assert.match(payload.contentHtml, /href="https:\/\/privacy\.gov\.ph\/wp-content\/uploads\/2022\/01\/DPO18-DPA_PCREL\.pdf" rel="noopener noreferrer" target="_blank"/);
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
-  assert.equal(eligibility.healthReviewRequired, true);
+  assert.equal(eligibility.healthReviewRequired, false);
   assert.ok(eligibility.wordCount >= 3200);
   assert.ok(eligibility.semanticUnitCount >= 3);
   assert.equal(eligibility.externalLinkCount, 4);
@@ -120,7 +120,7 @@ test('participant communication timeline is registered and seeded once for Augus
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 38);
+  assert.equal(listArticleSlugs().length, 52);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -151,8 +151,9 @@ test('participant communication timeline supports exact future scheduling and up
   assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.contentEligibility.eligible, true);
-  assert.equal(payload.publicationReview.policyVersion, 'ugc-adsense-v1');
-  assert.equal(payload.publicationReview.originalityConfirmed, true);
+  assert.equal(payload.contentEligibility.healthReviewRequired, false);
+  assert.equal(payload.publicationReview, null);
+  assert.equal(payload.searchIndexingStatus, 'noindex');
   assert.match(packageJson.scripts['blog:update-participant-communication-timeline'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
@@ -192,4 +193,20 @@ test('participant communication timeline rejects unsupported operational claims'
     () => buildArticlePayload(),
     /cover artwork/
   );
+});
+
+test('participant communication timeline links acquisition work to the promotion guide', () => {
+  const href = '/blog/how-to-promote-a-virtual-run';
+  const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
+  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
+  assert.ok(payload.contentHtml.includes(`href="${href}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
+});
+
+test('participant communication timeline links fee planning to the pricing guide', () => {
+  const href = '/blog/virtual-run-registration-fee-pricing';
+  const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
+  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
+  assert.ok(payload.contentHtml.includes(`href="${href}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
 });

@@ -92,6 +92,11 @@ const blogReportSchema = new mongoose.Schema(
       trim: true,
       maxlength: 500,
       default: ''
+    },
+    outcome: {
+      type: String,
+      enum: ['remove_target', 'retain_target', 'escalate', ''],
+      default: ''
     }
   },
   { timestamps: true }

@@ -87,7 +87,8 @@ test('card normalization exposes writer identity and engagement labels', () => {
   assert.equal(card.href, '/blog/my-run');
   assert.equal(card.categoryLabel, 'Race Recap');
   assert.equal(card.author.name, 'Mia Runner');
-  assert.equal(card.author.verified, true);
+  assert.equal(card.author.verified, false);
+  assert.equal(card.author.trustScore, null);
   assert.equal(card.readingTimeLabel, '4 min read');
   assert.equal(card.viewsLabel, '1,200');
 });
@@ -98,20 +99,20 @@ test('editorial display names override account first and last names', () => {
     category: 'Race Tips',
     authorId: {
       _id: 'admin-1',
-      displayName: 'HelloRun Editorial Team',
+      displayName: 'Henson M. Sagorsor',
       firstName: 'HelloRun',
       lastName: 'Admin',
       verifiedAuthor: true
     }
   });
-  assert.equal(card.author.name, 'HelloRun Editorial Team');
-  assert.equal(card.author.verified, true);
+  assert.equal(card.author.name, 'Henson M. Sagorsor');
+  assert.equal(card.author.verified, false);
 });
 
 test('page content and summaries reflect runner searches, topics, and writers', () => {
   assert.match(getBlogPageContent({ q: 'nutrition' }, { currentPage: 1 }).heading, /nutrition/);
   assert.match(getBlogPageContent({ author: 'id', authorName: 'Mia Runner' }, { currentPage: 2 }).documentTitle, /Page 2/);
-  assert.equal(buildBlogResultsSummary({ category: 'Training' }, 2), '2 Training stories');
+  assert.equal(buildBlogResultsSummary({ category: 'Training' }, 2), '2 Training guides');
 });
 
 test('article presentation centralizes audience, actions, and next steps', () => {

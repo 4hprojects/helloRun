@@ -56,6 +56,7 @@ async function createSubmission({
   proof,
   proofNotes,
   runType,
+  trackingAppDevice,
   elevationGain,
   steps,
   ocrData,
@@ -74,6 +75,7 @@ async function createSubmission({
       proof,
       proofNotes,
       runType,
+      trackingAppDevice,
       elevationGain,
       steps,
       ocrData,
@@ -102,6 +104,7 @@ async function createSubmission({
     proofNotes,
     submissionCount: 1,
     runType,
+    trackingAppDevice,
     elevationGain,
     steps,
     ocrData,
@@ -264,6 +267,7 @@ async function resubmitSubmission({
   proof,
   proofNotes,
   runType,
+  trackingAppDevice,
   elevationGain,
   steps,
   ocrData,
@@ -297,6 +301,7 @@ async function resubmitSubmission({
     proofNotes,
     submissionCount: Number(existing.submissionCount || 1) + 1,
     runType,
+    trackingAppDevice,
     elevationGain,
     steps,
     ocrData,
@@ -318,6 +323,7 @@ async function resubmitSubmission({
   existing.source = payload.source;
   existing.stravaActivity = payload.stravaActivity;
   existing.runType = payload.runType;
+  existing.trackingAppDevice = payload.trackingAppDevice;
   existing.elevationGain = payload.elevationGain;
   existing.steps = payload.steps;
   existing.suspiciousFlag = payload.suspiciousFlag;
@@ -860,6 +866,7 @@ async function createPersonalRecordSubmission({
   proof,
   proofNotes,
   runType,
+  trackingAppDevice,
   elevationGain,
   steps,
   ocrData,
@@ -937,6 +944,7 @@ async function createPersonalRecordSubmission({
     proofNotes,
     submissionCount: 1,
     runType,
+    trackingAppDevice,
     elevationGain,
     steps,
     ocrData,
@@ -1058,6 +1066,7 @@ function buildSubmissionPayload(registration, input, context = {}) {
     runDate: safeRunDate,
     runLocation: safeRunLocation,
     runType: safeRunType,
+    trackingAppDevice: String(input.trackingAppDevice || '').trim().slice(0, 120),
     elevationGain: safeElevationGain,
     steps: safeSteps,
     ocrData
@@ -1111,6 +1120,7 @@ function buildSubmissionPayload(registration, input, context = {}) {
     source: sanitizeSubmissionSource(input.source),
     stravaActivity: sanitizeStravaActivity(input.stravaActivity),
     runType: safeRunType,
+    trackingAppDevice: String(input.trackingAppDevice || '').trim().slice(0, 120),
     elevationGain: safeElevationGain,
     steps: safeSteps,
     ocrData: mergedOcrData,
@@ -1184,7 +1194,7 @@ function sanitizeStravaActivity(value) {
 }
 
 function sanitizeRunType(value) {
-  const allowed = ['run', 'walk', 'hike', 'trail_run'];
+  const allowed = ['run', 'walk', 'hike', 'trail_run', 'treadmill'];
   const safe = String(value || '').trim().toLowerCase();
   return allowed.includes(safe) ? safe : 'run';
 }

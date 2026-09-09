@@ -45,6 +45,7 @@ test('foundational virtual-run guide builds a substantive runner-led payload', (
   assert.match(payload.contentText, /OCR may assist.+not perfect/i);
   assert.match(payload.contentText, /does not continuously track the runner's GPS location/i);
   assert.match(payload.contentText, /Virtual participation should not be assumed to replace a certified qualifying performance/i);
+  assert.match(payload.contentHtml, /href="\/blog\/can-you-walk-a-virtual-run"/);
   assert.doesNotMatch(payload.contentHtml, /<h[12]>What is Virtual Run\?/i);
   assert.doesNotMatch(payload.contentHtml, /<em>[^<]+<\/em>\s*\*/i);
   assert.doesNotMatch(payload.contentText, /automatically (?:approves?|verifies?|issues? certificates?)/i);
@@ -71,6 +72,9 @@ test('foundational guide is registered, seeded canonically, and maps its histori
   assert.equal(getCanonicalBlogSlug(LEGACY_SLUG), CANONICAL_SLUG);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
   assert.equal(htmlToText(seededPost.contentHtml), buildArticlePayload({ coverImageUrl: seededPost.coverImageUrl }).contentText);
+  assert.ok(seededPost.links.includes('/blog/can-you-walk-a-virtual-run'));
+  assert.ok(REQUIRED_LINKS.includes('/blog/how-to-run-your-first-10k-virtual-run'));
+  assert.ok(seededPost.links.includes('/blog/how-to-run-your-first-10k-virtual-run'));
 });
 
 test('virtual-run-guide updater alias targets the shared slug-based updater', () => {
@@ -82,4 +86,12 @@ test('virtual-run-guide updater alias targets the shared slug-based updater', ()
   assert.match(packageJson.scripts['blog:update-organizer-guide'], /--slug how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers/);
   assert.match(packageJson.scripts['blog:update-race-comparison'], /--slug virtual-run-vs-traditional-race-which-one-should-you-join/);
   assert.match(packageJson.scripts['blog:update-virtual-run-guide'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+});
+
+test('foundational guide links organizers to the promotion guide', () => {
+  const href = '/blog/how-to-promote-a-virtual-run';
+  const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
+  assert.ok(REQUIRED_LINKS.includes(href));
+  assert.ok(payload.contentHtml.includes(`href="${href}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
 });

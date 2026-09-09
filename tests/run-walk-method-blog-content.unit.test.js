@@ -75,6 +75,7 @@ test('run-walk guide builds a substantive beginner-friendly payload', () => {
   assert.match(payload.contentText, /A pending activity is potential progress, not official progress/i);
   assert.match(payload.contentText, /reviewed in August 2026 using current public guidance/i);
   assert.match(payload.contentText, /These scenarios illustrate decisions, not predicted outcomes/i);
+  assert.match(payload.contentHtml, /href="\/blog\/can-you-walk-a-virtual-run"/);
 
   for (const heading of REQUIRED_HEADINGS) {
     assert.ok(payload.contentHtml.includes(`<h2>${heading}</h2>`), `missing required heading: ${heading}`);
@@ -84,10 +85,20 @@ test('run-walk guide builds a substantive beginner-friendly payload', () => {
   }
 });
 
+test('run-walk guide links readers to the year-end running-goals hub', () => {
+  const href = '/blog/how-to-set-running-goals-for-the-rest-of-the-year';
+  const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
+
+  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
+  assert.ok(payload.contentHtml.includes(`href="${href}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
+});
+
 test('run-walk guide sanitizes sources and passes publication eligibility', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const eligibility = evaluateBlogContentEligibility({
     ...payload,
+    contentRisk: 'health_safety',
     coverImageUrl: COVER_IMAGE_URL
   }, { evaluatedAt: new Date('2026-08-02T00:00:00.000Z') });
 
@@ -120,7 +131,7 @@ test('run-walk guide is registered and seeded once for August 6', () => {
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 38);
+  assert.equal(listArticleSlugs().length, 52);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -131,6 +142,7 @@ test('run-walk guide is registered and seeded once for August 6', () => {
   assert.equal(seededPost.publishedAt, '2026-08-06T11:00:00.000Z');
   assert.equal(seededPost.featured, false);
   assert.equal(seededPost.authorEmail, GUIDE_AUTHOR_EMAIL);
+  assert.ok(seededPost.links.includes('/blog/can-you-walk-a-virtual-run'));
 });
 
 test('run-walk guide supports exact future scheduling and updates', () => {
@@ -151,11 +163,15 @@ test('run-walk guide supports exact future scheduling and updates', () => {
   assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.contentEligibility.eligible, true);
-  assert.equal(payload.publicationReview.policyVersion, 'ugc-adsense-v1');
+  assert.equal(payload.publicationReview, null);
+  assert.equal(payload.searchIndexingStatus, 'noindex');
   assert.match(packageJson.scripts['blog:update-run-walk-method'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
 test('run-walk guide rejects unsafe, universal, and unsupported claims', () => {
+  const href = '/blog/how-to-run-your-first-10k-virtual-run';
+  assert.ok(REQUIRED_LINKS.includes(`href="${href}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const withClaim = (claim) => ({
     ...payload,
@@ -195,4 +211,12 @@ test('run-walk guide rejects unsafe, universal, and unsupported claims', () => {
     () => buildArticlePayload(),
     /cover artwork/
   );
+});
+
+test('run-walk guide keeps planned walking available in the beginner 21K progression', () => {
+  const href = '/blog/21k-half-marathon-for-beginners';
+  const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
+  assert.ok(REQUIRED_LINKS.includes(`href="${href}"`));
+  assert.ok(payload.contentHtml.includes(`href="${href}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
 });

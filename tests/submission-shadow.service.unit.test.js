@@ -130,3 +130,20 @@ test('normalizeMongoSubmissionCertificate returns null when no certificate', () 
 
   assert.equal(normalized, null, 'should return null when certificate is empty');
 });
+
+test('normalizeMongoSubmissionCertificate preserves participation certificate type', () => {
+  const normalized = normalizeMongoSubmissionCertificate({
+    _id: { toString: () => 'mongo_submission_participation' },
+    certificate: {
+      type: 'participation',
+      url: 'https://r2.example.com/participation.pdf',
+      issuedAt: new Date('2026-11-04')
+    }
+  }, {
+    id: 'uuid_submission_participation',
+    runner_user_id: 'uuid_runner_participation',
+    event_id: 'uuid_event_participation'
+  });
+
+  assert.equal(normalized.certificate_type, 'participation');
+});

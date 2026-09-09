@@ -93,6 +93,7 @@ const RAW_CONTENT_HTML = `
 
 <h2>Phase 1: event announcement</h2>
 <p>The announcement helps a person decide whether to inspect the event. It should not pressure them to register before material conditions are available. Include the purpose, intended participant, completion format, headline category or goal, registration dates, activity dates, price or free status, named timezone, and link to complete rules.</p>
+<p>For the acquisition work that leads people to this announcement, use the <a href="/blog/how-to-promote-a-virtual-run">virtual-run promotion guide</a>. It covers positioning, campaign channels, partners, reminders, and registration measurement; this timeline takes over once interested people need accurate event and participant communication.</p>
 <p>Avoid “run anytime, anywhere” when location, route, activity, date, or evidence limits apply. Avoid “everyone gets a medal” when recognition depends on approval, a purchased package, stock, shipping, or another condition. Avoid a countdown that implies scarcity unless capacity and allocation are real and explained.</p>
 <h3>Copyable announcement structure</h3>
 <blockquote>
@@ -199,6 +200,7 @@ const RAW_CONTENT_HTML = `
 <h2>Communicate material changes and incidents</h2>
 <p>A material change affects a participant’s decision, obligation, money, eligibility, evidence, result, safety boundary, privacy, or promised inclusion. It needs more than a silent edit. Date the change, explain what changed and why at an appropriate level, identify who is affected, state the new action or option, and keep the previous version recoverable internally.</p>
 <p>Examples include moving a deadline, changing an accepted activity, altering a category, changing a fee or inclusion, delaying a promised item, discovering an incorrect privacy statement, or correcting a result method. Obtain the required approval before sending and apply contractual, consumer, or refund obligations rather than assuming a notice alone resolves them.</p>
+<p>Use the <a href="/blog/virtual-run-registration-fee-pricing">virtual-run registration fee guide</a> before launch to model costs, pricing windows, required charges, and fulfilment assumptions. This communication timeline then helps keep registered participants informed when payment, inclusion, delivery, or refund information needs a controlled update.</p>
 <h3>Material-change template</h3>
 <blockquote>
 <p><strong>Updated [date/time, timezone]:</strong> [specific fact] changed from [old state] to [new state]. This affects [audience]. The reason is [clear bounded explanation]. Your available next step is [action or option] by [deadline]. The authoritative event page is [link]. Private questions use [support route].</p>
@@ -314,6 +316,8 @@ const REQUIRED_LINKS = Object.freeze([
   'href="/data-usage-policy"',
   'href="/refund-and-cancellation-policy"',
   'href="/blog/how-to-write-clear-virtual-run-rules-participants-can-follow"',
+  'href="/blog/how-to-promote-a-virtual-run"',
+  'href="/blog/virtual-run-registration-fee-pricing"',
   'href="/blog/what-counts-as-valid-run-proof"',
   'href="/blog/how-to-submit-run-proof-correctly-hellorun"',
   'href="/blog/why-a-virtual-run-submission-may-be-rejected"'

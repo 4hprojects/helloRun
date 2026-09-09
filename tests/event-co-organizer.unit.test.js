@@ -69,7 +69,7 @@ test('sensitive event operations use shared event-scoped access', () => {
 test('CNS rollout is exact, dry-run by default, and preserves the runner role', () => {
   const script = read('src/scripts/invite-cns-co-organizer.js');
   assert.match(script, /cns-move-more-challenge-2026/);
-  assert.match(script, /j\.balangen@bsu\.edu\.ph/);
+  assert.match(script, /a\.baniaga@bsu\.edu\.ph/);
   assert.match(script, /process\.argv\.includes\('--apply'\)/);
   assert.match(script, /noActionNeeded/);
   assert.doesNotMatch(script, /role\s*[:=]\s*['"]organiser['"]/);

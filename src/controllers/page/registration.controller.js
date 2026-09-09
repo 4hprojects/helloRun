@@ -143,7 +143,8 @@ exports.getEventRegistrationForm = async (req, res) => {
     const formData = getRegistrationFormData({
       ...profileSnapshot,
       participationMode: defaultParticipationMode,
-      raceDistance: '',
+      raceDistance: allowedRaceDistances.length === 1 ? allowedRaceDistances[0] : '',
+      consentToLeaderboard: false,
       customizedOptionId: customizedRegistrationOptions[0]?.id || '',
       registrationPackageId: defaultRegistrationPackage?.id || '',
       waiverAccepted: false,
@@ -257,7 +258,7 @@ exports.postEventRegistration = async (req, res) => {
       leaderboardDisplayPreference: req.body.leaderboardDisplayPreference,
       consentToLeaderboard: req.body.consentToLeaderboard,
       participationMode: req.body.participationMode,
-      raceDistance: req.body.raceDistance,
+      raceDistance: req.body.raceDistance || (allowedRaceDistances.length === 1 ? allowedRaceDistances[0] : ''),
       customizedOptionId: req.body.customizedOptionId,
       registrationPackageId: req.body.registrationPackageId || defaultRegistrationPackage?.id || '',
       addOnProductIds: req.body.addOnProductIds,
@@ -284,7 +285,8 @@ exports.postEventRegistration = async (req, res) => {
       registrationWindowError,
       {
         requiresEmergencyContact,
-        expectedSignatureName: `${profileSnapshot.firstName} ${profileSnapshot.lastName}`
+        expectedSignatureName: `${profileSnapshot.firstName} ${profileSnapshot.lastName}`,
+        requiredRegistrationFields: event.requiredRegistrationFields
       }
     );
 
@@ -1345,6 +1347,7 @@ function validateRegistrationForm(
 ) {
   const errors = {};
   const requiresEmergencyContact = !!options.requiresEmergencyContact;
+  const requiredRegistrationFields = new Set(Array.isArray(options.requiredRegistrationFields) ? options.requiredRegistrationFields : []);
   const expectedSignatureName = String(options.expectedSignatureName || '').trim();
   const allowedGenderValues = new Set(['', 'male', 'female', 'non_binary', 'prefer_not_to_say']);
   const allowedLeaderboardDisplayValues = new Set(['full_name', 'abbreviated', 'hidden']);
@@ -1372,6 +1375,7 @@ function validateRegistrationForm(
   if (formData.mobile && !/^[\d\s\-()+]{7,25}$/.test(formData.mobile)) {
     errors.mobile = 'Enter a valid mobile number.';
   }
+  if (requiredRegistrationFields.has('mobile') && !formData.mobile) errors.mobile = 'Contact number is required.';
 
   if (formData.country && formData.country.length > 100) {
     errors.country = 'Country must be 100 characters or less.';
@@ -1395,14 +1399,22 @@ function validateRegistrationForm(
   if (formData.department.length > 120) {
     errors.department = 'Department or office must be 120 characters or less.';
   }
+  if (requiredRegistrationFields.has('department') && !formData.department) errors.department = 'Department or office is required.';
   if (formData.position.length > 120) {
     errors.position = 'Position or designation must be 120 characters or less.';
   }
+  if (requiredRegistrationFields.has('position') && !formData.position) errors.position = 'Position or designation is required.';
   if (formData.preferredFitnessApp.length > 80) {
     errors.preferredFitnessApp = 'Preferred fitness app must be 80 characters or less.';
   }
+  if (requiredRegistrationFields.has('preferred_fitness_app') && !formData.preferredFitnessApp) errors.preferredFitnessApp = 'Preferred tracking app or device is required.';
   if (!allowedLeaderboardDisplayValues.has(formData.leaderboardDisplayPreference)) {
     errors.leaderboardDisplayPreference = 'Select a valid leaderboard display preference.';
+  }
+  if (requiredRegistrationFields.has('leaderboard_consent')
+    && formData.leaderboardDisplayPreference !== 'hidden'
+    && !formData.consentToLeaderboard) {
+    errors.consentToLeaderboard = 'Consent is required to display your name on the public leaderboard. Choose “Do not show me” to opt out.';
   }
   if (formData.emergencyContactName && formData.emergencyContactName.length > 120) {
     errors.emergencyContactName = 'Emergency contact name must be 120 characters or less.';

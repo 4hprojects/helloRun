@@ -96,7 +96,7 @@ function normalizeMongoSubmissionCertificate(submission, submissionCoreRow) {
     certificate_key: submission.certificate.key || '',
     issued_at: new Date(submission.certificate.issuedAt),
     issued_by: submission.reviewedBy?.toString() || null,
-    certificate_type: 'finisher',
+    certificate_type: submission.certificate.type === 'participation' ? 'participation' : 'finisher',
     certificate_template_id: submission.certificate.templateId?.toString() || null,
     certificate_number: submission.certificate.certificateNumber || null,
     verification_url: submission.certificate.verificationUrl || null,

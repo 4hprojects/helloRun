@@ -62,6 +62,11 @@
         details.isAccumulatedChallenge &&
         registrationOptionItems.length > 1
       );
+      const hasSingleAccumulatedGoal = Boolean(
+        details.isAccumulatedChallenge &&
+        Array.isArray(details.categoryGoalOptions) &&
+        details.categoryGoalOptions.length === 1
+      );
       const categoryRewardDescriptions = new Set((details.raceCategories || [])
         .map((category) => String(category.rewardsDescription || '').trim())
         .filter(Boolean));
@@ -310,14 +315,14 @@
           <% } else { %>
             <div class="event-challenge-decision-heading">
               <div>
-                <p class="event-section-kicker">Choose your challenge</p>
-                <h2 id="eventGoalsTitle">Choose one virtual goal for September</h2>
-                <p><%= details.challengeSummary || 'Compare the targets below. Every approved activity moves you closer to your selected goal.' %></p>
+                <p class="event-section-kicker"><%= hasSingleAccumulatedGoal ? 'Your challenge' : 'Choose your challenge' %></p>
+                <h2 id="eventGoalsTitle"><%= hasSingleAccumulatedGoal ? (details.categoryGoalOptions[0].name || details.categoryGoalOptions[0].goalLabel || 'Challenge goal') : 'Choose your virtual goal' %></h2>
+                <p><%= details.challengeSummary || (hasSingleAccumulatedGoal ? 'Every approved activity moves you closer to the event goal.' : 'Compare the targets below. Every approved activity moves you closer to your selected goal.') %></p>
               </div>
               <% if (details.primaryCta && !details.primaryCta.disabled) { %>
                 <div class="event-challenge-decision-action">
-                  <a href="<%= details.primaryCta.href %>" class="btn btn-primary">Choose a goal and register free</a>
-                  <small>You’ll select your category during registration.</small>
+                  <a href="<%= details.primaryCta.href %>" class="btn btn-primary"><%= hasSingleAccumulatedGoal ? 'Register for this challenge' : 'Choose a goal and register' %></a>
+                  <small><%= hasSingleAccumulatedGoal ? 'Every participant joins the same challenge.' : 'You’ll select your category during registration.' %></small>
                 </div>
               <% } %>
             </div>
@@ -406,7 +411,7 @@
               <span class="event-section-icon"><i data-lucide="route"></i></span>
               <div>
                 <h2>How This Event Works</h2>
-                <p><%= details.isAccumulatedChallenge ? 'Complete eligible virtual activities anywhere during the event window. Approved submissions build your selected goal or goals.' : 'Register, complete the event, then submit your result for review.' %></p>
+                <p><%= details.isAccumulatedChallenge ? (hasSingleAccumulatedGoal ? 'Complete eligible virtual activities anywhere during the event window. Approved submissions build your official event total.' : 'Complete eligible virtual activities anywhere during the event window. Approved submissions build your selected goal or goals.') : 'Register, complete the event, then submit your result for review.' %></p>
               </div>
             </div>
 
@@ -414,7 +419,7 @@
               <article>
                 <span>1</span>
                 <h3>Register</h3>
-                <p><%= details.isAccumulatedChallenge ? 'Choose one goal and confirm your participant profile.' : 'Choose your event option and confirm your participant profile.' %></p>
+                <p><%= details.isAccumulatedChallenge ? (hasSingleAccumulatedGoal ? 'Confirm your participant details and join the event goal.' : 'Choose one goal and confirm your participant profile.') : 'Choose your event option and confirm your participant profile.' %></p>
               </article>
               <article>
                 <span>2</span>
@@ -455,8 +460,8 @@
               <div><dt>What becomes official</dt><dd>Only your own approved, accurate, non-duplicate activities count toward your goal.</dd></div>
               <div><dt>Leaderboard privacy</dt><dd><%= details.isAccumulatedChallenge ? 'Choose during registration to show your full name, an abbreviated name, or stay off the public leaderboard.' : (details.virtualRules?.leaderboardMode || 'Not available') %></dd></div>
               <% if (details.slug === 'cns-move-more-challenge-2026') { %>
-                <div><dt>Beginner-friendly apps</dt><dd>Use Apple Health on iPhone, Google Fit on Android, or Samsung Health on a Samsung phone. Strava or MapMyRun works for distance-only goals. For a step or combined goal, use a tracker screen that visibly includes steps; a Strava import alone is not enough.</dd></div>
-                <div><dt>A good screenshot shows</dt><dd>The activity date and distance in kilometers for a 25K or 50K goal, steps for the 120,000-step goal, or both for a combined goal. Do not crop out the date or totals. Upload an original, readable JPG, PNG, or WebP image up to 5 MB.</dd></div>
+                <div><dt>Tracking apps and devices</dt><dd>Use Strava, Garmin, or another sports tracking app or device capable of recording distance and elevation.</dd></div>
+                <div><dt>A good screenshot shows</dt><dd>The activity date, distance, app or device, and elevation gain when available. Upload an original, readable JPG, PNG, or WebP image up to 5 MB.</dd></div>
               <% } %>
             </dl>
           </section>
@@ -662,7 +667,7 @@
                 <span class="event-section-icon"><i data-lucide="file-text"></i></span>
                 <span>
                   <strong><%= details.isAccumulatedChallenge ? 'Complete challenge guide' : 'Additional organizer details' %></strong>
-                  <small><%= details.isAccumulatedChallenge ? 'Read pacing examples, supported apps, submission flexibility, and honor-system guidance.' : 'Read the full event information, extended instructions, and community notes.' %></small>
+                  <small><%= details.isAccumulatedChallenge ? 'Read the activity rules, supported trackers, screenshot requirements, certificates, and awarding details.' : 'Read the full event information, extended instructions, and community notes.' %></small>
                 </span>
               </summary>
               <div class="event-authoritative-note" role="note">
@@ -707,7 +712,7 @@
               <div class="event-gallery-grid<%= details.galleryImageUrls.length === 1 ? ' event-gallery-grid-single' : '' %>">
                 <% details.galleryImageUrls.forEach((galleryUrl, galleryIndex) => { %>
                   <% const galleryAlt = details.slug === 'cns-move-more-challenge-2026' && /cns-move-more-beginner-guide/i.test(galleryUrl)
-                    ? 'CNS Move More beginner guide to activity-tracking apps and valid screenshots'
+                    ? 'CNS Wellness In Motion guide to activity-tracking apps and valid screenshots'
                     : `${details.title} gallery image ${galleryIndex + 1}`; %>
                   <button
                     type="button"
@@ -726,11 +731,11 @@
           <% if (details.isAccumulatedChallenge && !runnerState && !isPreviewMode && details.primaryCta && !details.primaryCta.disabled) { %>
             <section class="event-challenge-closing-cta" aria-labelledby="eventChallengeClosingTitle">
               <div>
-                <p class="event-section-kicker">Ready to move more this September?</p>
-                <h2 id="eventChallengeClosingTitle">Choose your goal and register free</h2>
-                <p>Select one category during registration. Your approved activities during the event window will count toward that goal.</p>
+                <p class="event-section-kicker"><%= details.slug === 'cns-move-more-challenge-2026' ? 'Ready for Wellness In Motion?' : 'Ready to get started?' %></p>
+                <h2 id="eventChallengeClosingTitle"><%= details.slug === 'cns-move-more-challenge-2026' ? 'Join the 50 km challenge' : (hasSingleAccumulatedGoal ? 'Join this challenge' : 'Choose your challenge goal') %></h2>
+                <p><%= details.slug === 'cns-move-more-challenge-2026' ? 'Every approved walk, run, or hike during the activity window adds to your 50 km goal.' : 'Register, complete eligible activities during the event window, and submit proof for approval.' %></p>
               </div>
-              <a href="<%= details.primaryCta.href %>" class="btn btn-primary">Choose a goal and register free</a>
+              <a href="<%= details.primaryCta.href %>" class="btn btn-primary"><%= details.primaryCta.label || 'Register' %></a>
             </section>
           <% } %>
 

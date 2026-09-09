@@ -16,7 +16,20 @@ function eligibleBlogRecord(fields, label, actorId) {
   const words = Array.from({ length: 510 }, (_, index) => `${label.toLowerCase().replace(/\s+/g, '')}${index}`);
   const contentHtml = [0, 170, 340].map((start) => `<p>${words.slice(start, start + 170).join(' ')}</p>`).join('');
   const record = { ...fields, contentHtml, contentText: words.join(' '), status: 'published', isDeleted: false };
-  return { ...record, ...buildTrustedEditorialReview(record, actorId, new Date()) };
+  const reviewed = { ...record, ...buildTrustedEditorialReview(record, actorId, new Date()) };
+  return {
+    ...reviewed,
+    contentRisk: 'general',
+    searchIndexingStatus: 'index',
+    searchIndexingReason: 'first_party_value',
+    indexingReview: {
+      sourceHash: reviewed.contentEligibility.sourceHash,
+      valueBasis: 'first_party_platform',
+      evidenceNote: 'Test fixture documents unique first-party platform guidance for search discovery.',
+      reviewedBy: actorId,
+      reviewedAt: new Date()
+    }
+  };
 }
 
 const ROOT = path.resolve(__dirname, '..');

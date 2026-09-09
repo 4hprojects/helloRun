@@ -29,6 +29,7 @@ const {
   canOrganizerReviewPaymentProof,
   paymentReviewActionLimiter,
   submissionReviewActionLimiter,
+  registrantExportLimiter,
   directMessageLimiter,
   PAYMENT_PROOF_REVIEW_PAGE_SIZE,
   RUN_PROOF_REVIEW_PAGE_SIZE,
@@ -54,8 +55,98 @@ const {
   getRequestUserAgent,
   escapeRegex,
   isFullAdminTier,
+  csvEscape,
   REVIEW_REASON_LABELS
 } = require('./_shared');
+
+router.get('/events/:id/submissions/export', requireAuth, registrantExportLimiter, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('role organizerStatus');
+    if (!user || !canAccessRegistrantReview(user)) return res.status(403).send('Access denied.');
+    const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
+    if (!event) return res.status(404).send('Event not found.');
+    const activities = await AccumulatedActivitySubmission.find({ eventId: event._id })
+      .sort({ runDate: 1, submittedAt: 1 })
+      .populate('registrationId', 'confirmationCode participant')
+      .lean();
+    const headers = ['Confirmation Code', 'Participant', 'Department', 'Activity Date', 'Activity Type', 'Distance (km)', 'Elevation Gain (m)', 'Tracking App or Device', 'Status', 'Submitted At', 'Reviewed At'];
+    const rows = activities.map((activity) => {
+      const registration = activity.registrationId || {};
+      const participant = registration.participant || {};
+      return [registration.confirmationCode || '', [participant.firstName, participant.lastName].filter(Boolean).join(' '), participant.department || '', activity.runDate?.toISOString?.() || '', activity.runType || '', activity.distanceKm ?? '', activity.elevationGain ?? '', activity.trackingAppDevice || participant.preferredFitnessApp || '', activity.status || '', activity.submittedAt?.toISOString?.() || '', activity.reviewedAt?.toISOString?.() || ''];
+    });
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: user._id,
+      action: 'event.submissions_exported',
+      targetType: 'event',
+      targetId: String(event._id),
+      notes: `Exported ${rows.length} accumulated activity submissions as CSV.`,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req)
+    });
+    return sendEventCsv(res, event.slug, 'submissions', headers, rows);
+  } catch (error) {
+    logger.error('Error exporting event submissions:', error);
+    return res.status(500).send('Unable to export submissions.');
+  }
+});
+
+router.get('/events/:id/participant-totals/export', requireAuth, registrantExportLimiter, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('role organizerStatus');
+    if (!user || !canAccessRegistrantReview(user)) return res.status(403).send('Access denied.');
+    const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
+    if (!event) return res.status(404).send('Event not found.');
+    const registrations = await Registration.find({ eventId: event._id }).sort({ registeredAt: 1 }).lean();
+    const totals = await AccumulatedActivitySubmission.aggregate([
+      { $match: { eventId: event._id } },
+      { $group: {
+        _id: '$registrationId',
+        approvedDistanceKm: { $sum: { $cond: [{ $eq: ['$status', 'approved'] }, { $ifNull: ['$distanceKm', 0] }, 0] } },
+        approvedElevationGainM: { $sum: { $cond: [{ $eq: ['$status', 'approved'] }, { $ifNull: ['$elevationGain', 0] }, 0] } },
+        approvedActivityCount: { $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] } },
+        pendingActivityCount: { $sum: { $cond: [{ $eq: ['$status', 'submitted'] }, 1, 0] } },
+        clarificationActivityCount: { $sum: { $cond: [{ $eq: ['$status', 'needs_clarification'] }, 1, 0] } },
+        rejectedActivityCount: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } },
+        certificateTypes: { $addToSet: '$certificate.type' }
+      } }
+    ]);
+    const byRegistration = new Map(totals.map((row) => [String(row._id), row]));
+    const headers = ['Confirmation Code', 'Participant', 'Email', 'Department', 'Position', 'Tracking App or Device', 'Approved Distance (km)', 'Approved Elevation Gain (m)', 'Approved Activities', 'Pending Activities', 'Needs Clarification', 'Rejected Activities', 'Status', 'Certificate Type'];
+    const rows = registrations.map((registration) => {
+      const participant = registration.participant || {};
+      const total = byRegistration.get(String(registration._id)) || {};
+      const distance = Number(total.approvedDistanceKm || 0);
+      const certificateType = (total.certificateTypes || []).find((value) => value === 'finisher' || value === 'participation') || (distance >= Number(event.targetDistanceKm || 50) ? 'finisher' : (Number(total.approvedActivityCount || 0) > 0 && event.participationCertificateEnabled ? 'participation' : ''));
+      const approvedCount = Number(total.approvedActivityCount || 0);
+      const participantStatus = distance >= Number(event.targetDistanceKm || 50)
+        ? 'Finisher'
+        : approvedCount > 0 ? 'Participant' : 'No approved activities';
+      return [registration.confirmationCode || '', [participant.firstName, participant.lastName].filter(Boolean).join(' '), participant.email || '', participant.department || '', participant.position || '', participant.preferredFitnessApp || '', distance.toFixed(2), Number(total.approvedElevationGainM || 0).toFixed(0), approvedCount, Number(total.pendingActivityCount || 0), Number(total.clarificationActivityCount || 0), Number(total.rejectedActivityCount || 0), participantStatus, certificateType];
+    });
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: user._id,
+      action: 'event.participant_totals_exported',
+      targetType: 'event',
+      targetId: String(event._id),
+      notes: `Exported ${rows.length} consolidated participant totals as CSV.`,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req)
+    });
+    return sendEventCsv(res, event.slug, 'participant-totals', headers, rows);
+  } catch (error) {
+    logger.error('Error exporting event participant totals:', error);
+    return res.status(500).send('Unable to export participant totals.');
+  }
+});
+
+function sendEventCsv(res, slug, suffix, headers, rows) {
+  const csv = [headers, ...rows].map((row) => row.map(csvEscape).join(',')).join('\n');
+  const safeSlug = String(slug || 'event').replace(/[^a-zA-Z0-9-_]/g, '');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${safeSlug}-${suffix}-${new Date().toISOString().slice(0, 10)}.csv"`);
+  return res.status(200).send(csv);
+}
 
 /* ==========================================
    GET: All Submissions Hub

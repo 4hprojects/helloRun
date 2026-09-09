@@ -88,7 +88,7 @@ test('submission-rejection guide is registered, canonical, and seeded once with 
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 38);
+  assert.equal(listArticleSlugs().length, 52);
   assert.equal(getCanonicalBlogSlug(CANONICAL_SLUG), '');
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
@@ -118,7 +118,9 @@ test('submission-rejection guide supports eligible isolated creation and ongoing
   assert.equal(payload.views, 0);
   assert.equal(payload.likesCount, 0);
   assert.equal(payload.commentsCount, 0);
-  assert.equal(isCurrentEligibleBlog(payload), true);
+  assert.equal(isCurrentEligibleBlog(payload), false);
+  assert.equal(payload.publicationReview, null);
+  assert.equal(payload.searchIndexingStatus, 'noindex');
   assert.match(packageJson.scripts['blog:create-adsense'], /create-adsense-blog\.js/);
   assert.match(packageJson.scripts['blog:update-submission-rejection'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });

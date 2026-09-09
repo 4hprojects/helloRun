@@ -112,8 +112,8 @@ test('links allow internal and HTTPS sources while rejecting unsafe destinations
   }
 });
 
-test('health content requires all conditional confirmations and flagged posts require an override', () => {
-  const healthPost = payloadWithWords(500, 3, { category: 'Nutrition' });
+test('explicit health-risk content requires all conditional confirmations and flagged posts require an override', () => {
+  const healthPost = payloadWithWords(500, 3, { category: 'Nutrition', contentRisk: 'health_safety' });
   assert.equal(requiresHealthReview(healthPost), true);
   assert.throws(() => buildPublicationReview({
     reviewData: healthPost,
@@ -165,7 +165,7 @@ test('backfill and presentation layers are fail-closed by default', () => {
   const adminReview = read('src/views/admin/blog-review.ejs');
   const scheduledPublisher = read('src/scripts/publish-scheduled-blogs.js');
   assert.match(canonical, /contentEligibility\.eligible/);
-  assert.match(listing, /totalMatchingPosts < 3/);
+  assert.match(listing, /isThinFilteredListing/);
   assert.match(publicController, /X-Robots-Tag', 'noindex, follow'/);
   assert.match(publicController, /disableAdLocals\(res\)/);
   assert.match(authorRoutes, /X-Robots-Tag', 'noindex, nofollow'/);
