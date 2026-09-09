@@ -13,7 +13,7 @@ const {
   EVENT_DETAILS_MARKDOWN,
   buildCnsMoveMoreChallengeEventPayload
 } = require('../src/content/events/cns-move-more-challenge-2026');
-const { assertExpectedCounts, comparableEventValue, isPostMigration, EARLY_REVIEW_NOTE } = require('../src/scripts/update-cns-move-more-content');
+const { selectEventUpdate, assertExpectedCounts, comparableEventValue, isPostMigration, EARLY_REVIEW_NOTE } = require('../src/scripts/update-cns-move-more-content');
 
 test('CNS source follows the official dates and one distance-only goal', () => {
   assert.equal(DATES.registrationOpenAt.toISOString(), '2026-09-08T16:00:00.000Z');
@@ -40,6 +40,7 @@ test('CNS payload is free, screenshot-backed, and distance-only', () => {
   assert.deepEqual(payload.proofTypesAllowed, ['photo']);
   assert.equal(payload.requireActivityScreenshot, true);
   assert.equal(payload.requireTrackingAppDevice, true);
+  assert.equal(selectEventUpdate(payload).posterImageUrl, '/images/events/cns-move-more-challenge-2026/cns-move-more-social.webp');
   assert.equal(payload.suppressDailyGuidance, true);
   assert.equal(payload.participationCertificateEnabled, true);
   assert.equal(payload.noActivityCertificateEnabled, false);

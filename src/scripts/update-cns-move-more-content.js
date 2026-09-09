@@ -31,7 +31,7 @@ const LEGACY_CERTIFICATE_BODY = 'This certifies that {{runnerName}} completed th
 const OFFICIAL_FINISHER_CERTIFICATE_BODY = 'Completed the {{goalDistance}} goal at {{eventTitle}} with {{verifiedDistance}} verified.';
 
 const EVENT_UPDATE_FIELDS = [
-  'title', 'shortTitle', 'organiserName', 'description', 'eventDetailsMarkdown', 'status', 'eventType', 'eventTypesAllowed',
+  'title', 'shortTitle', 'organiserName', 'description', 'eventDetailsMarkdown', 'posterImageUrl', 'status', 'eventType', 'eventTypesAllowed',
   'raceDistances', 'raceCategories', 'registrationOpenAt', 'registrationCloseAt', 'publicListingAvailableAt', 'eventStartAt',
   'eventEndAt', 'virtualWindow', 'venueName', 'awardingAt', 'awardingVenue', 'proofTypesAllowed', 'requireActivityScreenshot',
   'requireTrackingAppDevice', 'suppressDailyGuidance', 'virtualCompletionMode', 'challengeMetrics', 'primaryChallengeMetric', 'targetDistanceKm', 'targetSteps',
