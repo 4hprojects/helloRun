@@ -72,7 +72,7 @@ const RAW_CONTENT_HTML = `
 
 <h2>Use easy effort instead of a universal training pace</h2>
 <p>Most activity in this completion framework should feel controlled. CDC's talk test describes moderate activity as an effort where a person can generally talk but not sing, while vigorous activity permits only a few words before pausing for breath. Individual responses vary, and the talk test is not a diagnostic tool.</p>
-<p>For an intended easy run or run-walk, comfortable phrases or sentences are often more useful than defending a pace number. Slow down, lengthen a walk, choose a flatter route, or shorten the session when breathing, attention, or conditions say the effort is no longer easy.</p>
+<p>For an intended easy run or run-walk, <a href="/blog/how-to-breathe-while-running">comfortable phrases or sentences</a> are often more useful than defending a pace number. Slow down, lengthen a walk, choose a flatter route, or shorten the session when breathing, attention, or conditions say the effort is no longer easy.</p>
 <p>Heat, humidity, hills, wind, surface, congestion, sleep, stress, illness, and accumulated fatigue can change pace at the same effort. The <a href="/blog/beginners-guide-to-running-pace">beginner running pace guide</a> explains pace, splits, moving time, elapsed time, and why another runner's easy pace cannot define yours.</p>
 
 <h2>Easy running and run-walk options</h2>
@@ -207,7 +207,8 @@ const REQUIRED_LINKS = Object.freeze([
   'href="/blog/returning-to-running-after-a-break-gradual-restart-plan"',
   'href="/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back"',
   'href="/blog/beginners-guide-to-running-pace"',
-  'href="/blog/how-to-choose-a-safe-route-for-your-virtual-run"'
+  'href="/blog/how-to-choose-a-safe-route-for-your-virtual-run"',
+  'href="/blog/how-to-breathe-while-running"'
 ]);
 
 function buildArticlePayload({ coverImageUrl } = {}) {

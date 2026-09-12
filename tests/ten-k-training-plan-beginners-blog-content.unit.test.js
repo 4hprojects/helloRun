@@ -86,12 +86,16 @@ test('beginner 10K guide builds a substantive flexible progression payload', () 
 test('beginner 10K plan excludes links to unpublished September articles', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const unpublishedHrefs = [
-    '/blog/how-to-breathe-while-running',
     '/blog/can-you-walk-a-virtual-run',
     '/blog/how-to-run-your-first-10k-virtual-run',
     '/blog/21k-half-marathon-for-beginners',
     '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
   ];
+  const publishedHref = '/blog/how-to-breathe-while-running';
+
+  assert.ok(REQUIRED_LINKS.some((link) => link.includes(publishedHref)));
+  assert.ok(payload.contentHtml.includes(`href="${publishedHref}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(publishedHref));
 
   for (const href of unpublishedHrefs) {
     assert.equal(REQUIRED_LINKS.some((link) => link.includes(href)), false);

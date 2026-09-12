@@ -1294,7 +1294,8 @@ const POSTS = [
       '/blog/returning-to-running-after-a-break-gradual-restart-plan',
       '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
       '/blog/beginners-guide-to-running-pace',
-      '/blog/how-to-choose-a-safe-route-for-your-virtual-run'
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
+      '/blog/how-to-breathe-while-running'
     ]
   },
   {
@@ -1315,8 +1316,7 @@ const POSTS = [
       '/blog/beginners-guide-to-running-pace',
       '/blog/how-to-run-safely-during-hot-and-humid-weather',
       '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
-      '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
-      '/blog/running-cadence-explained'
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run'
     ]
   },
   {
