@@ -6,7 +6,7 @@ const { validateAdsenseContentLinks } = require('../src/scripts/validate-adsense
 
 test('every registered article link resolves to a route, redirect, or registered article', () => {
   const result = validateAdsenseContentLinks();
-  assert.equal(result.articleCount, 52);
+  assert.equal(result.articleCount, 53);
   assert.ok(result.linkCount > 0);
   assert.deepEqual(result.failures, []);
 });

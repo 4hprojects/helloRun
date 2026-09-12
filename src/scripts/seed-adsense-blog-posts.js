@@ -215,6 +215,10 @@ const {
   ARTICLE: RUNNING_GOALS_REST_OF_YEAR_ARTICLE,
   buildArticlePayload: buildRunningGoalsRestOfYearPayload
 } = require('../content/running-goals-rest-of-year');
+const {
+  ARTICLE: LONG_RUN_FOR_BEGINNERS_ARTICLE,
+  buildArticlePayload: buildLongRunForBeginnersPayload
+} = require('../content/long-run-for-beginners');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -323,6 +327,8 @@ const TWENTY_ONE_K_HALF_MARATHON_BEGINNERS_COVER_IMAGE_URL = '/images/blog/cover
 const TWENTY_ONE_K_HALF_MARATHON_BEGINNERS_PAYLOAD = buildTwentyOneKHalfMarathonBeginnersPayload({ coverImageUrl: TWENTY_ONE_K_HALF_MARATHON_BEGINNERS_COVER_IMAGE_URL });
 const RUNNING_GOALS_REST_OF_YEAR_COVER_IMAGE_URL = '/images/blog/covers/how-to-set-running-goals-for-the-rest-of-the-year.webp';
 const RUNNING_GOALS_REST_OF_YEAR_PAYLOAD = buildRunningGoalsRestOfYearPayload({ coverImageUrl: RUNNING_GOALS_REST_OF_YEAR_COVER_IMAGE_URL });
+const LONG_RUN_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/what-is-a-long-run-for-beginners.webp';
+const LONG_RUN_FOR_BEGINNERS_PAYLOAD = buildLongRunForBeginnersPayload({ coverImageUrl: LONG_RUN_FOR_BEGINNERS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1550,6 +1556,29 @@ const POSTS = [
       '/blog/how-long-to-run-5k-10k-21k',
       '/blog/how-to-run-your-first-10k-virtual-run',
       '/blog/21k-half-marathon-for-beginners'
+    ]
+  },
+  {
+    ...LONG_RUN_FOR_BEGINNERS_ARTICLE,
+    contentHtml: LONG_RUN_FOR_BEGINNERS_PAYLOAD.contentHtml,
+    coverImageUrl: LONG_RUN_FOR_BEGINNERS_COVER_IMAGE_URL,
+    coverImageAlt: LONG_RUN_FOR_BEGINNERS_ARTICLE.coverImageAlt,
+    ogImageUrl: LONG_RUN_FOR_BEGINNERS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-10-01T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/blog/10k-training-plan-for-beginners',
+      '/blog/21k-half-marathon-for-beginners',
+      '/blog/running-cadence-explained',
+      '/blog/how-long-to-run-5k-10k-21k',
+      '/blog/run-walk-method-beginner-friendly-way-build-endurance',
+      '/blog/how-to-build-a-weekly-running-schedule-around-work-or-school',
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
+      '/blog/beginners-guide-to-running-pace',
+      '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back'
     ]
   }
 ];

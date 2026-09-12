@@ -100,9 +100,9 @@ test('health and safety indexing requires publicly displayable qualified reviewe
   assert.equal(decision.indexingReview.expertReviewer.name, 'Qualified Reviewer');
 });
 
-test('initial migration manifest contains exactly the approved 20 indexed and 32 noindex guides', () => {
+test('initial migration manifest contains exactly the approved 20 indexed and 33 noindex guides', () => {
   assert.equal(INDEX_CANDIDATE_SLUGS.length, 20);
-  assert.equal(NOINDEX_SLUGS.length, 32);
-  assert.equal(new Set([...INDEX_CANDIDATE_SLUGS, ...NOINDEX_SLUGS]).size, 52);
+  assert.equal(NOINDEX_SLUGS.length, 33);
+  assert.equal(new Set([...INDEX_CANDIDATE_SLUGS, ...NOINDEX_SLUGS]).size, 53);
   assert.ok(HEALTH_SAFETY_SLUGS.every((slug) => NOINDEX_SLUGS.includes(slug)));
 });

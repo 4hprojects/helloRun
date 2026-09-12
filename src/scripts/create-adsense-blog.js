@@ -54,7 +54,7 @@ function parseArguments(argv = process.argv.slice(2)) {
 
 function validateCoverImageUrl(coverImageUrl) {
   const value = String(coverImageUrl || '').trim();
-  if (/^https:\/\/cdn\.hellorun\.online\/blog\/covers\/[a-z0-9-]+\.webp$/i.test(value)) return value;
+  if (/^https:\/\/cdn\.hellorun\.online\/blog\/covers\/(?:[a-z0-9-]+\/)*[a-z0-9_-]+\.(?:webp|png)$/i.test(value)) return value;
   if (!/^\/images\/blog\/covers\/[a-z0-9-]+\.webp$/.test(value)) {
     throw new Error('Cover must be a HelloRun CDN asset or a safe repository-local /images/blog/covers/*.webp asset.');
   }

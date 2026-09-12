@@ -55,7 +55,8 @@ const NOINDEX_SLUGS = Object.freeze([
   'how-to-promote-a-virtual-run',
   'virtual-run-registration-fee-pricing',
   '21k-half-marathon-for-beginners',
-  'how-to-set-running-goals-for-the-rest-of-the-year'
+  'how-to-set-running-goals-for-the-rest-of-the-year',
+  'what-is-a-long-run-for-beginners'
 ]);
 
 const HEALTH_SAFETY_SLUGS = Object.freeze(NOINDEX_SLUGS.filter((slug) => ![
