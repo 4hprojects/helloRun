@@ -32,7 +32,7 @@ const RAW_CONTENT_HTML = `
 <h2>Can you walk a virtual run?</h2>
 <p>A virtual event separates participation from one fixed start line, but it does not erase eligibility rules. Some organizers intentionally welcome walking. Others allow run-walk activity but require a single session. Some challenges accept walking only as one activity type within an accumulated target. A race-oriented event may specify running or set requirements that a walk does not meet.</p>
 <p>Walking can be meaningful physical activity. The World Health Organization includes walking among common ways to be active, and public-health recommendations describe moderate and vigorous activity at a population level. That health value is separate from event eligibility. A beneficial walk does not automatically count toward every medal, certificate, leaderboard, or challenge.</p>
-<p>Use the event page as the primary source. Promotional social posts, a friend's previous experience, an app badge, or the general meaning of “virtual run” cannot replace the current published rules.</p>
+<p>Use the event page as the primary source. Social posts, a friend's experience, an app badge, or the general meaning of “virtual run” cannot replace the published rules.</p>
 
 <h2>The event rules decide what counts</h2>
 <p>Look for explicit answers to these questions:</p>
@@ -104,7 +104,6 @@ const RAW_CONTENT_HTML = `
 <p>Ten kilometres means more time on feet and more exposure to heat, humidity, friction, hydration needs, changing weather, and route conditions. A person who can comfortably walk 5K is not automatically prepared to double the distance on the next outing.</p>
 <p>Use shorter walks to understand comfort, recovery, footwear, carrying needs, route exits, and how long the distance takes under comparable conditions. Progress one variable at a time where practical. A run-walk 10K and a walking 10K may create different demands, yet neither should be improvised from an internet finish-time target.</p>
 <p>The <a href="/blog/10k-training-plan-for-beginners">beginner 10K plan</a> is designed around gradual preparation and includes alternatives, but it does not override an event's accepted activity types. If your goal is walking-only, adapt training with appropriate professional guidance rather than copying every running session.</p>
-<p>When walking or run-walk is permitted and ten kilometres is a realistic prepared next step, the <a href="/blog/how-to-run-your-first-10k-virtual-run">first virtual 10K guide</a> combines that strategy with rules, route, tracking, pacing, proof, and recovery decisions.</p>
 <p>A 10K category should not be chosen only because it offers a different medal or looks more impressive. Select the distance that fits current capacity, preparation time, route, support, and event window.</p>
 
 <h2>Choosing a realistic event category</h2>
@@ -184,7 +183,7 @@ const RAW_CONTENT_HTML = `
 <p>No. It records an activity label. The selected event's rules and review determine whether that walk is eligible.</p>
 
 <h2>Method and limitations</h2>
-<p>This guide was reviewed in August 2026 against current HelloRun event configuration, runner submission, supported Strava-type mapping, accumulated-activity validation, FAQ, approval, and progress behavior. Health context was checked against current WHO, CDC, and NHS public guidance.</p>
+<p>This guide was reviewed in September 2026 against current HelloRun event configuration, runner submission, supported Strava-type mapping, accumulated-activity validation, FAQ, approval, and progress behavior. Health context was checked against current WHO, CDC, and NHS public guidance.</p>
 <p>It does not describe a promise that every current or future HelloRun event accepts walking. Event organizers choose their formats and rules. Interfaces and settings can change, so the live event page and submission flow remain authoritative.</p>
 <p>The health sources describe populations and general activity principles, not personal training prescriptions, diagnosis, treatment, or event clearance. Examples involving 5K and 10K distances are planning considerations rather than universal schedules or finish-time predictions.</p>
 
@@ -231,8 +230,7 @@ const REQUIRED_LINKS = Object.freeze([
   'href="/blog/how-to-submit-run-proof-correctly-hellorun"',
   'href="/blog/how-to-choose-a-safe-route-for-your-virtual-run"',
   'href="/blog/10k-training-plan-for-beginners"',
-  'href="/blog/30-day-running-challenge-for-beginners"',
-  'href="/blog/how-to-run-your-first-10k-virtual-run"'
+  'href="/blog/30-day-running-challenge-for-beginners"'
 ]);
 
 function buildArticlePayload({ coverImageUrl } = {}) {
@@ -265,7 +263,7 @@ function validateArticlePayload(payload) {
   if (!payload.contentHtml || payload.contentHtml.length > 50000) errors.push('contentHtml must be 1-50000 characters');
   if (!payload.contentText || payload.contentText.length > 50000) errors.push('contentText must be 1-50000 characters');
   if (payload.contentRaw !== payload.contentText) errors.push('contentRaw and contentText must match');
-  if (wordCount < 3000) errors.push('article must contain at least 3000 substantive words');
+  if (wordCount < 2500 || wordCount > 3000) errors.push('article must contain 2500-3000 substantive words');
   if (!Array.isArray(payload.tags) || payload.tags.length !== 8) errors.push('article must contain exactly 8 tags');
   if ((payload.tags || []).some((tag) => !tag || tag.length > 30)) errors.push('tags must be 1-30 characters');
   if (!payload.seoTitle || payload.seoTitle.length > 160) errors.push('seoTitle must be 1-160 characters');
@@ -283,7 +281,7 @@ function validateArticlePayload(payload) {
   if (/pending (?:evidence|activity|distance) (?:counts|is counted) (?:as )?(?:official|approved)/i.test(text)) errors.push('article must not count pending evidence officially');
   if (!/Yes, you can walk some virtual runs—but not all of them/i.test(text)) errors.push('article must answer intent immediately');
   if (!/Check the activity types and rules published on the specific event page/i.test(text)) errors.push('article must state the platform direction');
-  if (!/reviewed in August 2026/i.test(text)) errors.push('article must disclose methodology and date');
+  if (!/reviewed in September 2026/i.test(text)) errors.push('article must disclose methodology and date');
 
   for (const heading of REQUIRED_HEADINGS) {
     if (!payload.contentHtml.includes(`<h2>${heading}</h2>`)) errors.push(`missing required heading: ${heading}`);

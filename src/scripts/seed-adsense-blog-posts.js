@@ -1422,8 +1422,7 @@ const POSTS = [
       '/blog/how-to-submit-run-proof-correctly-hellorun',
       '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
       '/blog/10k-training-plan-for-beginners',
-      '/blog/30-day-running-challenge-for-beginners',
-      '/blog/how-to-run-your-first-10k-virtual-run'
+      '/blog/30-day-running-challenge-for-beginners'
     ]
   },
   {
