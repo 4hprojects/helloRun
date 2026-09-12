@@ -9,9 +9,14 @@ const { INDEX_CANDIDATE_SLUGS, NOINDEX_SLUGS, HEALTH_SAFETY_SLUGS } = require('.
 const { evaluateBlogContentEligibility, buildTrustedEditorialReview } = require('../src/utils/blog-content-eligibility');
 const {
   buildIndexingDecision,
+  hasCompleteExpertReviewer,
   hasCurrentIndexingReview,
   isSearchIndexableBlog
 } = require('../src/utils/blog-indexing');
+
+test('missing indexing review has no expert reviewer', () => {
+  assert.equal(hasCompleteExpertReviewer(null), false);
+});
 
 function substantivePost(overrides = {}) {
   const words = Array.from({ length: 520 }, (_, index) => `platformword${index}`).join(' ');

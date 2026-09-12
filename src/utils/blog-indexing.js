@@ -27,7 +27,7 @@ function normalizeContentRisk(value) {
 }
 
 function hasCompleteExpertReviewer(review = {}) {
-  const expert = review.expertReviewer || {};
+  const expert = review?.expertReviewer || {};
   return Boolean(
     String(expert.name || '').trim()
     && String(expert.credentials || '').trim()
