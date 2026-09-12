@@ -35,8 +35,7 @@ const RAW_CONTENT_HTML = `
 <p>“Average” can also mean different things. A mean adds every result and divides by the number of results. A median is the middle result after sorting. A percentile describes the position of a result in a particular dataset. Online articles often use these terms loosely, then remove the year, country, event type, inclusion rules, and who was missing.</p>
 <p>A dataset of registered road-race finishers does not represent every beginner, walker, virtual participant, person who did not finish, or member of the general population. Course cut-offs can exclude slower times. Fast events and inclusive community events attract different fields. Historical results do not automatically describe runners in the Philippines today.</p>
 <p>Use comparative data for curiosity and broad context. Use current training and event details for decisions. If you are still selecting a distance, the <a href="/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge">distance-choice guide</a> focuses on readiness rather than prestige.</p>
-<p>Finish-time distributions can also move as participation changes. A race that welcomes walkers and allows a generous window will record a different field from one with a strict cut-off. A result archive may list gun time, chip time, net time, or only completed records. Combining those values without context creates false precision. Even a large dataset can answer only questions about the records it contains.</p>
-<p>Age- and sex-group comparisons may be relevant in competitive settings, but they still do not capture health, disability, training history, support, course difficulty, or the purpose of an individual activity. This guide therefore does not assign beginner times by demographic group. Use the same respectful question for every runner: what range is supported by this person's current preparation and this event?</p>
+<p>Finish-time distributions change with participation, cut-offs, timing methods, and event format. Even a large dataset answers only questions about its included records. This guide therefore avoids demographic “beginner” targets and asks instead what range is supported by the runner's preparation and event.</p>
 
 <h2>How running time is calculated</h2>
 <p>The basic formula is <strong>finish time = average pace × distance</strong>. Pace must use the same distance unit. A pace of 7:00 min/km means seven minutes for each kilometre. Multiply seven minutes by 5 kilometres to estimate 35 minutes. Multiply by 10 to estimate 1:10:00.</p>
@@ -102,13 +101,12 @@ const RAW_CONTENT_HTML = `
 <p>Virtual distance may come from a consumer phone, watch, treadmill, or another accepted source. Recorded distance and pace can vary with signal, device processing, calibration, and autopause. An onsite certified road course and a personal GPS route are not interchangeable measurements.</p>
 <p>Check whether the event uses elapsed time, moving time, uploaded proof, manual fields, accumulated sessions, or a single activity. Confirm whether walking and treadmill activity qualify. A pending submission is potential progress, not an approved result, and tracking a distance does not guarantee acceptance.</p>
 <p>Choose a route and strategy that fit the rules rather than seeking a downhill or interrupted route only to improve the displayed average. Preserve the original evidence and explain legitimate interruptions through the provided process.</p>
-<p>If ten kilometres is your prepared next distance, the <a href="/blog/how-to-run-your-first-10k-virtual-run">first virtual 10K guide</a> turns the arithmetic into a conservative route, pacing, tracking, proof, and recovery plan for one event opportunity.</p>
 
 <h2>Should beginners chase a target time?</h2>
-<p>A target can help with pacing when it comes from current evidence and remains adjustable. It becomes unhelpful when it is copied from a global midpoint, an influencer, a previous version of yourself, or a friend with different training and conditions.</p>
+<p>A target can guide pacing when it comes from current evidence and remains adjustable. It becomes unhelpful when copied from a global midpoint or someone with different preparation and conditions.</p>
 <p>A personal best and a successful run are not synonyms. A deliberately slower finish can be successful when it reflects an appropriate first attempt, planned walking, a demanding route, hot conditions, or a return after time away. Conversely, a fast result does not prove that the pacing decision was appropriate or that recovery can be ignored.</p>
 <p>For a first distance, consider a completion range rather than a single ambitious time. Set an opening effort, planned walk strategy, review points, and conditions that would trigger slowing, stopping, or choosing another day. A “C goal” can simply be making a safe, honest attempt; a “B goal” can be following the pacing plan; an “A goal” can be a time considered only if the day remains suitable.</p>
-<p>Do not use the table to leap from 5K directly to 21K because the arithmetic looks manageable. Longer distance adds training, recovery, route, hydration, fueling, and time-on-feet considerations that multiplication cannot assess. Use the <a href="/blog/21k-half-marathon-for-beginners">beginner half-marathon guide</a> to make that readiness and preparation decision separately.</p>
+<p>Do not leap from 5K to 21K because the arithmetic looks manageable. Longer distance adds training, recovery, route, hydration, fueling, and time-on-feet demands that multiplication cannot assess.</p>
 <p>New, severe, unexplained, recurrent, or worsening symptoms need appropriate attention. Finish-time advice is general education, not medical clearance, diagnosis, rehabilitation, or individualized coaching.</p>
 
 <h2>How to set your next distance goal</h2>
@@ -128,8 +126,6 @@ const RAW_CONTENT_HTML = `
 <p>There is no universal good time. A controlled first 5K may take 30 minutes, 45 minutes, an hour, or longer depending on pace, walking, route, conditions, and the runner. Use current repeatable activity and the event's rules.</p>
 <h3>Is one hour a good 10K time?</h3>
 <p>One hour equals 6:00 min/km. It is a meaningful goal for some runners and unsuitable for others. The relevant question is whether that pace is supported by current training and can be approached safely under the actual conditions.</p>
-<h3>Is a two-hour half marathon average?</h3>
-<p>Two hours is 5:41 min/km across 21.0975 km. It is faster than the 2:14:59 overall midpoint in the cited historical race-finisher dataset, but that comparison does not determine whether two hours is appropriate for an individual.</p>
 <h3>Can I predict 10K by doubling my 5K time?</h3>
 <p>Doubling provides a lower-bound arithmetic comparison, not a reliable beginner prediction. Most people cannot sustain maximum 5K effort for twice the distance. Use longer easy activity and a conservative pace range instead.</p>
 <h3>Does 21K mean the same as a half marathon?</h3>
@@ -140,7 +136,7 @@ const RAW_CONTENT_HTML = `
 <p>Walking covers distance mathematically, but event eligibility varies. Confirm the live walking, cut-off, activity, and proof rules. Never assume every virtual or onsite event accepts the same strategy.</p>
 
 <h2>Official sources and calculation notes</h2>
-<p>This article was reviewed in August 2026. <a href="https://worldathletics.org/disciplines/road-running/half-marathon">World Athletics' half-marathon overview</a> is used for the official 21.0975 km distance. Its <a href="https://worldathletics.org/records/certified-roadevents">certified-road-events guidance</a> explains why certified course measurement and performance conditions matter when formal results are compared.</p>
+<p>This article was reviewed in September 2026. <a href="https://worldathletics.org/disciplines/road-running/half-marathon">World Athletics' half-marathon overview</a> is used for the official 21.0975 km distance. Its <a href="https://worldathletics.org/records/certified-roadevents">certified-road-events guidance</a> explains why certified course measurement and performance conditions matter when formal results are compared.</p>
 <p>The comparative midpoint and percentile values come from RunRepeat's <a href="https://runrepeat.com/uk/how-do-you-masure-up-the-runners-percentile-calculator">finish-time comparison</a>, updated March 2024 and described as using 35 million results collected across more than 28,000 races over 20 years. HelloRun has not independently reproduced that dataset. We cite it as historical race-finisher context, not a current population average, beginner standard, Philippine benchmark, or training prescription.</p>
 <p>Every pace-to-time value in this article was calculated by multiplying the displayed min/km pace by 5, 10, or 21.0975 and rounding the half-marathon result to the nearest second. Calculations assume the average pace is maintained across the measured distance. They are not performance guarantees.</p>
 <p>Finish-time information is general education, not personal training or medical advice. Event rules, sources, and datasets can change; check the live event page and current source before acting.</p>
@@ -148,7 +144,6 @@ const RAW_CONTENT_HTML = `
 <h2>Choose a distance, then build toward it</h2>
 <p>Start with the distance that fits your present foundation. Use a repeatable pace range, plan for the actual route and weather, and let the first part of the activity be conservative. Your finish time can describe the day without defining your worth or requiring an unsafe next target.</p>
 <p>When you are ready, <a href="/events">browse current HelloRun events</a>, read the live distance and activity rules, and choose a manageable goal. Registration creates a target; it does not guarantee readiness, completion, proof approval, or a particular finish time.</p>
-<p>Use the <a href="/blog/how-to-set-running-goals-for-the-rest-of-the-year">year-end running-goals guide</a> to turn a distance and realistic time range into one outcome, one repeatable process, and adjustable checkpoints.</p>
 `;
 
 const REQUIRED_HEADINGS = Object.freeze([
@@ -176,10 +171,7 @@ const REQUIRED_LINKS = Object.freeze([
   'href="/blog/how-to-choose-a-safe-route-for-your-virtual-run"',
   'href="/blog/10k-training-plan-for-beginners"',
   'href="/blog/how-to-breathe-while-running"',
-  'href="/blog/how-to-run-safely-during-hot-and-humid-weather"',
-  'href="/blog/how-to-run-your-first-10k-virtual-run"',
-  'href="/blog/21k-half-marathon-for-beginners"',
-  'href="/blog/how-to-set-running-goals-for-the-rest-of-the-year"'
+  'href="/blog/how-to-run-safely-during-hot-and-humid-weather"'
 ]);
 
 function buildArticlePayload({ coverImageUrl } = {}) {
@@ -211,7 +203,7 @@ function validateArticlePayload(payload) {
   if (!payload.contentHtml || payload.contentHtml.length > 50000) errors.push('contentHtml must be 1-50000 characters');
   if (!payload.contentText || payload.contentText.length > 50000) errors.push('contentText must be 1-50000 characters');
   if (payload.contentRaw !== payload.contentText) errors.push('contentRaw and contentText must match');
-  if (wordCount < 3000) errors.push('article must contain at least 3000 substantive words');
+  if (wordCount < 2500 || wordCount > 3000) errors.push('article must contain 2500 to 3000 substantive words');
   if (!Array.isArray(payload.tags) || payload.tags.length !== 8) errors.push('article must contain exactly 8 tags');
   if ((payload.tags || []).some((tag) => !tag || tag.length > 30)) errors.push('tags must be 1-30 characters');
   if (!payload.seoTitle || payload.seoTitle.length > 160) errors.push('seoTitle must be 1-160 characters');
@@ -229,7 +221,7 @@ function validateArticlePayload(payload) {
   if (/pending (?:activity|submission|distance) (?:is|counts as) (?:approved|official|completion)/i.test(text)) errors.push('article must not count pending progress officially');
   if (!/There is no single correct average running time that every beginner should match/i.test(text)) errors.push('article must answer comparison intent early');
   if (!/historical race-finisher context, not a current population average, beginner standard, Philippine benchmark/i.test(text)) errors.push('article must state dataset limitations');
-  if (!/reviewed in August 2026/i.test(text)) errors.push('article must disclose review date');
+  if (!/reviewed in September 2026/i.test(text)) errors.push('article must disclose review date');
 
   for (const heading of REQUIRED_HEADINGS) {
     if (!payload.contentHtml.includes(`<h2>${heading}</h2>`)) errors.push(`missing required heading: ${heading}`);

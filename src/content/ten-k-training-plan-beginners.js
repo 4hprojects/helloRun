@@ -27,7 +27,7 @@ const ARTICLE = Object.freeze({
 const RAW_CONTENT_HTML = `
 <p>A 10K training plan for beginners should help you extend a repeatable 5K foundation—not ask you to double your distance in one heroic session. This flexible eight-week framework uses three possible activity opportunities: a familiar easy session, a shorter support session, and one gradually longer activity. Walking and run-walk remain available throughout the plan.</p>
 <p>First decide whether 10K training fits your current activity. A recent comfortable 5K or similar easy time on your feet is useful starting information, not a pass-or-fail test. If 5K remains a demanding one-off effort, build that foundation first.</p>
-<p>Eight weeks is an example, not a universal deadline. Repeat weeks or use a longer runway when health, recovery, weather, access, or life changes. The goal is to cover 10 kilometres with practised easy running and walking—not a particular finish time.</p>
+<p>Eight weeks is an example, not a universal deadline. Repeat weeks or use a longer runway when health, recovery, weather, access, or life changes. The goal is to cover 10 kilometres with practised running and walking—not a <a href="/blog/how-long-to-run-5k-10k-21k">particular finish time</a>.</p>
 <blockquote><strong>The progression principle:</strong> keep most activity familiar, extend only one longer opportunity when the current week is repeatable, and let recovery decide whether the next change belongs on the calendar.</blockquote>
 
 <h2>Your beginner 10K plan in one minute</h2>
@@ -208,7 +208,8 @@ const REQUIRED_LINKS = Object.freeze([
   'href="/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back"',
   'href="/blog/beginners-guide-to-running-pace"',
   'href="/blog/how-to-choose-a-safe-route-for-your-virtual-run"',
-  'href="/blog/how-to-breathe-while-running"'
+  'href="/blog/how-to-breathe-while-running"',
+  'href="/blog/how-long-to-run-5k-10k-21k"'
 ]);
 
 function buildArticlePayload({ coverImageUrl } = {}) {

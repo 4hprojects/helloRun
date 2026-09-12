@@ -1295,7 +1295,8 @@ const POSTS = [
       '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
       '/blog/beginners-guide-to-running-pace',
       '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
-      '/blog/how-to-breathe-while-running'
+      '/blog/how-to-breathe-while-running',
+      '/blog/how-long-to-run-5k-10k-21k'
     ]
   },
   {
@@ -1338,10 +1339,7 @@ const POSTS = [
       '/blog/how-to-breathe-while-running',
       '/blog/how-to-run-safely-during-hot-and-humid-weather',
       '/blog/how-to-choose-between-a-5k-10k-21k-or-distance-challenge',
-      '/blog/beginner-5k-training-plan-new-runners',
-      '/blog/how-to-run-your-first-10k-virtual-run',
-      '/blog/21k-half-marathon-for-beginners',
-      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
+      '/blog/beginner-5k-training-plan-new-runners'
     ]
   },
   {

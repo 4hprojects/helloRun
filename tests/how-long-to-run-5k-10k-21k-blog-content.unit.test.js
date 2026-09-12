@@ -10,11 +10,12 @@ const packageJson = require('../package.json');
 const { POSTS, buildContentHtml, htmlToText } = require('../src/scripts/seed-adsense-blog-posts');
 const { getArticleModule, listArticleSlugs } = require('../src/content/adsense-blog-article-registry');
 const { getInitialIndexingClassification } = require('../src/content/adsense-content-indexing');
-const { evaluateBlogContentEligibility } = require('../src/utils/blog-content-eligibility');
+const { evaluateBlogContentEligibility, hasCurrentPublicationReview } = require('../src/utils/blog-content-eligibility');
 const { BLOG_CATEGORIES } = require('../src/utils/blog');
-const { getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
+const { buildCreatePayload, getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
 const { parseArguments: parseUpdateArguments } = require('../src/scripts/update-adsense-blog');
 const paceGuide = require('../src/content/beginner-running-pace-guide');
+const tenKGuide = require('../src/content/ten-k-training-plan-beginners');
 const {
   ARTICLE,
   CANONICAL_SLUG,
@@ -46,7 +47,8 @@ test('distance finish-time guide builds a substantive contextual comparison payl
   assert.ok(payload.seoTitle.length <= 160);
   assert.ok(payload.seoDescription.length <= 320);
   assert.ok(payload.coverImageAlt.length <= 180);
-  assert.ok(wordCount >= 3000);
+  assert.ok(wordCount >= 2500);
+  assert.ok(wordCount <= 3000);
   assert.equal(payload.contentRaw, payload.contentText);
   assert.equal(payload.readingTime, Math.ceil(wordCount / 180));
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
@@ -61,13 +63,17 @@ test('distance finish-time guide builds a substantive contextual comparison payl
   for (const link of REQUIRED_LINKS) assert.ok(payload.contentHtml.includes(link), `missing link: ${link}`);
 });
 
-test('finish-time guide links readers to the year-end running-goals hub', () => {
-  const href = '/blog/how-to-set-running-goals-for-the-rest-of-the-year';
+test('finish-time guide excludes links to unpublished September articles', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
-
-  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
-  assert.ok(payload.contentHtml.includes(`href="${href}"`));
-  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
+  for (const href of [
+    '/blog/how-to-run-your-first-10k-virtual-run',
+    '/blog/21k-half-marathon-for-beginners',
+    '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
+  ]) {
+    assert.equal(REQUIRED_LINKS.some((link) => link.includes(href)), false);
+    assert.equal(payload.contentHtml.includes(`href="${href}"`), false);
+    assert.equal(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href), false);
+  }
 });
 
 test('pace reference preserves exact 5K, 10K, and half-marathon calculations', () => {
@@ -132,12 +138,26 @@ test('finish-time guide is registered and seeded once for September 8', () => {
 test('finish-time guide is noindex health content with create and update wiring', () => {
   const classification = getInitialIndexingClassification(CANONICAL_SLUG);
   const publishAt = '2026-09-08T11:00:00.000Z';
-  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--publish-at', publishAt]), { slug: CANONICAL_SLUG, mode: 'apply', publishAt });
+  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--confirm-editorial-review', '--publish-at', publishAt]), { slug: CANONICAL_SLUG, mode: 'apply', confirmEditorialReview: true, publishAt });
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
   assert.equal(classification.contentRisk, 'health_safety');
   assert.equal(classification.plannedNoindex, true);
   assert.equal(classification.indexCandidate, false);
   assert.match(packageJson.scripts['blog:update-running-finish-times'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+});
+
+test('finish-time creation payload uses its cover and a current review', () => {
+  const payload = buildCreatePayload({
+    slug: CANONICAL_SLUG,
+    authorId: '507f1f77bcf86cd799439011',
+    now: new Date('2026-09-12T09:00:00.000Z'),
+    confirmEditorialReview: true
+  });
+  assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
+  assert.equal(payload.status, 'published');
+  assert.equal(payload.searchIndexingStatus, 'noindex');
+  assert.equal(payload.searchIndexingReason, 'pending_expert_review');
+  assert.equal(hasCurrentPublicationReview(payload), true);
 });
 
 test('beginner pace guide reciprocally links to the finish-time guide', () => {
@@ -148,10 +168,15 @@ test('beginner pace guide reciprocally links to the finish-time guide', () => {
   assert.ok(POSTS.find((post) => post.slug === paceGuide.CANONICAL_SLUG).links.includes(href));
 });
 
+test('beginner 10K guide reciprocally links to the finish-time guide', () => {
+  const href = '/blog/how-long-to-run-5k-10k-21k';
+  const payload = tenKGuide.buildArticlePayload({ coverImageUrl: 'https://cdn.example.com/cover.webp' });
+  assert.ok(tenKGuide.REQUIRED_LINKS.includes(`href="${href}"`));
+  assert.ok(payload.contentHtml.includes(`href="${href}"`));
+  assert.ok(POSTS.find((post) => post.slug === tenKGuide.CANONICAL_SLUG).links.includes(href));
+});
+
 test('finish-time guide rejects universal, guaranteed, and unsupported claims', () => {
-  const href = '/blog/how-to-run-your-first-10k-virtual-run';
-  assert.ok(REQUIRED_LINKS.includes(`href="${href}"`));
-  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const withClaim = (claim) => ({ ...payload, contentText: `${payload.contentText} ${claim}`, contentRaw: `${payload.contentText} ${claim}` });
   assert.throws(() => validateArticlePayload(withClaim('Every beginner must finish 5K in 30 minutes.')), /universal finish time/);
@@ -162,12 +187,4 @@ test('finish-time guide rejects universal, guaranteed, and unsupported claims', 
   assert.throws(() => validateArticlePayload(withClaim('You should make up a missed day by doubling the next run.')), /catch-up activity/);
   assert.throws(() => validateArticlePayload(withClaim('A pending submission is approved.')), /pending progress/);
   assert.throws(() => buildArticlePayload(), /cover artwork/);
-});
-
-test('finish-time guide links 21K arithmetic to the separate preparation guide', () => {
-  const href = '/blog/21k-half-marathon-for-beginners';
-  const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
-  assert.ok(REQUIRED_LINKS.includes(`href="${href}"`));
-  assert.ok(payload.contentHtml.includes(`href="${href}"`));
-  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
 });
