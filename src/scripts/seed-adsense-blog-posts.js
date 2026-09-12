@@ -219,6 +219,10 @@ const {
   ARTICLE: LONG_RUN_FOR_BEGINNERS_ARTICLE,
   buildArticlePayload: buildLongRunForBeginnersPayload
 } = require('../content/long-run-for-beginners');
+const {
+  ARTICLE: INCREASE_RUNNING_DISTANCE_ARTICLE,
+  buildArticlePayload: buildIncreaseRunningDistancePayload
+} = require('../content/increase-running-distance');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -329,6 +333,8 @@ const RUNNING_GOALS_REST_OF_YEAR_COVER_IMAGE_URL = '/images/blog/covers/how-to-s
 const RUNNING_GOALS_REST_OF_YEAR_PAYLOAD = buildRunningGoalsRestOfYearPayload({ coverImageUrl: RUNNING_GOALS_REST_OF_YEAR_COVER_IMAGE_URL });
 const LONG_RUN_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/what-is-a-long-run-for-beginners.webp';
 const LONG_RUN_FOR_BEGINNERS_PAYLOAD = buildLongRunForBeginnersPayload({ coverImageUrl: LONG_RUN_FOR_BEGINNERS_COVER_IMAGE_URL });
+const INCREASE_RUNNING_DISTANCE_COVER_IMAGE_URL = '/images/blog/covers/how-to-increase-running-distance.webp';
+const INCREASE_RUNNING_DISTANCE_PAYLOAD = buildIncreaseRunningDistancePayload({ coverImageUrl: INCREASE_RUNNING_DISTANCE_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1580,6 +1586,18 @@ const POSTS = [
       '/blog/beginners-guide-to-running-pace',
       '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back'
     ]
+  },
+  {
+    ...INCREASE_RUNNING_DISTANCE_ARTICLE,
+    contentHtml: INCREASE_RUNNING_DISTANCE_PAYLOAD.contentHtml,
+    coverImageUrl: INCREASE_RUNNING_DISTANCE_COVER_IMAGE_URL,
+    coverImageAlt: INCREASE_RUNNING_DISTANCE_ARTICLE.coverImageAlt,
+    ogImageUrl: INCREASE_RUNNING_DISTANCE_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-10-03T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/events','/blog/what-is-a-long-run-for-beginners','/blog/10k-training-plan-for-beginners','/blog/21k-half-marathon-for-beginners','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school','/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back','/blog/run-walk-method-beginner-friendly-way-build-endurance','/blog/beginners-guide-to-running-pace']
   }
 ];
 
