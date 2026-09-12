@@ -10,21 +10,10 @@ const packageJson = require('../package.json');
 const { POSTS, buildContentHtml, htmlToText } = require('../src/scripts/seed-adsense-blog-posts');
 const { getArticleModule, listArticleSlugs } = require('../src/content/adsense-blog-article-registry');
 const { getInitialIndexingClassification } = require('../src/content/adsense-content-indexing');
-const { evaluateBlogContentEligibility } = require('../src/utils/blog-content-eligibility');
+const { evaluateBlogContentEligibility, hasCurrentPublicationReview } = require('../src/utils/blog-content-eligibility');
 const { BLOG_CATEGORIES } = require('../src/utils/blog');
-const { getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
+const { buildCreatePayload, getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
 const { parseArguments: parseUpdateArguments } = require('../src/scripts/update-adsense-blog');
-const supportingGuides = [
-  require('../src/content/what-is-virtual-run-guide'),
-  require('../src/content/choose-safe-virtual-run-route-guide'),
-  require('../src/content/run-walk-method-beginner-guide'),
-  require('../src/content/how-to-submit-run-proof'),
-  require('../src/content/beginner-running-pace-guide'),
-  require('../src/content/ten-k-training-plan-beginners'),
-  require('../src/content/how-long-to-run-5k-10k-21k'),
-  require('../src/content/how-accurate-phone-gps-running'),
-  require('../src/content/can-you-walk-virtual-run')
-];
 const {
   ARTICLE,
   CANONICAL_SLUG,
@@ -54,7 +43,8 @@ test('first virtual 10K guide builds a substantive event-execution payload', () 
   assert.ok(payload.excerpt.length <= 220);
   assert.ok(payload.seoDescription.length <= 320);
   assert.ok(payload.coverImageAlt.length <= 180);
-  assert.ok(wordCount >= 3000);
+  assert.ok(wordCount >= 2500);
+  assert.ok(wordCount <= 3000);
   assert.equal(payload.contentRaw, payload.contentText);
   assert.equal(payload.readingTime, Math.ceil(wordCount / 180));
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
@@ -66,13 +56,9 @@ test('first virtual 10K guide builds a substantive event-execution payload', () 
   for (const link of REQUIRED_LINKS) assert.ok(payload.contentHtml.includes(link), `missing link: ${link}`);
 });
 
-test('first virtual 10K guide links readers to the year-end running-goals hub', () => {
-  const href = '/blog/how-to-set-running-goals-for-the-rest-of-the-year';
+test('first virtual 10K guide omits links to later September articles', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
-
-  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
-  assert.ok(payload.contentHtml.includes(`href="${href}"`));
-  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
+  assert.doesNotMatch(payload.contentHtml, /href="\/blog\/(?:gps-watch-vs-running-app|21k-half-marathon-for-beginners|how-to-set-running-goals-for-the-rest-of-the-year)"/);
 });
 
 test('first virtual 10K guide covers rules, preparation, execution, proof, and recovery', () => {
@@ -133,7 +119,7 @@ test('first virtual 10K guide is registered and seeded once for September 19', (
 test('first virtual 10K guide is noindex health content with create and update wiring', () => {
   const classification = getInitialIndexingClassification(CANONICAL_SLUG);
   const publishAt = '2026-09-19T11:00:00.000Z';
-  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--publish-at', publishAt]), { slug: CANONICAL_SLUG, mode: 'apply', publishAt });
+  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--confirm-editorial-review', '--publish-at', publishAt]), { slug: CANONICAL_SLUG, mode: 'apply', confirmEditorialReview: true, publishAt });
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
   assert.equal(classification.contentRisk, 'health_safety');
   assert.equal(classification.plannedNoindex, true);
@@ -141,20 +127,25 @@ test('first virtual 10K guide is noindex health content with create and update w
   assert.match(packageJson.scripts['blog:update-first-virtual-10k'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
-test('all published supporting guides reciprocally link to the first virtual 10K guide', () => {
-  const href = '/blog/how-to-run-your-first-10k-virtual-run';
-  for (const guide of supportingGuides) {
-    const payload = guide.buildArticlePayload({ coverImageUrl: 'https://cdn.example.com/cover.webp' });
-    assert.ok(guide.REQUIRED_LINKS.some((link) => link.includes(href)), `${guide.CANONICAL_SLUG} required links`);
-    assert.ok(payload.contentHtml.includes(`href="${href}"`), `${guide.CANONICAL_SLUG} content`);
-    assert.ok(POSTS.find((post) => post.slug === guide.CANONICAL_SLUG).links.includes(href), `${guide.CANONICAL_SLUG} seed links`);
-  }
+test('first virtual 10K creation payload schedules the local cover with a current review', () => {
+  const reviewedAt = new Date('2026-09-13T08:00:00.000Z');
+  const publishAt = new Date('2026-09-19T11:00:00.000Z');
+  const payload = buildCreatePayload({
+    slug: CANONICAL_SLUG,
+    authorId: '507f1f77bcf86cd799439011',
+    now: reviewedAt,
+    publishAt,
+    confirmEditorialReview: true
+  });
+  assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
+  assert.equal(payload.status, 'scheduled');
+  assert.equal(payload.publishedAt.toISOString(), publishAt.toISOString());
+  assert.equal(payload.searchIndexingStatus, 'noindex');
+  assert.equal(payload.searchIndexingReason, 'pending_expert_review');
+  assert.equal(hasCurrentPublicationReview(payload), true);
 });
 
 test('first virtual 10K guide rejects unsafe, dishonest, and universal claims', () => {
-  const href = '/blog/gps-watch-vs-running-app';
-  assert.ok(REQUIRED_LINKS.includes(`href="${href}"`));
-  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const withClaim = (claim) => ({ ...payload, contentText: `${payload.contentText} ${claim}`, contentRaw: `${payload.contentText} ${claim}` });
   assert.throws(() => validateArticlePayload(withClaim('Every beginner can safely complete 10K.')), /universal readiness or safety/);
@@ -166,12 +157,4 @@ test('first virtual 10K guide rejects unsafe, dishonest, and universal claims', 
   assert.throws(() => validateArticlePayload(withClaim('Pending evidence counts as official completion.')), /pending evidence officially/);
   assert.throws(() => validateArticlePayload(withClaim('21K is the automatic next step.')), /automatic 21K readiness/);
   assert.throws(() => buildArticlePayload(), /cover artwork/);
-});
-
-test('first virtual 10K guide links its readiness decision to the 21K progression', () => {
-  const href = '/blog/21k-half-marathon-for-beginners';
-  const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
-  assert.ok(REQUIRED_LINKS.includes(`href="${href}"`));
-  assert.ok(payload.contentHtml.includes(`href="${href}"`));
-  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
 });

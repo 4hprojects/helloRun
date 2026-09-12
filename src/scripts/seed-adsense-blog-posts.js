@@ -1445,10 +1445,7 @@ const POSTS = [
       '/blog/how-accurate-is-phone-gps-for-running',
       '/blog/beginners-guide-to-running-pace',
       '/blog/how-long-to-run-5k-10k-21k',
-      '/blog/how-to-submit-run-proof-correctly-hellorun',
-      '/blog/gps-watch-vs-running-app',
-      '/blog/21k-half-marathon-for-beginners',
-      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
+      '/blog/how-to-submit-run-proof-correctly-hellorun'
     ]
   },
   {

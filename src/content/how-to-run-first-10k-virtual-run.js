@@ -25,7 +25,7 @@ const ARTICLE = Object.freeze({
 });
 
 const RAW_CONTENT_HTML = `
-<p>To complete your first 10K virtual run, choose an event whose rules match your intended run or run-walk, prepare until the distance is a realistic next step, test a safe route and recording method, begin conservatively, preserve the original 10K activity, and submit the required proof before the deadline.</p>
+<p>To complete your first 10K virtual run, choose an event matching your run or run-walk. Prepare until the distance is realistic, test the route and recorder, begin conservatively, preserve the activity, and submit proof before deadline.</p>
 <p>A virtual 10K is not simply “run until an app says 10.00.” The event may require one activity, a specific date window, accepted activity types, a minimum displayed distance, particular evidence, and approval before the result becomes official. Your route also lacks many services that an onsite race might provide.</p>
 <blockquote><strong>The first-10K principle:</strong> make event day a controlled use of a rehearsed plan—not a test of how much discomfort, speed, distance, or technical uncertainty you can absorb at once.</blockquote>
 
@@ -71,7 +71,7 @@ const RAW_CONTENT_HTML = `
 
 <h2>Choose a realistic route</h2>
 <p>The fastest-looking route is not necessarily the best first-10K route. Consider traffic, crossings, pavement, elevation, lighting, heat exposure, drainage, construction, crowds, dogs, personal security, mobile coverage, toilets, water, access permission, and ways to stop early.</p>
-<p>A familiar loop can keep supplies and transport nearby, make the distance easier to divide mentally, and provide repeated exit points. It can also create tight turns, congestion, monotony, or GPS cutting. An out-and-back is simple but can leave the participant far from help at halfway. A point-to-point course needs reliable transport and may expose the runner to changing conditions.</p>
+<p>A familiar loop can keep supplies and transport nearby and provide repeated exits, but it can also create tight turns, congestion, or GPS cutting. An out-and-back can leave you far from help at halfway, while a point-to-point course needs reliable transport.</p>
 <p>World Athletics' virtual-race advice recommends checking the course in advance and notes that loops can simplify drinks and keep a runner closer to home. That is useful logistics advice, not a guarantee that loops are safer or more accurate. The <a href="/blog/how-to-choose-a-safe-route-for-your-virtual-run">safe-route guide</a> provides the fuller assessment.</p>
 <p>Measure route length conservatively with the tool you intend to use, but do not treat a consumer map as certified distance. Never enter traffic, floodwater, a closed area, or another hazard merely to make the device reach 10.00.</p>
 
@@ -83,9 +83,8 @@ const RAW_CONTENT_HTML = `
 <h2>Test your tracking app or watch</h2>
 <p>Use the exact phone, watch, app, activity profile, permissions, carrying position, and sync route planned for the 10K. A short test should confirm the device reaches its documented ready state, records the correct activity type, handles pauses as expected, saves the full record, shows kilometres, and produces acceptable proof.</p>
 <p>Phone GPS can drift, add zigzags, cut corners, or lose points around buildings, trees, bridges, tunnels, and steep terrain. A watch can also produce errors. The <a href="/blog/how-accurate-is-phone-gps-for-running">phone-GPS accuracy guide</a> explains why point accuracy and route-distance accuracy differ.</p>
-<p>If you are considering new hardware before the event, the <a href="/blog/gps-watch-vs-running-app">GPS watch versus running app guide</a> compares the purchase by tested battery, controls, metrics, cost, and proof needs. A first 10K does not itself require a watch.</p>
 <p>Charge the device and understand battery-saving behavior. Avoid installing a major update, changing several settings, or pairing unfamiliar equipment immediately before the attempt. If using two recorders for legitimate backup, know which source the event expects and do not select whichever total is most favorable afterward.</p>
-<p>A test activity is not proof that event day will record perfectly. It removes avoidable surprises and confirms where to find the original record.</p>
+<p>A test cannot prove event day will record perfectly. It reduces surprises and confirms where to find the original record.</p>
 
 <h2>Plan your pacing</h2>
 <p>Start more conservatively than the excitement of the first kilometre suggests. A pace that feels dramatically slow early can become appropriate once distance, heat, hills, concentration, and time on feet accumulate. The aim of a first completion is controlled decision-making, not defending an arbitrary finish-time prediction.</p>
@@ -176,13 +175,11 @@ const RAW_CONTENT_HTML = `
 <h2>Define success before you start</h2>
 <p>Choose goals that remain meaningful if pace, weather, route, or technology changes. A useful first goal may be to follow the opening effort, use planned walk breaks, make safe decisions, preserve honest evidence, and learn from the distance. A finish time can be recorded without becoming the only verdict.</p>
 <p>Separate goals into priorities. Safety and event integrity come first. Controlled execution comes next. A pace goal, negative split, uninterrupted running, photo, or social post is optional and can be abandoned without making the activity a failure. This order prevents a secondary target from overruling current conditions.</p>
-<p>Also define what stopping successfully looks like: moving to safety, saving the original activity, contacting the appropriate person, and recovering rather than hiding the attempt. A responsible incomplete 10K can provide better information than an unsafe finish. The next decision should come from that evidence, not embarrassment.</p>
 
 <h2>Are you ready to work toward 21K?</h2>
 <p>Not automatically. A half marathon is more than twice the distance and can require substantially more preparation, time on feet, recovery, fueling, route logistics, and risk management. Finishing one 10K—especially if it was a maximum effort—does not establish half-marathon readiness.</p>
-<p>First consider making 10K repeatable, improving weekly consistency, or completing it with better control. Review how the attempt affected ordinary movement and subsequent training. A 21K goal should have its own readiness decision, preparation period, event rules, and individualized considerations; the <a href="/blog/21k-half-marathon-for-beginners">beginner 21K preparation guide</a> supplies that separate review.</p>
+<p>First consider making 10K repeatable or improving weekly consistency. Review how the attempt affected ordinary movement and subsequent training. A 21K goal needs its own readiness decision, preparation period, rules, and individualized considerations.</p>
 <p>Do not register for 21K solely to preserve momentum, claim a larger medal, or follow another participant's timeline. Remaining at 5K or 10K can be a complete and worthwhile choice.</p>
-<p>The <a href="/blog/how-to-set-running-goals-for-the-rest-of-the-year">year-end running-goals guide</a> helps choose whether repeating 10K, building consistency, or beginning a separate longer progression should become the main outcome.</p>
 
 <h2>Frequently asked questions</h2>
 <h3>Can a beginner run a virtual 10K?</h3>
@@ -205,7 +202,7 @@ const RAW_CONTENT_HTML = `
 <p>No. The result may remain pending until it passes applicable checks. Approval determines official event status under the rules.</p>
 
 <h2>Method and limitations</h2>
-<p>This guide was reviewed in August 2026 using current WHO, CDC, NHS, and World Athletics public guidance together with HelloRun registration, event-window, one-time-result, screenshot, supported connected-Strava, review, correction, and runner-progress behavior.</p>
+<p>This guide was reviewed in September 2026 using current WHO, CDC, NHS, and World Athletics public guidance together with HelloRun registration, event-window, one-time-result, screenshot, supported connected-Strava, review, correction, and runner-progress behavior.</p>
 <p>The public-health sources provide population guidance and examples of gradual activity. World Athletics provides general virtual-race logistics. None of those sources validates this exact sequence, certifies a route, predicts a finish, or gives personal medical clearance.</p>
 <p>HelloRun behavior and event rules can change. The live event listing, source-device instructions, submission interface, and organizer decision remain authoritative. This article is general education, not individualized training, nutrition, hydration, medical, emergency, or legal advice.</p>
 
@@ -255,10 +252,7 @@ const REQUIRED_LINKS = Object.freeze([
   'href="/blog/how-accurate-is-phone-gps-for-running"',
   'href="/blog/beginners-guide-to-running-pace"',
   'href="/blog/how-long-to-run-5k-10k-21k"',
-  'href="/blog/how-to-submit-run-proof-correctly-hellorun"',
-  'href="/blog/gps-watch-vs-running-app"',
-  'href="/blog/21k-half-marathon-for-beginners"',
-  'href="/blog/how-to-set-running-goals-for-the-rest-of-the-year"'
+  'href="/blog/how-to-submit-run-proof-correctly-hellorun"'
 ]);
 
 function buildArticlePayload({ coverImageUrl } = {}) {
@@ -291,7 +285,7 @@ function validateArticlePayload(payload) {
   if (!payload.contentHtml || payload.contentHtml.length > 50000) errors.push('contentHtml must be 1-50000 characters');
   if (!payload.contentText || payload.contentText.length > 50000) errors.push('contentText must be 1-50000 characters');
   if (payload.contentRaw !== payload.contentText) errors.push('contentRaw and contentText must match');
-  if (wordCount < 3000) errors.push('article must contain at least 3000 substantive words');
+  if (wordCount < 2500 || wordCount > 3000) errors.push('article must contain 2500-3000 substantive words');
   if (!Array.isArray(payload.tags) || payload.tags.length !== 8) errors.push('article must contain exactly 8 tags');
   if ((payload.tags || []).some((tag) => !tag || tag.length > 30)) errors.push('tags must be 1-30 characters');
   if (!payload.seoTitle || payload.seoTitle.length > 160) errors.push('seoTitle must be 1-160 characters');
@@ -310,7 +304,7 @@ function validateArticlePayload(payload) {
   if (/first 10K means you are ready for (?:a )?(?:21K|half marathon)|21K is the automatic next step/i.test(text)) errors.push('article must not claim automatic 21K readiness');
   if (!/To complete your first 10K virtual run, choose an event/i.test(text)) errors.push('article must answer intent immediately');
   if (!/This guide focuses on executing one first 10K opportunity after preparation; it is not another week-by-week training programme/i.test(text)) errors.push('article must distinguish the training plan');
-  if (!/reviewed in August 2026/i.test(text)) errors.push('article must disclose methodology and date');
+  if (!/reviewed in September 2026/i.test(text)) errors.push('article must disclose methodology and date');
 
   for (const heading of REQUIRED_HEADINGS) {
     if (!payload.contentHtml.includes(`<h2>${heading}</h2>`)) errors.push(`missing required heading: ${heading}`);
