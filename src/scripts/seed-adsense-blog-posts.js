@@ -227,6 +227,10 @@ const {
   ARTICLE: RUN_WITH_BUSY_SCHEDULE_ARTICLE,
   buildArticlePayload: buildRunWithBusySchedulePayload
 } = require('../content/run-with-busy-schedule');
+const {
+  ARTICLE: HILL_RUNNING_FOR_BEGINNERS_ARTICLE,
+  buildArticlePayload: buildHillRunningForBeginnersPayload
+} = require('../content/hill-running-for-beginners');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -341,6 +345,8 @@ const INCREASE_RUNNING_DISTANCE_COVER_IMAGE_URL = '/images/blog/covers/how-to-in
 const INCREASE_RUNNING_DISTANCE_PAYLOAD = buildIncreaseRunningDistancePayload({ coverImageUrl: INCREASE_RUNNING_DISTANCE_COVER_IMAGE_URL });
 const RUN_WITH_BUSY_SCHEDULE_COVER_IMAGE_URL = '/images/blog/covers/how-to-run-with-a-busy-schedule.webp';
 const RUN_WITH_BUSY_SCHEDULE_PAYLOAD = buildRunWithBusySchedulePayload({ coverImageUrl: RUN_WITH_BUSY_SCHEDULE_COVER_IMAGE_URL });
+const HILL_RUNNING_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/hill-running-for-beginners.webp';
+const HILL_RUNNING_FOR_BEGINNERS_PAYLOAD = buildHillRunningForBeginnersPayload({ coverImageUrl: HILL_RUNNING_FOR_BEGINNERS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1616,6 +1622,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/events','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school','/blog/returning-to-running-after-a-break-gradual-restart-plan','/blog/30-day-running-challenge-for-beginners','/blog/how-to-set-running-goals-for-the-rest-of-the-year','/blog/what-is-a-long-run-for-beginners']
+  },
+  {
+    ...HILL_RUNNING_FOR_BEGINNERS_ARTICLE,
+    contentHtml: HILL_RUNNING_FOR_BEGINNERS_PAYLOAD.contentHtml,
+    coverImageUrl: HILL_RUNNING_FOR_BEGINNERS_COVER_IMAGE_URL,
+    coverImageAlt: HILL_RUNNING_FOR_BEGINNERS_ARTICLE.coverImageAlt,
+    ogImageUrl: HILL_RUNNING_FOR_BEGINNERS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-10-07T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/events','/blog/beginners-guide-to-running-pace','/blog/how-to-choose-a-safe-route-for-your-virtual-run','/blog/running-cadence-explained','/blog/10k-training-plan-for-beginners','/blog/21k-half-marathon-for-beginners','/blog/how-to-increase-running-distance','/blog/run-walk-method-beginner-friendly-way-build-endurance','/blog/how-to-run-with-a-busy-schedule','/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back']
   }
 ];
 
