@@ -94,6 +94,7 @@
     "blog:update-increase-running-distance": "node src/scripts/update-adsense-blog.js --slug how-to-increase-running-distance",
     "blog:update-busy-running-schedule": "node src/scripts/update-adsense-blog.js --slug how-to-run-with-a-busy-schedule",
     "blog:update-hill-running": "node src/scripts/update-adsense-blog.js --slug hill-running-for-beginners",
+    "blog:update-pre-run-food": "node src/scripts/update-adsense-blog.js --slug what-to-eat-before-running",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",

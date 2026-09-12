@@ -158,8 +158,8 @@ test('beginner 21K guide is registered and seeded once for September 28', () => 
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 56);
-  assert.equal(POSTS.length, 56);
+  assert.equal(listArticleSlugs().length, 57);
+  assert.equal(POSTS.length, 57);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);

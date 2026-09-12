@@ -231,6 +231,10 @@ const {
   ARTICLE: HILL_RUNNING_FOR_BEGINNERS_ARTICLE,
   buildArticlePayload: buildHillRunningForBeginnersPayload
 } = require('../content/hill-running-for-beginners');
+const {
+  ARTICLE: WHAT_TO_EAT_BEFORE_RUNNING_ARTICLE,
+  buildArticlePayload: buildWhatToEatBeforeRunningPayload
+} = require('../content/what-to-eat-before-running');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -347,6 +351,8 @@ const RUN_WITH_BUSY_SCHEDULE_COVER_IMAGE_URL = '/images/blog/covers/how-to-run-w
 const RUN_WITH_BUSY_SCHEDULE_PAYLOAD = buildRunWithBusySchedulePayload({ coverImageUrl: RUN_WITH_BUSY_SCHEDULE_COVER_IMAGE_URL });
 const HILL_RUNNING_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/hill-running-for-beginners.webp';
 const HILL_RUNNING_FOR_BEGINNERS_PAYLOAD = buildHillRunningForBeginnersPayload({ coverImageUrl: HILL_RUNNING_FOR_BEGINNERS_COVER_IMAGE_URL });
+const WHAT_TO_EAT_BEFORE_RUNNING_COVER_IMAGE_URL = '/images/blog/covers/what-to-eat-before-running.webp';
+const WHAT_TO_EAT_BEFORE_RUNNING_PAYLOAD = buildWhatToEatBeforeRunningPayload({ coverImageUrl: WHAT_TO_EAT_BEFORE_RUNNING_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1634,6 +1640,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/events','/blog/beginners-guide-to-running-pace','/blog/how-to-choose-a-safe-route-for-your-virtual-run','/blog/running-cadence-explained','/blog/10k-training-plan-for-beginners','/blog/21k-half-marathon-for-beginners','/blog/how-to-increase-running-distance','/blog/run-walk-method-beginner-friendly-way-build-endurance','/blog/how-to-run-with-a-busy-schedule','/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back']
+  },
+  {
+    ...WHAT_TO_EAT_BEFORE_RUNNING_ARTICLE,
+    contentHtml: WHAT_TO_EAT_BEFORE_RUNNING_PAYLOAD.contentHtml,
+    coverImageUrl: WHAT_TO_EAT_BEFORE_RUNNING_COVER_IMAGE_URL,
+    coverImageAlt: WHAT_TO_EAT_BEFORE_RUNNING_ARTICLE.coverImageAlt,
+    ogImageUrl: WHAT_TO_EAT_BEFORE_RUNNING_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-10-09T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/events','/blog/10k-training-plan-for-beginners','/blog/21k-half-marathon-for-beginners','/blog/what-is-a-long-run-for-beginners','/blog/how-to-run-with-a-busy-schedule','/blog/how-long-to-run-5k-10k-21k']
   }
 ];
 
