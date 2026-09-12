@@ -11,16 +11,16 @@ const packageJson = require('../package.json');
 const { POSTS, buildContentHtml, htmlToText } = require('../src/scripts/seed-adsense-blog-posts');
 const { getArticleModule, listArticleSlugs } = require('../src/content/adsense-blog-article-registry');
 const { getInitialIndexingClassification } = require('../src/content/adsense-content-indexing');
-const { evaluateBlogContentEligibility } = require('../src/utils/blog-content-eligibility');
+const { evaluateBlogContentEligibility, hasCurrentPublicationReview } = require('../src/utils/blog-content-eligibility');
 const { BLOG_CATEGORIES } = require('../src/utils/blog');
-const { getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
+const { buildCreatePayload, getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
 const { parseArguments: parseUpdateArguments } = require('../src/scripts/update-adsense-blog');
 const supportingGuides = [
   require('../src/content/participant-communication-timeline-guide'),
   require('../src/content/fair-distance-categories-challenge-goals-guide'),
-  require('../src/content/clear-virtual-run-rules-guide'),
-  require('../src/content/how-to-promote-virtual-run')
+  require('../src/content/clear-virtual-run-rules-guide')
 ];
+const promotionGuide = require('../src/content/how-to-promote-virtual-run');
 const {
   ARTICLE,
   CANONICAL_SLUG,
@@ -52,7 +52,8 @@ test('virtual-run pricing guide builds a substantive commercial organizer guide'
   assert.ok(payload.excerpt.length <= 220);
   assert.ok(payload.seoDescription.length <= 320);
   assert.ok(payload.coverImageAlt.length <= 180);
-  assert.ok(wordCount >= 3000);
+  assert.ok(wordCount >= 2500);
+  assert.ok(wordCount <= 3000);
   assert.equal(payload.contentRaw, payload.contentText);
   assert.equal(payload.readingTime, Math.ceil(wordCount / 180));
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
@@ -97,7 +98,7 @@ test('pricing guide sanitizes official sources and passes general-content eligib
   for (const href of [
     'https://legacy.sba.gov/business-guide/plan-your-business/calculate-your-startup-costs/break-even-point',
     'https://ecommerce.dti.gov.ph/wp-content/uploads/2024/06/Joint-Administrative-Order-No.-24-03-1.pdf',
-    'https://www.bsp.gov.ph/Pages/PAYMENTS%20AND%20SETTLEMENTS/National%20Retail%20Payment%20System/The-Regulatory-Framework.aspx/1000',
+    'https://www.bsp.gov.ph/Pages/PAYMENTS%20AND%20SETTLEMENTS/National%20Retail%20Payment%20System/The-Regulatory-Framework.aspx',
     'https://privacy.gov.ph/data-privacy-act/',
     'https://fairtrade.dti.gov.ph/about/business-regulations/sales-promotion-division/',
     'https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%207-%202024.pdf'
@@ -141,7 +142,7 @@ test('pricing guide is registered and seeded once for September 26', () => {
 
 test('pricing guide is scheduled noindex general content with update wiring', () => {
   const classification = getInitialIndexingClassification(CANONICAL_SLUG);
-  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--publish-at', PUBLISH_AT]), { slug: CANONICAL_SLUG, mode: 'apply', publishAt: PUBLISH_AT });
+  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--confirm-editorial-review', '--publish-at', PUBLISH_AT]), { slug: CANONICAL_SLUG, mode: 'apply', confirmEditorialReview: true, publishAt: PUBLISH_AT });
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
   assert.equal(classification.contentRisk, 'general');
   assert.equal(classification.plannedNoindex, true);
@@ -149,7 +150,24 @@ test('pricing guide is scheduled noindex general content with update wiring', ()
   assert.match(packageJson.scripts['blog:update-virtual-run-pricing'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
-test('four existing organizer guides reciprocally link to the pricing guide', () => {
+test('pricing creation payload schedules the local cover with a current review', () => {
+  const reviewedAt = new Date('2026-09-13T08:00:00.000Z');
+  const payload = buildCreatePayload({
+    slug: CANONICAL_SLUG,
+    authorId: '507f1f77bcf86cd799439011',
+    now: reviewedAt,
+    publishAt: new Date(PUBLISH_AT),
+    confirmEditorialReview: true
+  });
+  assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
+  assert.equal(payload.status, 'scheduled');
+  assert.equal(payload.publishedAt.toISOString(), PUBLISH_AT);
+  assert.equal(payload.searchIndexingStatus, 'noindex');
+  assert.equal(payload.searchIndexingReason, 'pending_value_review');
+  assert.equal(hasCurrentPublicationReview(payload), true);
+});
+
+test('three existing organizer guides reciprocally link to the pricing guide', () => {
   const href = '/blog/virtual-run-registration-fee-pricing';
   for (const guide of supportingGuides) {
     const payload = guide.buildArticlePayload({ coverImageUrl: 'https://cdn.example.com/cover.webp' });
@@ -157,6 +175,14 @@ test('four existing organizer guides reciprocally link to the pricing guide', ()
     assert.ok(payload.contentHtml.includes(`href="${href}"`), `${guide.CANONICAL_SLUG} content`);
     assert.ok(POSTS.find((post) => post.slug === guide.CANONICAL_SLUG).links.includes(href), `${guide.CANONICAL_SLUG} seed links`);
   }
+});
+
+test('the September 24 promotion guide omits the later unpublished pricing guide', () => {
+  const href = '/blog/virtual-run-registration-fee-pricing';
+  const payload = promotionGuide.buildArticlePayload({ coverImageUrl: 'https://cdn.example.com/cover.webp' });
+  assert.ok(!promotionGuide.REQUIRED_LINKS.some((link) => link.includes(href)));
+  assert.ok(!payload.contentHtml.includes(`href="${href}"`));
+  assert.ok(!POSTS.find((post) => post.slug === promotionGuide.CANONICAL_SLUG).links.includes(href));
 });
 
 test('pricing guide rejects universal, hidden-fee, and guarantee claims', () => {
