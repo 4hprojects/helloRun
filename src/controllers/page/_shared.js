@@ -110,7 +110,7 @@ const { getHomepageCarouselSettings } = require('../../services/homepage-carouse
 const { getPostgresClient } = require('../../db/postgres');
 
 const { getPublicEventVisibilityQuery } = require('../../utils/public-event-visibility');
-const { getCanonicalBlogSlug, getEligiblePublicBlogQuery, getPublicBlogQuery } = require('../../utils/blog-canonical');
+const { getCanonicalBlogSlug, getEligiblePublicBlogQuery, getSearchIndexablePublicBlogQuery, getPublicBlogQuery } = require('../../utils/blog-canonical');
 
 const logger = require('../../utils/logger');
 
@@ -240,6 +240,7 @@ module.exports = {
   getPublicEventVisibilityQuery,
   getCanonicalBlogSlug,
   getEligiblePublicBlogQuery,
+  getSearchIndexablePublicBlogQuery,
   getPublicBlogQuery,
   logger,
   recordSyncFailureInBackground,

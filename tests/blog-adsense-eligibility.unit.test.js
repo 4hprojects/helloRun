@@ -169,7 +169,7 @@ test('backfill and presentation layers are fail-closed by default', () => {
   assert.match(publicController, /X-Robots-Tag', 'noindex, follow'/);
   assert.match(publicController, /disableAdLocals\(res\)/);
   assert.match(authorRoutes, /X-Robots-Tag', 'noindex, nofollow'/);
-  assert.match(sitemap, /getEligiblePublicBlogQuery/);
+  assert.match(sitemap, /getSearchIndexablePublicBlogQuery/);
   for (const field of [
     'originalityConfirmed',
     'externalLinksConfirmed',

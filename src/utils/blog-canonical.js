@@ -40,7 +40,6 @@ function getEligiblePublicBlogQuery(baseQuery = {}) {
     'publicationReview.originalityConfirmed': true,
     $and: [
       ...(Array.isArray(baseQuery.$and) ? baseQuery.$and : []),
-      getSearchIndexingQuery(),
       { $expr: { $eq: ['$contentEligibility.sourceHash', '$publicationReview.sourceHash'] } },
       {
         $or: [
@@ -64,10 +63,22 @@ function getEligiblePublicBlogQuery(baseQuery = {}) {
   });
 }
 
+function getSearchIndexablePublicBlogQuery(baseQuery = {}) {
+  const eligibleQuery = getEligiblePublicBlogQuery(baseQuery);
+  return {
+    ...eligibleQuery,
+    $and: [
+      ...(eligibleQuery.$and || []),
+      getSearchIndexingQuery()
+    ]
+  };
+}
+
 module.exports = {
   CANONICAL_BLOG_REDIRECTS,
   DUPLICATE_BLOG_SLUGS,
   getCanonicalBlogSlug,
   getEligiblePublicBlogQuery,
+  getSearchIndexablePublicBlogQuery,
   getPublicBlogQuery
 };

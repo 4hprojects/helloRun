@@ -14,6 +14,16 @@ const {
   buildBlogResultsSummary
 } = require('../src/services/public-blog-list.service');
 const { getBlogArticlePresentation } = require('../src/services/public-blog-presentation.service');
+const { getEligiblePublicBlogQuery, getSearchIndexablePublicBlogQuery } = require('../src/utils/blog-canonical');
+
+test('public listings include reviewed noindex articles while sitemap queries require indexing review', () => {
+  const listingQuery = JSON.stringify(getEligiblePublicBlogQuery({ status: 'published' }));
+  const sitemapQuery = JSON.stringify(getSearchIndexablePublicBlogQuery({ status: 'published' }));
+
+  assert.doesNotMatch(listingQuery, /searchIndexingStatus/);
+  assert.match(sitemapQuery, /searchIndexingStatus/);
+  assert.match(sitemapQuery, /publicationReview/);
+});
 
 test('blog filters normalize supported values and reject invalid input', () => {
   const author = '507f1f77bcf86cd799439011';

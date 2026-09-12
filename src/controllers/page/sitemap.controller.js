@@ -61,7 +61,7 @@ const {
   getHomepageCarouselSettings,
   getPostgresClient,
   getPublicEventVisibilityQuery,
-  getEligiblePublicBlogQuery,
+  getSearchIndexablePublicBlogQuery,
   logger,
   recordSyncFailureInBackground,
   recordCriticalAuditEventInBackground,
@@ -94,7 +94,7 @@ exports.getSitemapXml = async (req, res) => {
         .select('slug updatedAt createdAt')
         .sort({ updatedAt: -1 })
         .lean(),
-      Blog.find(getEligiblePublicBlogQuery({
+      Blog.find(getSearchIndexablePublicBlogQuery({
         status: 'published',
         isDeleted: { $ne: true }
       }))
