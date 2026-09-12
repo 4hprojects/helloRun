@@ -235,6 +235,10 @@ const {
   ARTICLE: WHAT_TO_EAT_BEFORE_RUNNING_ARTICLE,
   buildArticlePayload: buildWhatToEatBeforeRunningPayload
 } = require('../content/what-to-eat-before-running');
+const {
+  ARTICLE: WHAT_TO_EAT_AFTER_RUNNING_ARTICLE,
+  buildArticlePayload: buildWhatToEatAfterRunningPayload
+} = require('../content/what-to-eat-after-running');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -353,6 +357,8 @@ const HILL_RUNNING_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/hill-run
 const HILL_RUNNING_FOR_BEGINNERS_PAYLOAD = buildHillRunningForBeginnersPayload({ coverImageUrl: HILL_RUNNING_FOR_BEGINNERS_COVER_IMAGE_URL });
 const WHAT_TO_EAT_BEFORE_RUNNING_COVER_IMAGE_URL = '/images/blog/covers/what-to-eat-before-running.webp';
 const WHAT_TO_EAT_BEFORE_RUNNING_PAYLOAD = buildWhatToEatBeforeRunningPayload({ coverImageUrl: WHAT_TO_EAT_BEFORE_RUNNING_COVER_IMAGE_URL });
+const WHAT_TO_EAT_AFTER_RUNNING_COVER_IMAGE_URL = '/images/blog/covers/what-to-eat-after-running.webp';
+const WHAT_TO_EAT_AFTER_RUNNING_PAYLOAD = buildWhatToEatAfterRunningPayload({ coverImageUrl: WHAT_TO_EAT_AFTER_RUNNING_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1652,6 +1658,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/events','/blog/10k-training-plan-for-beginners','/blog/21k-half-marathon-for-beginners','/blog/what-is-a-long-run-for-beginners','/blog/how-to-run-with-a-busy-schedule','/blog/how-long-to-run-5k-10k-21k']
+  },
+  {
+    ...WHAT_TO_EAT_AFTER_RUNNING_ARTICLE,
+    contentHtml: WHAT_TO_EAT_AFTER_RUNNING_PAYLOAD.contentHtml,
+    coverImageUrl: WHAT_TO_EAT_AFTER_RUNNING_COVER_IMAGE_URL,
+    coverImageAlt: WHAT_TO_EAT_AFTER_RUNNING_ARTICLE.coverImageAlt,
+    ogImageUrl: WHAT_TO_EAT_AFTER_RUNNING_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-10-11T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/events','/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back','/blog/what-to-eat-before-running','/blog/10k-training-plan-for-beginners','/blog/21k-half-marathon-for-beginners','/blog/what-is-a-long-run-for-beginners','/blog/how-to-run-safely-during-hot-and-humid-weather']
   }
 ];
 
