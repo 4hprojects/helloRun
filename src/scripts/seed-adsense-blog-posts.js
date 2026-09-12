@@ -1271,7 +1271,8 @@ const POSTS = [
       '/blog/run-walk-method-beginner-friendly-way-build-endurance',
       '/blog/how-to-build-a-weekly-running-schedule-around-work-or-school',
       '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
-      '/blog/how-to-set-a-realistic-monthly-running-goal'
+      '/blog/how-to-set-a-realistic-monthly-running-goal',
+      '/blog/10k-training-plan-for-beginners'
     ]
   },
   {
@@ -1293,12 +1294,7 @@ const POSTS = [
       '/blog/returning-to-running-after-a-break-gradual-restart-plan',
       '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
       '/blog/beginners-guide-to-running-pace',
-      '/blog/how-to-choose-a-safe-route-for-your-virtual-run',
-      '/blog/how-to-breathe-while-running',
-      '/blog/can-you-walk-a-virtual-run',
-      '/blog/how-to-run-your-first-10k-virtual-run',
-      '/blog/21k-half-marathon-for-beginners',
-      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
+      '/blog/how-to-choose-a-safe-route-for-your-virtual-run'
     ]
   },
   {

@@ -126,6 +126,7 @@ const RAW_CONTENT_HTML = `
 <h2>Days 29 and 30: review and choose what comes next</h2>
 <p>On Day 29, summarize the month without reducing it to a streak. Count how many suitable opportunities happened, how often you resumed after a change, which routes and times worked, and how recovery felt. Note whether walking-first, run-walk, or easy-running remained the best description. Record any unresolved symptom or barrier that should affect the next decision.</p>
 <p>On Day 30, choose one next step. You might repeat the challenge with the same track, continue the weekly rhythm without numbered days, use <a href="/blog/how-to-set-a-realistic-monthly-running-goal">the realistic monthly running goal guide</a>, prepare gradually for a suitable event, pause, or seek individualized guidance. Do not choose the largest target merely because the calendar ended.</p>
+<p>If a comfortable 5K is repeatable, the <a href="/blog/10k-training-plan-for-beginners">beginner 10K framework</a> offers a flexible next progression.</p>
 <p>If a HelloRun event provides useful motivation, browse <a href="/events">current events</a> and read the complete live rules before registering. Match the event format, distance, dates, accepted activities, evidence, and recovery demands to your current situation.</p>
 
 <h2>How to adjust when you miss a day</h2>
@@ -134,7 +135,7 @@ const RAW_CONTENT_HTML = `
 <p>If you miss most planned opportunities, review the design without shame. A smaller routine, walking-first track, safer route, different time, or non-running activity may fit better.</p>
 
 <h2>Track progress without turning every number into a target</h2>
-<p>A short note can record the day role, activity, time, effort, route, weather, and later response. That context is often more actionable than pace alone. Phone and watch estimates can drift, so do not surge to repair the display; review numbers after stopping safely.</p>
+<p>Note the day role, activity, effort, conditions, and later response. That context is often more useful than pace alone. Devices can drift, so review numbers after stopping safely.</p>
 <p>For a personal challenge, you decide what the check mark means. For an event, the organizer's published rules decide eligibility. Recorded, submitted, pending, approved, and rejected activity are different states. A pending activity is potential progress, not official progress. Never alter evidence or claim a personal planning activity as an eligible result when it does not meet the event rules.</p>
 
 <h2>Adapt for weather, routes, and ordinary life</h2>
@@ -196,7 +197,8 @@ const REQUIRED_LINKS = Object.freeze([
   'href="/blog/run-walk-method-beginner-friendly-way-build-endurance"',
   'href="/blog/how-to-build-a-weekly-running-schedule-around-work-or-school"',
   'href="/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back"',
-  'href="/blog/how-to-set-a-realistic-monthly-running-goal"'
+  'href="/blog/how-to-set-a-realistic-monthly-running-goal"',
+  'href="/blog/10k-training-plan-for-beginners"'
 ]);
 
 function buildArticlePayload({ coverImageUrl } = {}) {

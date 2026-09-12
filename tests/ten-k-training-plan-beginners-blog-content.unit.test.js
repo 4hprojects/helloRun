@@ -10,9 +10,9 @@ const packageJson = require('../package.json');
 const { POSTS, buildContentHtml, htmlToText } = require('../src/scripts/seed-adsense-blog-posts');
 const { getArticleModule, listArticleSlugs } = require('../src/content/adsense-blog-article-registry');
 const { getInitialIndexingClassification } = require('../src/content/adsense-content-indexing');
-const { evaluateBlogContentEligibility } = require('../src/utils/blog-content-eligibility');
+const { evaluateBlogContentEligibility, hasCurrentPublicationReview } = require('../src/utils/blog-content-eligibility');
 const { BLOG_CATEGORIES } = require('../src/utils/blog');
-const { getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
+const { buildCreatePayload, getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
 const { parseArguments: parseUpdateArguments } = require('../src/scripts/update-adsense-blog');
 const thirtyDayChallenge = require('../src/content/thirty-day-running-challenge-beginners');
 const beginner5kGuide = require('../src/content/beginner-5k-training-plan');
@@ -58,7 +58,8 @@ test('beginner 10K guide builds a substantive flexible progression payload', () 
   assert.ok(payload.coverImageAlt.length <= 180);
   assert.ok(payload.contentHtml.length <= 50000);
   assert.ok(payload.contentText.length <= 50000);
-  assert.ok(wordCount >= 3200);
+  assert.ok(wordCount >= 2500);
+  assert.ok(wordCount <= 3000);
   assert.equal(payload.contentRaw, payload.contentText);
   assert.equal(payload.readingTime, Math.ceil(wordCount / 180));
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
@@ -67,13 +68,12 @@ test('beginner 10K guide builds a substantive flexible progression payload', () 
   assert.doesNotMatch(payload.contentHtml, /<h1\b/i);
   assert.doesNotMatch(payload.contentHtml, /<h[12]>10K Training Plan for Beginners:/i);
   assert.match(payload.contentText, /extend a repeatable 5K foundation/i);
-  assert.match(payload.contentText, /Eight weeks is an example planning window, not a universal deadline/i);
+  assert.match(payload.contentText, /Eight weeks is an example, not a universal deadline/i);
   assert.match(payload.contentText, /Define E as a familiar easy session.*L as your current repeatable longer activity/is);
   assert.match(payload.contentText, /Mina has completed several comfortable 5K run-walk activities/i);
   assert.match(payload.contentText, /A missed session is information, not training debt/i);
   assert.match(payload.contentText, /Population recommendations describe activity associated with health benefits; they are not personal training plans/i);
   assert.match(payload.contentText, /A pending activity is potential progress, not official progress/i);
-  assert.match(payload.contentHtml, /href="\/blog\/can-you-walk-a-virtual-run"/);
 
   for (const heading of REQUIRED_HEADINGS) {
     assert.ok(payload.contentHtml.includes(`<h2>${heading}</h2>`), `missing required heading: ${heading}`);
@@ -83,13 +83,21 @@ test('beginner 10K guide builds a substantive flexible progression payload', () 
   }
 });
 
-test('beginner 10K plan links readers to the year-end running-goals hub', () => {
-  const href = '/blog/how-to-set-running-goals-for-the-rest-of-the-year';
+test('beginner 10K plan excludes links to unpublished September articles', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
+  const unpublishedHrefs = [
+    '/blog/how-to-breathe-while-running',
+    '/blog/can-you-walk-a-virtual-run',
+    '/blog/how-to-run-your-first-10k-virtual-run',
+    '/blog/21k-half-marathon-for-beginners',
+    '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
+  ];
 
-  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
-  assert.ok(payload.contentHtml.includes(`href="${href}"`));
-  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
+  for (const href of unpublishedHrefs) {
+    assert.equal(REQUIRED_LINKS.some((link) => link.includes(href)), false);
+    assert.equal(payload.contentHtml.includes(`href="${href}"`), false);
+    assert.equal(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href), false);
+  }
 });
 
 test('beginner 10K guide preserves all eight framework weeks', () => {
@@ -121,7 +129,8 @@ test('beginner 10K guide sanitizes official sources and passes health eligibilit
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
   assert.equal(eligibility.healthReviewRequired, true);
-  assert.ok(eligibility.wordCount >= 3200);
+  assert.ok(eligibility.wordCount >= 2500);
+  assert.ok(eligibility.wordCount <= 3000);
   assert.ok(eligibility.semanticUnitCount >= 3);
   assert.equal(eligibility.externalLinkCount, 5);
 });
@@ -151,7 +160,7 @@ test('beginner 10K guide is registered and seeded once for September 3', () => {
   assert.equal(seededPost.status, 'scheduled');
   assert.equal(seededPost.publishedAt, '2026-09-03T11:00:00.000Z');
   assert.equal(seededPost.featured, false);
-  assert.ok(seededPost.links.includes('/blog/can-you-walk-a-virtual-run'));
+  assert.equal(seededPost.links.includes('/blog/can-you-walk-a-virtual-run'), false);
 });
 
 test('beginner 10K guide is classified for health review and wired for create/update commands', () => {
@@ -159,14 +168,35 @@ test('beginner 10K guide is classified for health review and wired for create/up
   const publishAt = '2026-09-03T11:00:00.000Z';
 
   assert.deepEqual(
-    parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--publish-at', publishAt]),
-    { slug: CANONICAL_SLUG, mode: 'apply', publishAt }
+    parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--confirm-editorial-review', '--publish-at', publishAt]),
+    { slug: CANONICAL_SLUG, mode: 'apply', confirmEditorialReview: true, publishAt }
   );
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
+  assert.deepEqual(
+    parseUpdateArguments(['--slug', CANONICAL_SLUG, '--apply', '--confirm-editorial-review']),
+    { slug: CANONICAL_SLUG, mode: 'apply', confirmEditorialReview: true }
+  );
   assert.equal(classification.contentRisk, 'health_safety');
   assert.equal(classification.plannedNoindex, true);
   assert.equal(classification.indexCandidate, false);
   assert.match(packageJson.scripts['blog:update-beginner-10k'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+});
+
+test('beginner 10K creation payload uses its local cover and a hash-bound review', () => {
+  const reviewedAt = new Date('2026-09-12T07:00:00.000Z');
+  const payload = buildCreatePayload({
+    slug: CANONICAL_SLUG,
+    authorId: '507f1f77bcf86cd799439011',
+    now: reviewedAt,
+    confirmEditorialReview: true
+  });
+
+  assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
+  assert.equal(payload.status, 'published');
+  assert.equal(payload.publishedAt.toISOString(), reviewedAt.toISOString());
+  assert.equal(payload.searchIndexingStatus, 'noindex');
+  assert.equal(payload.searchIndexingReason, 'pending_expert_review');
+  assert.equal(hasCurrentPublicationReview(payload), true);
 });
 
 test('beginner 10K guide has reciprocal links from the 30-day and beginner 5K guides', () => {
@@ -181,9 +211,6 @@ test('beginner 10K guide has reciprocal links from the 30-day and beginner 5K gu
 });
 
 test('beginner 10K guide rejects unsafe universal and event claims', () => {
-  const href = '/blog/how-to-run-your-first-10k-virtual-run';
-  assert.ok(REQUIRED_LINKS.includes(`href="${href}"`));
-  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
   const withClaim = (claim) => ({
     ...payload,
@@ -199,12 +226,4 @@ test('beginner 10K guide rejects unsafe universal and event claims', () => {
   assert.throws(() => validateArticlePayload(withClaim('Pending activity counts as official completion.')), /pending progress/);
   assert.throws(() => validateArticlePayload(withClaim('Every submission is automatically approved.')), /automatic approval/);
   assert.throws(() => buildArticlePayload(), /cover artwork/);
-});
-
-test('beginner 10K guide links prepared runners to the separate 21K progression', () => {
-  const href = '/blog/21k-half-marathon-for-beginners';
-  const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
-  assert.ok(REQUIRED_LINKS.includes(`href="${href}"`));
-  assert.ok(payload.contentHtml.includes(`href="${href}"`));
-  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
 });

@@ -89,12 +89,14 @@ test('30-day running challenge builds a substantive flexible beginner payload', 
   }
 });
 
-test('30-day challenge excludes links to unpublished September articles', () => {
+test('30-day challenge links to the now-ready 10K guide but not the unpublished year-end guide', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
-  const unpublishedHrefs = [
-    '/blog/10k-training-plan-for-beginners',
-    '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
-  ];
+  const publishedHref = '/blog/10k-training-plan-for-beginners';
+  const unpublishedHrefs = ['/blog/how-to-set-running-goals-for-the-rest-of-the-year'];
+
+  assert.ok(REQUIRED_LINKS.some((link) => link.includes(publishedHref)));
+  assert.ok(payload.contentHtml.includes(`href="${publishedHref}"`));
+  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(publishedHref));
 
   for (const href of unpublishedHrefs) {
     assert.equal(REQUIRED_LINKS.some((link) => link.includes(href)), false);

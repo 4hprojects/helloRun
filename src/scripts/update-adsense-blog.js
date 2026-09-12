@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const Blog = require('../models/Blog');
 const { getArticleModule, listArticleSlugs } = require('../content/adsense-blog-article-registry');
 const {
+  buildTrustedEditorialReview,
   evaluateBlogContentEligibility,
   isCurrentEligibleBlog
 } = require('../utils/blog-content-eligibility');
@@ -31,6 +32,7 @@ function parseArguments(argv = process.argv.slice(2)) {
   let slug = '';
   let apply = false;
   let dryRun = false;
+  let confirmEditorialReview = false;
 
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -41,6 +43,8 @@ function parseArguments(argv = process.argv.slice(2)) {
       apply = true;
     } else if (argument === '--dry-run') {
       dryRun = true;
+    } else if (argument === '--confirm-editorial-review') {
+      confirmEditorialReview = true;
     } else {
       throw new Error(`Unsupported argument: ${argument}`);
     }
@@ -50,7 +54,9 @@ function parseArguments(argv = process.argv.slice(2)) {
   if (apply && dryRun) throw new Error('Choose either --apply or --dry-run, not both.');
   if (!getArticleModule(slug)) throw new Error(`Unknown AdSense article slug: ${slug}. Available slugs: ${listArticleSlugs().join(', ')}`);
 
-  return { slug, mode: apply ? 'apply' : 'dry-run' };
+  const parsed = { slug, mode: apply ? 'apply' : 'dry-run' };
+  if (confirmEditorialReview) parsed.confirmEditorialReview = true;
+  return parsed;
 }
 
 function changedEditorialFields(post, payload) {
@@ -61,9 +67,10 @@ function changedEditorialFields(post, payload) {
   });
 }
 
-async function updateAdsenseBlog({ slug, mode = 'dry-run' } = {}) {
+async function updateAdsenseBlog({ slug, mode = 'dry-run', confirmEditorialReview = false } = {}) {
   if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is required.');
   if (!['dry-run', 'apply'].includes(mode)) throw new Error(`Unsupported update mode: ${mode}`);
+  if (mode === 'apply' && !confirmEditorialReview) throw new Error('Apply mode requires confirmed editorial review.');
 
   const articleModule = getArticleModule(slug);
   if (!articleModule) throw new Error(`Unknown AdSense article slug: ${slug}`);
@@ -89,7 +96,9 @@ async function updateAdsenseBlog({ slug, mode = 'dry-run' } = {}) {
       || post.searchIndexingStatus !== 'noindex'
       || post.indexingReview != null;
     const reviewData = { ...post, ...payload, contentRisk: classification.contentRisk };
-    const contentEligibility = evaluateBlogContentEligibility(reviewData);
+    const reviewSnapshot = confirmEditorialReview
+      ? buildTrustedEditorialReview(reviewData, post.authorId)
+      : { contentEligibility: evaluateBlogContentEligibility(reviewData), publicationReview: null };
     let legacyRecord = null;
 
     if (articleModule.LEGACY_SLUG) {
@@ -106,8 +115,8 @@ async function updateAdsenseBlog({ slug, mode = 'dry-run' } = {}) {
           $set: {
             ...payload,
             contentRisk: classification.contentRisk,
-            contentEligibility,
-            publicationReview: null,
+            contentEligibility: reviewSnapshot.contentEligibility,
+            publicationReview: reviewSnapshot.publicationReview,
             searchIndexingStatus: 'noindex',
             searchIndexingReason: classification.contentRisk === 'health_safety' ? 'pending_expert_review' : 'pending_value_review',
             indexingReview: null
