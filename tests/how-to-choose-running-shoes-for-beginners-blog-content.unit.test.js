@@ -10,9 +10,9 @@ const packageJson = require('../package.json');
 const { POSTS, buildContentHtml, htmlToText } = require('../src/scripts/seed-adsense-blog-posts');
 const { getArticleModule, listArticleSlugs } = require('../src/content/adsense-blog-article-registry');
 const { getInitialIndexingClassification } = require('../src/content/adsense-content-indexing');
-const { evaluateBlogContentEligibility } = require('../src/utils/blog-content-eligibility');
+const { evaluateBlogContentEligibility, hasCurrentPublicationReview } = require('../src/utils/blog-content-eligibility');
 const { BLOG_CATEGORIES } = require('../src/utils/blog');
-const { getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
+const { buildCreatePayload, getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
 const { parseArguments: parseUpdateArguments } = require('../src/scripts/update-adsense-blog');
 const safeRouteGuide = require('../src/content/choose-safe-virtual-run-route-guide');
 const {
@@ -45,7 +45,8 @@ test('beginner running-shoe guide builds a substantive selection payload', () =>
   assert.ok(payload.excerpt.length <= 220);
   assert.ok(payload.seoDescription.length <= 320);
   assert.ok(payload.coverImageAlt.length <= 180);
-  assert.ok(wordCount >= 3000);
+  assert.ok(wordCount >= 2500);
+  assert.ok(wordCount <= 3000);
   assert.equal(payload.contentRaw, payload.contentText);
   assert.equal(payload.readingTime, Math.ceil(wordCount / 180));
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
@@ -77,14 +78,13 @@ test('beginner running-shoe guide sanitizes sources and passes health-sensitive 
 
   assert.notEqual(payload.contentHtml, RAW_CONTENT_HTML.trim());
   assert.doesNotMatch(payload.contentHtml, /<script|javascript:/i);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.orthoinfo\.org\/en\/staying-healthy\/athletic-shoes\/" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/www\.orthoinfo\.org\/staying-healthy\/athletic-shoes\/" rel="noopener noreferrer" target="_blank"/);
   assert.match(payload.contentHtml, /href="https:\/\/www\.guysandstthomas\.nhs\.uk\/health-information\/choosing-athletic-footwear" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.acsm\.org\/docs\/default-source\/files-for-resource-library\/running-shoes\.pdf" rel="noopener noreferrer" target="_blank"/);
   assert.match(payload.contentHtml, /href="https:\/\/pubmed\.ncbi\.nlm\.nih\.gov\/35993829\/" rel="noopener noreferrer" target="_blank"/);
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
   assert.equal(eligibility.healthReviewRequired, true);
-  assert.equal(eligibility.externalLinkCount, 4);
+  assert.equal(eligibility.externalLinkCount, 3);
 });
 
 test('beginner running-shoe guide has a distinct 1600 by 900 repository cover', async () => {
@@ -116,12 +116,27 @@ test('beginner running-shoe guide is registered and seeded once for September 10
 test('beginner running-shoe guide is noindex health content with create and update wiring', () => {
   const classification = getInitialIndexingClassification(CANONICAL_SLUG);
   const publishAt = '2026-09-10T11:00:00.000Z';
-  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--publish-at', publishAt]), { slug: CANONICAL_SLUG, mode: 'apply', publishAt });
+  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--confirm-editorial-review', '--publish-at', publishAt]), { slug: CANONICAL_SLUG, mode: 'apply', confirmEditorialReview: true, publishAt });
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
   assert.equal(classification.contentRisk, 'health_safety');
   assert.equal(classification.plannedNoindex, true);
   assert.equal(classification.indexCandidate, false);
   assert.match(packageJson.scripts['blog:update-beginner-running-shoes'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+});
+
+test('beginner running-shoe creation payload uses its local cover and a current review', () => {
+  const reviewedAt = new Date('2026-09-12T08:00:00.000Z');
+  const payload = buildCreatePayload({
+    slug: CANONICAL_SLUG,
+    authorId: '507f1f77bcf86cd799439011',
+    now: reviewedAt,
+    confirmEditorialReview: true
+  });
+  assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
+  assert.equal(payload.status, 'published');
+  assert.equal(payload.searchIndexingStatus, 'noindex');
+  assert.equal(payload.searchIndexingReason, 'pending_expert_review');
+  assert.equal(hasCurrentPublicationReview(payload), true);
 });
 
 test('safe-route guide reciprocally links to the beginner shoe guide', () => {

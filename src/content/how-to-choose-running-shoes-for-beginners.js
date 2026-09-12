@@ -32,13 +32,12 @@ const RAW_CONTENT_HTML = `
 
 <h2>You do not need the most expensive shoe</h2>
 <p>Price can reflect materials, research, marketing, retailer costs, new foam compounds, plates, limited releases, or branding. It does not prove that a shoe fits your foot or suits an easy beginner routine. A less expensive current or previous-season daily trainer can be the better choice when it is comfortable and appropriate for the intended use.</p>
-<p>Set a budget before entering a store or opening comparison tabs. Include delivery, possible return fees, suitable socks, and any professionally prescribed insert. Avoid financing or overspending for a promised performance gain. Beginners do not need a race shoe and a training shoe simply because an advertisement shows both.</p>
-<p>Compare like with like. A discounted pair that cannot be returned may be a poor value if the sizing is uncertain. A durable-looking outsole may matter more on rough pavement than a small weight difference. A familiar model on sale can be useful, but model updates can change fit even when the name remains.</p>
+<p>Set a total budget that includes delivery, possible return fees, socks, and any prescribed insert. A discounted non-returnable pair may be poor value when sizing is uncertain, and beginners do not need separate race and training shoes because an advertisement shows both. Model updates can also change fit even when the name remains familiar.</p>
 <p>Do not assume an expensive shoe prevents injury. A 2022 Cochrane review found uncertainty about how effectively running shoes prevent lower-limb running injuries and reported low- or very-low-certainty evidence for most comparisons between shoe types. It found no evidence that prescribing footwear based on foot posture reduces such injuries in adults; the relevant studies used military populations, limiting generalization.</p>
 
 <h2>Start with fit and immediate comfort</h2>
 <p>A running shoe should feel comfortable during the fitting. Do not buy a painful or cramped shoe expecting a break-in period to create needed length or width. Uppers may soften, but the shoe does not become longer, and pressure during the test can worsen over a run.</p>
-<p>Fit both feet because they may differ. If one is longer or wider, start with the larger foot and adjust secure hold through the shoe's width option, volume, and lacing. A printed size is only a starting point: sizes and internal shapes vary across brands, models, versions, and regions.</p>
+<p>Fit both feet because they may differ. Start with the larger foot, then adjust secure hold through width, volume, and lacing. Printed size is only a starting point because internal shapes vary across brands, models, versions, and regions.</p>
 <p>Check the whole foot:</p>
 <ul>
   <li><strong>Length:</strong> the longest toe has space from the front when standing, without the foot sliding forward.</li>
@@ -52,26 +51,25 @@ const RAW_CONTENT_HTML = `
 
 <h2>How much room should your toes have?</h2>
 <p>The American Academy of Orthopaedic Surgeons and other clinical fitting guides commonly suggest at least about one-half inch—or roughly a thumb's width—between the longest toe and the front of an athletic shoe. Treat that as a fitting check, not an exact formula for every thumb, foot, or shoe shape.</p>
-<p>Stand with weight on both feet and check the longest toe, which is not always the big toe. The toes should wiggle without being stacked, curled, or pressed from above. Width and depth matter as much as the empty space in front. A long shoe with a narrow or shallow toe box can still be unsuitable.</p>
-<p>More space is not automatically better. Too much volume can let the foot slide, create friction, or require crushing the upper with tight laces. The goal is room for normal movement with secure hold elsewhere.</p>
-<p>Recheck on an incline or short jog when the store permits. Toes should not strike the front while stopping or moving downhill. Bring the socks you expect to wear because sock thickness changes available space. If you use a prescribed orthotic, brace, or other aid, fit the complete setup according to professional guidance.</p>
+<p>Stand with weight on both feet and check the longest toe, which is not always the big toe. Toes should wiggle without stacking or pressure from above. Width and depth matter too: a long but narrow or shallow toe box can still be unsuitable.</p>
+<p>Too much space can cause sliding and friction. When permitted, recheck on an incline or short jog; toes should not strike the front while stopping or moving downhill. Wear the intended socks and fit any prescribed orthotic or brace according to professional guidance.</p>
 
 <h2>Road, trail, and treadmill shoes</h2>
 <p>Choose for the surface you will use most, not the terrain you hope to tackle someday.</p>
 <h3>Road and paved-path use</h3>
-<p>General road-running shoes are designed for relatively consistent surfaces such as pavement, tracks, and paved park paths. Beginners commonly start with a comfortable daily-use road shoe. Outsole coverage, flexibility, cushioning feel, and upper fit vary widely, so “road shoe” is a category rather than a recommendation for one model.</p>
+<p>Road shoes suit relatively consistent surfaces such as pavement, tracks, and paved paths. Beginners commonly start with a comfortable daily trainer, but outsole, flexibility, cushioning, and upper fit vary widely within the category.</p>
 <h3>Trail use</h3>
 <p>Trail shoes may add outsole lugs, protective materials, and a secure upper for dirt, loose surfaces, roots, or uneven terrain. More aggressive tread is not automatically safer on smooth wet tile or pavement. Match lug depth and protection to the actual trail, and recognize that grip still has limits on mud, wet rock, moss, roots, and steep ground.</p>
 <h3>Treadmill use</h3>
 <p>A comfortable road shoe often works on a treadmill. Breathability can matter indoors, and extremely aggressive trail lugs are usually unnecessary on a belt. Follow facility rules and ensure the outsole is clean. A treadmill does not correct poor shoe fit.</p>
 <h3>Mixed use</h3>
-<p>If most sessions are paved with occasional smooth packed paths, one versatile comfortable pair may be enough. If regular technical trails are part of the plan, a dedicated trail option may offer useful traction and protection. The <a href="/blog/how-to-choose-a-safe-route-for-your-virtual-run">safe-route guide</a> can help identify the surface, slope, weather exposure, and backup route before you shop.</p>
+<p>For mostly paved sessions with occasional smooth packed paths, one versatile pair may be enough. Regular technical trails may justify a dedicated trail option. The <a href="/blog/how-to-choose-a-safe-route-for-your-virtual-run">safe-route guide</a> can help identify surface, slope, weather exposure, and backup routes before you shop.</p>
 
 <h2>Cushioning and stability in simple terms</h2>
 <p>Cushioning describes how the midsole feels and responds underfoot. More stack height or softness is not automatically more comfortable, more stable, or safer. Some runners like a soft sensation; others prefer a firmer or lower platform. Test rather than treating marketing adjectives as measurements.</p>
-<p>Stability shoes use geometry, foam placement, sidewalls, width, or other design features intended to guide or support movement. Neutral shoes generally use fewer obvious guidance features. These labels are not consistent across every brand and do not diagnose how you move.</p>
-<p>Pronation—some inward motion of the foot—is part of normal walking and running. A wet-foot arch test or salesperson watching a few walking steps does not, by itself, determine the only safe shoe category. The ACSM selection guide notes that foot shape or arch height are not good standalone indicators of which running shoe to buy.</p>
-<p>If several shoes fit, compare them during the same kind of movement. Notice whether the platform feels predictable, the foot stays centered without strain, and no feature presses into the arch. Choose the comfortable option rather than the category with the most corrective language.</p>
+<p>Stability shoes use geometry, foam placement, sidewalls, or width to guide movement; neutral shoes generally use fewer obvious guidance features. These inconsistent marketing labels do not diagnose how you move.</p>
+<p>Pronation—some inward motion of the foot—is part of normal walking and running. A wet-foot arch test or salesperson watching a few walking steps does not, by itself, determine the only safe shoe category. The Cochrane review found no evidence that prescribing footwear from foot posture reduces lower-limb running injuries in adults, while noting limits in the available studies.</p>
+<p>Compare suitable shoes during the same movement. Choose the option that feels predictable and comfortable, keeps the foot centered, and does not press into the arch.</p>
 <p>People with an injury, recurrent symptoms, substantial deformity, loss of sensation, prescribed orthotics, or a clinician-directed footwear need should follow individualized advice. A retail assessment is not a medical diagnosis.</p>
 
 <h2>Other shoe features without the jargon</h2>
@@ -97,27 +95,25 @@ const RAW_CONTENT_HTML = `
   <li><strong>Notice immediate problems.</strong> Reject pinching, toe contact, numbness, hot spots, unstable sliding, or pressure that requires hope.</li>
   <li><strong>Confirm terms.</strong> Ask what condition the shoe must remain in for a return or exchange.</li>
 </ol>
-<p>Trying later in the day or after ordinary activity may help account for foot expansion, as AAOS guidance notes. Do not deliberately exhaust yourself or complete a hard run only for a fitting. The important point is to avoid choosing a pair tested only when your feet are at their smallest.</p>
-<p>A treadmill video can provide observations, but it is not compulsory and should not be presented as a diagnosis. Ask what the salesperson saw, what feature they propose, what alternative exists, and whether you can compare the options by comfort.</p>
+<p>Trying later in the day or after ordinary activity may account for foot expansion, as AAOS guidance notes. A treadmill video can offer observations, but it is neither compulsory nor a diagnosis. Ask what the salesperson saw and compare alternatives by comfort.</p>
 
 <h2>Buying running shoes online</h2>
 <p>Online buying works best when you already know the exact model, version, size, and width—or when the seller offers a clear practical return process. A familiar brand size does not guarantee a new model fits the same.</p>
 <p>Before ordering:</p>
 <ul>
-  <li>Read the official size chart and identify whether it uses foot length, internal length, US, UK, EU, or centimetre sizing.</li>
+  <li>Read the official size chart and identify its measurement and sizing system.</li>
   <li>Measure both feet using the seller's stated method, standing when instructed.</li>
   <li>Check available widths rather than sizing up repeatedly to solve width pressure.</li>
   <li>Confirm whether the listing is the expected model version and intended category.</li>
   <li>Read return deadlines, fees, packaging requirements, and whether indoor try-on is allowed.</li>
-  <li>Check seller identity and authenticity safeguards; an unusually low price can carry counterfeit or return risk.</li>
+  <li>Check seller identity and authenticity safeguards.</li>
 </ul>
-<p>When the pair arrives, inspect both shoes for matching size, defects, outsole condition, and correct contents. Try them indoors on a clean surface with running socks. Do not complete an outdoor run until you are comfortable keeping them under the seller's terms.</p>
-<p>Do not publish foot measurements, order details, phone numbers, or home-address labels in a public request for sizing help. Share only what is necessary through legitimate support channels.</p>
+<p>On arrival, inspect both shoes for matching size, defects, and outsole condition. Try them indoors on a clean surface with running socks, and stay within the seller's return terms. Keep order details and address labels out of public sizing requests.</p>
 
 <h2>Running shoes in the Philippine climate</h2>
 <p>Heat, humidity, sudden rain, wet pavement, and storage conditions can affect comfort and use. A breathable upper may feel useful, but ventilation does not make hot-weather running safe. A grippy-looking outsole cannot promise traction on painted crossings, smooth tile, algae, metal covers, mud, or oil.</p>
-<p>Choose materials and fit with your routes in mind. Socks, foot movement, and water entry also affect blisters and comfort. Waterproof uppers can reduce some water entry but may feel warmer and can still admit water from the collar. Quick-drying preference is personal and should be tested where practical.</p>
-<p>After a wet session, remove loose debris, follow the maker's care directions, and let shoes dry fully in a ventilated place before the next use. Avoid assuming direct intense heat is safe for adhesives and foam. Alternating pairs can provide drying time, but a beginner can instead schedule recovery or use a suitable existing backup; buying two pairs is not mandatory.</p>
+<p>Choose materials and fit for your routes. Socks, foot movement, and water affect comfort. Waterproof uppers may feel warmer and can still admit water through the collar, while quick-drying preference is personal.</p>
+<p>After a wet session, remove debris, follow the maker's care directions, and dry shoes in a ventilated place rather than assuming intense heat is safe for adhesives and foam. Alternating pairs can provide drying time, but buying two is not mandatory.</p>
 <p>Read the <a href="/blog/running-during-rainy-season-philippines">rainy-season running guide</a> and <a href="/blog/how-to-run-safely-during-hot-and-humid-weather">hot-weather guide</a> for route and condition decisions that footwear cannot solve.</p>
 
 <h2>How many pairs does a beginner need?</h2>
@@ -127,8 +123,7 @@ const RAW_CONTENT_HTML = `
   <li>regular trail and road sessions genuinely need different outsoles;</li>
   <li>a wet pair cannot dry before the next appropriate activity;</li>
   <li>a prescribed or individual need calls for another setup;</li>
-  <li>the current pair is nearing replacement and a gradual handover is practical;</li>
-  <li>the budget comfortably supports rotation without displacing essentials.</li>
+  <li>the current pair is nearing replacement and a gradual handover is practical.</li>
 </ul>
 <p>Owning several pairs does not guarantee longer shoe life in total, prevent injury, or improve consistency. A beginner challenge such as the <a href="/blog/30-day-running-challenge-for-beginners">flexible 30-day running reset</a> can be completed with walking, recovery, and a suitable single pair; it does not require daily running or daily footwear changes.</p>
 
@@ -143,12 +138,9 @@ const RAW_CONTENT_HTML = `
   <li>the shoe has been exposed to damage, contamination, or storage conditions outside maker guidance;</li>
   <li>new symptoms repeatedly occur and warrant assessment rather than another forced run.</li>
 </ul>
-<p>Do not wait for a dramatic failure when safety-critical structure or traction is compromised. Conversely, visible cosmetic creasing or a dirty upper alone does not prove the shoe is unusable. Compare both shoes, your notes, and the actual function.</p>
-<p>If replacing, introduce the new pair during shorter familiar activity instead of debuting it for the longest event. A new shoe still needs a real-world comfort check even when the old version worked.</p>
+<p>Do not wait for dramatic failure when structure or traction is compromised, but cosmetic creasing or dirt alone does not prove a shoe unusable. Introduce a replacement during shorter familiar activity; even a familiar model needs a real-world comfort check.</p>
 
 <h2>Common beginner buying mistakes</h2>
-<h3>Choosing by appearance or brand first</h3>
-<p>Color and brand can be preferences after fit, use, and budget. They cannot compensate for pressure or sliding.</p>
 <h3>Buying the same printed size without trying it</h3>
 <p>Internal shape changes across models and versions. Fit both feet every time.</p>
 <h3>Expecting a painful shoe to break in</h3>
@@ -157,8 +149,6 @@ const RAW_CONTENT_HTML = `
 <p>Arch shape alone does not select the only correct category. Comfort, movement, history, and individual clinical needs matter.</p>
 <h3>Assuming more cushioning is always safer</h3>
 <p>Softness and stack are preferences and design variables, not injury guarantees. Test how the complete shoe feels.</p>
-<h3>Buying technical trail shoes for ordinary pavement</h3>
-<p>Aggressive lugs and protective features may be unnecessary or awkward on the main surface. Shop for the real route.</p>
 <h3>Ignoring the return policy</h3>
 <p>Especially online, a cheap non-returnable pair can cost more than a correctly fitted option.</p>
 <h3>Replacing only because an app reached a number</h3>
@@ -188,16 +178,14 @@ const RAW_CONTENT_HTML = `
 <p>Not necessarily for your foot or use. Price can buy particular materials and features, but it does not prove fit, comfort, durability, safety, or better outcomes.</p>
 <h3>Do I need a gait analysis?</h3>
 <p>No. A store running assessment can offer observations and comparison opportunities, but it is not compulsory or diagnostic. Persistent symptoms and clinical needs belong with a qualified professional.</p>
-<h3>Are stability shoes only for flat feet?</h3>
-<p>No simple arch-shape rule can select the only suitable shoe. Stability features vary, normal pronation exists, and comfort and individual response matter. Follow personal clinical advice when applicable.</p>
 <h3>Can I use walking shoes for beginner run-walk?</h3>
 <p>Possibly, when they fit securely and feel appropriate for the movement and surface. Test short controlled running portions rather than assuming every walking shoe or casual sneaker is suitable.</p>
 <h3>How long do running shoes last?</h3>
 <p>There is no exact lifespan. Use mileage as an inspection reminder and consider outsole, upper, midsole shape, changed comfort, surface, storage, and maker guidance.</p>
 
 <h2>Official sources and review scope</h2>
-<p>This article was reviewed in August 2026. The <a href="https://www.orthoinfo.org/en/staying-healthy/athletic-shoes/">American Academy of Orthopaedic Surgeons athletic-shoe guide</a> supports fitting both shoes, allowing toe room, checking heel hold, wearing intended socks, and trying footwear later in the day. The <a href="https://www.guysandstthomas.nhs.uk/health-information/choosing-athletic-footwear">Guy's and St Thomas' NHS Foundation Trust footwear guide</a> supplies current clinical fitting context.</p>
-<p>The <a href="https://www.acsm.org/docs/default-source/files-for-resource-library/running-shoes.pdf">American College of Sports Medicine running-shoe selection guide</a> supports prioritizing individual fit and warns against selecting from foot shape, arch height, or walking observation alone. The 2022 <a href="https://pubmed.ncbi.nlm.nih.gov/35993829/">Cochrane review of running shoes for preventing lower-limb injuries</a> supports caution about injury-prevention claims and describes limits in the evidence.</p>
+<p>This article was reviewed in September 2026. The <a href="https://www.orthoinfo.org/staying-healthy/athletic-shoes/">American Academy of Orthopaedic Surgeons athletic-shoe guide</a> supports fitting both shoes, allowing toe room, checking heel hold, wearing intended socks, and trying footwear later in the day. The <a href="https://www.guysandstthomas.nhs.uk/health-information/choosing-athletic-footwear">Guy's and St Thomas' NHS Foundation Trust footwear guide</a> supplies current clinical fitting context.</p>
+<p>The 2022 <a href="https://pubmed.ncbi.nlm.nih.gov/35993829/">Cochrane review of running shoes for preventing lower-limb injuries</a> supports caution about injury-prevention claims, including claims based on foot posture, and describes important limits in the evidence.</p>
 <p>These sources offer general information, not an endorsement of a brand, model, retailer, fitting service, or replacement date. Product specifications, availability, pricing, and return policies change. This article contains no affiliate recommendation and has not independently tested shoes.</p>
 <p>Footwear information is not personal medical advice, diagnosis, treatment, or a guarantee against pain or injury. Individual conditions, prescribed devices, disability, pregnancy-related changes, wounds, sensation changes, and recovery needs can alter what is appropriate.</p>
 
@@ -263,7 +251,7 @@ function validateArticlePayload(payload) {
   if (!payload.contentHtml || payload.contentHtml.length > 50000) errors.push('contentHtml must be 1-50000 characters');
   if (!payload.contentText || payload.contentText.length > 50000) errors.push('contentText must be 1-50000 characters');
   if (payload.contentRaw !== payload.contentText) errors.push('contentRaw and contentText must match');
-  if (wordCount < 3000) errors.push('article must contain at least 3000 substantive words');
+  if (wordCount < 2500 || wordCount > 3000) errors.push('article must contain 2500-3000 substantive words');
   if (!Array.isArray(payload.tags) || payload.tags.length !== 8) errors.push('article must contain exactly 8 tags');
   if ((payload.tags || []).some((tag) => !tag || tag.length > 30)) errors.push('tags must be 1-30 characters');
   if (!payload.seoTitle || payload.seoTitle.length > 160) errors.push('seoTitle must be 1-160 characters');
@@ -281,7 +269,7 @@ function validateArticlePayload(payload) {
   if (/(?:most expensive|highest-priced) shoe is (?:always )?(?:best|safest)|higher price guarantees/i.test(text)) errors.push('article must not equate price with suitability');
   if (!/best running shoes for beginners are the pair that fits both feet comfortably/i.test(text)) errors.push('article must answer buying intent early');
   if (!/Footwear information is not personal medical advice, diagnosis, treatment/i.test(text)) errors.push('article must distinguish general footwear information');
-  if (!/reviewed in August 2026/i.test(text)) errors.push('article must disclose review date');
+  if (!/reviewed in September 2026/i.test(text)) errors.push('article must disclose review date');
 
   for (const heading of REQUIRED_HEADINGS) {
     if (!payload.contentHtml.includes(`<h2>${heading}</h2>`)) errors.push(`missing required heading: ${heading}`);
