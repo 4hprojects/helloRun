@@ -1271,9 +1271,7 @@ const POSTS = [
       '/blog/run-walk-method-beginner-friendly-way-build-endurance',
       '/blog/how-to-build-a-weekly-running-schedule-around-work-or-school',
       '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
-      '/blog/how-to-set-a-realistic-monthly-running-goal',
-      '/blog/10k-training-plan-for-beginners',
-      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
+      '/blog/how-to-set-a-realistic-monthly-running-goal'
     ]
   },
   {

@@ -2,13 +2,15 @@
 
 require('dotenv').config();
 
+const fs = require('node:fs');
+const path = require('node:path');
 const mongoose = require('mongoose');
 const Blog = require('../models/Blog');
 const User = require('../models/User');
 const { POSTS } = require('./seed-adsense-blog-posts');
 const { getArticleModule, listArticleSlugs } = require('../content/adsense-blog-article-registry');
 const { EDITORIAL_TEAM_EMAIL } = require('../utils/blog-author');
-const { evaluateBlogContentEligibility } = require('../utils/blog-content-eligibility');
+const { buildTrustedEditorialReview, evaluateBlogContentEligibility } = require('../utils/blog-content-eligibility');
 const { getInitialIndexingClassification } = require('../content/adsense-content-indexing');
 
 const GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -18,6 +20,7 @@ function parseArguments(argv = process.argv.slice(2)) {
   let apply = false;
   let dryRun = false;
   let publishAt = '';
+  let confirmEditorialReview = false;
 
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -31,6 +34,8 @@ function parseArguments(argv = process.argv.slice(2)) {
     } else if (argument === '--publish-at') {
       publishAt = String(argv[index + 1] || '').trim();
       index += 1;
+    } else if (argument === '--confirm-editorial-review') {
+      confirmEditorialReview = true;
     } else {
       throw new Error(`Unsupported argument: ${argument}`);
     }
@@ -42,8 +47,26 @@ function parseArguments(argv = process.argv.slice(2)) {
   if (publishAt && Number.isNaN(new Date(publishAt).getTime())) throw new Error('--publish-at must be a valid ISO timestamp.');
 
   const parsed = { slug, mode: apply ? 'apply' : 'dry-run' };
+  if (confirmEditorialReview) parsed.confirmEditorialReview = true;
   if (publishAt) parsed.publishAt = publishAt;
   return parsed;
+}
+
+function validateCoverImageUrl(coverImageUrl) {
+  const value = String(coverImageUrl || '').trim();
+  if (/^https:\/\/cdn\.hellorun\.online\/blog\/covers\/[a-z0-9-]+\.webp$/i.test(value)) return value;
+  if (!/^\/images\/blog\/covers\/[a-z0-9-]+\.webp$/.test(value)) {
+    throw new Error('Cover must be a HelloRun CDN asset or a safe repository-local /images/blog/covers/*.webp asset.');
+  }
+
+  const coversRoot = fs.realpathSync(path.join(__dirname, '..', 'public', 'images', 'blog', 'covers'));
+  const assetPath = path.join(__dirname, '..', 'public', value.slice(1));
+  if (!fs.existsSync(assetPath)) throw new Error(`Repository-local blog cover does not exist: ${value}`);
+  const resolvedAssetPath = fs.realpathSync(assetPath);
+  if (!resolvedAssetPath.startsWith(`${coversRoot}${path.sep}`) || !fs.statSync(resolvedAssetPath).isFile()) {
+    throw new Error(`Unsafe repository-local blog cover: ${value}`);
+  }
+  return value;
 }
 
 function getCanonicalSeed(slug) {
@@ -54,16 +77,13 @@ function getCanonicalSeed(slug) {
   return matches[0];
 }
 
-function buildCreatePayload({ slug, authorId, now = new Date(), publishAt = null }) {
+function buildCreatePayload({ slug, authorId, now = new Date(), publishAt = null, confirmEditorialReview = false }) {
   const articleModule = getArticleModule(slug);
   if (!articleModule) throw new Error(`Unknown AdSense article slug: ${slug}`);
   if (!authorId) throw new Error('Existing guide author is required.');
 
   const seed = getCanonicalSeed(slug);
-  const coverImageUrl = String(seed.coverImageUrl || '').trim();
-  if (!/^https:\/\/cdn\.hellorun\.online\/blog\/covers\//i.test(coverImageUrl)) {
-    throw new Error('A HelloRun CDN blog cover is required before creating the article.');
-  }
+  const coverImageUrl = validateCoverImageUrl(seed.coverImageUrl);
 
   const editorialPayload = articleModule.buildArticlePayload({ coverImageUrl });
   const reviewedAt = new Date(now);
@@ -96,8 +116,12 @@ function buildCreatePayload({ slug, authorId, now = new Date(), publishAt = null
   };
   const classification = getInitialIndexingClassification(slug);
   payload.contentRisk = classification.contentRisk;
-  payload.contentEligibility = evaluateBlogContentEligibility(payload, { evaluatedAt: reviewedAt });
-  payload.publicationReview = null;
+  if (confirmEditorialReview) {
+    Object.assign(payload, buildTrustedEditorialReview(payload, authorId, reviewedAt));
+  } else {
+    payload.contentEligibility = evaluateBlogContentEligibility(payload, { evaluatedAt: reviewedAt });
+    payload.publicationReview = null;
+  }
   payload.searchIndexingStatus = 'noindex';
   payload.searchIndexingReason = classification.contentRisk === 'health_safety' ? 'pending_expert_review' : 'pending_value_review';
   payload.indexingReview = null;
@@ -107,9 +131,10 @@ function buildCreatePayload({ slug, authorId, now = new Date(), publishAt = null
   return payload;
 }
 
-async function createAdsenseBlog({ slug, mode = 'dry-run', now = new Date(), publishAt = null } = {}) {
+async function createAdsenseBlog({ slug, mode = 'dry-run', now = new Date(), publishAt = null, confirmEditorialReview = false } = {}) {
   if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is required.');
   if (!['dry-run', 'apply'].includes(mode)) throw new Error(`Unsupported create mode: ${mode}`);
+  if (mode === 'apply' && !confirmEditorialReview) throw new Error('Apply mode requires confirmed editorial review.');
   if (!getArticleModule(slug)) throw new Error(`Unknown AdSense article slug: ${slug}`);
 
   await mongoose.connect(process.env.MONGODB_URI);
@@ -122,7 +147,7 @@ async function createAdsenseBlog({ slug, mode = 'dry-run', now = new Date(), pub
     const author = await User.findOne({ email: GUIDE_AUTHOR_EMAIL, emailVerified: true, role: 'admin' }).select('_id email role').lean();
     if (!author) throw new Error(`Existing verified admin guide author not found: ${GUIDE_AUTHOR_EMAIL}`);
 
-    const payload = buildCreatePayload({ slug, authorId: author._id, now, publishAt });
+    const payload = buildCreatePayload({ slug, authorId: author._id, now, publishAt, confirmEditorialReview });
     let createdId = null;
 
     if (mode === 'apply') {
@@ -144,6 +169,8 @@ async function createAdsenseBlog({ slug, mode = 'dry-run', now = new Date(), pub
       coverImageUrl: payload.coverImageUrl,
       wordCount: payload.contentText.split(/\s+/).filter(Boolean).length,
       readingTime: payload.readingTime,
+      publicationReviewRecorded: Boolean(payload.publicationReview),
+      searchIndexingStatus: payload.searchIndexingStatus,
       initialEngagement: {
         views: payload.views,
         likesCount: payload.likesCount,
@@ -173,5 +200,6 @@ module.exports = {
   buildCreatePayload,
   createAdsenseBlog,
   getCanonicalSeed,
-  parseArguments
+  parseArguments,
+  validateCoverImageUrl
 };

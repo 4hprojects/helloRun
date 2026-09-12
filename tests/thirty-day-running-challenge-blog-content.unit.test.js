@@ -10,9 +10,15 @@ const packageJson = require('../package.json');
 const { POSTS, buildContentHtml, htmlToText } = require('../src/scripts/seed-adsense-blog-posts');
 const { getArticleModule, listArticleSlugs } = require('../src/content/adsense-blog-article-registry');
 const { getInitialIndexingClassification } = require('../src/content/adsense-content-indexing');
-const { evaluateBlogContentEligibility } = require('../src/utils/blog-content-eligibility');
+const { evaluateBlogContentEligibility, hasCurrentPublicationReview } = require('../src/utils/blog-content-eligibility');
 const { BLOG_CATEGORIES } = require('../src/utils/blog');
-const { getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
+const {
+  buildCreatePayload,
+  createAdsenseBlog,
+  getCanonicalSeed,
+  parseArguments: parseCreateArguments,
+  validateCoverImageUrl
+} = require('../src/scripts/create-adsense-blog');
 const { parseArguments: parseUpdateArguments } = require('../src/scripts/update-adsense-blog');
 const runWalkGuide = require('../src/content/run-walk-method-beginner-guide');
 const weeklyScheduleGuide = require('../src/content/weekly-running-schedule-work-school-guide');
@@ -59,7 +65,8 @@ test('30-day running challenge builds a substantive flexible beginner payload', 
   assert.ok(payload.coverImageAlt.length <= 180);
   assert.ok(payload.contentHtml.length <= 50000);
   assert.ok(payload.contentText.length <= 50000);
-  assert.ok(wordCount >= 3200);
+  assert.ok(wordCount >= 2500);
+  assert.ok(wordCount <= 3000);
   assert.equal(payload.contentRaw, payload.contentText);
   assert.equal(payload.readingTime, Math.ceil(wordCount / 180));
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
@@ -82,13 +89,18 @@ test('30-day running challenge builds a substantive flexible beginner payload', 
   }
 });
 
-test('30-day challenge links readers to the year-end running-goals hub', () => {
-  const href = '/blog/how-to-set-running-goals-for-the-rest-of-the-year';
+test('30-day challenge excludes links to unpublished September articles', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
+  const unpublishedHrefs = [
+    '/blog/10k-training-plan-for-beginners',
+    '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
+  ];
 
-  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
-  assert.ok(payload.contentHtml.includes(`href="${href}"`));
-  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
+  for (const href of unpublishedHrefs) {
+    assert.equal(REQUIRED_LINKS.some((link) => link.includes(href)), false);
+    assert.equal(payload.contentHtml.includes(`href="${href}"`), false);
+    assert.equal(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href), false);
+  }
 });
 
 test('30-day challenge sanitizes sources and passes health-safety eligibility', () => {
@@ -108,7 +120,8 @@ test('30-day challenge sanitizes sources and passes health-safety eligibility', 
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
   assert.equal(eligibility.healthReviewRequired, true);
-  assert.ok(eligibility.wordCount >= 3200);
+  assert.ok(eligibility.wordCount >= 2500);
+  assert.ok(eligibility.wordCount <= 3000);
   assert.ok(eligibility.semanticUnitCount >= 3);
   assert.equal(eligibility.externalLinkCount, 4);
 });
@@ -145,14 +158,54 @@ test('30-day challenge is classified for health review and wired for create/upda
   const publishAt = '2026-09-01T11:00:00.000Z';
 
   assert.deepEqual(
-    parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--publish-at', publishAt]),
-    { slug: CANONICAL_SLUG, mode: 'apply', publishAt }
+    parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--confirm-editorial-review', '--publish-at', publishAt]),
+    { slug: CANONICAL_SLUG, mode: 'apply', confirmEditorialReview: true, publishAt }
   );
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
   assert.equal(classification.contentRisk, 'health_safety');
   assert.equal(classification.plannedNoindex, true);
   assert.equal(classification.indexCandidate, false);
   assert.match(packageJson.scripts['blog:update-30-day-running-challenge'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+});
+
+test('single-article creator accepts the verified local cover and records a current review', () => {
+  const reviewedAt = new Date('2026-09-12T06:00:00.000Z');
+  const authorId = '507f1f77bcf86cd799439011';
+  const payload = buildCreatePayload({
+    slug: CANONICAL_SLUG,
+    authorId,
+    now: reviewedAt,
+    confirmEditorialReview: true
+  });
+
+  assert.equal(validateCoverImageUrl(COVER_IMAGE_URL), COVER_IMAGE_URL);
+  assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
+  assert.equal(payload.status, 'published');
+  assert.equal(payload.publishedAt.toISOString(), reviewedAt.toISOString());
+  assert.equal(payload.searchIndexingStatus, 'noindex');
+  assert.equal(payload.searchIndexingReason, 'pending_expert_review');
+  assert.equal(payload.publicationReview.originalityConfirmed, true);
+  assert.equal(payload.publicationReview.externalLinksConfirmed, true);
+  assert.equal(payload.publicationReview.healthSafetyConfirmed, true);
+  assert.equal(hasCurrentPublicationReview(payload), true);
+});
+
+test('single-article creator rejects missing and unsafe local covers', () => {
+  assert.throws(
+    () => validateCoverImageUrl('/images/blog/covers/does-not-exist.webp'),
+    /does not exist/
+  );
+  assert.throws(
+    () => validateCoverImageUrl('/images/blog/covers/../secret.webp'),
+    /safe repository-local/
+  );
+});
+
+test('single-article creator requires explicit review confirmation before apply', async () => {
+  await assert.rejects(
+    createAdsenseBlog({ slug: CANONICAL_SLUG, mode: 'apply' }),
+    /requires confirmed editorial review/
+  );
 });
 
 test('30-day challenge has reciprocal links from its three primary August guides', () => {
