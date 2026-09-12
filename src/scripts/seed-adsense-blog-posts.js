@@ -1380,8 +1380,7 @@ const POSTS = [
       '/blog/how-to-build-a-weekly-running-schedule-around-work-or-school',
       '/blog/how-to-breathe-while-running',
       '/blog/10k-training-plan-for-beginners',
-      '/blog/gps-watch-vs-running-app',
-      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
+      '/blog/gps-watch-vs-running-app'
     ]
   },
   {

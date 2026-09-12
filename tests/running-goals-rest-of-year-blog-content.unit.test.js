@@ -11,9 +11,9 @@ const packageJson = require('../package.json');
 const { POSTS, buildContentHtml, htmlToText } = require('../src/scripts/seed-adsense-blog-posts');
 const { getArticleModule, listArticleSlugs } = require('../src/content/adsense-blog-article-registry');
 const { getInitialIndexingClassification } = require('../src/content/adsense-content-indexing');
-const { evaluateBlogContentEligibility } = require('../src/utils/blog-content-eligibility');
+const { evaluateBlogContentEligibility, hasCurrentPublicationReview } = require('../src/utils/blog-content-eligibility');
 const { BLOG_CATEGORIES } = require('../src/utils/blog');
-const { getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
+const { buildCreatePayload, getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
 const { parseArguments: parseUpdateArguments } = require('../src/scripts/update-adsense-blog');
 const realisticMonthlyGoal = require('../src/content/realistic-monthly-running-goal');
 const weeklySchedule = require('../src/content/weekly-running-schedule-work-school-guide');
@@ -68,7 +68,8 @@ test('year-end running-goals guide builds a substantive September-to-December hu
   assert.ok(payload.coverImageAlt.length <= 180);
   assert.ok(payload.contentHtml.length <= 50000);
   assert.ok(payload.contentText.length <= 50000);
-  assert.ok(wordCount >= 3400);
+  assert.ok(wordCount >= 2500);
+  assert.ok(wordCount <= 3000);
   assert.equal(payload.contentRaw, payload.contentText);
   assert.equal(payload.readingTime, Math.ceil(wordCount / 180));
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
@@ -111,7 +112,7 @@ test('year-end guide stays distinct from monthly targeting and the 30-day challe
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
 
   assert.match(payload.contentText, /This article stays at the four-month level: one destination, a process, checkpoints, and permission to revise the route/i);
-  assert.match(payload.contentText, /A monthly challenge can serve the four-month goal without becoming four consecutive maximum efforts/i);
+  assert.match(payload.contentText, /A monthly challenge can serve the four-month goal without four maximum efforts/i);
   assert.match(payload.contentHtml, /href="\/blog\/how-to-set-a-realistic-monthly-running-goal"/);
   assert.match(payload.contentHtml, /href="\/blog\/30-day-running-challenge-for-beginners"/);
   assert.notEqual(payload.title, realisticMonthlyGoal.ARTICLE.title);
@@ -137,7 +138,8 @@ test('year-end guide sanitizes official sources and passes health-sensitive elig
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
   assert.equal(eligibility.healthReviewRequired, true);
-  assert.ok(eligibility.wordCount >= 3400);
+  assert.ok(eligibility.wordCount >= 2500);
+  assert.ok(eligibility.wordCount <= 3000);
   assert.equal(eligibility.externalLinkCount, 5);
 });
 
@@ -195,8 +197,8 @@ test('year-end running-goals guide is scheduled noindex health content with upda
   const publishAt = '2026-09-30T11:00:00.000Z';
 
   assert.deepEqual(
-    parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--publish-at', publishAt]),
-    { slug: CANONICAL_SLUG, mode: 'apply', publishAt }
+    parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--confirm-editorial-review', '--publish-at', publishAt]),
+    { slug: CANONICAL_SLUG, mode: 'apply', confirmEditorialReview: true, publishAt }
   );
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
   assert.equal(classification.contentRisk, 'health_safety');
@@ -205,13 +207,43 @@ test('year-end running-goals guide is scheduled noindex health content with upda
   assert.match(packageJson.scripts['blog:update-year-end-running-goals'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
-test('ten existing goal and progression guides reciprocally link to the year-end hub', () => {
+test('year-end running-goals creation payload schedules the local cover with a current review', () => {
+  const publishAt = '2026-09-30T11:00:00.000Z';
+  const payload = buildCreatePayload({
+    slug: CANONICAL_SLUG,
+    authorId: '507f1f77bcf86cd799439011',
+    now: new Date('2026-09-13T08:00:00.000Z'),
+    publishAt: new Date(publishAt),
+    confirmEditorialReview: true
+  });
+  assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
+  assert.equal(payload.status, 'scheduled');
+  assert.equal(payload.publishedAt.toISOString(), publishAt);
+  assert.equal(payload.searchIndexingStatus, 'noindex');
+  assert.equal(payload.searchIndexingReason, 'pending_expert_review');
+  assert.equal(hasCurrentPublicationReview(payload), true);
+});
+
+test('four established goal and progression guides reciprocally link to the year-end hub', () => {
   const href = `/blog/${CANONICAL_SLUG}`;
   const guides = [
     realisticMonthlyGoal,
     weeklySchedule,
     returningToRunning,
-    runWalk,
+    runWalk
+  ];
+
+  for (const guide of guides) {
+    const payload = guide.buildArticlePayload({ coverImageUrl: 'https://cdn.example.com/cover.webp' });
+    assert.ok(guide.REQUIRED_LINKS.some((link) => link.includes(href)), `${guide.ARTICLE.slug} required link missing`);
+    assert.ok(payload.contentHtml.includes(`href="${href}"`), `${guide.ARTICLE.slug} content link missing`);
+    assert.ok(POSTS.find((post) => post.slug === guide.ARTICLE.slug).links.includes(href), `${guide.ARTICLE.slug} seed link missing`);
+  }
+});
+
+test('earlier September guides omit the later unpublished year-end hub', () => {
+  const href = `/blog/${CANONICAL_SLUG}`;
+  const guides = [
     thirtyDayChallenge,
     beginner10k,
     finishTimes,
@@ -222,9 +254,9 @@ test('ten existing goal and progression guides reciprocally link to the year-end
 
   for (const guide of guides) {
     const payload = guide.buildArticlePayload({ coverImageUrl: 'https://cdn.example.com/cover.webp' });
-    assert.ok(guide.REQUIRED_LINKS.some((link) => link.includes(href)), `${guide.ARTICLE.slug} required link missing`);
-    assert.ok(payload.contentHtml.includes(`href="${href}"`), `${guide.ARTICLE.slug} content link missing`);
-    assert.ok(POSTS.find((post) => post.slug === guide.ARTICLE.slug).links.includes(href), `${guide.ARTICLE.slug} seed link missing`);
+    assert.ok(!guide.REQUIRED_LINKS.some((link) => link.includes(href)), `${guide.ARTICLE.slug} required link`);
+    assert.ok(!payload.contentHtml.includes(`href="${href}"`), `${guide.ARTICLE.slug} content link`);
+    assert.ok(!POSTS.find((post) => post.slug === guide.ARTICLE.slug).links.includes(href), `${guide.ARTICLE.slug} seed link`);
   }
 });
 
