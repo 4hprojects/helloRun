@@ -33,18 +33,18 @@ const RAW_CONTENT_HTML = `
 <h2>What is running cadence?</h2>
 <p>Cadence is step rate. Strava defines running cadence as the rate at which you step on the ground, measured in steps per minute. Most running watches and apps use the same total-steps convention. Cycling cadence uses revolutions per minute, so check the activity type and unit before comparing numbers.</p>
 <p>A step occurs from one foot contact to the next foot contact. A full gait cycle or stride traditionally returns to the same foot and contains two steps. Everyday running language sometimes uses “stride” to mean one step, which can create confusion. When someone says 180 strides per minute, ask whether they really mean 180 total steps or 90 full two-step cycles.</p>
-<p>Average cadence summarizes the selected portion of an activity. Current cadence estimates a shorter recent window and may move rapidly. Lap cadence describes one lap. An activity that contains running, walking, crossings, or stops can have an average that hides several distinct movement patterns.</p>
+<p>Average cadence summarizes an activity, current cadence estimates a shorter window, and lap cadence describes one lap. Running, walking, crossings, and stops can produce an average that hides distinct movement patterns.</p>
 <p>Cadence is not pace. Two runners can share 170 SPM while moving at different speeds because their step lengths differ. One runner can also use the same cadence at two nearby speeds while changing step length.</p>
 <p>It is also not a complete measure of efficiency, technique, fitness, or safety. A single SPM value cannot show where the foot lands, how effort feels, or why movement changed.</p>
 
 <h2>How cadence is measured</h2>
 <h3>Manual counting</h3>
 <p>On a safe, steady section, count every foot contact for 30 seconds and multiply by two. Alternatively, count contacts of one foot for 30 seconds and multiply by four. The result estimates total steps per minute. Counting longer can reduce the effect of one missed contact, but do not stare at a timer where route attention matters.</p>
-<p>State the method in your notes. Counting one foot for a full minute produces roughly half the total-step value. That does not mean cadence suddenly changed; it means the counting convention changed.</p>
+<p>State the method in your notes. Counting one foot for a minute produces roughly half the total-step value because the convention changed, not the cadence.</p>
 <h3>Watches and foot sensors</h3>
 <p>A wrist watch or foot-mounted sensor can estimate step rate from motion. The exact algorithm, smoothing, sensor location, activity profile, firmware, arm movement, walking segments, and pauses can influence the display. A device value is useful for patterns but is not a laboratory diagnosis of running form.</p>
 <h3>Phone apps</h3>
-<p>A phone app may display cadence only when compatible sensor data are available, infer it from the phone's motion, or omit it entirely. Phone placement can affect motion signals. Read the current app documentation and inspect the original recording source before comparing two platforms.</p>
+<p>A phone app may use compatible sensor data, infer cadence from phone motion, or omit it. Phone placement can affect signals, so check current documentation and the original recording source before comparing platforms.</p>
 <p>If a watch and app disagree, first compare units, moving versus elapsed sections, excluded stops, and whether both use total steps. Do not edit activity evidence merely to make cadence values match.</p>
 
 <h2>Cadence versus step length</h2>
@@ -56,13 +56,13 @@ const RAW_CONTENT_HTML = `
 <h2>Where the 180 steps-per-minute idea came from</h2>
 <p>Jack Daniels wrote that he and his wife counted step rates among roughly 47 elite male and female runners during events at the 1984 Los Angeles Olympics, from middle-distance races through the marathon. He reported that only one observed athlete took fewer than 180 steps per minute, with higher rates in shorter events.</p>
 <p>That was an observation of selected elite athletes during Olympic competition. It was not a randomized experiment, a sample of new runners, or proof that exactly 180 prevents injury. The athletes were racing at speeds far removed from many beginner easy runs.</p>
-<p>The memorable number spread because it is simple. But “many observed elites were at or above 180” is different from “every runner at every pace should use 180.” The first statement describes those observations; the second invents a universal rule.</p>
+<p>The number spread because it is simple. But “many observed elites were at or above 180” describes an observation; “every runner at every pace should use 180” invents a universal rule.</p>
 <p>The historical context can still teach a useful lesson: elite runners did not necessarily maintain speed by reaching dramatically farther forward. Yet a beginner should not copy an elite race cadence without accounting for current pace, body dimensions, route, experience, effort, and reason for changing.</p>
 
 <h2>Is there an ideal running cadence?</h2>
 <p>There is no single ideal running cadence for every runner. An individual's natural cadence varies across pace, hills, surface, fatigue, walking, and different sessions. Body height and leg length can be associated with cadence, but they do not generate a perfect personal number.</p>
 <p>A 2019 study of 82 recreational rearfoot-strike runners found lower cadence among those with longer legs, regardless of injury status. A larger 2017 treadmill reference study found cadence related to speed and body height. These studies help explain variation; they do not provide a calculator that prescribes safe cadence.</p>
-<p>Even within one runner, 158 SPM on a very easy uphill run and 174 SPM during a faster flat segment can both be ordinary. Comparing the two without pace and terrain would confuse different tasks.</p>
+<p>Even within one runner, 158 SPM on an easy uphill and 174 SPM on a faster flat segment can both be ordinary. Comparing them without pace and terrain confuses different tasks.</p>
 <p>A useful cadence is one that accompanies comfortable, controlled movement for the intended activity. A clinically guided cadence adjustment may be appropriate for a specific presentation, but that is different from declaring an ideal number for the public.</p>
 
 <h2>Why cadence differs between runners</h2>
@@ -80,14 +80,14 @@ const RAW_CONTENT_HTML = `
 
 <h2>Cadence at easy pace versus faster pace</h2>
 <p>Cadence commonly increases with speed. A 2025 treadmill study of 30 experienced runners reported mean cadence rising from 169 SPM at 2.68 m/s to 178 SPM at 3.83 m/s. Ground-reaction-force variables also increased with speed. The study shows why a higher cadence observed during faster running cannot automatically be credited with reducing total loading.</p>
-<p>Those participants were experienced runners completing controlled treadmill bouts. Their values are not beginner targets. The important comparison is within the same runner and context: how cadence changes naturally when pace changes.</p>
+<p>Those experienced runners completed controlled treadmill bouts, so their values are not beginner targets. Compare how cadence changes within the same runner and context.</p>
 <p>During an easy run, keep the intended effort easy. Do not accelerate merely to move a cadence number into an app's preferred range. If a metronome makes the session harder, tense, or distracting, it is no longer serving an easy-run purpose.</p>
 <p>During a faster planned session, both cadence and step length may rise. That does not mean the faster cadence should be copied into recovery running. The <a href="/blog/beginners-guide-to-running-pace">beginner pace guide</a> explains why effort and conditions give essential context to device numbers.</p>
 
 <h2>Should beginners try to increase cadence?</h2>
 <p>Not automatically. First observe whether there is a problem to solve. A beginner who is comfortable, building gradually, and not following an individualized gait-retraining plan does not need to manufacture a cadence intervention from one app reading.</p>
 <p>A 2022 systematic review and meta-analysis found that increasing step rate generally changed several biomechanical variables, including shorter step length and reduced values for some hip and knee measures. However, it concluded that evidence was insufficient to determine the effects of altering step rate on injury and performance. Most included studies examined immediate effects, and longer-term outcomes remain uncertain.</p>
-<p>The same review noted very limited evidence that increasing step rate can raise perceived exertion, awkwardness, or effort. A new cadence can therefore feel less economical before adaptation—or simply be unsuitable. Biomechanical change is not automatically clinical benefit.</p>
+<p>The same review found very limited evidence that increasing step rate can raise exertion, awkwardness, or effort. Biomechanical change is not automatically clinical benefit.</p>
 <p>Cadence retraining may be considered by a qualified clinician or coach for a clear individual goal, especially when symptoms or rehabilitation are involved. The appropriate amount, cue, progression, and monitoring depend on the person. This article does not prescribe a universal 5%, 10%, or SPM increase.</p>
 
 <h2>How to observe cadence without chasing it</h2>
@@ -110,7 +110,6 @@ const RAW_CONTENT_HTML = `
 
 <h2>How to view cadence in running apps and watches</h2>
 <p>Cadence may appear as a live field, lap value, activity average, graph, or running-dynamics metric. Its availability depends on the device, sensor, activity type, permissions, and platform. Do not assume a phone recording contains cadence simply because it contains GPS pace.</p>
-<p>If cadence availability is influencing a gear purchase, use the <a href="/blog/gps-watch-vs-running-app">GPS watch versus running app guide</a> to separate a defined metric need from optional data, cost, battery, controls, and proof considerations.</p>
 <p>When reading the graph:</p>
 <ul>
   <li>identify where the warm-up, running, walk breaks, crossings, and cooldown occurred;</li>
@@ -161,14 +160,14 @@ const RAW_CONTENT_HTML = `
 <p>The average combines running and walking patterns. Inspect segments separately if the platform permits, and do not treat planned walking as corrupted data.</p>
 
 <h2>Official sources and evidence limits</h2>
-<p>This article was reviewed in August 2026. The <a href="https://support.strava.com/en-us/articles/15401948-cadence">Strava cadence definition</a> supports the total steps-per-minute terminology. Jack Daniels' own <a href="https://news.vdoto2.com/2018/11/stride-rate/">account of observing stride rate at the 1984 Olympics</a> supplies historical context for the 180 figure.</p>
+<p>This article was reviewed in September 2026. The <a href="https://support.strava.com/en-us/articles/15401948-what-is-cadence-on-strava">Strava cadence definition</a> supports the total steps-per-minute terminology. Jack Daniels' own <a href="https://news.vdoto2.com/2018/11/stride-rate/">account of observing stride rate at the 1984 Olympics</a> supplies historical context for the 180 figure.</p>
 <p>The 2022 systematic review <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9441414/">What is the Effect of Changing Running Step Rate on Injury, Performance and Biomechanics?</a> is the main evidence source for biomechanical changes and the conclusion that injury and performance evidence is insufficient. A <a href="https://pubmed.ncbi.nlm.nih.gov/40620407/">2025 treadmill study of running speed and cadence</a> supplies the limited example showing cadence rising with speed in experienced runners.</p>
 <p>The study <a href="https://pubmed.ncbi.nlm.nih.gov/30862272/">Is Cadence Related to Leg Length and Load Rate?</a> and a <a href="https://pubmed.ncbi.nlm.nih.gov/28886463/">treadmill reference study of speed and body dimensions</a> support the explanation that individual and task factors affect cadence. Each study has a specific sample and design; none defines a universal beginner target.</p>
 <p>This is general education, not personal coaching, gait analysis, injury prevention, diagnosis, treatment, rehabilitation, or medical clearance. Cadence measurement, research, device behavior, and platform documentation can change.</p>
 
 <h2>Use cadence as one data point</h2>
 <p>For your next suitable easy run or run-walk, let movement stay natural. If cadence is already recorded, compare it with pace, terrain, walking segments, effort, and comfort afterward. You do not need to change the number simply because it differs from 180.</p>
-<p>Keep cadence in its proper place: one descriptive field in a much larger running story. When you want a manageable goal for that story, <a href="/events">browse current HelloRun events</a> and read the live distance and activity rules. The <a href="/blog/10k-training-plan-for-beginners">beginner 10K framework</a> prioritizes repeatable effort and recovery rather than a cadence threshold, while the <a href="/blog/how-to-set-running-goals-for-the-rest-of-the-year">year-end running-goals guide</a> keeps metrics subordinate to one meaningful outcome and process.</p>
+<p>Keep cadence in its proper place: one descriptive field in a much larger running story. When you want a manageable goal, <a href="/events">browse current HelloRun events</a> and read the live distance and activity rules. The <a href="/blog/10k-training-plan-for-beginners">beginner 10K framework</a> prioritizes repeatable effort and recovery rather than a cadence threshold.</p>
 `;
 
 const REQUIRED_HEADINGS = Object.freeze([
@@ -195,9 +194,7 @@ const REQUIRED_LINKS = Object.freeze([
   'href="/blog/run-walk-method-beginner-friendly-way-build-endurance"',
   'href="/blog/how-to-build-a-weekly-running-schedule-around-work-or-school"',
   'href="/blog/how-to-breathe-while-running"',
-  'href="/blog/10k-training-plan-for-beginners"',
-  'href="/blog/gps-watch-vs-running-app"',
-  'href="/blog/how-to-set-running-goals-for-the-rest-of-the-year"'
+  'href="/blog/10k-training-plan-for-beginners"'
 ]);
 
 function buildArticlePayload({ coverImageUrl } = {}) {
@@ -229,7 +226,7 @@ function validateArticlePayload(payload) {
   if (!payload.contentHtml || payload.contentHtml.length > 50000) errors.push('contentHtml must be 1-50000 characters');
   if (!payload.contentText || payload.contentText.length > 50000) errors.push('contentText must be 1-50000 characters');
   if (payload.contentRaw !== payload.contentText) errors.push('contentRaw and contentText must match');
-  if (wordCount < 3000) errors.push('article must contain at least 3000 substantive words');
+  if (wordCount < 2500 || wordCount > 3000) errors.push('article must contain 2500-3000 substantive words');
   if (!Array.isArray(payload.tags) || payload.tags.length !== 8) errors.push('article must contain exactly 8 tags');
   if ((payload.tags || []).some((tag) => !tag || tag.length > 30)) errors.push('tags must be 1-30 characters');
   if (!payload.seoTitle || payload.seoTitle.length > 160) errors.push('seoTitle must be 1-160 characters');
@@ -246,7 +243,7 @@ function validateArticlePayload(payload) {
   if (/(?:push|run|continue) through pain to (?:adapt|raise cadence)|pain means the cadence change is working/i.test(text)) errors.push('article must not encourage running through pain');
   if (!/You do not need to reach 180 steps per minute to count as a good runner/i.test(text)) errors.push('article must answer 180 intent early');
   if (!/evidence was insufficient to determine the effects of altering step rate on injury and performance/i.test(text)) errors.push('article must state evidence limits');
-  if (!/reviewed in August 2026/i.test(text)) errors.push('article must disclose review date');
+  if (!/reviewed in September 2026/i.test(text)) errors.push('article must disclose review date');
 
   for (const heading of REQUIRED_HEADINGS) {
     if (!payload.contentHtml.includes(`<h2>${heading}</h2>`)) errors.push(`missing required heading: ${heading}`);

@@ -50,6 +50,7 @@ const RAW_CONTENT_HTML = `
 <p>Runners sometimes match breaths to foot strikes, using descriptions such as three steps in and three out, or two steps in and two out. A rhythm can be an optional attention cue, especially when a runner is unknowingly holding the breath or rushing the exhale. No particular ratio is proven best for every runner, speed, hill, or body.</p>
 <p>If counting makes you tense, abandon the count. Let breathing find a rhythm that changes with effort. On a gentle section, breaths may span more steps. On a hill, they may become quicker. During a walk break, the rhythm changes again. Variation is normal.</p>
 <p>To explore a cue, notice several breaths on a flat, low-risk section, then try a comfortable exhale. Count only if it helps you relax; never delay an inhale for a foot-strike pattern. Evidence cannot promise that a ratio prevents stitches, fatigue, or injury, so treat rhythm as awareness—not protection.</p>
+<p>The <a href="/blog/running-cadence-explained">running cadence guide</a> separates breathing counts from total steps per minute and explains why 180 SPM is not a universal target.</p>
 
 <h2>Use the talk test on an easy run</h2>
 <p>The talk test is most useful when paired with the purpose of the session. An easy run should not quietly become a time trial. After warming up, say a short familiar sentence at a safe moment. Notice whether it comes naturally, requires a large gasp, or cannot be completed.</p>
@@ -175,6 +176,7 @@ const REQUIRED_LINKS = Object.freeze([
   'href="/blog/run-walk-method-beginner-friendly-way-build-endurance"',
   'href="/blog/returning-to-running-after-a-break-gradual-restart-plan"',
   'href="/blog/10k-training-plan-for-beginners"',
+  'href="/blog/running-cadence-explained"',
   'href="/blog/beginners-guide-to-running-pace"',
   'href="/blog/how-to-run-safely-during-hot-and-humid-weather"',
   'href="/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back"'

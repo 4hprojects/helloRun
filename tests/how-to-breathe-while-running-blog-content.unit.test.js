@@ -80,12 +80,12 @@ test('running breathing guide sanitizes authoritative sources and passes health 
   assert.equal(eligibility.externalLinkCount, 4);
 });
 
-test('running breathing guide excludes its unpublished cadence forward link', () => {
+test('running breathing guide links to the now-published cadence guide', () => {
   const href = '/blog/running-cadence-explained';
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
-  assert.equal(REQUIRED_LINKS.some((link) => link.includes(href)), false);
-  assert.equal(payload.contentHtml.includes(`href="${href}"`), false);
-  assert.equal(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href), false);
+  assert.equal(REQUIRED_LINKS.some((link) => link.includes(href)), true);
+  assert.equal(payload.contentHtml.includes(`href="${href}"`), true);
+  assert.equal(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href), true);
 });
 
 test('running breathing guide has a distinct 1600 by 900 repository cover', async () => {

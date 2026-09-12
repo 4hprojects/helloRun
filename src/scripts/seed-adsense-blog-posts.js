@@ -1314,6 +1314,7 @@ const POSTS = [
       '/blog/run-walk-method-beginner-friendly-way-build-endurance',
       '/blog/returning-to-running-after-a-break-gradual-restart-plan',
       '/blog/10k-training-plan-for-beginners',
+      '/blog/running-cadence-explained',
       '/blog/beginners-guide-to-running-pace',
       '/blog/how-to-run-safely-during-hot-and-humid-weather',
       '/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back',
