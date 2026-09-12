@@ -11,9 +11,9 @@ const packageJson = require('../package.json');
 const { POSTS, buildContentHtml, htmlToText } = require('../src/scripts/seed-adsense-blog-posts');
 const { getArticleModule, listArticleSlugs } = require('../src/content/adsense-blog-article-registry');
 const { getInitialIndexingClassification } = require('../src/content/adsense-content-indexing');
-const { evaluateBlogContentEligibility } = require('../src/utils/blog-content-eligibility');
+const { evaluateBlogContentEligibility, hasCurrentPublicationReview } = require('../src/utils/blog-content-eligibility');
 const { BLOG_CATEGORIES } = require('../src/utils/blog');
-const { getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
+const { buildCreatePayload, getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
 const { parseArguments: parseUpdateArguments } = require('../src/scripts/update-adsense-blog');
 const beginner10k = require('../src/content/ten-k-training-plan-beginners');
 const finishTimes = require('../src/content/how-long-to-run-5k-10k-21k');
@@ -64,7 +64,8 @@ test('beginner 21K guide builds a substantive flexible half-marathon payload', (
   assert.ok(payload.coverImageAlt.length <= 180);
   assert.ok(payload.contentHtml.length <= 50000);
   assert.ok(payload.contentText.length <= 50000);
-  assert.ok(wordCount >= 3500);
+  assert.ok(wordCount >= 2500);
+  assert.ok(wordCount <= 3000);
   assert.equal(payload.contentRaw, payload.contentText);
   assert.equal(payload.readingTime, Math.ceil(wordCount / 180));
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
@@ -128,7 +129,8 @@ test('beginner 21K guide sanitizes official sources and passes health-sensitive 
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
   assert.equal(eligibility.healthReviewRequired, true);
-  assert.ok(eligibility.wordCount >= 3500);
+  assert.ok(eligibility.wordCount >= 2500);
+  assert.ok(eligibility.wordCount <= 3000);
   assert.equal(eligibility.externalLinkCount, 6);
 });
 
@@ -168,16 +170,16 @@ test('beginner 21K guide is registered and seeded once for September 28', () => 
   assert.equal(seededPost.publishedAt, '2026-09-28T11:00:00.000Z');
   assert.equal(seededPost.featured, false);
   assert.ok(seededPost.links.includes('/blog/gps-watch-vs-running-app'));
-  assert.equal(seededPost.links.some((href) => href.includes('how-to-set-running-goals-for-the-rest-of-the-year')), true);
+  assert.equal(seededPost.links.some((href) => href.includes('how-to-set-running-goals-for-the-rest-of-the-year')), false);
 });
 
-test('beginner 21K guide links readers to the year-end running-goals hub', () => {
+test('beginner 21K guide omits the later unpublished year-end running-goals hub', () => {
   const href = '/blog/how-to-set-running-goals-for-the-rest-of-the-year';
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
 
-  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
-  assert.ok(payload.contentHtml.includes(`href="${href}"`));
-  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
+  assert.ok(!REQUIRED_LINKS.some((link) => link.includes(href)));
+  assert.ok(!payload.contentHtml.includes(`href="${href}"`));
+  assert.ok(!POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
 });
 
 test('beginner 21K guide is scheduled noindex health content with create and update wiring', () => {
@@ -185,8 +187,8 @@ test('beginner 21K guide is scheduled noindex health content with create and upd
   const publishAt = '2026-09-28T11:00:00.000Z';
 
   assert.deepEqual(
-    parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--publish-at', publishAt]),
-    { slug: CANONICAL_SLUG, mode: 'apply', publishAt }
+    parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--confirm-editorial-review', '--publish-at', publishAt]),
+    { slug: CANONICAL_SLUG, mode: 'apply', confirmEditorialReview: true, publishAt }
   );
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
   assert.equal(classification.contentRisk, 'health_safety');
@@ -195,15 +197,44 @@ test('beginner 21K guide is scheduled noindex health content with create and upd
   assert.match(packageJson.scripts['blog:update-beginner-21k'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
-test('six existing progression guides reciprocally link to the beginner 21K guide', () => {
+test('beginner 21K creation payload schedules the local cover with a current review', () => {
+  const publishAt = '2026-09-28T11:00:00.000Z';
+  const payload = buildCreatePayload({
+    slug: CANONICAL_SLUG,
+    authorId: '507f1f77bcf86cd799439011',
+    now: new Date('2026-09-13T08:00:00.000Z'),
+    publishAt: new Date(publishAt),
+    confirmEditorialReview: true
+  });
+  assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
+  assert.equal(payload.status, 'scheduled');
+  assert.equal(payload.publishedAt.toISOString(), publishAt);
+  assert.equal(payload.searchIndexingStatus, 'noindex');
+  assert.equal(payload.searchIndexingReason, 'pending_expert_review');
+  assert.equal(hasCurrentPublicationReview(payload), true);
+});
+
+test('three established progression guides reciprocally link to the beginner 21K guide', () => {
   const href = `/blog/${CANONICAL_SLUG}`;
-  const guides = [beginner10k, finishTimes, firstVirtual10k, weeklySchedule, runWalk, beginnerPace];
+  const guides = [weeklySchedule, runWalk, beginnerPace];
 
   for (const guide of guides) {
     const payload = guide.buildArticlePayload({ coverImageUrl: 'https://cdn.example.com/cover.webp' });
     assert.ok(guide.REQUIRED_LINKS.some((link) => link.includes(href)), `${guide.ARTICLE.slug} required link missing`);
     assert.ok(payload.contentHtml.includes(`href="${href}"`), `${guide.ARTICLE.slug} content link missing`);
     assert.ok(POSTS.find((post) => post.slug === guide.ARTICLE.slug).links.includes(href), `${guide.ARTICLE.slug} seed link missing`);
+  }
+});
+
+test('earlier September guides omit the later unpublished beginner 21K guide', () => {
+  const href = `/blog/${CANONICAL_SLUG}`;
+  const guides = [beginner10k, finishTimes, firstVirtual10k];
+
+  for (const guide of guides) {
+    const payload = guide.buildArticlePayload({ coverImageUrl: 'https://cdn.example.com/cover.webp' });
+    assert.ok(!guide.REQUIRED_LINKS.some((link) => link.includes(href)), `${guide.ARTICLE.slug} required link`);
+    assert.ok(!payload.contentHtml.includes(`href="${href}"`), `${guide.ARTICLE.slug} content link`);
+    assert.ok(!POSTS.find((post) => post.slug === guide.ARTICLE.slug).links.includes(href), `${guide.ARTICLE.slug} seed link`);
   }
 });
 

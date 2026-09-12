@@ -33,40 +33,37 @@ const RAW_CONTENT_HTML = `
 <ol>
   <li><strong>Build before bridging.</strong> Establish several ordinary weeks that include a comfortable 10K or comparable easy time on your feet.</li>
   <li><strong>Choose a realistic runway.</strong> Twelve weeks can organize the bridge for some runners with that base; others need longer or should remain at shorter distances.</li>
-  <li><strong>Keep most work easy.</strong> Use conversational effort, planned walking, and recovery rather than turning every session into a distance test.</li>
-  <li><strong>Extend one longer activity conditionally.</strong> Add a modest amount only after the current duration, route, effort, and recovery are manageable.</li>
-  <li><strong>Consolidate regularly.</strong> Hold or reduce volume during planned step-back weeks and whenever current facts require it.</li>
-  <li><strong>Practise logistics.</strong> Test route access, tracking, clothing, carrying, fluids, and suitable food during training—not for the first time on the attempt.</li>
-  <li><strong>Reduce before the goal.</strong> The final weeks should protect familiarity and recovery rather than contain last-minute catch-up distance.</li>
+  <li><strong>Keep most work easy.</strong> Use conversational effort, planned walking, recovery, and conditional long-activity extensions rather than making every session a test.</li>
+  <li><strong>Practise logistics.</strong> Test route access, tracking, clothing, carrying, fluids, and suitable food during training.</li>
+  <li><strong>Consolidate and reduce.</strong> Use step-back weeks and avoid last-minute catch-up distance.</li>
   <li><strong>Let completion be enough.</strong> A first 21K does not require a target time, continuous running, or an immediate next distance.</li>
 </ol>
 
 <h2>How this guide was prepared</h2>
-<p>This article was reviewed in September 2026 against current public guidance from the World Health Organization, the US Centers for Disease Control and Prevention, the UK National Health Service, the US Anti-Doping Agency, and DOST-PAGASA, together with current HelloRun event and activity-submission behavior.</p>
-<p>WHO and CDC publish population-level physical-activity guidance and support starting with manageable activity and progressing gradually. NHS Couch to 5K provides one public example of run-walk progression with rest between beginner running sessions. USADA explains that fluid and fueling needs vary with the person, activity, duration, environment, and tolerance. PAGASA provides current Philippine weather and heat-index information that can inform outdoor decisions.</p>
-<p>None of those sources prescribes this exact 12-week sequence or determines an individual's half-marathon readiness. Population guidance is not a personal training plan, medical clearance, rehabilitation protocol, nutrition prescription, or finish guarantee. This framework has not assessed your health, medicines, injury history, pregnancy or postpartum status, disability, route, climate exposure, dietary needs, or event support.</p>
-<p>Seek appropriate professional guidance when individual circumstances require it. Stop and obtain suitable medical or emergency help for severe, sudden, unexplained, recurrent, or worsening symptoms. Do not use a calendar, registration fee, training streak, or unfinished distance as permission to continue through a concerning response.</p>
+<p>This article was reviewed in September 2026 against public guidance from WHO, CDC, NHS, USADA, and DOST-PAGASA, together with current HelloRun event and activity-submission behavior. Those sources support manageable progression, rest, individualized fluid and food decisions, and checking Philippine weather; none prescribes this exact sequence or determines personal readiness.</p>
+<p>Population guidance is not a personal training plan, medical clearance, rehabilitation protocol, nutrition prescription, or finish guarantee. This framework has not assessed your health, medicines, injury history, pregnancy or postpartum status, disability, route, climate, diet, or event support.</p>
+<p>Seek appropriate professional guidance when needed. Stop and obtain suitable medical or emergency help for severe, sudden, unexplained, recurrent, or worsening symptoms. A calendar, fee, streak, or unfinished distance is never permission to continue through a concerning response.</p>
 
 <h2>What is a 21K or half marathon?</h2>
 <p>An official half marathon is 21.0975 kilometres, or 13.1094 miles. Philippine event listings often shorten the category to 21K or 21km. In everyday planning, runners may say “21K,” but the live event page should state the actual required distance, route or virtual-activity rules, cutoff, and proof requirements.</p>
-<p>The difference between 10K and a half marathon is not merely another 11 kilometres. More time on your feet can change pacing, route access, exposure to heat or rain, fluid and food decisions, equipment comfort, tracking battery, transport, toilets, recovery, and the consequences of starting too fast. Preparation should address those decisions as well as distance.</p>
+<p>The additional time beyond 10K changes pacing, route access, weather exposure, fluid and food decisions, equipment comfort, tracking battery, transport, toilets, recovery, and the consequences of starting too fast.</p>
 <p>Finish-time tables are estimates, not readiness tests. The <a href="/blog/how-long-to-run-5k-10k-21k">5K, 10K, and 21K time guide</a> shows how pace arithmetic works while explaining why hills, stops, walk breaks, weather, GPS error, and individual response change real outcomes.</p>
 
 <h2>Should a beginner start with 21K?</h2>
-<p>A person new to running usually benefits from establishing walking, run-walk, 5K, and then 10K consistency before choosing 21K. That sequence is not a rule that everyone must race every shorter distance. It is a way to learn how the body, calendar, route, equipment, and recovery respond before substantially increasing time on your feet.</p>
+<p>A person new to running usually benefits from establishing walking, run-walk, 5K, and then 10K consistency before choosing 21K. Racing every shorter distance is unnecessary; the point is learning how the body, calendar, route, equipment, and recovery respond.</p>
 <p>Consider staying with a shorter goal when recent activity is irregular, a 10K creates several days of unusual disruption, pain or other symptoms are unresolved, the available route is unsafe, or the training window would require frequent catch-up sessions. The <a href="/blog/10k-training-plan-for-beginners">beginner 10K framework</a> is the more appropriate bridge when 10K is not yet repeatable.</p>
-<p>Readiness cannot be reduced to age, body size, pace, or one finish. Useful planning signals include several stable weeks, an easy-effort strategy you can control, a longer activity that recovers predictably, room for rest, and access to a route or facility that supports longer sessions. These are prompts, not medical screening criteria.</p>
+<p>Readiness is not age, body size, pace, or one finish. Look for stable weeks, controlled easy effort, predictable recovery, room for rest, and a workable route. These are planning prompts, not medical screening criteria.</p>
 
 <h2>Build a base before increasing distance</h2>
-<p>Review the last four to six ordinary weeks rather than your best historical result. Write down how often you moved, the duration of familiar easy sessions, the longest repeatable activity, surfaces and elevation, walk breaks, overall effort, sleep and schedule demands, and how you felt later that day and the next.</p>
+<p>Review the last four to six ordinary weeks, not your best historical result. Record frequency, familiar duration, the longest repeatable activity, terrain, walk breaks, effort, schedule demands, and later recovery.</p>
 <p>A practical starting base for this framework is a comfortable 10K or comparable easy run-walk duration that has been completed more than once without racing it. “Comparable” matters because a 10K can take very different amounts of time. A runner whose 10K involves two hours of run-walk already has a different time-on-feet demand from someone covering it much faster.</p>
 <p>Keep at least one familiar easy opportunity and one optional support opportunity while developing the longer activity. The <a href="/blog/how-to-build-a-weekly-running-schedule-around-work-or-school">weekly scheduling guide</a> helps distinguish fixed sessions, flexible opportunities, backups, and genuinely unavailable days.</p>
-<p>Strength, mobility, cycling, swimming, or other activity may support some runners, but adding them should not quietly make every day demanding. Individual exercise selection and technique may need professional guidance. Recovery remains part of the plan rather than time left over after everything else.</p>
+<p>Other activity may help, but it should not make every day demanding. Exercise selection may need professional guidance, and recovery remains part of the plan.</p>
 
 <h2>How long does half-marathon preparation take?</h2>
 <p>There is no universal answer. This article uses 12 weeks as an illustrative bridge for someone who already has a stable shorter-distance base. A person building from walking or 5K may need an earlier foundation phase plus a longer bridge. A runner returning after illness, injury, surgery, pregnancy, prolonged inactivity, or a major schedule change may need individual advice and a different timeline.</p>
-<p>Do not choose the event first and force all adaptation into the remaining weeks. Count backward only after checking current fitness, registration and activity windows, work or school peaks, travel, weather patterns, route access, support, and recovery. Include space for illness, storms, heat, family responsibilities, and weeks that need repetition.</p>
-<p>Progression is not an uninterrupted upward line. A useful block contains establishment, modest extensions, consolidation, rehearsal, and reduction. If the current longer activity is not settling well, repeating or reducing it is progress in decision quality—even when the chart does not gain kilometres.</p>
+<p>Do not choose an event and force adaptation into the remaining weeks. First check current fitness, event windows, work or school, travel, weather, route access, support, recovery, and space for disrupted or repeated weeks.</p>
+<p>Progression is not an uninterrupted upward line. Establish, extend modestly, consolidate, rehearse, and reduce. Repeating or shortening an activity can be the right progression decision.</p>
 
 <h2>Structure a beginner half-marathon week</h2>
 <p>The framework offers up to three purposeful running or run-walk opportunities. It does not require every runner to complete all three every week.</p>
@@ -77,19 +74,19 @@ const RAW_CONTENT_HTML = `
   <li><strong>Recovery:</strong> non-running time, ordinary sleep opportunity, familiar meals and fluids, and enough observation before another demanding-for-you effort.</li>
   <li><strong>Weekly review:</strong> compare planned and actual activity, effort, symptoms, conditions, and recovery before setting the next week.</li>
 </ul>
-<p>Place easier or non-running time between demanding-for-you sessions when practical. Three easy-labelled activities can still create excessive total demand if each one is longer, hillier, hotter, or faster than the runner's baseline. Change one main variable at a time so the response is easier to understand.</p>
+<p>Place easier or non-running time between demanding sessions. Even “easy” activities can create excessive total demand when they become longer, hillier, hotter, or faster together. Change one main variable at a time.</p>
 
 <h2>The role of the weekly long activity</h2>
-<p>The long activity teaches pacing patience, time-on-feet management, route logistics, equipment comfort, and later recovery. It is not a weekly race, and it does not need a fast final segment to count. Start from the longest recent activity that feels repeatable rather than the farthest distance ever completed.</p>
-<p>Use duration, distance, or repeated route segments—whichever is clearest and safest. When the current version is controlled, consider adding a modest block of easy time or one familiar run-walk cycle. Keep effort, surface, and other variables similar. If weather or hills increase demand, the same duration may already be progression.</p>
-<p>No single percentage makes an increase safe. The popular 10% rule cannot account for frequency, intensity, terrain, health, previous volume, climate, or recovery. Likewise, the longest training activity does not universally need to equal 21.1K. Some runners may approach the distance; others use a shorter supported rehearsal and a conservative completion strategy. Individual coaching can help resolve that choice.</p>
-<p>Plan an exit. Loops, out-and-back routes, accessible transport, water points, toilets, lighting, phone signal, and a companion or check-in can make ending early practical. A route that strands a tired runner far from support is not a useful test of commitment.</p>
+<p>The long activity practises patient pacing, time on feet, logistics, equipment, and recovery. It is not a weekly race. Start from the longest recent repeatable activity, not the farthest ever completed.</p>
+<p>Use duration, distance, or route segments—whichever is clearest and safest. When controlled, add a modest easy block or familiar run-walk cycle while keeping other variables similar. Weather or hills may make the same duration a progression.</p>
+<p>No percentage makes an increase safe; the 10% rule cannot account for frequency, intensity, terrain, health, climate, or recovery. The longest training activity also need not universally equal 21.1K. Some runners approach it; others use a shorter supported rehearsal and conservative completion strategy.</p>
+<p>Plan an exit using loops, transport, water, toilets, lighting, phone signal, and an appropriate companion or check-in. Do not use a route that strands a tired runner.</p>
 
 <h2>Easy running, recovery, and run-walk strategies</h2>
 <p>Most activity in a first-completion block should feel controlled. The CDC talk test describes moderate effort as generally allowing conversation but not singing, while vigorous effort permits only a few words before pausing. This is general intensity guidance, not a diagnosis or a required half-marathon zone.</p>
 <p>Use sentences, breathing, form, attention, and perceived effort together. Slow down or walk when conversation disappears unexpectedly, coordination deteriorates, concentration narrows, or conditions make the same pace harder. The <a href="/blog/beginners-guide-to-running-pace">beginner pace guide</a> explains pace, splits, moving time, elapsed time, and effort context.</p>
 <p>Planned walking can remain in every week and in the attempt. Choose a simple pattern that has already worked—time-based, landmark-based, or effort-led—and begin walk breaks before exhaustion. The <a href="/blog/run-walk-method-beginner-friendly-way-build-endurance">run-walk guide</a> offers alternatives without declaring one interval universal.</p>
-<p>Recovery is where the runner observes the effect of training. Ordinary soreness and fatigue can vary, but persistent, focal, worsening, severe, or function-changing symptoms deserve attention rather than an automatic next session. Use the <a href="/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back">post-run recovery guide</a> for general rest, fluid, food, and ease-back principles, while following individualized advice where applicable.</p>
+<p>Recovery reveals the effect of training. Persistent, focal, worsening, severe, or function-changing symptoms deserve attention rather than an automatic next session. The <a href="/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back">post-run recovery guide</a> covers general rest, fluid, food, and ease-back principles.</p>
 
 <h2>Illustrative 12-week 10K-to-21K framework</h2>
 <p>Define <strong>E</strong> as one familiar easy session and <strong>L</strong> as the current repeatable longer activity. The framework avoids universal kilometres because runners with the same 10K distance can have very different durations, walk patterns, routes, and recovery needs.</p>
@@ -110,20 +107,20 @@ const RAW_CONTENT_HTML = `
 <p>This is a sequence of decisions, not twelve boxes that must be checked on schedule. Repeat a week, remove the support activity, return to a previous baseline, or choose a later event when needed. A missed activity is not debt and does not belong in a doubled catch-up session.</p>
 
 <h2>Pace your first 21K conservatively</h2>
-<p>The early kilometres should feel deliberately restrained. Excitement, a downhill opening, other runners, or a watch target can make a sustainable pace feel unnecessarily slow. That restraint protects the later portion, when accumulated time, conditions, and fueling decisions become more noticeable.</p>
+<p>Begin deliberately restrained. Excitement, downhills, other runners, or a watch target can make sustainable pace feel slow, but restraint protects the later portion.</p>
 <p>Use a practised run-walk pattern from the start rather than waiting until the run has already become difficult. A runner can define effort checkpoints at route landmarks or time intervals: breathing, form, attention, conditions, fluid access, and whether the next segment remains sensible.</p>
 <p>Cadence is an observation, not a compulsory target. Fatigue and pace changes may alter it, but chasing a universal step rate during a first half marathon can raise effort. The <a href="/blog/running-cadence-explained">running cadence guide</a> explains how to read the metric without treating 180 steps per minute as a rule.</p>
-<p>A finish-time goal is optional. If using one, build a range from recent comparable efforts and include walk breaks, elevation, stops, heat, congestion, and GPS uncertainty. Never use predicted time to override symptoms, event instructions, worsening conditions, or a need to stop.</p>
+<p>A finish-time goal is optional. Base any range on comparable efforts plus walk breaks, elevation, stops, heat, congestion, and GPS uncertainty. Never let a prediction override symptoms, instructions, conditions, or a need to stop.</p>
 
 <h2>Practise hydration and fueling basics</h2>
 <p>Longer activities introduce questions that may not arise during a short easy run. There is no universal volume of water, electrolyte amount, food, gel schedule, or carbohydrate target suitable for every beginner. Needs and tolerance vary with body size, sweat rate, duration, intensity, temperature, humidity, diet, health, medicines, and access.</p>
-<p>USADA's sports-nutrition guidance emphasizes individual variation and practising fluids and food during training. Use familiar options that fit your circumstances, and test them on progressively longer activities rather than introducing a new product on the 21K attempt. More is not automatically safer; excessive fluid intake can also be harmful.</p>
-<p>Map where water, toilets, shops, aid, or carried supplies will actually be available. For an organized event, read what aid stations provide and whether personal carrying is permitted. For a virtual activity, assume no support unless you arrange it. A qualified sports dietitian or relevant clinician can provide individualized guidance when performance needs, medical conditions, gastrointestinal issues, dietary restrictions, or medicines complicate the plan.</p>
+<p>USADA emphasizes individual variation and practising fluids and food during training. Test familiar options during longer activities rather than introducing a product on the attempt. More is not automatically safer; excessive fluid intake can be harmful.</p>
+<p>Map water, toilets, aid, and carried supplies. Check organized-event aid and carrying rules; assume a virtual route has no support unless arranged. Seek qualified individualized guidance when health, medicines, dietary restrictions, gastrointestinal issues, or performance needs complicate the plan.</p>
 
 <h2>Choose a route and prepare for Philippine conditions</h2>
 <p>A longer route should be safe at the time you will use it, not only attractive on a map. Check surface, elevation, crossings, lighting, traffic, construction, dogs, flooding, air quality, signal, water, toilets, transport, and places to shorten the activity. The <a href="/blog/how-to-choose-a-safe-route-for-your-virtual-run">safe-route guide</a> provides a reusable assessment.</p>
 <p>Heat, humidity, rain, thunderstorms, and flooding can change effort and risk. Consult current DOST-PAGASA forecasts, warnings, and heat-index information before leaving. Heat index combines temperature and humidity effects; a pace that was easy in cooler conditions may not remain easy. Reschedule, shorten, move indoors, or stop when conditions make the plan unsuitable.</p>
-<p>Tell a trusted person the route and expected return when appropriate. Carry identification, a charged phone, needed personal medication, and an emergency plan that matches the location. Avoid publishing a live route or home location unnecessarily.</p>
+<p>When appropriate, share the route and expected return with a trusted person. Carry suitable identification, phone, needed medication, and an emergency plan, without unnecessarily publishing a live route or home location.</p>
 
 <h2>Track longer activities without serving the device</h2>
 <p>A phone or GPS watch can record duration, approximate distance, route, and pace, but neither makes the activity safe or the measurement exact. Battery, satellite view, device settings, pauses, tunnels, buildings, trees, and phone power management can affect the record.</p>
@@ -134,46 +131,32 @@ const RAW_CONTENT_HTML = `
 <ul>
   <li><strong>Starting without a base:</strong> treating one hard 10K as proof that longer training is ready.</li>
   <li><strong>Racing the long activity:</strong> combining the week's greatest duration with its fastest effort.</li>
-  <li><strong>Increasing several variables:</strong> adding distance, hills, speed, frequency, and heat exposure together.</li>
   <li><strong>Skipping step-back weeks:</strong> assuming every week must contain a larger number.</li>
   <li><strong>Saving walking for failure:</strong> waiting until exhaustion instead of using a practised plan.</li>
   <li><strong>Copying another runner's fuel or fluid schedule:</strong> ignoring individual tolerance and conditions.</li>
   <li><strong>Testing new gear on the attempt:</strong> discovering rubbing, carrying, battery, or stomach problems too late.</li>
   <li><strong>Making up missed distance:</strong> compressing the calendar or doubling the next activity.</li>
   <li><strong>Choosing an unsupported virtual route:</strong> assuming aid, toilets, transport, or emergency response will appear.</li>
-  <li><strong>Treating the event fee as a commitment to continue:</strong> allowing sunk cost to override safety.</li>
 </ul>
 
 <h2>Can your first 21K be a virtual run?</h2>
 <p>Yes, when a suitable virtual event offers a 21K or half-marathon category and its rules accept your intended activity. Virtual participation can offer date and route flexibility, but it does not automatically supply closed roads, course measurement, marshals, aid stations, weather cancellation, medical support, toilets, or transport.</p>
-<p>Before registering, verify the activity window and timezone, actual required distance, single-session or accumulated format, accepted walking and treadmill rules, evidence requirements, submission deadline, review process, corrections, recognition, and any cutoff. Browse <a href="/events">current HelloRun events</a> and treat the complete live event page as the source of truth.</p>
+<p>Before registering, verify dates, distance, completion format, walking and treadmill rules, evidence, deadline, review, recognition, and cutoff. Browse <a href="/events">current HelloRun events</a> and treat the live event page as authoritative.</p>
 <p>Use the <a href="/blog/how-to-run-your-first-10k-virtual-run">first virtual 10K guide</a> as a shorter-distance rehearsal for rules, route, pacing, tracking, proof, and post-activity review. Completing a virtual 10K does not automatically establish 21K readiness, but it can reveal logistical gaps before a longer goal.</p>
 <p>HelloRun stores submitted activities for review according to the event configuration. Pending is not approved, and a tracked distance is not automatically an official result. Preserve the original record and never alter evidence to manufacture eligibility.</p>
 
 <h2>What should come after your first half marathon?</h2>
 <p>First, recover and review. Note pacing, walk breaks, route, conditions, fluids and food, equipment, tracking, symptoms, and how ordinary movement and sleep feel afterward. Avoid using post-finish excitement to schedule another demanding session immediately.</p>
-<p>The next goal may be repeating 21K more comfortably, improving the support plan, returning to shorter distances, building consistency, or taking a break. A marathon is not an automatic or required next step. Longer goals introduce another level of training, recovery, nutrition, logistics, and health decisions. Use the <a href="/blog/how-to-set-running-goals-for-the-rest-of-the-year">year-end running-goals guide</a> to select one outcome without assuming that farther is better.</p>
+<p>The next goal may be repeating 21K more comfortably, improving support, returning to shorter distances, building consistency, or taking a break. A marathon is not an automatic or required next step; farther is not inherently better.</p>
 <p>Success can mean making good decisions, completing with a controlled strategy, stopping when appropriate, or learning that a later date is better. Distance is one outcome; sustainable participation is the larger one.</p>
 
 <h2>Frequently asked questions</h2>
-<h3>Can a complete beginner run 21K?</h3>
-<p>A beginner can eventually work toward 21K, but this framework assumes a repeatable 10K or comparable easy run-walk base. Someone starting from little recent activity should build walking, 5K, and 10K capacity first.</p>
 <h3>Is 12 weeks enough to train for a half marathon?</h3>
 <p>It may organize a bridge for some runners with a stable base. It is not a universal deadline. Starting point, health, recovery, schedule, conditions, and individual guidance can require more time.</p>
-<h3>Do I need to run the whole distance?</h3>
-<p>No. Planned run-walk can be a completion strategy throughout training and the attempt. Check the selected event's accepted activity and cutoff rules.</p>
-<h3>How far should my longest training run be?</h3>
-<p>This guide does not prescribe a universal distance. Build conditionally from the current repeatable longer activity; a full 21K rehearsal is not automatically necessary.</p>
-<h3>How many days per week should I run?</h3>
-<p>The framework offers up to three purposeful opportunities, but two may be more appropriate in some weeks. Frequency depends on the runner's baseline, total demand, recovery, and individual circumstances.</p>
-<h3>What pace should I target?</h3>
-<p>Use an easy, conversational effort for most preparation and begin the attempt conservatively. No universal minutes-per-kilometre target applies to every beginner.</p>
 <h3>Do I need gels or a sports drink?</h3>
 <p>Not every runner needs the same product or schedule. Longer-duration fueling and hydration should be individualized and practised; seek qualified advice when needed.</p>
 <h3>What if I miss a week?</h3>
 <p>Do not compress or double the plan. Resume from a recent manageable baseline, repeat a week, extend the schedule, or choose a later event.</p>
-<h3>Does this plan guarantee I can finish?</h3>
-<p>No. A general framework cannot predict health, adaptation, conditions, route support, event rules, or what happens on the day.</p>
 
 <h2>Your practical next step</h2>
 <p>Review the last four to six weeks and identify E, your familiar easy activity, and L, your current repeatable longer activity. If a controlled 10K or comparable duration is not yet part of that record, continue the shorter-distance foundation. If it is, place Week 1 on the real calendar with recovery and a backup; Week 1 repeats the baseline rather than extending it.</p>
@@ -225,8 +208,7 @@ const REQUIRED_LINKS = Object.freeze([
   'href="/blog/beginners-guide-to-running-pace"',
   'href="/blog/running-cadence-explained"',
   'href="/blog/gps-watch-vs-running-app"',
-  'href="/blog/how-to-run-your-first-10k-virtual-run"',
-  'href="/blog/how-to-set-running-goals-for-the-rest-of-the-year"'
+  'href="/blog/how-to-run-your-first-10k-virtual-run"'
 ]);
 
 function buildArticlePayload({ coverImageUrl } = {}) {
@@ -259,7 +241,7 @@ function validateArticlePayload(payload) {
   if (!payload.contentHtml || payload.contentHtml.length > 50000) errors.push('contentHtml must be 1-50000 characters');
   if (!payload.contentText || payload.contentText.length > 50000) errors.push('contentText must be 1-50000 characters');
   if (payload.contentRaw !== payload.contentText) errors.push('contentRaw and contentText must match');
-  if (wordCount < 3200) errors.push('article must contain at least 3200 substantive words');
+  if (wordCount < 2500 || wordCount > 3000) errors.push('article must contain 2500-3000 substantive words');
   if (!Array.isArray(payload.tags) || payload.tags.length !== 8) errors.push('article must contain exactly 8 tags');
   if ((payload.tags || []).some((tag) => !tag || tag.length > 30)) errors.push('tags must be 1-30 characters');
   if (!payload.seoTitle || payload.seoTitle.length > 160) errors.push('seoTitle must be 1-160 characters');

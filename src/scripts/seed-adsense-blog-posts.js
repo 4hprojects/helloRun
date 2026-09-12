@@ -1527,8 +1527,7 @@ const POSTS = [
       '/blog/beginners-guide-to-running-pace',
       '/blog/running-cadence-explained',
       '/blog/gps-watch-vs-running-app',
-      '/blog/how-to-run-your-first-10k-virtual-run',
-      '/blog/how-to-set-running-goals-for-the-rest-of-the-year'
+      '/blog/how-to-run-your-first-10k-virtual-run'
     ]
   },
   {
