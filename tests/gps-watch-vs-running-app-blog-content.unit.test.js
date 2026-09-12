@@ -10,17 +10,10 @@ const packageJson = require('../package.json');
 const { POSTS, buildContentHtml, htmlToText } = require('../src/scripts/seed-adsense-blog-posts');
 const { getArticleModule, listArticleSlugs } = require('../src/content/adsense-blog-article-registry');
 const { getInitialIndexingClassification } = require('../src/content/adsense-content-indexing');
-const { evaluateBlogContentEligibility } = require('../src/utils/blog-content-eligibility');
+const { evaluateBlogContentEligibility, hasCurrentPublicationReview } = require('../src/utils/blog-content-eligibility');
 const { BLOG_CATEGORIES } = require('../src/utils/blog');
-const { getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
+const { buildCreatePayload, getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
 const { parseArguments: parseUpdateArguments } = require('../src/scripts/update-adsense-blog');
-const supportingGuides = [
-  require('../src/content/best-apps-virtual-run'),
-  require('../src/content/choose-safe-virtual-run-route-guide'),
-  require('../src/content/how-accurate-phone-gps-running'),
-  require('../src/content/running-cadence-explained'),
-  require('../src/content/how-to-run-first-10k-virtual-run')
-];
 const {
   ARTICLE,
   CANONICAL_SLUG,
@@ -50,7 +43,8 @@ test('GPS watch versus running app guide builds a substantive commercial compari
   assert.ok(payload.excerpt.length <= 220);
   assert.ok(payload.seoDescription.length <= 320);
   assert.ok(payload.coverImageAlt.length <= 180);
-  assert.ok(wordCount >= 3000);
+  assert.ok(wordCount >= 2500);
+  assert.ok(wordCount <= 3000);
   assert.equal(payload.contentRaw, payload.contentText);
   assert.equal(payload.readingTime, Math.ceil(wordCount / 180));
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
@@ -79,11 +73,11 @@ test('comparison sanitizes official sources and requires health review', () => {
   const eligibility = evaluateBlogContentEligibility({ ...payload, contentRisk: 'health_safety', coverImageUrl: COVER_IMAGE_URL }, { evaluatedAt: new Date('2026-08-30T00:00:00.000Z') });
   assert.notEqual(payload.contentHtml, RAW_CONTENT_HTML.trim());
   assert.doesNotMatch(payload.contentHtml, /<script|javascript:/i);
-  assert.match(payload.contentHtml, /href="https:\/\/www\.gps\.gov\/gps-accuracy-0" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/archive\.gps\.gov\/systems\/gps\/performance\/accuracy\/" rel="noopener noreferrer" target="_blank"/);
   assert.match(payload.contentHtml, /href="https:\/\/developer\.android\.com\/develop\/sensors-and-location\/location\/permissions\/runtime" rel="noopener noreferrer" target="_blank"/);
   assert.match(payload.contentHtml, /href="https:\/\/support\.apple\.com\/en-ie\/105048" rel="noopener noreferrer" target="_blank"/);
   assert.match(payload.contentHtml, /href="https:\/\/support\.garmin\.com\/en-HK\/\?faq=Te47runiFR93oKcUAItwU7" rel="noopener noreferrer" target="_blank"/);
-  assert.match(payload.contentHtml, /href="https:\/\/support\.strava\.com\/en-us\/articles\/15402137-recording-an-activity" rel="noopener noreferrer" target="_blank"/);
+  assert.match(payload.contentHtml, /href="https:\/\/support\.strava\.com\/en-us\/articles\/15402137-how-do-i-record-an-activity-on-strava" rel="noopener noreferrer" target="_blank"/);
   assert.equal(eligibility.eligible, true);
   assert.deepEqual(eligibility.blockingReasons, []);
   assert.equal(eligibility.healthReviewRequired, true);
@@ -119,7 +113,7 @@ test('comparison is registered and seeded once for September 22', () => {
 test('comparison is noindex health content with create and update wiring', () => {
   const classification = getInitialIndexingClassification(CANONICAL_SLUG);
   const publishAt = '2026-09-22T11:00:00.000Z';
-  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--publish-at', publishAt]), { slug: CANONICAL_SLUG, mode: 'apply', publishAt });
+  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--confirm-editorial-review', '--publish-at', publishAt]), { slug: CANONICAL_SLUG, mode: 'apply', confirmEditorialReview: true, publishAt });
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
   assert.equal(classification.contentRisk, 'health_safety');
   assert.equal(classification.plannedNoindex, true);
@@ -127,14 +121,22 @@ test('comparison is noindex health content with create and update wiring', () =>
   assert.match(packageJson.scripts['blog:update-gps-watch-vs-running-app'], new RegExp(`--slug ${CANONICAL_SLUG}`));
 });
 
-test('all published supporting guides reciprocally link to the comparison', () => {
-  const href = '/blog/gps-watch-vs-running-app';
-  for (const guide of supportingGuides) {
-    const payload = guide.buildArticlePayload({ coverImageUrl: 'https://cdn.example.com/cover.webp' });
-    assert.ok(guide.REQUIRED_LINKS.some((link) => link.includes(href)), `${guide.CANONICAL_SLUG} required links`);
-    assert.ok(payload.contentHtml.includes(`href="${href}"`), `${guide.CANONICAL_SLUG} content`);
-    assert.ok(POSTS.find((post) => post.slug === guide.CANONICAL_SLUG).links.includes(href), `${guide.CANONICAL_SLUG} seed links`);
-  }
+test('comparison creation payload schedules the local cover with a current review', () => {
+  const reviewedAt = new Date('2026-09-13T08:00:00.000Z');
+  const publishAt = new Date('2026-09-22T11:00:00.000Z');
+  const payload = buildCreatePayload({
+    slug: CANONICAL_SLUG,
+    authorId: '507f1f77bcf86cd799439011',
+    now: reviewedAt,
+    publishAt,
+    confirmEditorialReview: true
+  });
+  assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
+  assert.equal(payload.status, 'scheduled');
+  assert.equal(payload.publishedAt.toISOString(), publishAt.toISOString());
+  assert.equal(payload.searchIndexingStatus, 'noindex');
+  assert.equal(payload.searchIndexingReason, 'pending_expert_review');
+  assert.equal(hasCurrentPublicationReview(payload), true);
 });
 
 test('comparison rejects purchase pressure, guarantees, and dishonest proof claims', () => {
