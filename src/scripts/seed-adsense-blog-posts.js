@@ -1400,9 +1400,7 @@ const POSTS = [
       '/blog/best-apps-to-track-your-virtual-run',
       '/blog/what-to-do-when-gps-tracking-stops-during-a-run',
       '/blog/what-counts-as-valid-run-proof',
-      '/blog/how-to-submit-run-proof-correctly-hellorun',
-      '/blog/how-to-run-your-first-10k-virtual-run',
-      '/blog/gps-watch-vs-running-app'
+      '/blog/how-to-submit-run-proof-correctly-hellorun'
     ]
   },
   {

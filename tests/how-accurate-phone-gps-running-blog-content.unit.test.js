@@ -10,9 +10,9 @@ const packageJson = require('../package.json');
 const { POSTS, buildContentHtml, htmlToText } = require('../src/scripts/seed-adsense-blog-posts');
 const { getArticleModule, listArticleSlugs } = require('../src/content/adsense-blog-article-registry');
 const { getInitialIndexingClassification } = require('../src/content/adsense-content-indexing');
-const { evaluateBlogContentEligibility } = require('../src/utils/blog-content-eligibility');
+const { evaluateBlogContentEligibility, hasCurrentPublicationReview } = require('../src/utils/blog-content-eligibility');
 const { BLOG_CATEGORIES } = require('../src/utils/blog');
-const { getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
+const { buildCreatePayload, getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
 const { parseArguments: parseUpdateArguments } = require('../src/scripts/update-adsense-blog');
 const bestAppsGuide = require('../src/content/best-apps-virtual-run');
 const safeRouteGuide = require('../src/content/choose-safe-virtual-run-route-guide');
@@ -46,7 +46,8 @@ test('phone GPS accuracy guide builds a substantive troubleshooting payload', ()
   assert.ok(payload.excerpt.length <= 220);
   assert.ok(payload.seoDescription.length <= 320);
   assert.ok(payload.coverImageAlt.length <= 180);
-  assert.ok(wordCount >= 3000);
+  assert.ok(wordCount >= 2500);
+  assert.ok(wordCount <= 3000);
   assert.equal(payload.contentRaw, payload.contentText);
   assert.equal(payload.readingTime, Math.ceil(wordCount / 180));
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
@@ -116,12 +117,30 @@ test('phone GPS accuracy guide is registered and seeded once for September 15', 
 test('phone GPS accuracy guide is noindex health content with create and update wiring', () => {
   const classification = getInitialIndexingClassification(CANONICAL_SLUG);
   const publishAt = '2026-09-15T11:00:00.000Z';
-  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--publish-at', publishAt]), { slug: CANONICAL_SLUG, mode: 'apply', publishAt });
+  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--confirm-editorial-review', '--publish-at', publishAt]), { slug: CANONICAL_SLUG, mode: 'apply', confirmEditorialReview: true, publishAt });
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
   assert.equal(classification.contentRisk, 'health_safety');
   assert.equal(classification.plannedNoindex, true);
   assert.equal(classification.indexCandidate, false);
   assert.match(packageJson.scripts['blog:update-phone-gps-accuracy'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+});
+
+test('phone GPS creation payload schedules the local cover with a current review', () => {
+  const reviewedAt = new Date('2026-09-13T08:00:00.000Z');
+  const publishAt = new Date('2026-09-15T11:00:00.000Z');
+  const payload = buildCreatePayload({
+    slug: CANONICAL_SLUG,
+    authorId: '507f1f77bcf86cd799439011',
+    now: reviewedAt,
+    publishAt,
+    confirmEditorialReview: true
+  });
+  assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
+  assert.equal(payload.status, 'scheduled');
+  assert.equal(payload.publishedAt.toISOString(), publishAt.toISOString());
+  assert.equal(payload.searchIndexingStatus, 'noindex');
+  assert.equal(payload.searchIndexingReason, 'pending_expert_review');
+  assert.equal(hasCurrentPublicationReview(payload), true);
 });
 
 test('the three primary existing guides reciprocally link to phone GPS accuracy', () => {
@@ -135,13 +154,8 @@ test('the three primary existing guides reciprocally link to phone GPS accuracy'
 });
 
 test('phone GPS accuracy guide rejects guarantees, invented proof, and rigid buffers', () => {
-  const comparisonHref = '/blog/gps-watch-vs-running-app';
-  assert.ok(REQUIRED_LINKS.includes(`href="${comparisonHref}"`));
-  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(comparisonHref));
-  const href = '/blog/how-to-run-your-first-10k-virtual-run';
-  assert.ok(REQUIRED_LINKS.includes(`href="${href}"`));
-  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
+  assert.doesNotMatch(payload.contentHtml, /href="\/blog\/(?:gps-watch-vs-running-app|how-to-run-your-first-10k-virtual-run)"/);
   const withClaim = (claim) => ({ ...payload, contentText: `${payload.contentText} ${claim}`, contentRaw: `${payload.contentText} ${claim}` });
   assert.throws(() => validateArticlePayload(withClaim('Phone GPS is always accurate.')), /guarantee GPS accuracy/);
   assert.throws(() => validateArticlePayload(withClaim('All phones are accurate within 2%.')), /universal accuracy percentage/);
