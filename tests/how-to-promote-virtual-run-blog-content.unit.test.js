@@ -11,9 +11,9 @@ const packageJson = require('../package.json');
 const { POSTS, buildContentHtml, htmlToText } = require('../src/scripts/seed-adsense-blog-posts');
 const { getArticleModule, listArticleSlugs } = require('../src/content/adsense-blog-article-registry');
 const { getInitialIndexingClassification } = require('../src/content/adsense-content-indexing');
-const { evaluateBlogContentEligibility } = require('../src/utils/blog-content-eligibility');
+const { evaluateBlogContentEligibility, hasCurrentPublicationReview } = require('../src/utils/blog-content-eligibility');
 const { BLOG_CATEGORIES } = require('../src/utils/blog');
-const { getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
+const { buildCreatePayload, getCanonicalSeed, parseArguments: parseCreateArguments } = require('../src/scripts/create-adsense-blog');
 const { parseArguments: parseUpdateArguments } = require('../src/scripts/update-adsense-blog');
 const supportingGuides = [
   require('../src/content/participant-communication-timeline-guide'),
@@ -52,7 +52,8 @@ test('virtual-run promotion guide builds a substantive organizer acquisition gui
   assert.ok(payload.excerpt.length <= 220);
   assert.ok(payload.seoDescription.length <= 320);
   assert.ok(payload.coverImageAlt.length <= 180);
-  assert.ok(wordCount >= 3000);
+  assert.ok(wordCount >= 2500);
+  assert.ok(wordCount <= 3000);
   assert.equal(payload.contentRaw, payload.contentText);
   assert.equal(payload.readingTime, Math.ceil(wordCount / 180));
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
@@ -126,12 +127,30 @@ test('promotion guide is registered and seeded once for September 24', () => {
 
 test('promotion guide is scheduled noindex general content with update wiring', () => {
   const classification = getInitialIndexingClassification(CANONICAL_SLUG);
-  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--publish-at', PUBLISH_AT]), { slug: CANONICAL_SLUG, mode: 'apply', publishAt: PUBLISH_AT });
+  assert.deepEqual(parseCreateArguments(['--slug', CANONICAL_SLUG, '--apply', '--confirm-editorial-review', '--publish-at', PUBLISH_AT]), { slug: CANONICAL_SLUG, mode: 'apply', confirmEditorialReview: true, publishAt: PUBLISH_AT });
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
   assert.equal(classification.contentRisk, 'general');
   assert.equal(classification.plannedNoindex, true);
   assert.equal(classification.indexCandidate, false);
   assert.match(packageJson.scripts['blog:update-promote-virtual-run'], new RegExp(`--slug ${CANONICAL_SLUG}`));
+});
+
+test('promotion creation payload schedules the local cover with a current review', () => {
+  const reviewedAt = new Date('2026-09-13T08:00:00.000Z');
+  const publishAt = new Date(PUBLISH_AT);
+  const payload = buildCreatePayload({
+    slug: CANONICAL_SLUG,
+    authorId: '507f1f77bcf86cd799439011',
+    now: reviewedAt,
+    publishAt,
+    confirmEditorialReview: true
+  });
+  assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
+  assert.equal(payload.status, 'scheduled');
+  assert.equal(payload.publishedAt.toISOString(), PUBLISH_AT);
+  assert.equal(payload.searchIndexingStatus, 'noindex');
+  assert.equal(payload.searchIndexingReason, 'pending_value_review');
+  assert.equal(hasCurrentPublicationReview(payload), true);
 });
 
 test('four primary August guides reciprocally link to the promotion guide', () => {
@@ -144,12 +163,9 @@ test('four primary August guides reciprocally link to the promotion guide', () =
   }
 });
 
-test('promotion guide links paid campaigns to the pricing guide', () => {
-  const href = '/blog/virtual-run-registration-fee-pricing';
+test('promotion guide omits the later unpublished pricing guide', () => {
   const payload = buildArticlePayload({ coverImageUrl: COVER_IMAGE_URL });
-  assert.ok(REQUIRED_LINKS.some((link) => link.includes(href)));
-  assert.ok(payload.contentHtml.includes(`href="${href}"`));
-  assert.ok(POSTS.find((post) => post.slug === CANONICAL_SLUG).links.includes(href));
+  assert.doesNotMatch(payload.contentHtml, /href="\/blog\/virtual-run-registration-fee-pricing"/);
 });
 
 test('promotion guide rejects dishonest acquisition and private-proof claims', () => {

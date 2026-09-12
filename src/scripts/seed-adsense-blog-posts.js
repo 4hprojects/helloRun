@@ -1484,8 +1484,7 @@ const POSTS = [
       '/blog/what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers',
       '/blog/how-to-write-clear-virtual-run-rules-participants-can-follow',
       '/blog/how-to-design-fair-distance-categories-and-challenge-goals',
-      '/blog/how-schools-and-organizations-can-use-virtual-runs',
-      '/blog/virtual-run-registration-fee-pricing'
+      '/blog/how-schools-and-organizations-can-use-virtual-runs'
     ]
   },
   {
