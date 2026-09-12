@@ -62,6 +62,7 @@ const { synchronizeEventBadgeImages } = require('../../services/event-badge.serv
 const { listOrganizerEvents } = require('../../services/organizer-event-list.service');
 const { getOrganizerEventDetailPresentation } = require('../../services/organizer-event-detail.service');
 const { resolveEventAccess } = require('../../services/event-access.service');
+const { listEventTeamSummary } = require('../../services/event-co-organizer.service');
 
 async function getEventSetupAuthority(event, user) {
   const access = await resolveEventAccess({
@@ -133,27 +134,38 @@ router.get('/events/:id', requireOrganizerWorkspace, async (req, res) => {
         message: 'Event not found or you do not have access.'
       });
     }
-    const [activeCertificateTemplate, eventBadges] = await Promise.all([
+    const access = await resolveEventAccess({ eventId: event._id, userId: user._id, userRole: user.role });
+    const canManageTeam = Boolean(access?.canManageTeam);
+    const [activeCertificateTemplate, eventBadges, primaryOrganizer, rawTeamMembers] = await Promise.all([
       CertificateTemplate.findOne({ eventId: event._id, status: 'active' }).select('_id').lean(),
       event.digitalBadgeEnabled
         ? getEventBadgesByMongoEventId(event._id).catch(() => [])
-        : Promise.resolve([])
+        : Promise.resolve([]),
+      User.findById(event.organizerId).select('firstName lastName displayName email').lean(),
+      listEventTeamSummary(event._id)
     ]);
     const publishReadinessErrors = getPublishReadinessErrors(event);
-    const access = await resolveEventAccess({ eventId: event._id, userId: user._id, userRole: user.role });
     const presentation = await getOrganizerEventDetailPresentation({
       event,
       hasActiveCertificate: Boolean(activeCertificateTemplate),
       eventBadgeCount: eventBadges.length,
       publishReadinessErrors,
-      canManageTeam: Boolean(access?.canManageTeam)
+      canManageTeam
     });
+    const teamMembers = canManageTeam
+      ? rawTeamMembers
+      : rawTeamMembers
+        .filter((member) => member.status === 'active')
+        .map(({ email, expiresAt, ...member }) => member);
 
     return res.render('organizer/event-details', {
       title: `Event Details - ${event.title}`,
       user,
       event,
       presentation,
+      primaryOrganizer,
+      teamMembers,
+      canManageTeam,
       eventDetailsHtml: renderEventDetailsMarkdown(event.eventDetailsMarkdown),
       message: getPageMessage(req.query)
     });

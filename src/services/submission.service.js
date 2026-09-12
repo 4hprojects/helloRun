@@ -15,6 +15,7 @@ const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 const { detectSuspiciousActivity } = require('../utils/submission-integrity');
 const { REVIEW_REASON_LABELS } = require('../utils/submission-review-labels');
 const { resolveRejectionReason } = require('../utils/rejection-reasons');
+const { validateReviewChecklist } = require('../utils/run-proof-review');
 const { assertRunDateNotFuture } = require('../utils/platform-date');
 const { buildAuditIdempotencyKey, recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 const { invalidateLeaderboardCache } = require('./leaderboard.service');
@@ -359,7 +360,10 @@ async function reviewSubmission({
   action,
   reviewNotes,
   rejectionReason,
-  rejectionCode
+  rejectionCode,
+  checklistVersion,
+  verifiedCriteria,
+  requireVerification = false
 }) {
   const safeAction = String(action || '').trim().toLowerCase();
   if (safeAction !== 'approve' && safeAction !== 'reject') {
@@ -379,7 +383,9 @@ async function reviewSubmission({
 
   const normalizedReviewerRole = String(reviewerRole || '').trim().toLowerCase();
   const isAdminReviewer = normalizedReviewerRole === 'admin';
-  const event = await Event.findById(submission.eventId).select('organizerId title slug').lean();
+  const event = await Event.findById(submission.eventId)
+    .select('organizerId title slug virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm acceptedRunTypes')
+    .lean();
   if (!event) {
     throw new Error('Submission not found or inaccessible.');
   }
@@ -399,6 +405,19 @@ async function reviewSubmission({
   };
 
   if (safeAction === 'approve') {
+    if (requireVerification) {
+      const checklist = validateReviewChecklist({
+        event,
+        submission,
+        version: checklistVersion,
+        verifiedCriteria
+      });
+      update.manualReviewChecklist = {
+        ...checklist,
+        confirmedAt: reviewedAt,
+        confirmedBy: organizerId
+      };
+    }
     update.status = 'approved';
     // Manual approval is the trusted reviewer decision, so clear automated suspicion metadata.
     update.suspiciousFlag = false;

@@ -16,6 +16,11 @@
           <p><%= event.title %> - Review pending proofs, inspect approved results, and audit automatic approvals.</p>
         </div>
         <div class="header-actions run-proof-header-actions" aria-label="Run proof review navigation">
+          <% if (links.reviewOldest) { %>
+            <a href="<%= links.reviewOldest %>" class="nav-signup-btn registrant-header-btn run-proof-header-btn run-proof-review-oldest-btn">
+              <i data-lucide="scan-search" aria-hidden="true"></i><span>Review oldest pending</span>
+            </a>
+          <% } %>
           <% if (isAdminViewer) { %>
             <a href="/admin/dashboard" class="nav-login-btn registrant-header-btn run-proof-header-btn" data-tooltip="Admin Dashboard" aria-label="Admin Dashboard">
               <i data-lucide="shield-check" aria-hidden="true"></i>
@@ -91,7 +96,7 @@
             <div class="run-proof-search-control">
               <input id="q" name="q" type="search" placeholder="Name, email, or code" value="<%= filters.q || '' %>" title="Search by participant name, email, or confirmation code">
             </div>
-            <button type="button" class="run-proof-search-btn" onclick="this.closest('form').submit()" aria-label="Search">
+            <button type="submit" class="run-proof-search-btn" aria-label="Search">
               <i data-lucide="search"></i>
             </button>
           </div>
@@ -202,21 +207,6 @@
                     <i data-lucide="eye" aria-hidden="true"></i>
                     <%= item.status === 'submitted' ? 'Open Review' : 'View Details' %>
                   </a>
-                  <% if (item.status === 'rejected') { %>
-                    <button
-                      type="button"
-                      class="btn-success table-action-btn run-proof-approve-btn"
-                      data-run-proof-approve
-                      data-action="<%= item.approveActionHref %>"
-                      data-participant="<%= item.participantName %>"
-                      data-email="<%= item.participantEmail %>"
-                      data-distance="<%= item.distanceLabel %>"
-                      data-elapsed="<%= item.elapsedLabel %>"
-                      data-run-date="<%= item.runDateLabel || 'N/A' %>">
-                      <i data-lucide="check-circle" aria-hidden="true"></i>
-                      Approve
-                    </button>
-                  <% } %>
                 </div>
 
                 <% if (item.status !== 'submitted') { %>
@@ -274,96 +264,10 @@
       <% } %>
     </section>
 
-    <div class="run-proof-approval-modal" id="runProofApprovalModal" hidden>
-      <div class="run-proof-approval-dialog" role="dialog" aria-modal="true" aria-labelledby="runProofApprovalTitle" aria-describedby="runProofApprovalDesc" tabindex="-1">
-        <div class="run-proof-approval-header">
-          <span class="run-proof-approval-icon"><i data-lucide="check-circle" aria-hidden="true"></i></span>
-          <div>
-            <h2 id="runProofApprovalTitle">Approve rejected proof?</h2>
-            <p id="runProofApprovalDesc">Validate the activity details before restoring this result to approved status.</p>
-          </div>
-        </div>
-        <dl class="run-proof-approval-summary">
-          <div>
-            <dt>Runner</dt>
-            <dd id="runProofApprovalRunner">N/A</dd>
-          </div>
-          <div>
-            <dt>Distance</dt>
-            <dd id="runProofApprovalDistance">N/A</dd>
-          </div>
-          <div>
-            <dt>Elapsed</dt>
-            <dd id="runProofApprovalElapsed">N/A</dd>
-          </div>
-          <div>
-            <dt>Run Date</dt>
-            <dd id="runProofApprovalDate">N/A</dd>
-          </div>
-        </dl>
-        <form method="POST" action="" id="runProofApprovalForm" class="run-proof-approval-form">
-          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-          <input type="hidden" name="queueStatus" value="<%= filters.status || 'pending' %>">
-          <input type="hidden" name="queueSort" value="<%= filters.sort || 'newest' %>">
-          <% if (filters.q) { %>
-            <input type="hidden" name="queueQ" value="<%= filters.q %>">
-          <% } %>
-          <% if (Number(filters.page || 1) > 1) { %>
-            <input type="hidden" name="queuePage" value="<%= filters.page %>">
-          <% } %>
-          <label for="runProofApprovalNotes">Approval notes</label>
-          <textarea id="runProofApprovalNotes" name="reviewNotes" rows="4" maxlength="1200" placeholder="Add a short validation note for this reversal"></textarea>
-          <div class="run-proof-approval-actions">
-            <button type="button" class="nav-login-btn" id="runProofApprovalCancel">Cancel</button>
-            <button type="submit" class="btn-success">Approve Result</button>
-          </div>
-        </form>
-      </div>
-    </div>
   </main>
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>
-    if (window.lucide) lucide.createIcons();
-    (function () {
-      const modal = document.getElementById('runProofApprovalModal');
-      const dialog = modal ? modal.querySelector('.run-proof-approval-dialog') : null;
-      const form = document.getElementById('runProofApprovalForm');
-      const notes = document.getElementById('runProofApprovalNotes');
-      const cancel = document.getElementById('runProofApprovalCancel');
-      if (!modal || !dialog || !form) return;
-
-      const setText = (id, value) => {
-        const node = document.getElementById(id);
-        if (node) node.textContent = value || 'N/A';
-      };
-      const closeModal = () => {
-        modal.hidden = true;
-        form.action = '';
-      };
-
-      document.querySelectorAll('[data-run-proof-approve]').forEach((button) => {
-        button.addEventListener('click', () => {
-          form.action = button.dataset.action || '';
-          const runner = [button.dataset.participant, button.dataset.email].filter(Boolean).join(' - ');
-          setText('runProofApprovalRunner', runner);
-          setText('runProofApprovalDistance', button.dataset.distance);
-          setText('runProofApprovalElapsed', button.dataset.elapsed);
-          setText('runProofApprovalDate', button.dataset.runDate);
-          modal.hidden = false;
-          if (notes) notes.value = '';
-          dialog.focus();
-        });
-      });
-      if (cancel) cancel.addEventListener('click', closeModal);
-      modal.addEventListener('click', (event) => {
-        if (event.target === modal) closeModal();
-      });
-      document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && !modal.hidden) closeModal();
-      });
-    })();
-  </script>
+  <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

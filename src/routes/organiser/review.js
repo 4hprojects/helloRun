@@ -6,6 +6,11 @@ const { redirectWithFlash } = require('../../utils/session-flash');
 const { normalizeSubmissionHubFilters } = require('../../services/submission-hub.service');
 const { resolveChallengeConfig } = require('../../utils/challenge-metrics');
 const {
+  REVIEW_CHECKLIST_VERSION,
+  buildRunProofVerificationCriteria,
+  buildRunRejectionReasonOptions
+} = require('../../utils/run-proof-review');
+const {
   logger,
   mongoose,
   User,
@@ -58,6 +63,61 @@ const {
   csvEscape,
   REVIEW_REASON_LABELS
 } = require('./_shared');
+
+async function getNextPendingRunProof(eventId) {
+  const sort = { submittedAt: 1, _id: 1 };
+  const select = '_id submittedAt createdAt';
+  const [standard, accumulated] = await Promise.all([
+    Submission.findOne({ eventId, status: 'submitted' }).sort(sort).select(select).lean(),
+    AccumulatedActivitySubmission.findOne({ eventId, status: 'submitted' }).sort(sort).select(select).lean()
+  ]);
+  const next = mergeRunProofReviewDocs(
+    standard ? [standard] : [],
+    accumulated ? [accumulated] : [],
+    'oldest'
+  )[0];
+  return next?.submission || null;
+}
+
+// Finds the next item after `currentSubmissionId` in the exact same
+// filtered/sorted/searched queue an organizer was browsing (not a global
+// default), so a decision advances them through their own view of the
+// queue instead of into an unrelated one. Must be computed BEFORE the
+// current item's status is mutated, since a status-filtered context (e.g.
+// "pending") would otherwise no longer match it once decided.
+async function getNextRunProofInQueueContext(eventId, queueContext, currentSubmissionId) {
+  const query = await buildRunProofReviewQuery(eventId, queueContext);
+  const sortSpec = getRunProofReviewSortSpec(queueContext.sort);
+  const select = '_id submittedAt createdAt';
+  const [standardDocs, accumulatedDocs] = await Promise.all([
+    Submission.find(query).sort(sortSpec).select(select).lean(),
+    AccumulatedActivitySubmission.find(query).sort(sortSpec).select(select).lean()
+  ]);
+  const merged = mergeRunProofReviewDocs(standardDocs, accumulatedDocs, queueContext.sort);
+  const currentIndex = merged.findIndex(
+    (entry) => String(entry.submission._id) === String(currentSubmissionId)
+  );
+  if (currentIndex === -1) return null;
+  return merged[currentIndex + 1]?.submission || null;
+}
+
+async function redirectAfterRunProofDecision(res, eventId, message, queueContext, nextSubmission) {
+  if (nextSubmission) {
+    return res.redirect(buildSubmissionReviewPath(eventId, nextSubmission._id, {
+      queueStatus: queueContext.status,
+      queueSort: queueContext.sort,
+      queueQ: queueContext.q,
+      queuePage: queueContext.page
+    }, { type: 'success', msg: message }));
+  }
+  const queuePath = buildRunProofReviewPath(eventId, queueContext);
+  const fallbackMessage = queueContext.status === 'pending'
+    ? `${message} No pending proofs remain.`
+    : `${message} No more items match your current filters.`;
+  const separator = queuePath.includes('?') ? '&' : '?';
+  const params = new URLSearchParams({ type: 'success', msg: fallbackMessage });
+  return res.redirect(`${queuePath}${separator}${params.toString()}`);
+}
 
 router.get('/events/:id/submissions/export', requireAuth, registrantExportLimiter, async (req, res) => {
   try {
@@ -951,7 +1011,8 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
       accumulatedApproved,
       standardAutoApproved,
       accumulatedAutoApproved,
-      accumulatedRejected
+      accumulatedRejected,
+      accumulatedNeedsClarification
     ] = await Promise.all([
       Submission.countDocuments(submissionQuery),
       AccumulatedActivitySubmission.countDocuments(submissionQuery),
@@ -962,7 +1023,12 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
       AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'approved' }),
       Submission.countDocuments({ eventId: event._id, status: 'approved', $or: [{ reviewedBy: null }, { reviewedBy: { $exists: false } }] }),
       AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'approved', $or: [{ reviewedBy: null }, { reviewedBy: { $exists: false } }] }),
-      AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'rejected' })
+      AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'rejected' }),
+      // Only accumulated-activity submissions can ever sit in needs_clarification
+      // (Submission's status enum has no such value) — included here so the
+      // "Pending" tab's displayed count matches what its own query actually
+      // includes (see getRunProofReviewStatusQuery's default branch).
+      AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'needs_clarification' })
     ]);
 
     const totalItems = standardTotal + accumulatedTotal;
@@ -984,10 +1050,11 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
       .slice(pageStart, pageEnd)
       .map((item) => buildRunProofReviewRow(item.submission, event, filters, item.submissionKind));
 
-    const pendingCount = standardPending + accumulatedPending;
+    const pendingCount = standardPending + accumulatedPending + accumulatedNeedsClarification;
     const approvedCount = standardApproved + accumulatedApproved;
     const autoApprovedCount = standardAutoApproved + accumulatedAutoApproved;
     const rejectedCount = standardRejected + accumulatedRejected;
+    const oldestPending = pendingCount > 0 ? await getNextPendingRunProof(event._id) : null;
 
     return res.render('organizer/run-proof-review', {
       title: `Run Proof Review - ${event.title}`,
@@ -1020,7 +1087,10 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
         rejected: buildRunProofReviewPath(event._id, filters, { status: 'rejected', sort: 'newest', page: 1 }),
         all: buildRunProofReviewPath(event._id, filters, { status: 'all', sort: 'newest', page: 1 }),
         reset: `/organizer/events/${event._id}/run-proofs/review`,
-        registrants: `/organizer/events/${event._id}/registrants`
+        registrants: `/organizer/events/${event._id}/registrants`,
+        reviewOldest: oldestPending
+          ? buildSubmissionReviewPath(event._id, oldestPending._id, { queueStatus: 'pending', queueSort: 'oldest' })
+          : ''
       }
     });
   } catch (error) {
@@ -1081,7 +1151,9 @@ router.get('/events/:id/submissions/:submissionId/review', requireAuth, async (r
       isAdminViewer: user.role === 'admin',
       isFullAdmin,
       reviewReasonOptions: isFullAdmin ? Object.entries(REVIEW_REASON_LABELS) : [],
-      runRejectionReasonOptions: getRejectionReasonOptions('run'),
+      runRejectionReasonOptions: buildRunRejectionReasonOptions(event, context.submission),
+      reviewChecklistVersion: REVIEW_CHECKLIST_VERSION,
+      verificationCriteria: buildRunProofVerificationCriteria(event, context.submission),
       event,
       challengeConfig: resolveChallengeConfig(event),
       message: getPageMessage(req.query),
@@ -1452,6 +1524,8 @@ router.post(
         });
       }
 
+      const queueContext = normalizeRunProofQueueContext(req.body);
+
       const submissionRecord = await Submission.findOne({
         _id: req.params.submissionId,
         eventId: event._id
@@ -1466,40 +1540,41 @@ router.post(
           .select('_id')
           .lean();
         if (!activityRecord) {
-          const queueContext = normalizeRunProofQueueContext(req.body);
           const queuePath = buildRunProofReviewPath(event._id, queueContext);
           const separator = queuePath.includes('?') ? '&' : '?';
           return res.redirect(`${queuePath}${separator}type=error&msg=${encodeURIComponent('Submission record not found for this event.')}`);
         }
 
+        const nextItem = await getNextRunProofInQueueContext(event._id, queueContext, activityRecord._id);
         const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
         await reviewAccumulatedActivitySubmission({
           activityId: activityRecord._id,
           organizerId: user._id,
           reviewerRole: user.role,
           action: 'approve',
-          reviewNotes
+          reviewNotes,
+          checklistVersion: req.body.checklistVersion,
+          verifiedCriteria: req.body.verifiedCriteria,
+          requireVerification: true
         });
 
-        return res.redirect(buildSubmissionReviewPath(event._id, activityRecord._id, req.body, {
-          type: 'success',
-          msg: 'Activity submission approved.'
-        }));
+        return redirectAfterRunProofDecision(res, event._id, 'Activity submission approved.', queueContext, nextItem);
       }
 
+      const nextItem = await getNextRunProofInQueueContext(event._id, queueContext, submissionRecord._id);
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
       await reviewSubmission({
         submissionId: submissionRecord._id,
         organizerId: user._id,
         reviewerRole: user.role,
         action: 'approve',
-        reviewNotes
+        reviewNotes,
+        checklistVersion: req.body.checklistVersion,
+        verifiedCriteria: req.body.verifiedCriteria,
+        requireVerification: true
       });
 
-      return res.redirect(buildSubmissionReviewPath(event._id, submissionRecord._id, req.body, {
-        type: 'success',
-        msg: 'Run result approved.'
-      }));
+      return redirectAfterRunProofDecision(res, event._id, 'Run result approved.', queueContext, nextItem);
     } catch (error) {
       return res.redirect(buildSubmissionReviewPath(req.params.id, req.params.submissionId, req.body, {
         type: 'error',
@@ -1546,6 +1621,8 @@ router.post(
         });
       }
 
+      const queueContext = normalizeRunProofQueueContext(req.body);
+
       const submissionRecord = await Submission.findOne({
         _id: req.params.submissionId,
         eventId: event._id
@@ -1560,12 +1637,12 @@ router.post(
           .select('_id')
           .lean();
         if (!activityRecord) {
-          const queueContext = normalizeRunProofQueueContext(req.body);
           const queuePath = buildRunProofReviewPath(event._id, queueContext);
           const separator = queuePath.includes('?') ? '&' : '?';
           return res.redirect(`${queuePath}${separator}type=error&msg=${encodeURIComponent('Submission record not found for this event.')}`);
         }
 
+        const nextItem = await getNextRunProofInQueueContext(event._id, queueContext, activityRecord._id);
         const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
         const rejectionCode = String(req.body.rejectionCode || '').trim();
         const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
@@ -1579,12 +1656,10 @@ router.post(
           reviewNotes
         });
 
-        return res.redirect(buildSubmissionReviewPath(event._id, activityRecord._id, req.body, {
-          type: 'success',
-          msg: 'Activity submission rejected.'
-        }));
+        return redirectAfterRunProofDecision(res, event._id, 'Activity submission rejected.', queueContext, nextItem);
       }
 
+      const nextItem = await getNextRunProofInQueueContext(event._id, queueContext, submissionRecord._id);
       const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
       const rejectionCode = String(req.body.rejectionCode || '').trim();
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
@@ -1598,10 +1673,7 @@ router.post(
         reviewNotes
       });
 
-      return res.redirect(buildSubmissionReviewPath(event._id, submissionRecord._id, req.body, {
-        type: 'success',
-        msg: 'Run result rejected.'
-      }));
+      return redirectAfterRunProofDecision(res, event._id, 'Run result rejected.', queueContext, nextItem);
     } catch (error) {
       return res.redirect(buildSubmissionReviewPath(req.params.id, req.params.submissionId, req.body, {
         type: 'error',
@@ -1648,6 +1720,8 @@ router.post(
         });
       }
 
+      const queueContext = normalizeRunProofQueueContext(req.body);
+
       const activityRecord = await AccumulatedActivitySubmission.findOne({
         _id: req.params.submissionId,
         eventId: event._id
@@ -1655,12 +1729,12 @@ router.post(
         .select('_id')
         .lean();
       if (!activityRecord) {
-        const queueContext = normalizeRunProofQueueContext(req.body);
         const queuePath = buildRunProofReviewPath(event._id, queueContext);
         const separator = queuePath.includes('?') ? '&' : '?';
         return res.redirect(`${queuePath}${separator}type=error&msg=${encodeURIComponent('Submission record not found for this event.')}`);
       }
 
+      const nextItem = await getNextRunProofInQueueContext(event._id, queueContext, activityRecord._id);
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
       await reviewAccumulatedActivitySubmission({
         activityId: activityRecord._id,
@@ -1670,10 +1744,7 @@ router.post(
         reviewNotes
       });
 
-      return res.redirect(buildSubmissionReviewPath(event._id, activityRecord._id, req.body, {
-        type: 'success',
-        msg: 'Marked as needing clarification.'
-      }));
+      return redirectAfterRunProofDecision(res, event._id, 'Marked as needing clarification.', queueContext, nextItem);
     } catch (error) {
       return res.redirect(buildSubmissionReviewPath(req.params.id, req.params.submissionId, req.body, {
         type: 'error',

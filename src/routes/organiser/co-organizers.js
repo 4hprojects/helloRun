@@ -11,10 +11,13 @@ const { resolveEventAccess } = require('../../services/event-access.service');
 const {
   inviteCoOrganizer,
   resolveInvitation,
+  resolveAccountInvitation,
   respondToInvitation,
+  respondToAccountInvitation,
   cancelOrRevoke,
   resendInvitation,
-  listCoOrganizers
+  listCoOrganizers,
+  getCoOrganizerErrorMessage
 } = require('../../services/event-co-organizer.service');
 
 const limiter = createRateLimiter({
@@ -22,6 +25,18 @@ const limiter = createRateLimiter({
   maxRequests: 20,
   message: 'Too many co-organizer changes. Please wait a few minutes and try again.'
 });
+
+function getManagementReturnPath(req) {
+  return req.body?.returnTo === 'event-detail' || req.query?.returnTo === 'event-detail'
+    ? `/organizer/events/${req.params.eventId}`
+    : `/organizer/events/${req.params.eventId}/co-organizers`;
+}
+
+function appendManagementMessage(path, type, message) {
+  const separator = path.includes('?') ? '&' : '?';
+  const anchor = path.endsWith('/co-organizers') ? '' : '#event-team';
+  return `${path}${separator}type=${encodeURIComponent(type)}&msg=${encodeURIComponent(message)}${anchor}`;
+}
 
 async function ownerAccess(req, res, next) {
   try {
@@ -48,18 +63,18 @@ router.get('/events/:eventId/co-organizers', requireAuth, ownerAccess, async (re
 });
 
 router.post('/events/:eventId/co-organizers', requireAuth, requireCsrfProtection, ownerAccess, limiter, async (req, res) => {
-  const base = `/organizer/events/${req.params.eventId}/co-organizers`;
+  const base = getManagementReturnPath(req);
   try {
     const result = await inviteCoOrganizer({ eventId: req.params.eventId, email: req.body.email, invitedBy: req.user._id, actorRole: req.user.role });
     const name = [result.user.firstName, result.user.lastName].filter(Boolean).join(' ') || result.user.email;
-    return res.redirect(`${base}?msg=${encodeURIComponent(`Invitation sent to ${name}.`)}`);
+    return res.redirect(appendManagementMessage(base, 'success', `Invitation sent to ${name}.`));
   } catch (error) {
-    return res.redirect(`${base}?type=error&msg=${encodeURIComponent(error.message)}`);
+    return res.redirect(appendManagementMessage(base, 'error', getCoOrganizerErrorMessage(error)));
   }
 });
 
 router.post('/events/:eventId/co-organizers/:membershipId/:action', requireAuth, requireCsrfProtection, ownerAccess, limiter, async (req, res) => {
-  const base = `/organizer/events/${req.params.eventId}/co-organizers`;
+  const base = getManagementReturnPath(req);
   const action = req.params.action;
   if (!['cancel', 'revoke', 'resend'].includes(action)) return res.status(400).send('Invalid action.');
   try {
@@ -69,10 +84,54 @@ router.post('/events/:eventId/co-organizers/:membershipId/:action', requireAuth,
       await cancelOrRevoke({ eventId: req.params.eventId, membershipId: req.params.membershipId, actorId: req.user._id, actorRole: req.user.role, action });
     }
     const success = action === 'cancel' ? 'Invitation cancelled.' : action === 'resend' ? 'Invitation resent.' : 'Co-organizer access removed.';
-    return res.redirect(`${base}?msg=${encodeURIComponent(success)}`);
+    return res.redirect(appendManagementMessage(base, 'success', success));
   } catch (error) {
-    return res.redirect(`${base}?type=error&msg=${encodeURIComponent(error.message)}`);
+    return res.redirect(appendManagementMessage(base, 'error', getCoOrganizerErrorMessage(error)));
   }
+});
+
+function getInvitationError(result) {
+  const forbidden = ['account_mismatch', 'account_ineligible'].includes(result.reason);
+  const message = result.reason === 'account_mismatch'
+    ? 'Sign in with the account that received this invitation.'
+    : result.reason === 'account_ineligible'
+      ? 'Your account must be active and email verified before accepting this invitation.'
+      : 'This invitation is no longer available.';
+  return { forbidden, message };
+}
+
+router.get('/co-organizer-invitations/account/:membershipId', requireAuth, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.session.userId).select('_id email firstName lastName emailVerified accountStatus').lean();
+    const resolved = await resolveAccountInvitation({ membershipId: req.params.membershipId, user });
+    return res.render('organizer/co-organizer-invitation', {
+      title: 'Co-organizer invitation',
+      resolved,
+      event: resolved.ok ? resolved.event : null,
+      accountMatches: resolved.reason !== 'account_mismatch',
+      accountEligible: resolved.reason !== 'account_ineligible',
+      formAction: `/organizer/co-organizer-invitations/account/${req.params.membershipId}`
+    });
+  } catch (error) { return next(error); }
+});
+
+router.post('/co-organizer-invitations/account/:membershipId', requireAuth, requireCsrfProtection, limiter, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.session.userId).select('_id email firstName lastName role emailVerified accountStatus').lean();
+    const decision = req.body.decision === 'decline' ? 'decline' : 'accept';
+    const result = await respondToAccountInvitation({ membershipId: req.params.membershipId, user, decision });
+    if (!result.ok) {
+      const error = getInvitationError(result);
+      return res.status(error.forbidden ? 403 : 400).render('error', {
+        title: 'Invitation unavailable',
+        status: error.forbidden ? 403 : 400,
+        message: error.message
+      });
+    }
+    if (decision === 'decline') return res.redirect(`/runner/dashboard?type=success&msg=${encodeURIComponent('Invitation declined.')}`);
+    req.session.activeWorkspace = 'organizer';
+    return req.session.save((error) => error ? next(error) : res.redirect(`/organizer/events/${result.event._id}?type=success&msg=${encodeURIComponent('Co-organizer invitation accepted.')}`));
+  } catch (error) { return next(error); }
 });
 
 router.get('/co-organizer-invitations/:token', requireAuth, async (req, res, next) => {
@@ -86,7 +145,8 @@ router.get('/co-organizer-invitations/:token', requireAuth, async (req, res, nex
       resolved,
       event,
       accountMatches: Boolean(resolved.ok && String(resolved.membership.userId) === String(user?._id) && resolved.membership.invitedEmail === String(user?.email || '').toLowerCase()),
-      accountEligible: Boolean(user?.emailVerified && user?.accountStatus === 'active')
+      accountEligible: Boolean(user?.emailVerified && (!user?.accountStatus || user.accountStatus === 'active')),
+      formAction: `/organizer/co-organizer-invitations/${req.params.token}`
     });
   } catch (error) { return next(error); }
 });
@@ -97,16 +157,11 @@ router.post('/co-organizer-invitations/:token', requireAuth, requireCsrfProtecti
     const decision = req.body.decision === 'decline' ? 'decline' : 'accept';
     const result = await respondToInvitation({ token: req.params.token, user, decision });
     if (!result.ok) {
-      const forbidden = ['account_mismatch', 'account_ineligible'].includes(result.reason);
-      const message = result.reason === 'account_mismatch'
-        ? 'Sign in with the account that received this invitation.'
-        : result.reason === 'account_ineligible'
-          ? 'Your account must be active and email verified before accepting this invitation.'
-          : 'This invitation is no longer available.';
-      return res.status(forbidden ? 403 : 400).render('error', {
+      const error = getInvitationError(result);
+      return res.status(error.forbidden ? 403 : 400).render('error', {
         title: 'Invitation unavailable',
-        status: forbidden ? 403 : 400,
-        message
+        status: error.forbidden ? 403 : 400,
+        message: error.message
       });
     }
     if (decision === 'decline') return res.redirect(`/runner/dashboard?type=success&msg=${encodeURIComponent('Invitation declined.')}`);

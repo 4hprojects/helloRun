@@ -118,6 +118,8 @@ router.post('/badge-definitions/:badgeDefinitionId/status', requireAdmin, adminM
 router.post('/badge-definitions/:badgeDefinitionId/email', requireAdmin, adminModerationLimiter, adminController.updateBadgeDefinitionEmailLevel);
 router.post('/user-badges/:userBadgeId/revoke', requireAdmin, adminModerationLimiter, adminController.revokeBadge);
 router.get('/events/:id', requireAdmin, adminController.viewEvent);
+router.post('/events/:id/co-organizers', requireAdmin, requireFullAdmin, adminModerationLimiter, adminController.inviteEventCoOrganizer);
+router.post('/events/:id/co-organizers/:membershipId/:action', requireAdmin, requireFullAdmin, adminModerationLimiter, adminController.manageEventCoOrganizer);
 router.get('/events/:id/edit', requireAdmin, adminController.renderEditEvent);
 router.post('/events/:id/edit', requireAdmin, adminModerationLimiter, uploadService.uploadEventBranding, requireCsrfProtection, adminController.updateEvent);
 router.post('/events/:id/media/remove', requireAdmin, adminModerationLimiter, adminController.removeEventMedia);

@@ -43,7 +43,7 @@ async function redirectIfAuth(req, res, next) {
 }
 
 async function getRunnerUnreadCountForLocals(req, user, activeWorkspace) {
-  if (activeWorkspace !== WORKSPACES.RUNNER || !canUseRunnerWorkspace(user)) return 0;
+  if (![WORKSPACES.RUNNER, WORKSPACES.ORGANIZER].includes(activeWorkspace) || !canUseRunnerWorkspace(user)) return 0;
   if (!shouldLoadRunnerUnreadCount(req)) return 0;
 
   const cache = req.session?.runnerUnreadNotifications;
@@ -66,7 +66,7 @@ async function getRunnerUnreadCountForLocals(req, user, activeWorkspace) {
 function shouldLoadRunnerUnreadCount(req) {
   const method = String(req.method || '').toUpperCase();
   if (!['GET', 'HEAD'].includes(method)) return false;
-  if (req.path.startsWith('/admin') || req.path.startsWith('/organizer') || req.path.startsWith('/webhooks')) return false;
+  if (req.path.startsWith('/admin') || req.path.startsWith('/webhooks')) return false;
 
   const accept = String(req.get('accept') || '').toLowerCase();
   if (accept.includes('application/json') && !accept.includes('text/html')) return false;

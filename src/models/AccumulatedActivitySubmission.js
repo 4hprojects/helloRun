@@ -1,6 +1,14 @@
 const mongoose = require('mongoose');
 const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
+const manualReviewChecklistSchema = new mongoose.Schema({
+  version: { type: String, trim: true, maxlength: 40, required: true },
+  requiredCriteria: [{ type: String, trim: true, maxlength: 80 }],
+  confirmedCriteria: [{ type: String, trim: true, maxlength: 80 }],
+  confirmedAt: { type: Date, required: true },
+  confirmedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+}, { _id: false });
+
 /**
  * AccumulatedActivitySubmission model for accumulated-distance activity submissions
  * 
@@ -190,6 +198,7 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
       default: '',
       maxlength: 80
     },
+    manualReviewChecklist: { type: manualReviewChecklistSchema, default: undefined },
     certificate: {
       type: {
         type: String,

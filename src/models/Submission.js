@@ -4,6 +4,14 @@ const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 const logger = require('../utils/logger');
 const { recordSyncFailureInBackground } = require('../services/sync-failure.service');
 
+const manualReviewChecklistSchema = new mongoose.Schema({
+  version: { type: String, trim: true, maxlength: 40, required: true },
+  requiredCriteria: [{ type: String, trim: true, maxlength: 80 }],
+  confirmedCriteria: [{ type: String, trim: true, maxlength: 80 }],
+  confirmedAt: { type: Date, required: true },
+  confirmedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+}, { _id: false });
+
 /**
  * Shared schema fragments for activity metrics and metadata
  */
@@ -74,6 +82,7 @@ const commonActivityFields = {
   reviewNotes: { type: String, trim: true, default: '', maxlength: 1200 },
   rejectionReason: { type: String, trim: true, default: '', maxlength: 500 },
   rejectionCode: { type: String, trim: true, default: '', maxlength: 80 },
+  manualReviewChecklist: { type: manualReviewChecklistSchema, default: undefined },
   suspiciousFlag: { type: Boolean, default: false },
   suspiciousFlagReason: { type: String, trim: true, default: '', maxlength: 500 }
 };

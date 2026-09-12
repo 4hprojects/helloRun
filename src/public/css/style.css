@@ -201,35 +201,12 @@ p {
     font: inherit;
 }
 
-.nav-primary-link {
-    width: auto;
-    min-width: 44px;
-    gap: 0.45rem;
-    padding: 0 0.7rem;
-}
-
-.nav-primary-link .nav-tooltip {
-    position: static;
-    transform: none;
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    padding: 0;
-    background: transparent;
-    color: inherit;
-    box-shadow: none;
-    font-size: 0.82rem;
-}
-
-.nav-primary-link .nav-tooltip::before {
-    display: none;
-}
-
-.nav-primary-link:hover .nav-tooltip,
-.nav-primary-link:focus-visible .nav-tooltip,
-.nav-primary-link:focus-within .nav-tooltip {
-    transform: none;
-}
+/* .nav-primary-link (Home/Events/Blog/Leaderboard) no longer gets special
+   treatment here: it now shares the plain .nav-icon-link fixed-size box
+   and floating hover/focus tooltip used by every other nav item, so the
+   whole row behaves consistently. The class stays in the markup only as a
+   semantic marker for "primary destination" (used by tests to check
+   exactly one is marked current). */
 
 .nav-icon-link i,
 .nav-icon-link svg {
@@ -274,60 +251,12 @@ p {
     border-bottom-color: #0f172a;
 }
 
-.nav-icon-link:not(.nav-primary-link):hover .nav-tooltip,
-.nav-icon-link:not(.nav-primary-link):focus-visible .nav-tooltip,
-.nav-icon-link:not(.nav-primary-link):focus-within .nav-tooltip {
+.nav-icon-link:hover .nav-tooltip,
+.nav-icon-link:focus-visible .nav-tooltip,
+.nav-icon-link:focus-within .nav-tooltip {
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) translateY(0);
-}
-
-@media (min-width: 901px) {
-    .nav-primary-link::after {
-        content: "";
-        position: absolute;
-        right: 0.7rem;
-        bottom: 0.22rem;
-        left: 0.7rem;
-        height: 3px;
-        border-radius: 999px;
-        background: #ea580c;
-        opacity: 0;
-        transform: scaleX(0.55);
-        transform-origin: center;
-        transition: opacity 0.18s ease, transform 0.18s ease;
-        pointer-events: none;
-    }
-
-    .nav-links .nav-primary-link.is-active,
-    .nav-links .nav-primary-link[aria-current="page"] {
-        color: #9a3412;
-        background: transparent;
-        border-color: transparent;
-    }
-
-    .nav-links .nav-primary-link.is-active::after,
-    .nav-links .nav-primary-link[aria-current="page"]::after {
-        opacity: 1;
-        transform: scaleX(1);
-    }
-
-    .nav-links .nav-primary-link:focus-visible {
-        color: #9a3412;
-        background: transparent;
-        box-shadow: none;
-        transform: none;
-    }
-}
-
-@media (min-width: 901px) and (hover: hover) and (pointer: fine) {
-    .nav-links .nav-primary-link:hover {
-        z-index: 1;
-        color: #9a3412;
-        background: transparent;
-        box-shadow: none;
-        transform: translateY(-1px);
-    }
 }
 
 .nav-notifications-link {
@@ -1175,15 +1104,6 @@ p {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .nav-primary-link,
-    .nav-primary-link::after {
-        transition: none;
-    }
-
-    .nav-primary-link:hover {
-        transform: none;
-    }
-
     .nav-run-proof-callout {
         transition: opacity 0.01ms linear, visibility 0.01ms linear;
     }
@@ -2026,10 +1946,6 @@ label .required {
 .runner-lifecycle-intro h2, .runner-lifecycle-intro p { margin: .15rem 0 0; }
 .runner-lifecycle-intro p { max-width: 38rem; color: #64748b; }
 .runner-stage-chip { display: inline-flex; margin-right: .4rem; padding: .15rem .45rem; border-radius: 999px; background: #fff7ed; color: #9a3412; font-size: .7rem; font-weight: 800; white-space: nowrap; }
-.admin-universal-search { margin-bottom: 1rem; padding: 1rem; border: 1px solid #cbd5e1; border-radius: .75rem; background: #fff; }
-.admin-universal-search label { display: block; margin-bottom: .35rem; font-weight: 700; }
-.admin-universal-search div { display: flex; gap: .5rem; }
-.admin-universal-search input { flex: 1; min-width: 0; }
 .admin-search-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }
 .admin-search-results { margin: 0; padding: 0; list-style: none; }
 .admin-search-results li { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem 0; border-bottom: 1px solid #e2e8f0; }
@@ -2038,7 +1954,6 @@ label .required {
   .workflow-incident-summary { flex-direction: column; }
   .workflow-incident-facts { min-width: 0; }
   .runner-lifecycle-intro { align-items: start; flex-direction: column; }
-  .admin-universal-search div { align-items: stretch; flex-direction: column; }
 }
 @media (max-width: 700px) { .admin-search-grid { grid-template-columns: 1fr; } }
 @media (max-width: 700px) {
@@ -2067,18 +1982,13 @@ label .required {
     min-width: 44px;
     max-width: none;
     height: 44px;
-    justify-content: flex-start;
-    gap: 0;
-    overflow: hidden;
     padding-inline: 11px;
     border: 1px solid transparent;
     border-radius: 12px;
-    white-space: nowrap;
     transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
   }
 
   .nav .nav-notifications-link {
-    overflow: visible;
     margin-right: 0.7rem;
     z-index: 2;
   }
@@ -2088,50 +1998,16 @@ label .required {
     flex: 0 0 20px;
   }
 
-  .nav .nav-icon-link .nav-tooltip {
-    position: static;
-    display: none;
-    margin-left: 0;
-    transform: none;
-    opacity: 0;
-    visibility: visible;
-    padding: 0;
-    background: transparent;
-    color: inherit;
-    box-shadow: none;
-    font-size: 0.82rem;
-    line-height: 1.1;
-    pointer-events: none;
-    transition: opacity 0.14s ease;
-  }
-
-  .nav .nav-icon-link .nav-tooltip::before,
-  .nav .nav-primary-link::after {
-    display: none;
-  }
-
-  .nav .nav-icon-link:hover,
-  .nav .nav-icon-link:focus-visible,
-  .nav .nav-icon-link:focus-within,
-  .nav .nav-icon-link.is-active,
-  .nav .nav-icon-link[aria-current="page"] {
-    width: auto;
-    min-width: max-content;
-    padding-right: 16px;
-  }
-
+  /* Every nav icon (primary destinations and secondary/utility items
+     alike) stays a fixed 44px box; the label floats below as a tooltip
+     (base .nav-tooltip rules) instead of growing the button in place, so
+     hovering one item never shifts its neighbors. A short delay on reveal
+     only (not on hide) avoids flashing tooltips while sweeping the mouse
+     across several icons in a row. */
   .nav .nav-icon-link:hover .nav-tooltip,
   .nav .nav-icon-link:focus-visible .nav-tooltip,
-  .nav .nav-icon-link:focus-within .nav-tooltip,
-  .nav .nav-icon-link.is-active .nav-tooltip,
-  .nav .nav-icon-link[aria-current="page"] .nav-tooltip {
-    display: inline-block;
-    width: auto;
-    max-width: none;
-    margin-left: 0.48rem;
-    opacity: 1;
-    transform: none;
-    animation: nav-label-reveal 0.14s ease-out both;
+  .nav .nav-icon-link:focus-within .nav-tooltip {
+    transition-delay: 0.12s;
   }
 
   .nav .nav-icon-link:hover,
@@ -2207,17 +2083,6 @@ label .required {
   .nav .nav-icon-link .nav-tooltip {
     transition: none;
     animation: none !important;
-  }
-}
-
-@keyframes nav-label-reveal {
-  from {
-    opacity: 0.25;
-    transform: translateX(-2px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
   }
 }
 

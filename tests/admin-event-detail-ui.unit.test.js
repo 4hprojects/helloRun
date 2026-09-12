@@ -22,11 +22,26 @@ test('admin event detail template compiles and exposes the workflow hierarchy', 
     'admin-event-task-card',
     'admin-event-section-nav',
     'id="event-essentials"',
+    'id="event-team"',
     'id="event-rules"',
     'id="event-content"',
     'id="event-media"',
     'admin-event-danger-zone'
   ].forEach((token) => assert.match(viewSource, new RegExp(token)));
+});
+
+test('event team is visible to every admin but mutations are full-admin-only', () => {
+  assert.match(controllerSource, /listEventTeamSummary\(event\._id\)/);
+  assert.match(viewSource, /Primary organizer/);
+  assert.match(viewSource, /Array\.isArray\(locals\.teamMembers\)/);
+  assert.match(viewSource, /eventTeamMembers\.forEach/);
+  assert.match(viewSource, /if \(viewerIsFullAdmin && !event\.isDeleted\)/);
+  assert.match(viewSource, /Co-organizer changes require full-admin access/);
+  assert.match(viewSource, /action="\/admin\/events\/<%= eventId %>\/co-organizers"/);
+  assert.match(viewSource, /data-high-risk-confirm/);
+  assert.match(controllerSource, /eventTeam:\s*'1'/);
+  assert.match(controllerSource, /teamMessage:\s*isEventTeamMessage \? pageMessage : null/);
+  assert.match(viewSource, /admin-event-team-message/);
 });
 
 test('pending review prioritizes readiness, approval, and a repair path', () => {

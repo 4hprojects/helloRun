@@ -8,13 +8,15 @@ const REJECTION_REASONS = Object.freeze({
     other: { label: 'Another payment issue needs correction', guidance: 'Review the organizer’s details below and upload corrected proof.' }
   }),
   run: Object.freeze({
-    unclear_proof: { label: 'Activity proof is unclear', guidance: 'Upload a clear screenshot showing distance, duration, and activity date.' },
+    unclear_proof: { label: 'Screenshot is unclear or cropped', guidance: 'Upload a clear, uncropped screenshot showing the required activity details.' },
     wrong_activity: { label: 'Proof does not show the required activity', guidance: 'Upload the activity that belongs to this event and registration.' },
     identity_mismatch: { label: 'Activity identity does not match', guidance: 'Submit your own activity using the name associated with your HelloRun profile.' },
     distance_mismatch: { label: 'Distance does not meet the event requirement', guidance: 'Review the required distance and submit a qualifying activity.' },
     date_outside_window: { label: 'Activity date is outside the event window', guidance: 'Submit an activity completed within the dates shown on the event.' },
     incomplete_metrics: { label: 'Required activity details are missing', guidance: 'Upload proof that includes the required distance, duration, and date.' },
+    metrics_mismatch: { label: 'Submitted details do not match the proof', guidance: 'Correct the submitted values or upload proof that matches them.' },
     duplicate_activity: { label: 'Activity was already submitted', guidance: 'Submit a different eligible activity that has not already been used.' },
+    unverifiable_proof: { label: 'Proof could not be verified', guidance: 'Upload the original, unedited activity evidence with all required details visible.' },
     other: { label: 'Another activity issue needs correction', guidance: 'Review the organizer’s details below and submit corrected proof.' }
   })
 });
@@ -37,12 +39,13 @@ function resolveRejectionReason(kind, code, detail, options = {}) {
     throw new Error('Add at least 10 characters of detail for the selected reason.');
   }
 
+  const messageDetail = safeDetail || definition.guidance;
   return {
     code: safeCode,
     label: definition.label,
     guidance: definition.guidance,
     detail: safeDetail,
-    runnerMessage: safeDetail ? `${definition.label}: ${safeDetail}` : definition.label
+    runnerMessage: `${definition.label}: ${messageDetail}`.slice(0, 500)
   };
 }
 

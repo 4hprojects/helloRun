@@ -83,6 +83,37 @@ test('event detail compiles and renders the balanced workspace hierarchy', () =>
   assert.ok(html.indexOf('organizer-event-detail-overview') < html.indexOf('Essential configuration'));
 });
 
+test('event owner can manage the inline team and returns to the event detail', () => {
+  const html = render({
+    canManageTeam: true,
+    primaryOrganizer: { firstName: 'Event', lastName: 'Owner', email: 'owner@example.com' },
+    teamMembers: [
+      { id: 'active-1', name: 'Active Helper', email: 'active@example.com', status: 'active' },
+      { id: 'pending-1', name: 'Pending Helper', email: 'pending@example.com', status: 'pending', expiresAt: new Date('2026-09-16T00:00:00Z') }
+    ]
+  });
+  assert.match(html, /id="event-team"/);
+  assert.match(html, /Event Owner/);
+  assert.match(html, /active@example\.com/);
+  assert.match(html, /pending@example\.com/);
+  assert.match(html, /name="returnTo" value="event-detail"/);
+  assert.match(html, /Send invitation/);
+  assert.match(html, /\/co-organizers\/pending-1\/resend/);
+  assert.match(html, /\/co-organizers\/active-1\/revoke/);
+});
+
+test('co-organizers see an email-free read-only active team summary', () => {
+  const html = render({
+    canManageTeam: false,
+    primaryOrganizer: { firstName: 'Event', lastName: 'Owner', email: 'owner@example.com' },
+    teamMembers: [{ id: 'active-1', name: 'Active Helper', email: 'active@example.com', status: 'active' }]
+  });
+  assert.match(html, /You have co-organizer access/);
+  assert.match(html, /Active Helper/);
+  assert.doesNotMatch(html, /owner@example\.com|active@example\.com/);
+  assert.doesNotMatch(html, /Send invitation|\/co-organizers\/active-1\/revoke/);
+});
+
 test('header and queue actions are contextual rather than nine equal controls', () => {
   const html = render();
   assert.match(html, />Edit Event</);

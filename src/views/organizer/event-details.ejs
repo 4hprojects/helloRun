@@ -7,7 +7,13 @@
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  <% const p = presentation; %>
+  <%
+    const p = presentation;
+    const canManageEventTeam = Boolean(typeof canManageTeam !== 'undefined' && canManageTeam);
+    const eventTeamMembers = Array.isArray(locals.teamMembers) ? locals.teamMembers : [];
+    const eventPrimaryOrganizer = locals.primaryOrganizer || null;
+    const primaryOrganizerName = eventPrimaryOrganizer?.displayName || [eventPrimaryOrganizer?.firstName, eventPrimaryOrganizer?.lastName].filter(Boolean).join(' ') || event.organiserName || 'Primary organizer';
+  %>
 
   <main class="organizer-event-detail-page" id="main-content" data-organizer-event-detail>
     <div class="organizer-event-detail-shell">
@@ -85,6 +91,46 @@
 
       <div class="organizer-event-detail-layout">
         <div class="organizer-event-detail-main">
+          <section class="organizer-event-detail-section organizer-event-team" id="event-team" aria-labelledby="eventTeamTitle">
+            <div class="organizer-event-detail-section-heading">
+              <div><span>Access management</span><h2 id="eventTeamTitle">Event team</h2></div>
+              <span class="organizer-event-team-count"><%= eventTeamMembers.filter((member) => member.status === 'active').length %> co-organizer<%= eventTeamMembers.filter((member) => member.status === 'active').length === 1 ? '' : 's' %></span>
+            </div>
+            <p class="organizer-event-detail-helper"><%= canManageEventTeam ? 'Invite trusted people to help manage participants, payments, results, communications, and recognition.' : 'You have co-organizer access to this event. Team management remains with the primary organizer.' %></p>
+            <div class="organizer-event-team-list">
+              <article class="organizer-event-team-member is-owner">
+                <span class="organizer-event-team-icon"><i data-lucide="crown" aria-hidden="true"></i></span>
+                <div><strong><%= primaryOrganizerName %></strong><% if (canManageEventTeam && eventPrimaryOrganizer?.email) { %><small><%= eventPrimaryOrganizer.email %></small><% } %></div>
+                <span class="organizer-event-team-status is-active">Primary organizer</span>
+              </article>
+              <% eventTeamMembers.forEach((member) => { %>
+                <article class="organizer-event-team-member">
+                  <span class="organizer-event-team-icon"><i data-lucide="user-round" aria-hidden="true"></i></span>
+                  <div><strong><%= member.name %></strong><% if (canManageEventTeam && member.email) { %><small><%= member.email %><% if (member.status === 'pending' && member.expiresAt) { %> · Expires <%= new Date(member.expiresAt).toLocaleDateString('en-US') %><% } %></small><% } %></div>
+                  <span class="organizer-event-team-status is-<%= member.status %>"><%= member.status === 'active' ? 'Active' : 'Pending' %></span>
+                  <% if (canManageEventTeam) { %>
+                    <div class="organizer-event-team-actions">
+                      <% if (member.status === 'pending') { %><form method="POST" action="/organizer/events/<%= event._id %>/co-organizers/<%= member.id %>/resend"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="returnTo" value="event-detail"><button type="submit" class="nav-login-btn">Resend</button></form><% } %>
+                      <% const memberAction = member.status === 'pending' ? 'cancel' : 'revoke'; %>
+                      <form method="POST" action="/organizer/events/<%= event._id %>/co-organizers/<%= member.id %>/<%= memberAction %>" data-high-risk-confirm data-confirm-title="<%= memberAction === 'cancel' ? 'Cancel invitation' : 'Remove co-organizer' %>" data-confirm-target="<%= member.name %>" data-confirm-impact="<%= memberAction === 'cancel' ? 'The invitation link will stop working.' : 'Their event access ends immediately.' %>" data-confirm-reversibility="You can invite this account again." data-confirm-privilege="Primary event owner" data-confirm-button="Confirm">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="returnTo" value="event-detail"><button type="submit" class="nav-login-btn"><%= memberAction === 'cancel' ? 'Cancel' : 'Remove' %></button>
+                      </form>
+                    </div>
+                  <% } %>
+                </article>
+              <% }); %>
+              <% if (!eventTeamMembers.length) { %><p class="organizer-event-team-empty">No co-organizers have been added.</p><% } %>
+            </div>
+            <% if (canManageEventTeam) { %>
+              <form method="POST" action="/organizer/events/<%= event._id %>/co-organizers" class="organizer-event-team-invite">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="returnTo" value="event-detail">
+                <div><label for="organizerCoOrganizerEmail">Invite a co-organizer</label><small>They need an active, verified HelloRun account and must accept within seven days.</small></div>
+                <input id="organizerCoOrganizerEmail" name="email" type="email" required autocomplete="off" placeholder="runner@example.com">
+                <button type="submit" class="nav-signup-btn"><i data-lucide="user-plus" aria-hidden="true"></i> Send invitation</button>
+              </form>
+            <% } %>
+          </section>
+
           <% if (p.accumulatedOperations) { %>
             <section class="organizer-event-detail-section organizer-event-accumulated-operations" aria-labelledby="accumulatedOperationsTitle">
               <div class="organizer-event-detail-section-heading">

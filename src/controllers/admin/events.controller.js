@@ -29,6 +29,13 @@ const {
   appendAdminEditMessage
 } = require('../../utils/admin-event-return');
 const RunningGroup = require('../../models/RunningGroup');
+const {
+  inviteCoOrganizer,
+  cancelOrRevoke,
+  resendInvitation,
+  listEventTeamSummary,
+  getCoOrganizerErrorMessage
+} = require('../../services/event-co-organizer.service');
 
 function getAdminEditReturnContext(req, eventId) {
   const returnTo = normalizeAdminEventsReturnTo(req.body?.returnTo || req.query?.returnTo);
@@ -59,6 +66,15 @@ function buildAdminEditViewData({ req, event, formData, errors = {}, message = n
     mediaRemovePath: `/admin/events/${event._id}/media/remove`,
     isAdminEdit: true
   };
+}
+
+function getAdminEventTeamRedirect(eventId, type, message) {
+  const query = new URLSearchParams({
+    type,
+    msg: String(message || '').slice(0, 240),
+    eventTeam: '1'
+  });
+  return `/admin/events/${eventId}?${query.toString()}#event-team`;
 }
 
 // SECTION: Event Management
@@ -158,12 +174,15 @@ exports.viewEvent = async (req, res) => {
         message: 'The requested event does not exist.'
       });
     }
-    const [counts, viewer] = await Promise.all([
+    const [counts, viewer, teamMembers] = await Promise.all([
       getEventCountsById([event._id]),
-      User.findById(req.session.userId).select('adminTier').lean()
+      User.findById(req.session.userId).select('adminTier').lean(),
+      listEventTeamSummary(event._id)
     ]);
     const itemCounts = counts.get(String(event._id)) || { registrations: 0, submissions: 0 };
     const readinessErrors = event.status === 'pending_review' ? getPublishReadinessErrors(event) : [];
+    const pageMessage = getAdminPageMessage(req.query);
+    const isEventTeamMessage = String(req.query.eventTeam || '') === '1';
     return res.render('admin/event-detail', {
       title: `Event Management - ${event.title}`,
       event,
@@ -172,10 +191,64 @@ exports.viewEvent = async (req, res) => {
       statusLabel: formatEventStatusLabel(event.status),
       eventDetailsHtml: buildEventDetailsHtml(event.eventDetailsMarkdown || ''),
       viewerIsFullAdmin: isFullAdminTier(viewer),
-      message: getAdminPageMessage(req.query)
+      teamMembers,
+      message: isEventTeamMessage ? null : pageMessage,
+      teamMessage: isEventTeamMessage ? pageMessage : null
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading the admin event detail.');
+  }
+};
+
+exports.inviteEventCoOrganizer = async (req, res) => {
+  const eventId = req.params.id;
+  try {
+    const result = await inviteCoOrganizer({
+      eventId,
+      email: req.body.email,
+      invitedBy: req.session.userId,
+      actorRole: 'admin'
+    });
+    const name = [result.user.firstName, result.user.lastName].filter(Boolean).join(' ') || result.user.email;
+    return res.redirect(getAdminEventTeamRedirect(eventId, 'success', `Invitation sent to ${name}.`));
+  } catch (error) {
+    logger.error('Admin co-organizer invitation failed:', { eventId, error: error?.message || String(error) });
+    return res.redirect(getAdminEventTeamRedirect(eventId, 'error', getCoOrganizerErrorMessage(error)));
+  }
+};
+
+exports.manageEventCoOrganizer = async (req, res) => {
+  const eventId = req.params.id;
+  const action = String(req.params.action || '');
+  if (!['cancel', 'revoke', 'resend'].includes(action)) {
+    return res.redirect(getAdminEventTeamRedirect(eventId, 'error', 'Invalid co-organizer action.'));
+  }
+  try {
+    if (action === 'resend') {
+      await resendInvitation({
+        eventId,
+        membershipId: req.params.membershipId,
+        actorId: req.session.userId,
+        actorRole: 'admin'
+      });
+    } else {
+      await cancelOrRevoke({
+        eventId,
+        membershipId: req.params.membershipId,
+        actorId: req.session.userId,
+        actorRole: 'admin',
+        action
+      });
+    }
+    const message = action === 'cancel'
+      ? 'Invitation cancelled.'
+      : action === 'resend'
+        ? 'Invitation resent.'
+        : 'Co-organizer access removed.';
+    return res.redirect(getAdminEventTeamRedirect(eventId, 'success', message));
+  } catch (error) {
+    logger.error('Admin co-organizer action failed:', { eventId, action, error: error?.message || String(error) });
+    return res.redirect(getAdminEventTeamRedirect(eventId, 'error', getCoOrganizerErrorMessage(error)));
   }
 };
 
@@ -723,58 +796,85 @@ exports.exportAnalyticsXlsx = async (req, res) => {
   }
 };
 
+function facetCount(doc, key) {
+  return (doc && doc[key] && doc[key][0] && doc[key][0].count) || 0;
+}
+
 exports.dashboard = async (req, res) => {
   try {
     const [
       totalUsers,
-      totalApplications,
-      pendingApplications,
-      approvedApplications,
-      rejectedApplications,
-      totalBlogs,
-      pendingBlogs,
-      publishedBlogs,
-      rejectedBlogs,
-      archivedBlogs,
       openBlogReports,
-      totalBlogComments,
-      removedBlogComments,
-      totalEvents,
-      draftEvents,
-      pendingEventReviews,
-      publishedEvents,
-      totalRegistrations,
-      pendingPaymentReviews,
-      totalSubmissions,
-      approvedSubmissions,
-      pendingResultReviews,
+      [organiserApplicationFacets],
+      [blogFacets],
+      [blogCommentFacets],
+      [eventFacets],
+      [registrationFacets],
+      [submissionFacets],
       pendingApplicationQueue,
-      draftEventQueue,
-      pendingResultEvent
+      draftEventQueue
     ] =
       await Promise.all([
         User.countDocuments(),
-        OrganiserApplication.countDocuments(),
-        OrganiserApplication.countDocuments({ status: 'pending' }),
-        OrganiserApplication.countDocuments({ status: 'approved' }),
-        OrganiserApplication.countDocuments({ status: 'rejected' }),
-        Blog.countDocuments({ isDeleted: { $ne: true } }),
-        Blog.countDocuments({ isDeleted: { $ne: true }, status: 'pending' }),
-        Blog.countDocuments({ isDeleted: { $ne: true }, status: 'published' }),
-        Blog.countDocuments({ isDeleted: { $ne: true }, status: 'rejected' }),
-        Blog.countDocuments({ isDeleted: { $ne: true }, status: 'archived' }),
         BlogReport.countDocuments({ status: 'open' }),
-        BlogComment.countDocuments({ isDeleted: { $ne: true } }),
-        BlogComment.countDocuments({ status: 'removed' }),
-        Event.countDocuments({ isDeleted: { $ne: true } }),
-        Event.countDocuments({ status: 'draft', isDeleted: { $ne: true } }),
-        Event.countDocuments({ status: 'pending_review', isDeleted: { $ne: true } }),
-        Event.countDocuments({ status: 'published', isDeleted: { $ne: true } }),
-        Registration.countDocuments(),
-        Registration.countDocuments({ paymentStatus: 'proof_submitted' }),
-        Submission.countDocuments(),
-        Submission.countDocuments({ status: 'approved' }),
-        Submission.countDocuments({ status: 'submitted' }),
+        OrganiserApplication.aggregate([
+          {
+            $facet: {
+              total: [{ $count: 'count' }],
+              pending: [{ $match: { status: 'pending' } }, { $count: 'count' }],
+              approved: [{ $match: { status: 'approved' } }, { $count: 'count' }],
+              rejected: [{ $match: { status: 'rejected' } }, { $count: 'count' }]
+            }
+          }
+        ]),
+        Blog.aggregate([
+          { $match: { isDeleted: { $ne: true } } },
+          {
+            $facet: {
+              total: [{ $count: 'count' }],
+              pending: [{ $match: { status: 'pending' } }, { $count: 'count' }],
+              published: [{ $match: { status: 'published' } }, { $count: 'count' }],
+              rejected: [{ $match: { status: 'rejected' } }, { $count: 'count' }],
+              archived: [{ $match: { status: 'archived' } }, { $count: 'count' }]
+            }
+          }
+        ]),
+        BlogComment.aggregate([
+          {
+            $facet: {
+              total: [{ $match: { isDeleted: { $ne: true } } }, { $count: 'count' }],
+              removed: [{ $match: { status: 'removed' } }, { $count: 'count' }]
+            }
+          }
+        ]),
+        Event.aggregate([
+          { $match: { isDeleted: { $ne: true } } },
+          {
+            $facet: {
+              total: [{ $count: 'count' }],
+              draft: [{ $match: { status: 'draft' } }, { $count: 'count' }],
+              pendingReview: [{ $match: { status: 'pending_review' } }, { $count: 'count' }],
+              published: [{ $match: { status: 'published' } }, { $count: 'count' }]
+            }
+          }
+        ]),
+        Registration.aggregate([
+          {
+            $facet: {
+              total: [{ $count: 'count' }],
+              pendingPayment: [{ $match: { paymentStatus: 'proof_submitted' } }, { $count: 'count' }]
+            }
+          }
+        ]),
+        Submission.aggregate([
+          {
+            $facet: {
+              total: [{ $count: 'count' }],
+              approved: [{ $match: { status: 'approved' } }, { $count: 'count' }],
+              submitted: [{ $match: { status: 'submitted' } }, { $count: 'count' }]
+            }
+          }
+        ]),
         OrganiserApplication.find({ status: { $in: ['pending', 'under_review'] } })
           .populate('userId', 'firstName lastName email')
           .sort({ submittedAt: 1 })
@@ -785,12 +885,34 @@ exports.dashboard = async (req, res) => {
           .sort({ updatedAt: -1, createdAt: -1 })
           .limit(8)
           .select('title status updatedAt createdAt eventStartAt organizerId')
-          .lean(),
-        Submission.findOne({ status: 'submitted' })
-          .sort({ submittedAt: -1, createdAt: -1 })
-          .select('eventId')
           .lean()
       ]);
+
+    const totalApplications = facetCount(organiserApplicationFacets, 'total');
+    const pendingApplications = facetCount(organiserApplicationFacets, 'pending');
+    const approvedApplications = facetCount(organiserApplicationFacets, 'approved');
+    const rejectedApplications = facetCount(organiserApplicationFacets, 'rejected');
+
+    const totalBlogs = facetCount(blogFacets, 'total');
+    const pendingBlogs = facetCount(blogFacets, 'pending');
+    const publishedBlogs = facetCount(blogFacets, 'published');
+    const rejectedBlogs = facetCount(blogFacets, 'rejected');
+    const archivedBlogs = facetCount(blogFacets, 'archived');
+
+    const totalBlogComments = facetCount(blogCommentFacets, 'total');
+    const removedBlogComments = facetCount(blogCommentFacets, 'removed');
+
+    const totalEvents = facetCount(eventFacets, 'total');
+    const draftEvents = facetCount(eventFacets, 'draft');
+    const pendingEventReviews = facetCount(eventFacets, 'pendingReview');
+    const publishedEvents = facetCount(eventFacets, 'published');
+
+    const totalRegistrations = facetCount(registrationFacets, 'total');
+    const pendingPaymentReviews = facetCount(registrationFacets, 'pendingPayment');
+
+    const totalSubmissions = facetCount(submissionFacets, 'total');
+    const approvedSubmissions = facetCount(submissionFacets, 'approved');
+    const pendingResultReviews = facetCount(submissionFacets, 'submitted');
 
     const pendingApplicationsList = pendingApplicationQueue.map((application) => ({
       id: String(application._id),
@@ -801,9 +923,6 @@ exports.dashboard = async (req, res) => {
       applicantName: [application.userId?.firstName, application.userId?.lastName].filter(Boolean).join(' ').trim() || 'N/A',
       applicantEmail: application.userId?.email || 'N/A'
     }));
-    const pendingResultReviewHref = pendingResultEvent?.eventId
-      ? `/organizer/events/${String(pendingResultEvent.eventId)}/registrants?result=submitted`
-      : '';
     const draftEventsList = draftEventQueue.map((event) => ({
       id: String(event._id),
       title: event.title || 'Untitled event',
@@ -841,8 +960,7 @@ exports.dashboard = async (req, res) => {
         pendingPaymentReviewHref: pendingPaymentReviews > 0 ? '/admin/reviews?type=payments' : '',
         totalSubmissions,
         approvedSubmissions,
-        pendingResultReviews,
-        pendingResultReviewHref: pendingResultReviews > 0 ? '/admin/reviews?type=results' : pendingResultReviewHref
+        pendingResultReviews
       },
       pendingApplicationsList,
       draftEventsList

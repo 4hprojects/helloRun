@@ -1,4 +1,11 @@
 <!-- filepath: c:\Users\Kayla Ryhs\Desktop\PersonalProjects\HelloRun\hellorun\src\views\layouts\footer.ejs -->
+<% if (locals.minimalFooter) { %>
+<footer class="footer admin-footer-minimal">
+  <div class="container footer-bottom">
+    <p>&copy; <%= new Date().getFullYear() %> HelloRun by 4HProjects.</p>
+  </div>
+</footer>
+<% } else { %>
 <footer class="footer">
   <div class="container">
     <div class="footer-content">
@@ -6,7 +13,7 @@
         <h3>HelloRun</h3>
         <p>Movement, momentum, and shared progress. Join the conversation around consistency, health, and achievement.</p>
       </div>
-      
+
       <div class="footer-section footer-section-links">
         <h3>Quick Links</h3>
         <ul class="footer-links footer-links-compact">
@@ -16,7 +23,7 @@
           <li><a href="/contact">Contact</a></li>
         </ul>
       </div>
-      
+
       <div class="footer-section footer-section-links">
         <h3>Resources</h3>
         <ul class="footer-links footer-links-compact">
@@ -34,12 +41,13 @@
         </ul>
       </div>
     </div>
-    
+
     <div class="footer-bottom">
       <p>&copy; <%= new Date().getFullYear() %> HelloRun by 4HProjects.</p>
     </div>
   </div>
 </footer>
+<% } %>
 <button type="button" class="global-back-to-top<%= (locals.isAuthenticated && locals.isRunnerWorkspace) ? ' global-back-to-top--with-mobile-nav' : '' %>" id="globalBackToTopBtn" aria-label="Back to top">
   <i data-lucide="arrow-up"></i>
 </button>

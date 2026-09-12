@@ -2066,15 +2066,23 @@
   flex: 0 0 auto;
 }
 
-.run-proof-approve-btn {
-  width: 100%;
+/* Stretch the card's one real action link across the whole card so the
+   existing hover affordance matches what's actually clickable, without
+   adding any new action (the anchor stays position:static so its ::after
+   positions against .run-proof-review-card, which is already position:relative). */
+.run-proof-card-actions .nav-signup-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
 }
 
-.run-proof-approve-btn i,
-.run-proof-approve-btn svg {
-  width: 14px;
-  height: 14px;
-}}
+.run-proof-review-card .run-proof-preview .proof-link,
+.run-proof-review-card .run-proof-image-link,
+.run-proof-review-card .run-proof-details-toggle {
+  position: relative;
+  z-index: 2;
+}
 
 .run-proof-history {
   margin-top: 0.55rem;
@@ -2095,111 +2103,6 @@
   margin: 0.15rem 0;
   font-size: 0.78rem;
   overflow-wrap: anywhere;
-}
-
-.run-proof-approval-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 1200;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-  background: rgba(15, 23, 42, 0.54);
-}
-
-.run-proof-approval-modal[hidden] {
-  display: none;
-}
-
-.run-proof-approval-dialog {
-  width: min(100%, 520px);
-  border: 1px solid #dbe4ee;
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
-  padding: 1rem;
-}
-
-.run-proof-approval-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-}
-
-.run-proof-approval-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 999px;
-  background: #dcfce7;
-  color: #166534;
-  flex: 0 0 auto;
-}
-
-.run-proof-approval-icon i,
-.run-proof-approval-icon svg {
-  width: 20px;
-  height: 20px;
-}
-
-.run-proof-approval-header h2 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 1.1rem;
-}
-
-.run-proof-approval-header p {
-  margin: 0.2rem 0 0;
-  color: #475569;
-}
-
-.run-proof-approval-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.55rem;
-  margin: 0.9rem 0;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: #f8fafc;
-  padding: 0.75rem;
-}
-
-.run-proof-approval-summary dt {
-  color: #64748b;
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.run-proof-approval-summary dd {
-  margin: 0.1rem 0 0;
-  color: #0f172a;
-  overflow-wrap: anywhere;
-}
-
-.run-proof-approval-form label {
-  display: block;
-  margin-bottom: 0.3rem;
-  color: #334155;
-  font-weight: 800;
-}
-
-.run-proof-approval-form textarea {
-  width: 100%;
-  min-height: 6rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 0.65rem 0.75rem;
-  resize: vertical;
-}
-
-.run-proof-approval-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.55rem;
-  margin-top: 0.8rem;
 }
 
 .run-proof-pagination {
@@ -2258,7 +2161,17 @@
   }
 
   .run-proof-review-page .registrant-summary {
-    display: none;
+    display: flex;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    padding-bottom: 0.25rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .run-proof-review-page .registrant-summary .summary-card {
+    flex: 0 0 auto;
+    min-width: 8rem;
   }
 
   .run-proof-filter-bar {
@@ -2365,7 +2278,9 @@
   }
 
   .run-proof-history {
-    display: none;
+    font-size: 0.75rem;
+    margin-top: 0.45rem;
+    padding-top: 0.45rem;
   }
 }
 
@@ -2507,21 +2422,18 @@
   }
 
   .run-proof-history {
-    display: none;
+    font-size: 0.72rem;
+    margin-top: 0.4rem;
+    padding-top: 0.4rem;
   }
-}
 
-.run-proof-review-page .run-proof-header-btn {
+  .run-proof-review-page .run-proof-header-btn {
     width: auto;
     min-width: 2rem;
     flex: 0 1 auto;
     padding: 0 0.5rem;
     height: 2.3rem;
     justify-content: center;
-  }
-
-  .run-proof-review-page .registrant-summary {
-    display: none;
   }
 
   .run-proof-status-dropdown-wrapper {
@@ -2739,3 +2651,179 @@
 
 .custom-question-row legend { font-weight: 600; font-size: .9rem; padding: 0 .25rem; }
 .custom-question-row textarea { resize: vertical; }
+
+/* Evidence-first run-proof review */
+.submission-review-workspace {
+  grid-template-columns: minmax(0, 1fr) minmax(19rem, 23rem);
+  align-items: start;
+}
+
+.evidence-stage {
+  background: linear-gradient(145deg, #fffaf5, #fff);
+  border: 1px solid #fed7aa;
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.evidence-stage-heading,
+.runner-message-heading,
+.review-dialog-header,
+.review-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.evidence-stage-heading p { margin: .25rem 0 0; color: #64748b; }
+
+.submission-proof-zoom-button {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  background: #111827;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  cursor: zoom-in;
+}
+
+.submission-proof-zoom-button img {
+  display: block;
+  width: 100%;
+  max-height: 68vh;
+  object-fit: contain;
+}
+
+.submission-proof-zoom-button span {
+  position: absolute;
+  right: .75rem;
+  bottom: .75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .5rem .7rem;
+  color: #fff;
+  background: rgba(15, 23, 42, .86);
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.submission-proof-file { padding: 2rem; text-align: center; }
+
+.proof-comparison {
+  display: grid;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.proof-comparison-row {
+  display: grid;
+  grid-template-columns: minmax(7rem, .8fr) repeat(2, minmax(8rem, 1fr));
+  gap: .75rem;
+  align-items: center;
+  padding: .75rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.proof-comparison-row:first-child { border-top: 0; }
+.proof-comparison-header { background: #f8fafc; color: #475569; font-size: .78rem; font-weight: 800; text-transform: uppercase; }
+.proof-comparison-row.has-mismatch { background: #fff1f2; border-left: 4px solid #e11d48; }
+.proof-comparison-row small { display: block; margin-top: .2rem; color: #be123c; font-weight: 700; }
+.proof-comparison-row small.comparison-match { color: #15803d; }
+
+.submission-review-context summary,
+.submission-review-admin-audit summary { cursor: pointer; font-weight: 800; }
+
+.submission-review-actions {
+  position: sticky;
+  top: 5.5rem;
+  max-height: calc(100vh - 7rem);
+  overflow-y: auto;
+}
+
+.review-decision-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5rem, 1fr));
+  gap: .35rem;
+  margin: .9rem 0;
+  padding: .3rem;
+  border-radius: 10px;
+  background: #f1f5f9;
+}
+
+.review-decision-tabs button {
+  padding: .55rem .35rem;
+  border: 0;
+  border-radius: 8px;
+  color: #475569;
+  background: transparent;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.review-decision-tabs button[aria-selected="true"] { color: #9a3412; background: #fff; box-shadow: 0 1px 4px rgba(15, 23, 42, .12); }
+.review-checklist { display: grid; gap: .55rem; margin: 0 0 1rem; padding: 0; border: 0; }
+.review-checklist legend { font-weight: 800; }
+.review-checklist > p { margin: .25rem 0; color: #64748b; font-size: .84rem; }
+
+.review-check-item {
+  display: flex !important;
+  align-items: flex-start;
+  gap: .6rem;
+  padding: .65rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  background: #fff;
+  font-weight: 600 !important;
+  cursor: pointer;
+}
+
+.review-check-item input { width: 1.1rem; height: 1.1rem; margin-top: .1rem; flex: 0 0 auto; accent-color: #ea580c; }
+.button-link { padding: 0; border: 0; color: #c2410c; background: none; font: inherit; font-size: .82rem; font-weight: 800; cursor: pointer; }
+.runner-message-preview { margin: .75rem 0; padding: .75rem; border-left: 3px solid #f97316; border-radius: 6px; background: #fff7ed; }
+.runner-message-preview p { margin: .35rem 0 0; white-space: pre-wrap; }
+
+.review-dialog-open { overflow: hidden; }
+.review-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, .78);
+}
+.review-dialog-backdrop[hidden] { display: none; }
+.proof-zoom-dialog,
+.review-confirm-dialog { width: min(96vw, 56rem); max-height: 94vh; overflow: auto; padding: 1rem; border-radius: 14px; background: #fff; box-shadow: 0 24px 80px rgba(0, 0, 0, .35); }
+.proof-zoom-dialog { width: min(98vw, 90rem); }
+.proof-zoom-dialog img { display: block; max-width: 100%; max-height: calc(94vh - 5rem); margin: .75rem auto 0; object-fit: contain; }
+.dialog-close { width: 2.5rem; height: 2.5rem; border: 0; border-radius: 50%; color: #334155; background: #f1f5f9; font-size: 1.5rem; cursor: pointer; }
+.review-confirm-dialog dl { display: grid; gap: .45rem; }
+.review-confirm-dialog dl div { display: grid; grid-template-columns: 6rem 1fr; gap: .5rem; }
+.review-confirm-dialog dt { color: #64748b; font-weight: 700; }
+.review-confirm-dialog dd { margin: 0; font-weight: 700; }
+#confirmChecklistSummary { margin-top: .75rem; }
+#confirmChecklistSummary strong { display: block; margin-bottom: .35rem; color: #0f172a; }
+#confirmChecklistSummary ul { display: grid; gap: .3rem; margin: 0; padding-left: 1.1rem; }
+#confirmChecklistSummary li { color: #64748b; font-size: .85rem; line-height: 1.4; }
+.review-dialog-actions { justify-content: flex-end; margin-top: 1rem; }
+
+.run-proof-oldest-action { box-shadow: 0 8px 20px rgba(234, 88, 12, .18); }
+
+@media (max-width: 759px) {
+  .submission-review-workspace { display: flex; flex-direction: column; }
+  .submission-review-main,
+  .submission-review-actions { width: 100%; }
+  .submission-review-actions { position: static; max-height: none; overflow: visible; border-top: 1px solid #e2e8f0; box-shadow: none; }
+  .proof-comparison-header { display: none; }
+  .proof-comparison-row { grid-template-columns: 1fr 1fr; }
+  .proof-comparison-row strong { grid-column: 1 / -1; }
+  .proof-comparison-row span::before { display: block; margin-bottom: .15rem; color: #64748b; font-size: .72rem; font-weight: 800; text-transform: uppercase; content: 'Submitted'; }
+  .proof-comparison-row span:last-child::before { content: 'Detected'; }
+  .evidence-stage-heading { align-items: flex-start; flex-direction: column; }
+  .submission-proof-zoom-button img { max-height: 72vh; }
+}

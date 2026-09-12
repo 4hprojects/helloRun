@@ -7,6 +7,7 @@ const communicationService = require('./communication.service');
 const { notifyWithRetry } = require('./reliable-communication.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 const { resolveRejectionReason } = require('../utils/rejection-reasons');
+const { validateReviewChecklist } = require('../utils/run-proof-review');
 const { resolveEventAccess } = require('./event-access.service');
 const {
   refreshAccumulatedChallengeProgress,
@@ -60,7 +61,10 @@ async function reviewAccumulatedActivitySubmission({
   action,
   reviewNotes,
   rejectionReason,
-  rejectionCode
+  rejectionCode,
+  checklistVersion,
+  verifiedCriteria,
+  requireVerification = false
 }) {
   const safeAction = String(action || '').trim().toLowerCase();
   if (safeAction !== 'approve' && safeAction !== 'reject' && safeAction !== 'clarify') {
@@ -84,7 +88,7 @@ async function reviewAccumulatedActivitySubmission({
   const normalizedReviewerRole = String(reviewerRole || '').trim().toLowerCase();
   const isAdminReviewer = normalizedReviewerRole === 'admin';
   const event = await Event.findById(activity.eventId)
-    .select('organizerId title targetDistanceKm targetSteps challengeMetrics primaryChallengeMetric virtualCompletionMode')
+    .select('organizerId title targetDistanceKm targetSteps challengeMetrics primaryChallengeMetric virtualCompletionMode acceptedRunTypes')
     .lean();
   if (!event || !isAccumulatedChallenge(event)) {
     throw new Error('Activity submission not found or inaccessible.');
@@ -105,6 +109,19 @@ async function reviewAccumulatedActivitySubmission({
   };
 
   if (safeAction === 'approve') {
+    if (requireVerification) {
+      const checklist = validateReviewChecklist({
+        event,
+        submission: activity,
+        version: checklistVersion,
+        verifiedCriteria
+      });
+      update.manualReviewChecklist = {
+        ...checklist,
+        confirmedAt: reviewedAt,
+        confirmedBy: organizerId
+      };
+    }
     update.status = 'approved';
     // Manual approval is the trusted reviewer decision, so clear automated suspicion metadata.
     update.suspiciousFlag = false;
@@ -121,9 +138,11 @@ async function reviewAccumulatedActivitySubmission({
     update.status = 'needs_clarification';
   }
 
+  const reviewMutation = { $set: update };
+  if (safeAction !== 'approve') reviewMutation.$unset = { manualReviewChecklist: 1 };
   const reviewedActivity = await AccumulatedActivitySubmission.findOneAndUpdate(
     { _id: activity._id, status: previousStatus },
-    { $set: update },
+    reviewMutation,
     { new: true, runValidators: true }
   );
   if (!reviewedActivity) {

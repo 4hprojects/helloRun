@@ -52,7 +52,7 @@ test('mobile hero actions and returning-runner shortcut are centered', () => {
   assert.match(css, /@media \(max-width: 480px\)[\s\S]*\.hero-returning-user > a\s*\{[\s\S]*justify-content: center;[\s\S]*text-align: center/);
 });
 
-test('shared navigation collapses inactive desktop labels and expands active, hover, and focus states', () => {
+test('shared navigation keeps desktop icons a fixed size and reveals labels as a non-reflowing tooltip', () => {
   const nav = read('src/views/layouts/nav.ejs');
   const css = read('src/public/css/style.css');
   const mobileCss = read('src/public/css/mobile-nav.css');
@@ -60,15 +60,29 @@ test('shared navigation collapses inactive desktop labels and expands active, ho
   for (const href of ['/', '/events', '/blog', '/leaderboard']) {
     assert.ok(nav.includes(`navClass('${href}', 'nav-primary-link')`));
   }
-  assert.match(css, /@media \(min-width: 901px\)[\s\S]*\.nav \.nav-icon-link\s*\{[\s\S]*width: 44px;[\s\S]*min-width: 44px;[\s\S]*max-width: none;[\s\S]*overflow: hidden/);
+  assert.match(css, /@media \(min-width: 901px\)[\s\S]*\.nav \.nav-icon-link\s*\{[\s\S]*width: 44px;[\s\S]*min-width: 44px;[\s\S]*max-width: none;[\s\S]*height: 44px/);
   assert.match(css, /\.nav \.nav-icon-link > svg\s*\{[\s\S]*flex: 0 0 20px/);
-  assert.match(css, /\.nav \.nav-icon-link \.nav-tooltip\s*\{[\s\S]*display: none;[\s\S]*opacity: 0/);
-  assert.match(css, /\.nav \.nav-icon-link:hover,[\s\S]*\.nav \.nav-icon-link\[aria-current="page"\][\s\S]*width: auto;[\s\S]*min-width: max-content;[\s\S]*padding-right: 16px/);
-  assert.match(css, /\.nav \.nav-icon-link:hover \.nav-tooltip,[\s\S]*\.nav \.nav-icon-link\[aria-current="page"\] \.nav-tooltip[\s\S]*display: inline-block;[\s\S]*width: auto;[\s\S]*opacity: 1/);
-  assert.match(css, /animation: nav-label-reveal 0\.14s ease-out both/);
-  assert.match(css, /@keyframes nav-label-reveal[\s\S]*opacity: 0\.25;[\s\S]*translateX\(-2px\)[\s\S]*opacity: 1/);
-  assert.match(css, /\.nav \.nav-icon-link\[aria-current="page"\][\s\S]*background: #fff7ed;[\s\S]*border-color: #fed7aa/);
-  assert.match(css, /\.nav \.nav-notifications-link\s*\{[\s\S]*overflow: visible;[\s\S]*margin-right: 0\.7rem/);
+  // Desktop icons must not grow in place to reveal their label — that
+  // reflowed sibling icons by an amount that varied with each label's
+  // length, which is what made the row hard to hover across. The label
+  // instead floats as a tooltip (base .nav-tooltip rules), unchanged in
+  // layout, with a short reveal-only delay to reduce flicker while
+  // sweeping across several icons.
+  assert.doesNotMatch(css, /\.nav \.nav-icon-link:hover,[\s\S]{0,200}width: auto;[\s\S]{0,80}min-width: max-content;[\s\S]{0,80}padding-right: 16px/);
+  assert.doesNotMatch(css, /\.nav \.nav-icon-link \.nav-tooltip\s*\{[\s\S]*position: static;[\s\S]*display: none/);
+  assert.doesNotMatch(css, /animation: nav-label-reveal/);
+  assert.doesNotMatch(css, /@keyframes nav-label-reveal/);
+  assert.match(css, /\.nav \.nav-icon-link:hover \.nav-tooltip,[\s\S]*\.nav \.nav-icon-link:focus-within \.nav-tooltip\s*\{[\s\S]*transition-delay: 0\.12s/);
+  // Home/Events/Blog/Leaderboard (.nav-primary-link) no longer get a
+  // permanently visible label, active underline, or distinct hover lift —
+  // they share the exact same fixed icon box, floating tooltip, and
+  // active/hover background as every other nav item.
+  assert.doesNotMatch(css, /\.nav-primary-link\s*\{/);
+  assert.doesNotMatch(css, /\.nav-primary-link \.nav-tooltip/);
+  assert.doesNotMatch(css, /\.nav-primary-link::after/);
+  assert.doesNotMatch(css, /\.nav-links \.nav-primary-link:hover/);
+  assert.match(css, /\.nav \.nav-icon-link\.is-active,[\s\S]*\.nav \.nav-icon-link\[aria-current="page"\]\s*\{[\s\S]*background: #fff7ed;[\s\S]*border-color: #fed7aa/);
+  assert.match(css, /\.nav \.nav-notifications-link\s*\{[\s\S]*margin-right: 0\.7rem/);
   assert.match(css, /\.nav-notification-badge\s*\{[\s\S]*left: 25px/);
   assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.nav-links\.active[\s\S]*display: flex/);
   assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.nav-tooltip\s*\{[\s\S]*opacity: 1;[\s\S]*visibility: visible/);

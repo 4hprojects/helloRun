@@ -819,8 +819,7 @@ function buildRunProofReviewRow(submission, event, filters, submissionKind) {
     reviewerEmail: reviewer?.email || '',
     rejectionReason: submission.rejectionReason || '',
     reviewNotes: submission.reviewNotes || '',
-    actionHref: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/review${queueContext ? `?${queueContext}` : ''}`,
-    approveActionHref: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/approve`
+    actionHref: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/review${queueContext ? `?${queueContext}` : ''}`
   };
 }
 

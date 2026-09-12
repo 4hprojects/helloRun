@@ -11,8 +11,8 @@ test('structured payment and run rejection reasons provide runner guidance', () 
 
   const result = resolveRejectionReason('run', 'unclear_proof', 'Distance is cropped.');
   assert.equal(result.code, 'unclear_proof');
-  assert.match(result.runnerMessage, /Activity proof is unclear/);
-  assert.match(result.guidance, /clear screenshot/i);
+  assert.match(result.runnerMessage, /Screenshot is unclear or cropped/);
+  assert.match(result.guidance, /clear, uncropped screenshot/i);
 });
 
 test('structured rejection rejects unknown codes and requires detail for other', () => {

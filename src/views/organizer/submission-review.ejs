@@ -6,25 +6,28 @@
 </head>
 <body>
   <%- include('../layouts/nav') %>
-
   <%
     const status = String(submission.status || 'submitted');
-    const statusBadgeClass = status === 'approved'
-      ? 'status-badge-approved'
-      : status === 'rejected'
-        ? 'status-badge-rejected'
-        : status === 'needs_clarification'
-          ? 'status-badge-needs_clarification'
-          : 'status-badge-submitted';
-    const statusLabel = status === 'needs_clarification'
-      ? 'Needs Clarification'
-      : status.charAt(0).toUpperCase() + status.slice(1);
-    const submissionTypeLabel = submissionKind === 'accumulated' ? 'Accumulated Activity' : 'Run Result';
+    const statusBadgeClass = status === 'approved' ? 'status-badge-approved' : status === 'rejected' ? 'status-badge-rejected' : status === 'needs_clarification' ? 'status-badge-needs_clarification' : 'status-badge-submitted';
+    const statusLabel = status === 'needs_clarification' ? 'Needs Clarification' : status.charAt(0).toUpperCase() + status.slice(1);
     const proofUrl = submission.proof?.url || '';
     const proofMimeType = String(submission.proof?.mimeType || '');
     const proofPath = String(proofUrl).split('?')[0];
     const isImageProof = Boolean(proofUrl && (proofMimeType.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(proofPath)));
-    const runTypeLabel = String(submission.runType || 'run').replace(/_/g, ' ');
+    const ocr = submission.ocrData || {};
+    const tracksDistance = !locals.challengeConfig || !locals.challengeConfig.accumulated || locals.challengeConfig.tracksDistance;
+    const tracksSteps = Boolean(locals.challengeConfig?.accumulated && locals.challengeConfig.tracksSteps);
+    const hasActivityTypeRequirement = Array.isArray(event.acceptedRunTypes) && event.acceptedRunTypes.length > 0;
+    const hasIdentitySignal = Boolean(ocr.extractedName || ['matched', 'mismatched'].includes(String(ocr.nameMatchStatus || '')));
+    const isActionable = status === 'submitted' || status === 'needs_clarification' || status === 'rejected';
+    const canClarify = submissionKind === 'accumulated' && status === 'submitted';
+    const canReject = status === 'submitted' || (submissionKind === 'accumulated' && status === 'needs_clarification');
+    const submissionId = String(submission._id || submission.id);
+    function toDateInputValue(value) {
+      if (!value) return '';
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 10);
+    }
   %>
 
   <main class="events-page submission-review-page">
@@ -36,512 +39,176 @@
           <p><%= event.title %></p>
         </div>
         <div class="header-actions">
-          <a href="<%= backHref %>" class="nav-login-btn registrant-header-btn">
-            <i data-lucide="arrow-left"></i>
-            Back to Run Proof Queue
-          </a>
+          <a href="<%= backHref %>" class="nav-login-btn registrant-header-btn"><i data-lucide="arrow-left"></i> Back to Run Proof Queue</a>
           <% if (isAdminViewer) { %>
-            <a href="/admin/reviews?type=results" class="nav-login-btn registrant-header-btn">
-              <i data-lucide="list-checks"></i>
-              Admin Queue
-            </a>
+            <a href="/admin/reviews?type=results" class="nav-login-btn registrant-header-btn"><i data-lucide="list-checks"></i> Admin Queue</a>
           <% } else { %>
-            <a href="/organizer/dashboard" class="nav-login-btn registrant-header-btn">
-              <i data-lucide="layout-dashboard"></i>
-              Organizer Dashboard
-            </a>
+            <a href="/organizer/dashboard" class="nav-login-btn registrant-header-btn"><i data-lucide="layout-dashboard"></i> Organizer Dashboard</a>
           <% } %>
         </div>
       </header>
 
-      <% if (message) { %>
-        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
-      <% } %>
+      <% if (message) { %><div class="page-message page-message-<%= message.type %>"><%= message.text %></div><% } %>
 
       <section class="registrant-summary submission-review-summary" aria-label="Submission summary">
-        <div class="summary-card">
-          <strong>Status</strong>
-          <span class="status-badge <%= statusBadgeClass %>"><%= statusLabel %></span>
-        </div>
-        <div class="summary-card">
-          <strong>Type</strong>
-          <span><%= submission.targetTypeLabel || submissionTypeLabel %></span>
-        </div>
-        <div class="summary-card">
-          <strong>Source</strong>
-          <span><%= submission.sourceLabel || 'Activity Screenshot' %></span>
-        </div>
-        <div class="summary-card">
-          <strong>Confirmation</strong>
-          <span><%= registration.confirmationCode %></span>
-        </div>
-        <div class="summary-card">
-          <strong>Submitted</strong>
-          <span><%= submission.submittedAtLabel || 'N/A' %></span>
-        </div>
+        <div class="summary-card"><strong>Status</strong><span class="status-badge <%= statusBadgeClass %>"><%= statusLabel %></span></div>
+        <div class="summary-card"><strong>Type</strong><span><%= submission.targetTypeLabel || (submissionKind === 'accumulated' ? 'Accumulated Activity' : 'Run Result') %></span></div>
+        <div class="summary-card"><strong>Source</strong><span><%= submission.sourceLabel || 'Activity Screenshot' %></span></div>
+        <div class="summary-card"><strong>Confirmation</strong><span><%= registration.confirmationCode %></span></div>
+        <div class="summary-card"><strong>Submitted</strong><span><%= submission.submittedAtLabel || 'N/A' %></span></div>
       </section>
 
-      <article class="submission-review-card">
+      <article class="submission-review-card submission-review-workspace">
         <div class="submission-review-main">
           <div class="submission-review-card-header">
-            <div>
-              <h2><%= participant.name %></h2>
-              <p><%= participant.email %></p>
-            </div>
+            <div><p class="submission-review-eyebrow">Evidence first</p><h2>Verify the proof</h2><p><%= participant.name %> · <%= participant.email %></p></div>
             <span class="status-badge <%= statusBadgeClass %>"><%= statusLabel %></span>
           </div>
 
-          <section class="submission-review-section">
-            <h3>
-              <i data-lucide="user-round"></i>
-              Participant
-            </h3>
-            <dl class="submission-review-meta-grid">
-              <div>
-                <dt>Mobile</dt>
-                <dd><%= participant.mobile %></dd>
-              </div>
-              <div>
-                <dt>Country / Gender</dt>
-                <dd><%= participant.countryLabel %> / <%= participant.genderLabel %></dd>
-              </div>
-              <div>
-                <dt>Distance</dt>
-                <dd><%= registration.raceDistance %></dd>
-              </div>
-              <div>
-                <dt>Participation Mode</dt>
-                <dd><%= registration.participationMode %></dd>
-              </div>
-              <div>
-                <dt>Registration Status</dt>
-                <dd><%= registration.status %></dd>
-              </div>
-              <div>
-                <dt>Payment Status</dt>
-                <dd><%= registration.paymentStatus %></dd>
-              </div>
-            </dl>
+          <section class="submission-review-section evidence-stage" aria-labelledby="evidence-heading">
+            <div class="evidence-stage-heading">
+              <div><h3 id="evidence-heading"><i data-lucide="scan-search"></i> Submitted evidence</h3><p>Zoom in, then compare every event-relevant value below.</p></div>
+              <% if (proofUrl) { %><a href="<%= proofUrl %>" target="_blank" rel="noopener noreferrer" class="proof-link"><i data-lucide="external-link"></i> Open original</a><% } %>
+            </div>
+            <% if (proofUrl && isImageProof) { %>
+              <button type="button" class="submission-proof-zoom-button" id="proofZoomTrigger" aria-haspopup="dialog">
+                <img src="<%= proofUrl %>" alt="Run proof submitted by <%= participant.name %> for <%= registration.confirmationCode %>">
+                <span><i data-lucide="zoom-in"></i> Click to inspect full size</span>
+              </button>
+            <% } else if (proofUrl) { %>
+              <div class="submission-proof-file"><i data-lucide="file-check-2"></i><p>This evidence opens in a separate tab.</p><a href="<%= proofUrl %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline">Open evidence</a></div>
+            <% } else { %><p class="submission-review-muted">No proof link is available.</p><% } %>
           </section>
 
-          <section class="submission-review-section">
-            <h3>
-              <i data-lucide="activity"></i>
-              Activity Metrics
-            </h3>
-            <dl class="submission-review-meta-grid">
-              <% if (!locals.challengeConfig || !locals.challengeConfig.accumulated || locals.challengeConfig.tracksDistance) { %><div>
-                <dt>Distance</dt>
-                <dd><strong><%= Number(submission.distanceKm || 0).toFixed(2) %> km</strong></dd>
-              </div><% } %>
-              <div>
-                <dt>Elapsed</dt>
-                <dd><%= submission.elapsedLabel || 'N/A' %></dd>
-              </div>
-              <div>
-                <dt>Run Date</dt>
-                <dd><%= submission.runDateLabel || 'N/A' %></dd>
-              </div>
-              <div>
-                <dt>Run Location</dt>
-                <dd><%= submission.runLocation || 'N/A' %></dd>
-              </div>
-              <div>
-                <dt>Run Type</dt>
-                <dd><%= runTypeLabel %></dd>
-              </div>
-              <% if (submission.elevationGain != null) { %>
-                <div>
-                  <dt>Elevation</dt>
-                  <dd><%= submission.elevationGain %> m</dd>
-                </div>
+          <section class="submission-review-section" aria-labelledby="comparison-heading">
+            <h3 id="comparison-heading"><i data-lucide="columns-3"></i> Submitted versus detected</h3>
+            <div class="proof-comparison" role="table" aria-label="Submitted values compared with values detected in the proof">
+              <div class="proof-comparison-row proof-comparison-header" role="row"><span role="columnheader">Field</span><span role="columnheader">Submitted</span><span role="columnheader">Detected in proof</span></div>
+              <div class="proof-comparison-row <%= ocr.dateMismatch ? 'has-mismatch' : '' %>" role="row"><strong role="rowheader">Activity date</strong><span><%= submission.runDateLabel || 'N/A' %></span><span><%= ocr.extractedRunDate ? new Date(ocr.extractedRunDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Not detected' %><% if (ocr.dateMismatch) { %><small>Date mismatch</small><% } %></span></div>
+              <% if (tracksDistance) { %>
+                <div class="proof-comparison-row <%= ocr.distanceMismatch ? 'has-mismatch' : '' %>" role="row"><strong role="rowheader">Distance</strong><span><%= Number(submission.distanceKm || 0).toFixed(2) %> km</span><span><%= ocr.extractedDistanceKm != null ? `${Number(ocr.extractedDistanceKm).toFixed(2)} km` : 'Not detected' %><% if (ocr.distanceMismatch) { %><small>Distance mismatch</small><% } %></span></div>
+                <div class="proof-comparison-row <%= ocr.timeMismatch ? 'has-mismatch' : '' %>" role="row"><strong role="rowheader">Duration</strong><span><%= submission.elapsedLabel || 'N/A' %></span><span><%= submission.ocrTimeLabel || 'Not detected' %><% if (ocr.timeMismatch) { %><small>Duration mismatch</small><% } %></span></div>
               <% } %>
-              <% if (submission.steps != null) { %>
-                <div>
-                  <dt>Steps</dt>
-                  <dd><%= Number(submission.steps || 0).toLocaleString() %></dd>
-                </div>
-              <% } %>
-            </dl>
+              <% if (tracksSteps) { %><div class="proof-comparison-row <%= ocr.stepsMismatch ? 'has-mismatch' : '' %>" role="row"><strong role="rowheader">Steps</strong><span><%= Number(submission.steps || 0).toLocaleString() %></span><span><%= ocr.extractedSteps != null ? Number(ocr.extractedSteps).toLocaleString() : 'Not detected' %><% if (ocr.stepsMismatch) { %><small>Step-count mismatch</small><% } %></span></div><% } %>
+              <% if (hasActivityTypeRequirement) { %><div class="proof-comparison-row <%= ocr.runTypeMismatch ? 'has-mismatch' : '' %>" role="row"><strong role="rowheader">Activity type</strong><span><%= String(submission.runType || 'run').replace(/_/g, ' ') %></span><span><%= ocr.extractedRunType ? String(ocr.extractedRunType).replace(/_/g, ' ') : 'Not detected' %><% if (ocr.runTypeMismatch) { %><small>Activity-type mismatch</small><% } %></span></div><% } %>
+              <% if (isImageProof && String(submission.source || '').toLowerCase() !== 'strava') { %><div class="proof-comparison-row" role="row"><strong role="rowheader">Source app or device</strong><span><%= submission.sourceLabel || String(submission.source || 'manual upload').replace(/_/g, ' ') %></span><span><%= ocr.detectedSource || 'Verify visually' %></span></div><% } %>
+              <% if (hasIdentitySignal) { %><div class="proof-comparison-row <%= ocr.nameMatchStatus === 'mismatched' ? 'has-mismatch' : '' %>" role="row"><strong role="rowheader">Participant identity</strong><span><%= participant.name %></span><span><%= ocr.extractedName || 'Not detected' %><% if (ocr.nameMatchStatus === 'mismatched') { %><small>Identity mismatch</small><% } else if (ocr.nameMatchStatus === 'matched') { %><small class="comparison-match">Matched</small><% } %></span></div><% } %>
+            </div>
           </section>
 
-          <section class="submission-review-section">
-            <h3>
-              <i data-lucide="file-check-2"></i>
-              Evidence
-            </h3>
-            <dl class="submission-review-meta-grid">
-              <div>
-                <dt>Proof Type</dt>
-                <dd><%= String(submission.proofType || 'manual').toUpperCase() %></dd>
-              </div>
-              <div>
-                <dt>Source</dt>
-                <dd><%= submission.sourceLabel || String(submission.source || 'manual_upload').replace(/_/g, ' ') %></dd>
-              </div>
-              <div>
-                <dt>Validation</dt>
-                <dd><%= submission.autoApprovalSourceLabel || 'Manual review validation' %></dd>
-              </div>
-            </dl>
-
-            <% if (proofUrl) { %>
-              <div class="submission-proof-preview">
-                <a href="<%= proofUrl %>" target="_blank" rel="noopener noreferrer" class="proof-link">
-                  <i data-lucide="external-link"></i>
-                  View run result evidence
-                </a>
-                <% if (isImageProof) { %>
-                  <div class="submission-proof-image-link js-lightbox-trigger" data-lightbox-src="<%= proofUrl %>" title="Click to enlarge" style="cursor:zoom-in">
-                    <img src="<%= proofUrl %>" alt="Run result evidence for <%= registration.confirmationCode %>">
-                  </div>
-                <% } %>
-              </div>
-            <% } else { %>
-              <p class="submission-review-muted">No proof link available.</p>
-            <% } %>
-
-            <% if (submission.proofNotes) { %>
-              <div class="submission-review-note">
-                <strong>Runner Notes</strong>
-                <p><%= submission.proofNotes %></p>
-              </div>
-            <% } %>
-          </section>
-
-          <% if (submission.suspiciousFlag || (submission.ocrData && submission.ocrData.confidence > 0) || (submission.reviewSignal && submission.reviewSignal.code)) { %>
-            <section class="submission-review-section submission-review-signals">
-              <h3>
-                <i data-lucide="scan-search"></i>
-                Review Signals
-              </h3>
-              <% if (submission.suspiciousFlag) { %>
-                <div class="submission-review-warning">
-                  <span class="mode-badge mode-warning"><%= submission.reviewSignal?.label || 'Suspicious' %></span>
-                  <% if (submission.reviewSignal?.description) { %>
-                    <p><%= submission.reviewSignal.description %></p>
-                  <% } %>
-                  <p><%= submission.suspiciousFlagReason || 'No reason provided' %></p>
-                </div>
-              <% } else if (submission.reviewSignal && submission.reviewSignal.label) { %>
-                <div class="submission-review-warning">
-                  <span class="mode-badge mode-warning"><%= submission.reviewSignal.label %></span>
-                  <% if (submission.reviewSignal.description) { %>
-                    <p><%= submission.reviewSignal.description %></p>
-                  <% } %>
-                </div>
-              <% } %>
-              <% if (submission.ocrData && submission.ocrData.confidence > 0) { %>
-                <details class="ocr-analysis-details">
-                  <summary><strong>OCR Analysis</strong> (confidence: <%= Math.round((submission.ocrData.confidence || 0) * 100) %>%)</summary>
-                  <div class="ocr-analysis-body">
-                    <% if (submission.ocrData.extractedDistanceKm != null) { %>
-                      <p>Image distance: <%= Number(submission.ocrData.extractedDistanceKm).toFixed(2) %> km <%= submission.ocrData.distanceMismatch ? '(mismatch)' : '(matches)' %></p>
-                    <% } %>
-                    <% if (submission.ocrData.extractedTimeMs != null) { %>
-                      <p>Image time: <%= submission.ocrTimeLabel || 'N/A' %> <%= submission.ocrData.timeMismatch ? '(mismatch)' : '(matches)' %></p>
-                    <% } %>
-                    <% if (submission.ocrData.extractedRunDate) { %>
-                      <p>Image date: <%= submission.ocrData.extractedRunDate %> <%= submission.ocrData.dateMismatch ? '(mismatch)' : '(matches)' %></p>
-                    <% } %>
-                    <% if (submission.ocrData.extractedRunLocation) { %>
-                      <p>Image location: <%= submission.ocrData.extractedRunLocation %> <%= submission.ocrData.locationMismatch ? '(mismatch)' : '(similar)' %></p>
-                    <% } %>
-                    <% if (submission.ocrData.extractedName || submission.ocrData.nameMatchStatus !== 'not_checked') { %>
-                      <p>Name analysis: <%= submission.ocrData.nameMatchStatus || 'not checked' %><%= submission.ocrData.extractedName ? ` (${submission.ocrData.extractedName})` : '' %></p>
-                    <% } %>
-                  </div>
-                </details>
-              <% } %>
-              <% if (submission.reviewSignal && submission.reviewSignal.code && !submission.suspiciousFlag) { %>
-                <p class="submission-review-muted">Review reason: <%= submission.reviewSignal.label %></p>
-              <% } %>
+          <% if (submission.suspiciousFlag || submission.reviewSignal?.code || Number(ocr.confidence || 0) > 0) { %>
+            <section class="submission-review-section submission-review-signals"><h3><i data-lucide="triangle-alert"></i> Validation warnings</h3>
+              <% if (submission.reviewSignal?.label) { %><div class="submission-review-warning"><strong><%= submission.reviewSignal.label %></strong><% if (submission.reviewSignal.description) { %><p><%= submission.reviewSignal.description %></p><% } %><% if (submission.suspiciousFlagReason) { %><p><%= submission.suspiciousFlagReason %></p><% } %></div><% } %>
+              <% if (Number(ocr.confidence || 0) > 0) { %><p class="submission-review-muted">OCR confidence: <%= Math.round(Number(ocr.confidence || 0) * 100) %>%. Detected values are review aids; confirm against the original proof.</p><% } %>
             </section>
           <% } %>
+
+          <% if (submission.proofNotes) { %><section class="submission-review-section"><h3><i data-lucide="message-square-text"></i> Runner notes</h3><p><%= submission.proofNotes %></p></section><% } %>
+
+          <details class="submission-review-section submission-review-context">
+            <summary>Participant and activity context</summary>
+            <dl class="submission-review-meta-grid">
+              <div><dt>Mobile</dt><dd><%= participant.mobile %></dd></div><div><dt>Country / Gender</dt><dd><%= participant.countryLabel %> / <%= participant.genderLabel %></dd></div>
+              <div><dt>Registered distance</dt><dd><%= registration.raceDistance %></dd></div><div><dt>Participation mode</dt><dd><%= registration.participationMode %></dd></div>
+              <div><dt>Run location</dt><dd><%= submission.runLocation || 'N/A' %></dd></div><div><dt>Payment status</dt><dd><%= registration.paymentStatus %></dd></div>
+            </dl>
+          </details>
+
+          <% if (submission.stravaActivity?.id) { %><section class="submission-review-section"><h3><i data-lucide="route"></i> Strava snapshot</h3><p><strong><%= submission.stravaActivity.name || 'Strava activity' %></strong> · <%= submission.stravaActivity.sportType || submission.stravaActivity.type || 'Activity' %></p><% if (submission.stravaActivity.url) { %><a href="<%= submission.stravaActivity.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">Open Strava activity</a><% } %></section><% } %>
+          <% if (accumulatedProgress) { %><section class="submission-review-section"><h3><i data-lucide="target"></i> Accumulated progress</h3><p><strong><%= accumulatedProgress.progressLabel %></strong></p><p class="submission-review-muted"><%= accumulatedProgress.approvedActivityCount %> approved, <%= accumulatedProgress.pendingActivityCount %> pending, <%= accumulatedProgress.rejectedActivityCount %> rejected</p></section><% } %>
 
           <% if (isFullAdmin) { %>
-            <section class="submission-review-section submission-review-admin-audit">
-              <h3>
-                <i data-lucide="shield-check"></i>
-                Admin Audit (Full Admin Only)
-              </h3>
-              <dl class="submission-review-meta-grid">
-                <div><dt>Detected Source</dt><dd><%= (submission.ocrData && submission.ocrData.detectedSource) || 'N/A' %></dd></div>
-                <div><dt>Validation Method</dt><dd><%= (submission.validation && submission.validation.method) || 'unknown' %></dd></div>
-                <div><dt>Submission Mode</dt><dd><%= (submission.validation && submission.validation.submissionMode) || 'unknown' %></dd></div>
-                <div><dt>Auto-Approval Eligible</dt><dd><%= (submission.validation && submission.validation.autoApprovalEligible) ? 'Yes' : 'No' %></dd></div>
-                <div><dt>Review Reason (raw)</dt><dd><%= (submission.reviewSignal && submission.reviewSignal.code) || '(none)' %></dd></div>
-              </dl>
-
-              <form id="js-admin-correction-form" data-correction-url="/admin/submissions/<%= submission._id || submission.id %>/correct" class="submission-review-action-form">
+            <details class="submission-review-section submission-review-admin-audit"><summary>Full-admin audit and correction</summary>
+              <form id="js-admin-correction-form" data-correction-url="/admin/submissions/<%= submissionId %>/correct" class="submission-review-action-form">
                 <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-                <% if (!locals.challengeConfig || !locals.challengeConfig.accumulated || locals.challengeConfig.tracksDistance) { %>
-                  <label for="admin-correct-distance">Distance (km)</label>
-                  <input type="number" step="0.01" min="0.1" max="500" id="admin-correct-distance" name="distanceKm" value="<%= Number(submission.distanceKm || 0).toFixed(2) %>">
-                <% } %>
-                <label for="admin-correct-elapsed">Elapsed (HH:MM:SS)</label>
-                <input type="text" id="admin-correct-elapsed" name="elapsedHms" value="<%= submission.elapsedLabel || '00:00:00' %>" pattern="\d{1,2}:\d{2}:\d{2}">
-                <label for="admin-correct-date">Run Date</label>
-                <input type="date" id="admin-correct-date" name="runDate" value="<%= submission.runDate ? new Date(submission.runDate).toISOString().slice(0, 10) : '' %>">
-                <label for="admin-correct-location">Run Location</label>
-                <input type="text" id="admin-correct-location" name="runLocation" value="<%= submission.runLocation || '' %>" maxlength="200">
-                <label for="admin-correct-runtype">Run Type</label>
-                <select id="admin-correct-runtype" name="runType">
-                  <% ['run', 'walk', 'hike', 'trail_run'].forEach((rt) => { %>
-                    <option value="<%= rt %>" <%= submission.runType === rt ? 'selected' : '' %>><%= rt %></option>
-                  <% }) %>
-                </select>
-                <label for="admin-correct-reviewreason">Review Reason Override</label>
-                <select id="admin-correct-reviewreason" name="reviewReason">
-                  <option value="">(none / auto-approved)</option>
-                  <% (reviewReasonOptions || []).forEach(([value, label]) => { %>
-                    <option value="<%= value %>" <%= (submission.validation && submission.validation.reviewReason === value) ? 'selected' : '' %>><%= label %></option>
-                  <% }) %>
-                </select>
-                <label>
-                  <input type="checkbox" name="autoApprovalEligible" <%= (submission.validation && submission.validation.autoApprovalEligible) ? 'checked' : '' %>>
-                  Auto-Approval Eligible
-                </label>
-                <label for="admin-correct-reason">Correction Reason</label>
-                <textarea id="admin-correct-reason" name="correctionReason" minlength="10" maxlength="500" required placeholder="Explain why this elevated correction is necessary"></textarea>
-                <button type="submit" class="btn btn-outline btn-sm">Save Correction</button>
-                <p class="submission-review-muted">Saving changes the stored activity data and records the before/after values and your reason in the critical audit trail. Approval status is unchanged.</p>
-                <p class="js-admin-correction-error submission-review-muted" hidden></p>
+                <% if (tracksDistance) { %><label for="admin-correct-distance">Distance (km)</label><input type="number" step="0.01" min="0.1" max="500" id="admin-correct-distance" name="distanceKm" value="<%= Number(submission.distanceKm || 0).toFixed(2) %>"><% } %>
+                <label for="admin-correct-elapsed">Elapsed (HH:MM:SS)</label><input type="text" id="admin-correct-elapsed" name="elapsedHms" value="<%= submission.elapsedLabel || '00:00:00' %>" pattern="\d{1,2}:\d{2}:\d{2}">
+                <label for="admin-correct-date">Run date</label><input type="date" id="admin-correct-date" name="runDate" value="<%= toDateInputValue(submission.runDate) %>">
+                <label for="admin-correct-location">Run location</label><input type="text" id="admin-correct-location" name="runLocation" value="<%= submission.runLocation || '' %>" maxlength="200">
+                <label for="admin-correct-runtype">Run type</label><select id="admin-correct-runtype" name="runType"><% ['run', 'walk', 'hike', 'trail_run'].forEach((rt) => { %><option value="<%= rt %>" <%= submission.runType === rt ? 'selected' : '' %>><%= rt %></option><% }) %></select>
+                <label for="admin-correct-reviewreason">Review reason override</label><select id="admin-correct-reviewreason" name="reviewReason"><option value="">(none / auto-approved)</option><% (reviewReasonOptions || []).forEach(([value, label]) => { %><option value="<%= value %>" <%= submission.validation?.reviewReason === value ? 'selected' : '' %>><%= label %></option><% }) %></select>
+                <label class="review-check-item"><input type="checkbox" name="autoApprovalEligible" <%= submission.validation?.autoApprovalEligible ? 'checked' : '' %>><span>Auto-approval eligible</span></label>
+                <label for="admin-correct-reason">Correction reason</label><textarea id="admin-correct-reason" name="correctionReason" minlength="10" maxlength="500" required></textarea>
+                <button type="submit" class="btn btn-outline btn-sm">Save correction</button><p class="js-admin-correction-error submission-review-muted" hidden></p>
               </form>
-            </section>
-          <% } %>
-
-          <% if (submission.stravaActivity && submission.stravaActivity.id) { %>
-            <section class="submission-review-section">
-              <h3>
-                <i data-lucide="route"></i>
-                Strava Snapshot
-              </h3>
-              <p class="submission-review-strong"><%= submission.stravaActivity.name || 'Strava activity' %></p>
-              <p class="submission-review-muted"><%= submission.stravaActivity.sportType || submission.stravaActivity.type || 'Activity' %></p>
-              <% if (submission.stravaActivity.distanceKm != null) { %>
-                <p class="submission-review-muted">Distance: <%= Number(submission.stravaActivity.distanceKm || 0).toFixed(2) %> km</p>
-              <% } %>
-              <% if (submission.stravaActivity.elapsedTimeSeconds || submission.stravaActivity.movingTimeSeconds) { %>
-                <p class="submission-review-muted">Duration source: verified synced activity</p>
-              <% } %>
-              <% if (submission.stravaActivity.url) { %>
-                <a href="<%= submission.stravaActivity.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">
-                  <i data-lucide="external-link"></i>
-                  Open Strava activity
-                </a>
-              <% } %>
-            </section>
-          <% } %>
-
-          <% if (accumulatedProgress) { %>
-            <section class="submission-review-section">
-              <h3>
-                <i data-lucide="target"></i>
-                Accumulated Progress
-              </h3>
-              <p class="submission-review-strong"><%= accumulatedProgress.progressLabel %></p>
-              <p class="submission-review-muted">
-                <%= accumulatedProgress.approvedActivityCount %> approved,
-                <%= accumulatedProgress.pendingActivityCount %> pending,
-                <%= accumulatedProgress.rejectedActivityCount %> rejected
-              </p>
-            </section>
+            </details>
           <% } %>
         </div>
 
-        <aside class="submission-review-actions">
-          <% if (submission.status === 'submitted' || submission.status === 'needs_clarification') { %>
-            <div class="submission-review-action-header">
-              <span class="status-badge <%= statusBadgeClass %>"><%= status === 'needs_clarification' ? 'Needs Clarification' : 'Pending Review' %></span>
-              <h2>Decision</h2>
-              <p>Approve verified activity evidence, reject with a reason runners can act on<%= (submissionKind === 'accumulated' && status === 'submitted') ? ', or ask the runner for clarification' : '' %>.</p>
-              <% if (submission.suspiciousFlag) { %>
-                <p class="submission-review-muted">Approving this flagged submission will clear its suspicious flag and restore leaderboard eligibility when event settings allow it.</p>
-              <% } %>
-              <% if (status === 'needs_clarification' && submission.reviewNotes) { %>
-                <p class="submission-review-muted"><strong>Clarification requested:</strong> <%= submission.reviewNotes %></p>
-              <% } %>
+        <aside class="submission-review-actions" aria-labelledby="decision-heading">
+          <% if (isActionable) { %>
+            <div class="submission-review-action-header"><span class="status-badge <%= statusBadgeClass %>"><%= status === 'needs_clarification' ? 'Needs Clarification' : 'Pending Review' %></span><h2 id="decision-heading">Decision</h2><p>Complete the checks and choose one outcome.</p></div>
+            <div class="review-decision-tabs" role="tablist" aria-label="Review decision">
+              <button type="button" role="tab" aria-selected="true" aria-controls="decision-approve" id="decision-tab-approve" data-decision-tab="approve">Approve</button>
+              <% if (canClarify) { %><button type="button" role="tab" aria-selected="false" aria-controls="decision-clarify" id="decision-tab-clarify" data-decision-tab="clarify" tabindex="-1">Clarify</button><% } %>
+              <% if (canReject) { %><button type="button" role="tab" aria-selected="false" aria-controls="decision-reject" id="decision-tab-reject" data-decision-tab="reject" tabindex="-1">Reject</button><% } %>
             </div>
 
-            <form method="POST" action="<%= reviewActionBase %>/approve" class="payment-action-form submission-review-action-form">
-              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-              <% Object.entries(queueContext || {}).forEach(([key, value]) => { %>
-                <input type="hidden" name="<%= key %>" value="<%= value %>">
-              <% }) %>
-              <label for="approve-notes-<%= submission._id %>">Approval Notes</label>
-              <textarea id="approve-notes-<%= submission._id %>" name="reviewNotes" rows="4" maxlength="1200" placeholder="Optional review notes"></textarea>
-              <button type="submit" class="btn-success table-action-btn">
-                <i data-lucide="check-circle"></i>
-                Approve Run Result
-              </button>
-            </form>
-
-            <% if (submissionKind === 'accumulated' && status === 'submitted') { %>
-              <form method="POST" action="<%= reviewActionBase %>/clarify" class="payment-action-form submission-review-action-form">
-                <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-                <% Object.entries(queueContext || {}).forEach(([key, value]) => { %>
-                  <input type="hidden" name="<%= key %>" value="<%= value %>">
-                <% }) %>
-                <label for="clarify-notes-<%= submission._id %>">What needs clarification?</label>
-                <textarea id="clarify-notes-<%= submission._id %>" name="reviewNotes" rows="4" maxlength="1200" placeholder="Tell the runner what's missing or unclear (required)" required></textarea>
-                <button type="submit" class="btn-secondary table-action-btn">
-                  <i data-lucide="help-circle"></i>
-                  Request Clarification
-                </button>
+            <section id="decision-approve" role="tabpanel" aria-labelledby="decision-tab-approve" data-decision-panel="approve">
+              <form method="POST" action="<%= reviewActionBase %>/approve" class="submission-review-action-form js-review-decision-form" data-decision="approve">
+                <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><input type="hidden" name="checklistVersion" value="<%= reviewChecklistVersion %>">
+                <% Object.entries(queueContext || {}).forEach(([key, value]) => { %><input type="hidden" name="<%= key %>" value="<%= value %>"><% }) %>
+                <fieldset class="review-checklist"><legend>Required verification checklist</legend><p>Approval is enabled after every applicable item is confirmed.</p>
+                  <% verificationCriteria.forEach((criterion) => { %><label class="review-check-item"><input type="checkbox" name="verifiedCriteria" value="<%= criterion.key %>" required><span><%= criterion.label %></span></label><% }) %>
+                </fieldset>
+                <label for="approve-notes-<%= submissionId %>">Review note <span>(optional, visible to runner)</span></label><textarea id="approve-notes-<%= submissionId %>" name="reviewNotes" rows="3" maxlength="1200"></textarea>
+                <button type="submit" class="btn-success table-action-btn js-decision-submit"><i data-lucide="check-circle"></i> Approve proof</button>
               </form>
-            <% } %>
+            </section>
 
-            <form method="POST" action="<%= reviewActionBase %>/reject" class="payment-action-form submission-review-action-form">
-              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-              <% Object.entries(queueContext || {}).forEach(([key, value]) => { %>
-                <input type="hidden" name="<%= key %>" value="<%= value %>">
-              <% }) %>
-              <label for="reject-code-<%= submission._id %>">Rejection Reason</label>
-              <select id="reject-code-<%= submission._id %>" name="rejectionCode" required>
-                <option value="">Select the issue…</option>
-                <% runRejectionReasonOptions.forEach((reason) => { %>
-                  <option value="<%= reason.code %>"><%= reason.label %></option>
-                <% }) %>
-              </select>
-              <label for="reject-reason-<%= submission._id %>">Additional details</label>
-              <textarea id="reject-reason-<%= submission._id %>" name="rejectionReason" rows="4" maxlength="500" placeholder="Tell the runner exactly what to correct (required for another issue)"></textarea>
-              <label for="reject-notes-<%= submission._id %>">Review Notes</label>
-              <textarea id="reject-notes-<%= submission._id %>" name="reviewNotes" rows="4" maxlength="1200" placeholder="Optional review notes"></textarea>
-              <button type="submit" class="btn-danger table-action-btn">
-                <i data-lucide="x-circle"></i>
-                Reject Run Result
-              </button>
-            </form>
+            <% if (canClarify) { %><section id="decision-clarify" role="tabpanel" aria-labelledby="decision-tab-clarify" data-decision-panel="clarify" hidden>
+              <form method="POST" action="<%= reviewActionBase %>/clarify" class="submission-review-action-form js-review-decision-form" data-decision="clarify"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><% Object.entries(queueContext || {}).forEach(([key, value]) => { %><input type="hidden" name="<%= key %>" value="<%= value %>"><% }) %>
+                <label for="clarify-notes-<%= submissionId %>">What must the runner clarify? <span>(visible to runner)</span></label><textarea id="clarify-notes-<%= submissionId %>" name="reviewNotes" rows="6" maxlength="1200" minlength="10" required placeholder="Explain exactly what is unclear or missing."></textarea><button type="submit" class="btn-secondary table-action-btn js-decision-submit"><i data-lucide="help-circle"></i> Request clarification</button>
+              </form></section><% } %>
+
+            <% if (canReject) { %><section id="decision-reject" role="tabpanel" aria-labelledby="decision-tab-reject" data-decision-panel="reject" hidden>
+              <form method="POST" action="<%= reviewActionBase %>/reject" class="submission-review-action-form js-review-decision-form" data-decision="reject"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><% Object.entries(queueContext || {}).forEach(([key, value]) => { %><input type="hidden" name="<%= key %>" value="<%= value %>"><% }) %>
+                <label for="reject-code-<%= submissionId %>">Reason</label><select id="reject-code-<%= submissionId %>" name="rejectionCode" required><option value="">Select the issue…</option><% runRejectionReasonOptions.forEach((reason) => { %><option value="<%= reason.code %>" data-default-message="<%= reason.defaultMessage %>"><%= reason.label %></option><% }) %></select>
+                <div class="runner-message-heading"><label for="reject-reason-<%= submissionId %>">Message to runner</label><button type="button" class="button-link" id="useSuggestedMessage">Use suggested message</button></div>
+                <textarea id="reject-reason-<%= submissionId %>" name="rejectionReason" rows="7" maxlength="500" aria-describedby="reject-message-help" required></textarea><p id="reject-message-help" class="submission-review-muted">Editable guidance. “Other” requires at least 10 custom characters.</p>
+                <label for="reject-notes-<%= submissionId %>">Review note <span>(optional, also visible to runner)</span></label><textarea id="reject-notes-<%= submissionId %>" name="reviewNotes" rows="3" maxlength="1200"></textarea>
+                <div class="runner-message-preview" aria-live="polite"><strong>Runner-facing preview</strong><p id="runnerMessagePreview">Select a reason to preview the message.</p></div>
+                <button type="submit" class="btn-danger table-action-btn js-decision-submit"><i data-lucide="x-circle"></i> Reject proof</button>
+              </form>
+            </section><% } %>
           <% } else { %>
-            <div class="submission-review-history">
-              <span class="status-badge <%= statusBadgeClass %>"><%= statusLabel %></span>
-              <h2>Review History</h2>
-              <p><strong>Reviewed:</strong> <%= submission.reviewedAtLabel || 'N/A' %></p>
-              <% if (submission.reviewerName) { %>
-                <p><strong>By:</strong> <%= submission.reviewerName %></p>
-              <% } %>
-              <% if (submission.rejectionReason) { %>
-                <p><strong>Reason:</strong> <%= submission.rejectionReason %></p>
-              <% } %>
-              <% if (submission.reviewNotes) { %>
-                <p><strong>Notes:</strong> <%= submission.reviewNotes %></p>
-              <% } %>
-            </div>
+            <div class="submission-review-history"><span class="status-badge <%= statusBadgeClass %>"><%= statusLabel %></span><h2 id="decision-heading">Review history</h2><p><strong>Reviewed:</strong> <%= submission.reviewedAtLabel || 'N/A' %></p><% if (submission.reviewerName) { %><p><strong>By:</strong> <%= submission.reviewerName %></p><% } %><% if (submission.rejectionReason) { %><p><strong>Runner message:</strong> <%= submission.rejectionReason %></p><% } %><% if (submission.reviewNotes) { %><p><strong>Review note:</strong> <%= submission.reviewNotes %></p><% } %></div>
           <% } %>
         </aside>
       </article>
     </section>
   </main>
 
-  <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <% if (proofUrl && isImageProof) { %><div class="review-dialog-backdrop" id="proofZoomDialog" role="dialog" aria-modal="true" aria-labelledby="proofZoomTitle" hidden><div class="proof-zoom-dialog"><div class="review-dialog-header"><h2 id="proofZoomTitle">Submitted run proof</h2><button type="button" class="dialog-close" data-dialog-close aria-label="Close proof preview">×</button></div><img src="<%= proofUrl %>" alt="Enlarged run proof submitted by <%= participant.name %>"></div></div><% } %>
+  <% if (isActionable) { %><div class="review-dialog-backdrop" id="decisionConfirmDialog" role="dialog" aria-modal="true" aria-labelledby="decisionConfirmTitle" hidden><div class="review-confirm-dialog"><div class="review-dialog-header"><h2 id="decisionConfirmTitle">Confirm review decision</h2><button type="button" class="dialog-close" data-dialog-close aria-label="Close confirmation">×</button></div><dl><div><dt>Runner</dt><dd><%= participant.name %></dd></div><div><dt>Proof</dt><dd><%= registration.confirmationCode %></dd></div><div><dt>Metrics</dt><dd><% if (tracksDistance) { %><%= Number(submission.distanceKm || 0).toFixed(2) %> km · <%= submission.elapsedLabel || 'N/A' %><% } else { %><%= Number(submission.steps || 0).toLocaleString() %> steps<% } %></dd></div><div><dt>Decision</dt><dd id="confirmDecisionValue"></dd></div></dl><div id="confirmChecklistSummary"></div><div class="runner-message-preview" id="confirmMessageWrap" hidden><strong>Final runner-facing message</strong><p id="confirmMessageValue"></p></div><div class="review-dialog-actions"><button type="button" class="btn btn-outline" data-dialog-close>Go back</button><button type="button" class="btn btn-primary" id="confirmDecisionButton">Confirm decision</button></div></div></div><% } %>
+
+  <%- include('../layouts/footer') %><script src="/js/main.js"></script><script>if (window.lucide) lucide.createIcons();</script>
   <script>
-    // Proof image lightbox
     (function () {
-      document.querySelectorAll('.js-lightbox-trigger').forEach(function (el) {
-        el.addEventListener('click', function () {
-          var src = el.dataset.lightboxSrc || (el.querySelector('img') || {}).src;
-          if (!src) return;
-          var lb = document.getElementById('js-review-lightbox');
-          if (!lb) {
-            lb = document.createElement('div');
-            lb.id = 'js-review-lightbox';
-            lb.className = 'sub-lightbox-overlay';
-            lb.innerHTML = '<img class="sub-lightbox-img" alt="Proof full size">';
-            lb.addEventListener('click', function () { lb.hidden = true; });
-            document.body.appendChild(lb);
-          }
-          lb.querySelector('img').src = src;
-          lb.hidden = false;
-        });
-      });
-    })();
+      var lastFocused = null;
+      function openDialog(dialog, trigger) { lastFocused = trigger || document.activeElement; dialog.hidden = false; document.body.classList.add('review-dialog-open'); var focusable = dialog.querySelector('button, [href], input, select, textarea'); if (focusable) focusable.focus(); }
+      function closeDialog(dialog) { dialog.hidden = true; document.body.classList.remove('review-dialog-open'); if (lastFocused) lastFocused.focus(); }
+      document.querySelectorAll('.review-dialog-backdrop').forEach(function (dialog) { dialog.querySelectorAll('[data-dialog-close]').forEach(function (button) { button.addEventListener('click', function () { closeDialog(dialog); }); }); dialog.addEventListener('keydown', function (event) { if (event.key === 'Escape') closeDialog(dialog); if (event.key !== 'Tab') return; var items = Array.from(dialog.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])')); if (!items.length) return; var first = items[0], last = items[items.length - 1]; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); } }); });
+      var zoomTrigger = document.getElementById('proofZoomTrigger'), zoomDialog = document.getElementById('proofZoomDialog'); if (zoomTrigger && zoomDialog) zoomTrigger.addEventListener('click', function () { openDialog(zoomDialog, zoomTrigger); });
 
-    // Admin correction form (full-tier admins only)
-    (function () {
-      var form = document.getElementById('js-admin-correction-form');
-      if (!form) return;
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        if (!form.reportValidity()) return;
-        var errorEl = form.querySelector('.js-admin-correction-error');
-        var elapsedInput = form.querySelector('#admin-correct-elapsed');
-        var parts = String(elapsedInput.value || '00:00:00').split(':').map(function (v) { return Number(v) || 0; });
-        var elapsedMs = ((parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0)) * 1000;
+      var tabs = Array.from(document.querySelectorAll('[data-decision-tab]'));
+      function activateDecision(name) { tabs.forEach(function (tab) { var selected = tab.dataset.decisionTab === name; tab.setAttribute('aria-selected', String(selected)); tab.tabIndex = selected ? 0 : -1; }); document.querySelectorAll('[data-decision-panel]').forEach(function (panel) { panel.hidden = panel.dataset.decisionPanel !== name; }); }
+      tabs.forEach(function (tab, index) { tab.addEventListener('click', function () { activateDecision(tab.dataset.decisionTab); }); tab.addEventListener('keydown', function (event) { if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return; event.preventDefault(); var next = event.key === 'ArrowRight' ? (index + 1) % tabs.length : (index - 1 + tabs.length) % tabs.length; tabs[next].focus(); tabs[next].click(); }); });
 
-        var body = new URLSearchParams(new FormData(form));
-        body.set('elapsedMs', String(elapsedMs));
-        body.delete('elapsedHms');
-        if (!form.querySelector('[name="autoApprovalEligible"]').checked) {
-          body.set('autoApprovalEligible', 'false');
-        }
+      var rejectSelect = document.querySelector('[name="rejectionCode"]'), rejectMessage = document.querySelector('[name="rejectionReason"]'), suggestedButton = document.getElementById('useSuggestedMessage'), preview = document.getElementById('runnerMessagePreview'), lastGenerated = '';
+      function selectedSuggestion() { return rejectSelect && rejectSelect.selectedOptions[0] ? rejectSelect.selectedOptions[0].dataset.defaultMessage || '' : ''; }
+      function updatePreview() { if (!preview) return; var label = rejectSelect && rejectSelect.selectedOptions[0] ? rejectSelect.selectedOptions[0].textContent.trim() : ''; var message = String(rejectMessage?.value || '').trim(); preview.textContent = label && message ? label + ': ' + message : (message || 'Select a reason to preview the message.'); }
+      function useSuggestion() { var suggestion = selectedSuggestion(); if (rejectMessage) { rejectMessage.value = suggestion; lastGenerated = suggestion; rejectMessage.dispatchEvent(new Event('input')); } }
+      if (rejectSelect) rejectSelect.addEventListener('change', function () { var current = String(rejectMessage.value || ''); if (!current || current === lastGenerated) useSuggestion(); else updatePreview(); rejectMessage.minLength = rejectSelect.value === 'other' ? 10 : 1; });
+      if (rejectMessage) rejectMessage.addEventListener('input', updatePreview); if (suggestedButton) suggestedButton.addEventListener('click', useSuggestion);
 
-        var target = '<%= String(submission._id || submission.id) %>';
-        var correctionReason = String(body.get('correctionReason') || '').trim();
-        var confirmed = window.confirm(
-          'Confirm elevated submission correction\n\n' +
-          'Target: ' + target + '\n' +
-          'Impact: changes stored result data and may affect later leaderboard, certificate, and badge outcomes.\n' +
-          'Approval status: unchanged.\n' +
-          'Reason: ' + correctionReason
-        );
-        if (!confirmed) return;
+      var confirmDialog = document.getElementById('decisionConfirmDialog'), pendingForm = null, confirmButton = document.getElementById('confirmDecisionButton');
+      document.querySelectorAll('.js-review-decision-form').forEach(function (form) { form.addEventListener('submit', function (event) { if (form.dataset.confirmed === 'true') return; event.preventDefault(); if (!form.reportValidity()) return; pendingForm = form; var decision = form.dataset.decision; document.getElementById('confirmDecisionValue').textContent = decision.charAt(0).toUpperCase() + decision.slice(1); var checked = Array.from(form.querySelectorAll('[name="verifiedCriteria"]:checked')).map(function (box) { return box.nextElementSibling.textContent.trim(); }); var checklist = document.getElementById('confirmChecklistSummary'); checklist.innerHTML = checked.length ? '<strong>Confirmed checklist</strong><ul>' + checked.map(function (item) { return '<li>' + item.replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }) + '</li>'; }).join('') + '</ul>' : ''; var finalMessage = decision === 'reject' ? String(form.querySelector('[name="rejectionReason"]').value || '').trim() : String(form.querySelector('[name="reviewNotes"]')?.value || '').trim(); var wrap = document.getElementById('confirmMessageWrap'); wrap.hidden = !finalMessage; document.getElementById('confirmMessageValue').textContent = finalMessage; confirmButton.textContent = decision === 'approve' ? 'Confirm approval' : decision === 'clarify' ? 'Send clarification' : 'Confirm rejection'; openDialog(confirmDialog, form.querySelector('[type="submit"]')); }); });
+      if (confirmButton) confirmButton.addEventListener('click', function () { if (!pendingForm) return; confirmButton.disabled = true; document.querySelectorAll('.js-decision-submit').forEach(function (button) { button.disabled = true; }); pendingForm.dataset.confirmed = 'true'; pendingForm.submit(); });
 
-        fetch(form.dataset.correctionUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: body
-        })
-          .then(function (res) { return res.json(); })
-          .then(function (data) {
-            if (!data.success) throw new Error(data.message || 'Correction failed');
-            if (errorEl) {
-              errorEl.textContent = 'Correction saved. Audit reference: ' + (data.auditReference || 'pending');
-              errorEl.hidden = false;
-              errorEl.setAttribute('role', 'status');
-            }
-            var submitButton = form.querySelector('[type="submit"]');
-            if (submitButton) {
-              submitButton.disabled = true;
-              submitButton.textContent = 'Correction Saved';
-            }
-          })
-          .catch(function (err) {
-            if (errorEl) {
-              errorEl.textContent = 'Correction failed: ' + (err.message || 'Unknown error');
-              errorEl.hidden = false;
-            }
-          });
-      });
-    })();
+      document.addEventListener('keydown', function (event) { if (event.target.matches('input, textarea, select') || !tabs.length) return; if (event.key.toLowerCase() === 'a') { event.preventDefault(); activateDecision('approve'); document.getElementById('decision-tab-approve')?.focus(); } if (event.key.toLowerCase() === 'r' && document.getElementById('decision-tab-reject')) { event.preventDefault(); activateDecision('reject'); document.getElementById('decision-tab-reject').focus(); } });
 
-    // Keyboard shortcuts
-    (function () {
-      var approveNotes = document.getElementById('approve-notes-<%= submission._id || submission.id %>');
-      var rejectReason = document.getElementById('reject-reason-<%= submission._id || submission.id %>');
-      var backLink = document.querySelector('[href="<%= backHref %>"]');
-      if (!approveNotes && !rejectReason) return;
-      document.addEventListener('keydown', function (e) {
-        if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
-        if (e.key === 'a' || e.key === 'A') {
-          e.preventDefault();
-          if (e.shiftKey) {
-            var approveForm = approveNotes && approveNotes.closest('form');
-            if (approveForm) approveForm.submit();
-          } else {
-            if (approveNotes) { approveNotes.focus(); approveNotes.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-          }
-        }
-        if (e.key === 'r' || e.key === 'R') {
-          e.preventDefault();
-          if (rejectReason) { rejectReason.focus(); rejectReason.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-        }
-        if (e.key === 'Escape' && backLink) {
-          backLink.click();
-        }
-      });
+      var correctionForm = document.getElementById('js-admin-correction-form'); if (correctionForm) correctionForm.addEventListener('submit', function (event) { event.preventDefault(); if (!correctionForm.reportValidity()) return; var body = new URLSearchParams(new FormData(correctionForm)); var parts = String(body.get('elapsedHms') || '00:00:00').split(':').map(Number); body.set('elapsedMs', String(((parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0)) * 1000)); body.delete('elapsedHms'); if (!correctionForm.querySelector('[name="autoApprovalEligible"]').checked) body.set('autoApprovalEligible', 'false'); if (!window.confirm('Confirm this elevated correction? The change is written to the critical audit trail.')) return; fetch(correctionForm.dataset.correctionUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body }).then(function (response) { return response.json(); }).then(function (data) { if (!data.success) throw new Error(data.message || 'Correction failed'); location.reload(); }).catch(function (error) { var el = correctionForm.querySelector('.js-admin-correction-error'); el.textContent = 'Correction failed: ' + error.message; el.hidden = false; }); });
     })();
   </script>
 </body>

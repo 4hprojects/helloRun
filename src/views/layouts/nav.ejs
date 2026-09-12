@@ -120,6 +120,13 @@
             <i data-lucide="layout-dashboard"></i>
             <span class="nav-tooltip">Dashboard</span>
           </a>
+          <a href="/runner/notifications" class="<%= navClass('/runner/notifications', 'nav-notifications-link') %>" aria-label="<%= runnerUnreadNotificationLabel %>" title="Notifications">
+            <i data-lucide="bell"></i>
+            <span class="nav-tooltip">Notifications</span>
+            <% if (runnerUnreadNotifications > 0) { %>
+              <span class="nav-notification-badge" aria-hidden="true"><%= runnerUnreadNotificationDisplay %></span>
+            <% } %>
+          </a>
           <% if (locals.canUseRunnerWorkspace) { %>
             <form action="/workspace/runner" method="POST" class="workspace-switch-form">
               <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
@@ -205,6 +212,7 @@
   <% if (locals.isApprovedOrganizer || locals.canUseOrganizerWorkspace) { %>
     <a href="/organizer/events" class="mobile-nav-tab<%= isCurrent('/organizer/events') ? ' is-active' : '' %>" aria-label="Organizer Events" <% if (isCurrent('/organizer/events')) { %>aria-current="page"<% } %>><i data-lucide="calendar-days" aria-hidden="true"></i><span>Events</span></a>
     <a href="/organizer/dashboard#queue-breakdown-heading" class="mobile-nav-tab" aria-label="Organizer Work Queue"><i data-lucide="inbox" aria-hidden="true"></i><span>Work</span></a>
+    <a href="/runner/notifications" class="mobile-nav-tab" aria-label="<%= runnerUnreadNotificationLabel %>"><i data-lucide="bell" aria-hidden="true"></i><span>Notifications</span></a>
     <a href="/organizer/promote" class="mobile-nav-tab<%= isCurrent('/organizer/promote') ? ' is-active' : '' %>" aria-label="Organizer Promotion Tools" <% if (isCurrent('/organizer/promote')) { %>aria-current="page"<% } %>><i data-lucide="more-horizontal" aria-hidden="true"></i><span>More</span></a>
   <% } %>
   <% if (locals.canUseRunnerWorkspace) { %>

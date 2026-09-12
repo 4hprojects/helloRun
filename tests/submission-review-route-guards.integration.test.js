@@ -18,6 +18,14 @@ const { getPostgresClient, closePostgresClient } = require('../src/db/postgres')
 const ROOT = path.resolve(__dirname, '..');
 const TEST_PORT = 3105;
 const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
+const STANDARD_APPROVAL_CHECKLIST = {
+  checklistVersion: 'run-proof-v1',
+  verifiedCriteria: ['legibility', 'activity_date', 'distance', 'duration']
+};
+const ACCUMULATED_SCREENSHOT_APPROVAL_CHECKLIST = {
+  checklistVersion: 'run-proof-v1',
+  verifiedCriteria: ['legibility', 'activity_date', 'distance', 'duration', 'activity_type', 'source']
+};
 
 let serverProc = null;
 const seededFixtures = [];
@@ -107,6 +115,7 @@ test('run proof review queue combines standard and accumulated activity proofs',
   assert.match(html, /Accumulated Activity/i);
   assert.match(html, /activity-proof\.png/i);
   assert.match(html, /run-proof-image-link/i);
+  assert.match(html, /Review oldest pending/i);
   assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/review\\?queueStatus=pending&amp;queueSort=oldest`, 'i'));
   assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/submissions/${seed.activity._id}/review\\?queueStatus=pending&amp;queueSort=oldest`, 'i'));
   assert.doesNotMatch(html, /Approve Run Result/i);
@@ -206,8 +215,8 @@ test('run proof review queue filters reviewed history and search', async () => {
   const rejectedHtml = await rejectedResponse.text();
   assert.match(rejectedHtml, /Activity proof is unclear/i);
   assert.match(rejectedHtml, /Review History/i);
-  assert.match(rejectedHtml, /run-proof-approval-modal/i);
-  assert.match(rejectedHtml, /data-run-proof-approve/i);
+  assert.doesNotMatch(rejectedHtml, /run-proof-approval-modal/i);
+  assert.doesNotMatch(rejectedHtml, /data-run-proof-approve/i);
   assert.doesNotMatch(rejectedHtml, /<dt>Confirmation<\/dt>/i);
 });
 
@@ -274,11 +283,12 @@ test('owner organizer can view standard submission review page', async () => {
   const html = await response.text();
   assert.match(html, /Submission Review/i);
   assert.match(html, /submission-review-page/i);
-  assert.match(html, /Activity Metrics/i);
+  assert.match(html, /Submitted versus detected/i);
   assert.match(html, /Decision/i);
-  assert.match(html, /View run result evidence/i);
-  assert.match(html, /Approve Run Result/i);
-  assert.match(html, /Reject Run Result/i);
+  assert.match(html, /Open original/i);
+  assert.match(html, /Approve proof/i);
+  assert.match(html, /Reject proof/i);
+  assert.match(html, /Required verification checklist/i);
   assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/run-proofs/review[^>]*>\\s*<i[^>]*><\\/i>\\s*Back to Run Proof Queue`, 'i'));
 });
 
@@ -559,11 +569,11 @@ test('organizer submission approval is stale-safe after first transition', async
   assert.equal(ready, true);
   const path = `/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/approve`;
 
-  const first = await postForm(path, ownerCookie, { reviewNotes: 'First approval wins.' });
+  const first = await postForm(path, ownerCookie, { ...STANDARD_APPROVAL_CHECKLIST, reviewNotes: 'First approval wins.' });
   assert.equal(first.status, 302);
   assert.match(first.headers.get('location') || '', /type=success/i);
 
-  const second = await postForm(path, ownerCookie, { reviewNotes: 'Second approval should fail.' });
+  const second = await postForm(path, ownerCookie, { ...STANDARD_APPROVAL_CHECKLIST, reviewNotes: 'Second approval should fail.' });
   assert.equal(second.status, 302);
   const secondLocation = second.headers.get('location') || '';
   assert.match(secondLocation, /type=error/i);
@@ -575,6 +585,30 @@ test('organizer submission approval is stale-safe after first transition', async
     assert.equal(updated.status, 'approved');
     assert.equal(updated.reviewNotes, 'First approval wins.');
     assert.equal(String(updated.reviewedBy), String(seed.ownerOrganizer._id));
+  } finally {
+    await mongoose.disconnect();
+  }
+});
+
+test('organizer approval requires every current checklist attestation', async () => {
+  const seed = await seedReviewData('approval-checklist-required');
+  const ownerCookie = await login(seed.ownerOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', ownerCookie);
+  const path = `/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/approve`;
+
+  const missing = await postForm(path, ownerCookie, {
+    checklistVersion: 'run-proof-v1',
+    verifiedCriteria: ['legibility', 'activity_date', 'distance']
+  });
+  assert.equal(missing.status, 302);
+  assert.match(missing.headers.get('location') || '', /type=error/i);
+  assert.match(missing.headers.get('location') || '', /every\+applicable/i);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    const unchanged = await Submission.findById(seed.submission._id).lean();
+    assert.equal(unchanged.status, 'submitted');
+    assert.equal(unchanged.manualReviewChecklist, undefined);
   } finally {
     await mongoose.disconnect();
   }
@@ -610,6 +644,7 @@ test('organizer can approve rejected submission from run proof queue', async () 
     {
       queueStatus: 'rejected',
       queueSort: 'newest',
+      ...STANDARD_APPROVAL_CHECKLIST,
       reviewNotes: 'Validated corrected proof from rejected queue'
     }
   );
@@ -656,6 +691,7 @@ test('admin can approve organizer submission through shared review route', async
     adminCookie,
     {
       reviewNotes: 'admin approval check',
+      ...STANDARD_APPROVAL_CHECKLIST,
       queueStatus: 'all',
       queueSort: 'newest',
       queueQ: seed.runner.email,
@@ -666,10 +702,9 @@ test('admin can approve organizer submission through shared review route', async
   assert.equal(response.status, 302);
   const location = response.headers.get('location') || '';
   assert.match(location, /type=success/i);
-  assert.match(location, /\/submissions\/[a-f0-9]{24}\/review/i);
-  assert.match(location, /queueStatus=all/i);
-  assert.match(location, /queueSort=newest/i);
-  assert.match(location, /queuePage=2/i);
+  assert.match(location, /\/run-proofs\/review/i);
+  assert.match(location, /status=all/i);
+  assert.match(location, /No\+more\+items\+match\+your\+current\+filters/i);
 
   await mongoose.connect(process.env.MONGODB_URI);
   try {
@@ -678,6 +713,9 @@ test('admin can approve organizer submission through shared review route', async
     assert.equal(String(updated.reviewedBy), String(seed.admin._id));
     assert.equal(updated.suspiciousFlag, false);
     assert.equal(updated.suspiciousFlagReason || '', '');
+    assert.equal(updated.manualReviewChecklist.version, 'run-proof-v1');
+    assert.deepEqual(updated.manualReviewChecklist.requiredCriteria, STANDARD_APPROVAL_CHECKLIST.verifiedCriteria);
+    assert.deepEqual(updated.manualReviewChecklist.confirmedCriteria, STANDARD_APPROVAL_CHECKLIST.verifiedCriteria);
   } finally {
     await mongoose.disconnect();
   }
@@ -723,7 +761,7 @@ test('admin approval clears suspicious metadata for accumulated activity submiss
   const response = await postForm(
     `/organizer/events/${seed.event._id}/submissions/${seed.activity._id}/approve`,
     adminCookie,
-    { reviewNotes: 'admin approval accumulated check' }
+    { ...ACCUMULATED_SCREENSHOT_APPROVAL_CHECKLIST, reviewNotes: 'admin approval accumulated check' }
   );
 
   assert.equal(response.status, 302);
@@ -737,6 +775,7 @@ test('admin approval clears suspicious metadata for accumulated activity submiss
     assert.equal(updated.suspiciousFlag, false);
     assert.equal(updated.suspiciousFlagReason || '', '');
     assert.equal(String(updated.reviewedBy), String(seed.admin._id));
+    assert.equal(updated.manualReviewChecklist.version, 'run-proof-v1');
   } finally {
     await mongoose.disconnect();
   }
@@ -973,13 +1012,18 @@ async function login(email, password) {
 }
 
 async function postForm(routePath, cookie, payload = {}) {
+  const body = new URLSearchParams();
+  Object.entries(payload).forEach(([key, value]) => {
+    if (Array.isArray(value)) value.forEach((item) => body.append(key, item));
+    else body.set(key, value);
+  });
   return fetch(`${BASE_URL}${routePath}`, {
     method: 'POST',
     headers: {
       Cookie: cookie,
       'Content-Type': 'application/x-www-form-urlencoded'
     },
-    body: new URLSearchParams(payload),
+    body,
     redirect: 'manual'
   });
 }
@@ -1014,7 +1058,11 @@ test('organizer can reject submission with valid reason', async () => {
   assert.equal(response.status, 302);
   const location = response.headers.get('location') || '';
   assert.match(location, /type=success/i);
-  assert.match(location, /\/submissions\/[a-f0-9]{24}\/review/i);
+  // This event has exactly one submission, so once it's rejected there is no
+  // "next" item left in the default pending queue — the redirect goes back
+  // to the queue list, not another submission's review page.
+  assert.match(location, /\/run-proofs\/review/i);
+  assert.match(location, /No\+pending\+proofs\+remain/i);
 
   await mongoose.connect(process.env.MONGODB_URI);
   try {
