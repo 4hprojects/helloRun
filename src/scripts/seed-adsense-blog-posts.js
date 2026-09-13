@@ -267,6 +267,7 @@ const { ARTICLE: RUNNING_RECOVERY_DAYS_EXPLAINED_ARTICLE, buildArticlePayload: b
 const { ARTICLE: HOW_TO_RECOVER_AFTER_A_LONG_RUN_ARTICLE, buildArticlePayload: buildHowToRecoverAfterALongRunPayload } = require('../content/how-to-recover-after-a-long-run');
 const { ARTICLE: RUNNING_IN_COOL_WEATHER_PHILIPPINES_ARTICLE, buildArticlePayload: buildRunningInCoolWeatherPhilippinesPayload } = require('../content/running-in-cool-weather-philippines');
 const { ARTICLE: MAINTAIN_RUNNING_FITNESS_DURING_HOLIDAYS_ARTICLE, buildArticlePayload: buildMaintainRunningFitnessDuringHolidaysPayload } = require('../content/maintain-running-fitness-during-holidays');
+const { ARTICLE: VIRTUAL_RUN_PARTICIPANT_RETENTION_ARTICLE, buildArticlePayload: buildVirtualRunParticipantRetentionPayload } = require('../content/virtual-run-participant-retention');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -431,6 +432,8 @@ const RUNNING_IN_COOL_WEATHER_PHILIPPINES_COVER_IMAGE_URL = '/images/blog/covers
 const RUNNING_IN_COOL_WEATHER_PHILIPPINES_PAYLOAD = buildRunningInCoolWeatherPhilippinesPayload({ coverImageUrl: RUNNING_IN_COOL_WEATHER_PHILIPPINES_COVER_IMAGE_URL });
 const MAINTAIN_RUNNING_FITNESS_DURING_HOLIDAYS_COVER_IMAGE_URL = '/images/blog/covers/maintain-running-fitness-during-holidays.webp';
 const MAINTAIN_RUNNING_FITNESS_DURING_HOLIDAYS_PAYLOAD = buildMaintainRunningFitnessDuringHolidaysPayload({ coverImageUrl: MAINTAIN_RUNNING_FITNESS_DURING_HOLIDAYS_COVER_IMAGE_URL });
+const VIRTUAL_RUN_PARTICIPANT_RETENTION_COVER_IMAGE_URL = '/images/blog/covers/virtual-run-participant-retention.webp';
+const VIRTUAL_RUN_PARTICIPANT_RETENTION_PAYLOAD = buildVirtualRunParticipantRetentionPayload({ coverImageUrl: VIRTUAL_RUN_PARTICIPANT_RETENTION_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2006,6 +2009,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/how-to-build-a-weekly-running-schedule-around-work-or-school','/blog/what-is-a-running-base','/blog/easy-run-explained','/blog/how-to-set-running-goals-for-the-rest-of-the-year','/blog/running-recovery-days-explained']
+  },
+  {
+    ...VIRTUAL_RUN_PARTICIPANT_RETENTION_ARTICLE,
+    contentHtml: VIRTUAL_RUN_PARTICIPANT_RETENTION_PAYLOAD.contentHtml,
+    coverImageUrl: VIRTUAL_RUN_PARTICIPANT_RETENTION_COVER_IMAGE_URL,
+    coverImageAlt: VIRTUAL_RUN_PARTICIPANT_RETENTION_ARTICLE.coverImageAlt,
+    ogImageUrl: VIRTUAL_RUN_PARTICIPANT_RETENTION_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-11-25T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/participant-communication-timeline-virtual-running-events','/blog/how-to-promote-a-virtual-run','/blog/virtual-run-registration-fee-pricing','/blog/virtual-run-participant-engagement','/blog/how-to-create-a-virtual-run-certificate','/blog/fair-and-consistent-run-proof-review-checklist-for-organizers']
   }
 ];
 
