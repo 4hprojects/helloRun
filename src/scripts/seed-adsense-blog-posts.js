@@ -263,6 +263,7 @@ const { ARTICLE: INTERVAL_RUNNING_FOR_BEGINNERS_ARTICLE, buildArticlePayload: bu
 const { ARTICLE: TEMPO_RUN_VS_INTERVAL_RUN_ARTICLE, buildArticlePayload: buildTempoRunVsIntervalRunPayload } = require('../content/tempo-run-vs-interval-run');
 const { ARTICLE: HOW_TO_RUN_A_FASTER_5K_ARTICLE, buildArticlePayload: buildHowToRunAFaster5kPayload } = require('../content/how-to-run-a-faster-5k');
 const { ARTICLE: HOW_TO_RUN_A_FASTER_10K_ARTICLE, buildArticlePayload: buildHowToRunAFaster10kPayload } = require('../content/how-to-run-a-faster-10k');
+const { ARTICLE: RUNNING_RECOVERY_DAYS_EXPLAINED_ARTICLE, buildArticlePayload: buildRunningRecoveryDaysExplainedPayload } = require('../content/running-recovery-days-explained');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -419,6 +420,8 @@ const HOW_TO_RUN_A_FASTER_5K_COVER_IMAGE_URL = '/images/blog/covers/how-to-run-a
 const HOW_TO_RUN_A_FASTER_5K_PAYLOAD = buildHowToRunAFaster5kPayload({ coverImageUrl: HOW_TO_RUN_A_FASTER_5K_COVER_IMAGE_URL });
 const HOW_TO_RUN_A_FASTER_10K_COVER_IMAGE_URL = '/images/blog/covers/how-to-run-a-faster-10k.webp';
 const HOW_TO_RUN_A_FASTER_10K_PAYLOAD = buildHowToRunAFaster10kPayload({ coverImageUrl: HOW_TO_RUN_A_FASTER_10K_COVER_IMAGE_URL });
+const RUNNING_RECOVERY_DAYS_EXPLAINED_COVER_IMAGE_URL = '/images/blog/covers/running-recovery-days-explained.webp';
+const RUNNING_RECOVERY_DAYS_EXPLAINED_PAYLOAD = buildRunningRecoveryDaysExplainedPayload({ coverImageUrl: RUNNING_RECOVERY_DAYS_EXPLAINED_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1946,6 +1949,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/10k-training-plan-for-beginners','/blog/how-to-run-your-first-10k-virtual-run','/blog/what-to-do-after-your-first-10k','/blog/what-is-a-running-base','/blog/what-is-a-long-run-for-beginners','/blog/tempo-run-explained','/blog/interval-running-for-beginners','/blog/running-heart-rate-explained']
+  },
+  {
+    ...RUNNING_RECOVERY_DAYS_EXPLAINED_ARTICLE,
+    contentHtml: RUNNING_RECOVERY_DAYS_EXPLAINED_PAYLOAD.contentHtml,
+    coverImageUrl: RUNNING_RECOVERY_DAYS_EXPLAINED_COVER_IMAGE_URL,
+    coverImageAlt: RUNNING_RECOVERY_DAYS_EXPLAINED_ARTICLE.coverImageAlt,
+    ogImageUrl: RUNNING_RECOVERY_DAYS_EXPLAINED_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-11-17T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back','/blog/easy-run-explained','/blog/tempo-run-explained','/blog/interval-running-for-beginners','/blog/strength-training-for-runners-beginners','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school']
   }
 ];
 
