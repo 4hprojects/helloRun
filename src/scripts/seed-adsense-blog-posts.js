@@ -274,6 +274,7 @@ const { ARTICLE: DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_ARTICLE, buildArticleP
 const { ARTICLE: RUNNING_STREAKS_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildRunningStreaksForBeginnersPayload } = require('../content/running-streaks-for-beginners');
 const { ARTICLE: HOW_OFTEN_SHOULD_YOU_RUN_ARTICLE, buildArticlePayload: buildHowOftenShouldYouRunPayload } = require('../content/how-often-should-you-run');
 const { ARTICLE: RUNNING_MOTIVATION_VS_HABITS_ARTICLE, buildArticlePayload: buildRunningMotivationVsHabitsPayload } = require('../content/running-motivation-vs-habits');
+const { ARTICLE: RUNNING_WHILE_TRAVELING_ARTICLE, buildArticlePayload: buildRunningWhileTravelingPayload } = require('../content/running-while-traveling');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -452,6 +453,8 @@ const HOW_OFTEN_SHOULD_YOU_RUN_COVER_IMAGE_URL = '/images/blog/covers/how-often-
 const HOW_OFTEN_SHOULD_YOU_RUN_PAYLOAD = buildHowOftenShouldYouRunPayload({ coverImageUrl: HOW_OFTEN_SHOULD_YOU_RUN_COVER_IMAGE_URL });
 const RUNNING_MOTIVATION_VS_HABITS_COVER_IMAGE_URL = '/images/blog/covers/running-motivation-vs-habits.webp';
 const RUNNING_MOTIVATION_VS_HABITS_PAYLOAD = buildRunningMotivationVsHabitsPayload({ coverImageUrl: RUNNING_MOTIVATION_VS_HABITS_COVER_IMAGE_URL });
+const RUNNING_WHILE_TRAVELING_COVER_IMAGE_URL = '/images/blog/covers/running-while-traveling.webp';
+const RUNNING_WHILE_TRAVELING_PAYLOAD = buildRunningWhileTravelingPayload({ coverImageUrl: RUNNING_WHILE_TRAVELING_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2111,6 +2114,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/what-is-a-running-base','/blog/how-to-run-with-a-busy-schedule','/blog/maintain-running-fitness-during-holidays','/blog/december-running-challenge-for-beginners','/blog/how-to-set-running-goals-for-the-rest-of-the-year']
+  },
+  {
+    ...RUNNING_WHILE_TRAVELING_ARTICLE,
+    contentHtml: RUNNING_WHILE_TRAVELING_PAYLOAD.contentHtml,
+    coverImageUrl: RUNNING_WHILE_TRAVELING_COVER_IMAGE_URL,
+    coverImageAlt: RUNNING_WHILE_TRAVELING_ARTICLE.coverImageAlt,
+    ogImageUrl: RUNNING_WHILE_TRAVELING_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-12-09T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/how-to-choose-a-safe-route-for-your-virtual-run','/blog/how-accurate-is-phone-gps-for-running','/blog/gps-watch-vs-running-app','/blog/how-to-use-strava-for-running','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school','/blog/how-to-record-a-treadmill-run-for-a-virtual-event','/blog/maintain-running-fitness-during-holidays']
   }
 ];
 
