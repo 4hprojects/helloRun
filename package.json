@@ -105,6 +105,7 @@
     "blog:update-virtual-run-certificate": "node src/scripts/update-adsense-blog.js --slug how-to-create-a-virtual-run-certificate",
     "blog:update-participant-engagement": "node src/scripts/update-adsense-blog.js --slug virtual-run-participant-engagement",
     "blog:update-after-first-10k": "node src/scripts/update-adsense-blog.js --slug what-to-do-after-your-first-10k",
+    "blog:update-next-running-goal": "node src/scripts/update-adsense-blog.js --slug 5k-10k-or-21k-next-running-goal",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",
