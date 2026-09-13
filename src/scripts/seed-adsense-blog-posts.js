@@ -272,6 +272,7 @@ const { ARTICLE: END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_ARTICLE, buildArticlePayl
 const { ARTICLE: HOW_TO_REVIEW_YOUR_RUNNING_YEAR_ARTICLE, buildArticlePayload: buildHowToReviewYourRunningYearPayload } = require('../content/how-to-review-your-running-year');
 const { ARTICLE: DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildDecemberRunningChallengeForBeginnersPayload } = require('../content/december-running-challenge-for-beginners');
 const { ARTICLE: RUNNING_STREAKS_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildRunningStreaksForBeginnersPayload } = require('../content/running-streaks-for-beginners');
+const { ARTICLE: HOW_OFTEN_SHOULD_YOU_RUN_ARTICLE, buildArticlePayload: buildHowOftenShouldYouRunPayload } = require('../content/how-often-should-you-run');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -446,6 +447,8 @@ const DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/c
 const DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_PAYLOAD = buildDecemberRunningChallengeForBeginnersPayload({ coverImageUrl: DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_COVER_IMAGE_URL });
 const RUNNING_STREAKS_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/running-streaks-for-beginners.webp';
 const RUNNING_STREAKS_FOR_BEGINNERS_PAYLOAD = buildRunningStreaksForBeginnersPayload({ coverImageUrl: RUNNING_STREAKS_FOR_BEGINNERS_COVER_IMAGE_URL });
+const HOW_OFTEN_SHOULD_YOU_RUN_COVER_IMAGE_URL = '/images/blog/covers/how-often-should-you-run.webp';
+const HOW_OFTEN_SHOULD_YOU_RUN_PAYLOAD = buildHowOftenShouldYouRunPayload({ coverImageUrl: HOW_OFTEN_SHOULD_YOU_RUN_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2081,6 +2084,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/december-running-challenge-for-beginners','/blog/running-recovery-days-explained','/blog/easy-run-explained','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school','/blog/run-walk-method-beginner-friendly-way-build-endurance']
+  },
+  {
+    ...HOW_OFTEN_SHOULD_YOU_RUN_ARTICLE,
+    contentHtml: HOW_OFTEN_SHOULD_YOU_RUN_PAYLOAD.contentHtml,
+    coverImageUrl: HOW_OFTEN_SHOULD_YOU_RUN_COVER_IMAGE_URL,
+    coverImageAlt: HOW_OFTEN_SHOULD_YOU_RUN_ARTICLE.coverImageAlt,
+    ogImageUrl: HOW_OFTEN_SHOULD_YOU_RUN_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-12-05T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/how-to-build-a-weekly-running-schedule-around-work-or-school','/blog/what-is-a-running-base','/blog/running-recovery-days-explained','/blog/how-to-run-with-a-busy-schedule','/blog/december-running-challenge-for-beginners']
   }
 ];
 
