@@ -256,6 +256,7 @@ const { ARTICLE: VIRTUAL_RUN_PARTICIPANT_ENGAGEMENT_ARTICLE, buildArticlePayload
 const { ARTICLE: WHAT_TO_DO_AFTER_YOUR_FIRST_10K_ARTICLE, buildArticlePayload: buildWhatToDoAfterYourFirst10kPayload } = require('../content/what-to-do-after-your-first-10k');
 const { ARTICLE: NEXT_RUNNING_GOAL_5K_10K_21K_ARTICLE, buildArticlePayload: buildNextRunningGoal5k10k21kPayload } = require('../content/5k-10k-or-21k-next-running-goal');
 const { ARTICLE: WHAT_IS_A_RUNNING_BASE_ARTICLE, buildArticlePayload: buildWhatIsARunningBasePayload } = require('../content/what-is-a-running-base');
+const { ARTICLE: RUNNING_FORM_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildRunningFormForBeginnersPayload } = require('../content/running-form-for-beginners');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -398,6 +399,8 @@ const NEXT_RUNNING_GOAL_5K_10K_21K_COVER_IMAGE_URL = '/images/blog/covers/5k-10k
 const NEXT_RUNNING_GOAL_5K_10K_21K_PAYLOAD = buildNextRunningGoal5k10k21kPayload({ coverImageUrl: NEXT_RUNNING_GOAL_5K_10K_21K_COVER_IMAGE_URL });
 const WHAT_IS_A_RUNNING_BASE_COVER_IMAGE_URL = '/images/blog/covers/what-is-a-running-base.webp';
 const WHAT_IS_A_RUNNING_BASE_PAYLOAD = buildWhatIsARunningBasePayload({ coverImageUrl: WHAT_IS_A_RUNNING_BASE_COVER_IMAGE_URL });
+const RUNNING_FORM_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/running-form-for-beginners.webp';
+const RUNNING_FORM_FOR_BEGINNERS_PAYLOAD = buildRunningFormForBeginnersPayload({ coverImageUrl: RUNNING_FORM_FOR_BEGINNERS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1841,6 +1844,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/events','/blog/easy-run-explained','/blog/what-is-a-long-run-for-beginners','/blog/strength-training-for-runners-beginners','/blog/how-to-increase-running-distance','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school','/blog/run-walk-method-beginner-friendly-way-build-endurance','/blog/beginner-5k-training-plan-new-runners','/blog/10k-training-plan-for-beginners','/blog/21k-half-marathon-for-beginners']
+  },
+  {
+    ...RUNNING_FORM_FOR_BEGINNERS_ARTICLE,
+    contentHtml: RUNNING_FORM_FOR_BEGINNERS_PAYLOAD.contentHtml,
+    coverImageUrl: RUNNING_FORM_FOR_BEGINNERS_COVER_IMAGE_URL,
+    coverImageAlt: RUNNING_FORM_FOR_BEGINNERS_ARTICLE.coverImageAlt,
+    ogImageUrl: RUNNING_FORM_FOR_BEGINNERS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-11-03T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/what-is-a-running-base','/blog/running-cadence-explained','/blog/easy-run-explained','/blog/hill-running-for-beginners','/blog/strength-training-for-runners-beginners']
   }
 ];
 

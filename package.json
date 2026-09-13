@@ -107,6 +107,7 @@
     "blog:update-after-first-10k": "node src/scripts/update-adsense-blog.js --slug what-to-do-after-your-first-10k",
     "blog:update-next-running-goal": "node src/scripts/update-adsense-blog.js --slug 5k-10k-or-21k-next-running-goal",
     "blog:update-running-base": "node src/scripts/update-adsense-blog.js --slug what-is-a-running-base",
+    "blog:update-running-form": "node src/scripts/update-adsense-blog.js --slug running-form-for-beginners",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",
