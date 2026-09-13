@@ -269,6 +269,7 @@ const { ARTICLE: RUNNING_IN_COOL_WEATHER_PHILIPPINES_ARTICLE, buildArticlePayloa
 const { ARTICLE: MAINTAIN_RUNNING_FITNESS_DURING_HOLIDAYS_ARTICLE, buildArticlePayload: buildMaintainRunningFitnessDuringHolidaysPayload } = require('../content/maintain-running-fitness-during-holidays');
 const { ARTICLE: VIRTUAL_RUN_PARTICIPANT_RETENTION_ARTICLE, buildArticlePayload: buildVirtualRunParticipantRetentionPayload } = require('../content/virtual-run-participant-retention');
 const { ARTICLE: END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_ARTICLE, buildArticlePayload: buildEndOfYearVirtualRunningChallengePayload } = require('../content/end-of-year-virtual-running-challenge');
+const { ARTICLE: HOW_TO_REVIEW_YOUR_RUNNING_YEAR_ARTICLE, buildArticlePayload: buildHowToReviewYourRunningYearPayload } = require('../content/how-to-review-your-running-year');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -437,6 +438,8 @@ const VIRTUAL_RUN_PARTICIPANT_RETENTION_COVER_IMAGE_URL = '/images/blog/covers/v
 const VIRTUAL_RUN_PARTICIPANT_RETENTION_PAYLOAD = buildVirtualRunParticipantRetentionPayload({ coverImageUrl: VIRTUAL_RUN_PARTICIPANT_RETENTION_COVER_IMAGE_URL });
 const END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_COVER_IMAGE_URL = '/images/blog/covers/end-of-year-virtual-running-challenge.webp';
 const END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_PAYLOAD = buildEndOfYearVirtualRunningChallengePayload({ coverImageUrl: END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_COVER_IMAGE_URL });
+const HOW_TO_REVIEW_YOUR_RUNNING_YEAR_COVER_IMAGE_URL = '/images/blog/covers/how-to-review-your-running-year.webp';
+const HOW_TO_REVIEW_YOUR_RUNNING_YEAR_PAYLOAD = buildHowToReviewYourRunningYearPayload({ coverImageUrl: HOW_TO_REVIEW_YOUR_RUNNING_YEAR_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2036,6 +2039,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/how-schools-and-organizations-can-use-virtual-runs','/blog/how-accumulated-distance-challenges-work','/blog/how-to-promote-a-virtual-run','/blog/virtual-run-registration-fee-pricing','/blog/virtual-run-participant-engagement','/blog/how-to-create-a-virtual-run-certificate','/blog/virtual-run-participant-retention']
+  },
+  {
+    ...HOW_TO_REVIEW_YOUR_RUNNING_YEAR_ARTICLE,
+    contentHtml: HOW_TO_REVIEW_YOUR_RUNNING_YEAR_PAYLOAD.contentHtml,
+    coverImageUrl: HOW_TO_REVIEW_YOUR_RUNNING_YEAR_COVER_IMAGE_URL,
+    coverImageAlt: HOW_TO_REVIEW_YOUR_RUNNING_YEAR_ARTICLE.coverImageAlt,
+    ogImageUrl: HOW_TO_REVIEW_YOUR_RUNNING_YEAR_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-11-29T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/how-to-set-running-goals-for-the-rest-of-the-year','/blog/5k-10k-or-21k-next-running-goal','/blog/what-is-a-running-base','/blog/how-to-run-a-faster-5k','/blog/how-to-run-a-faster-10k','/blog/21k-half-marathon-for-beginners','/blog/maintain-running-fitness-during-holidays']
   }
 ];
 
