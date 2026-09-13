@@ -252,6 +252,7 @@ const { ARTICLE: STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_ARTICLE, buildArticlePa
 const { ARTICLE: HOW_TO_PREPARE_FOR_A_LONG_RUN_ARTICLE, buildArticlePayload: buildHowToPrepareForALongRunPayload } = require('../content/how-to-prepare-for-a-long-run');
 const { ARTICLE: HOW_TO_USE_STRAVA_FOR_RUNNING_ARTICLE, buildArticlePayload: buildHowToUseStravaForRunningPayload } = require('../content/how-to-use-strava-for-running');
 const { ARTICLE: HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_ARTICLE, buildArticlePayload: buildHowToCreateAVirtualRunCertificatePayload } = require('../content/how-to-create-a-virtual-run-certificate');
+const { ARTICLE: VIRTUAL_RUN_PARTICIPANT_ENGAGEMENT_ARTICLE, buildArticlePayload: buildVirtualRunParticipantEngagementPayload } = require('../content/virtual-run-participant-engagement');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -386,6 +387,8 @@ const HOW_TO_USE_STRAVA_FOR_RUNNING_COVER_IMAGE_URL = '/images/blog/covers/how-t
 const HOW_TO_USE_STRAVA_FOR_RUNNING_PAYLOAD = buildHowToUseStravaForRunningPayload({ coverImageUrl: HOW_TO_USE_STRAVA_FOR_RUNNING_COVER_IMAGE_URL });
 const HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_COVER_IMAGE_URL = '/images/blog/covers/how-to-create-a-virtual-run-certificate.webp';
 const HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_PAYLOAD = buildHowToCreateAVirtualRunCertificatePayload({ coverImageUrl: HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_COVER_IMAGE_URL });
+const VIRTUAL_RUN_PARTICIPANT_ENGAGEMENT_COVER_IMAGE_URL = '/images/blog/covers/virtual-run-participant-engagement.webp';
+const VIRTUAL_RUN_PARTICIPANT_ENGAGEMENT_PAYLOAD = buildVirtualRunParticipantEngagementPayload({ coverImageUrl: VIRTUAL_RUN_PARTICIPANT_ENGAGEMENT_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1781,6 +1784,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/how-to-promote-a-virtual-run','/blog/virtual-run-registration-fee-pricing','/blog/participant-communication-timeline-virtual-running-events','/blog/how-to-write-clear-virtual-run-rules-participants-can-follow','/blog/fair-and-consistent-run-proof-review-checklist-for-organizers']
+  },
+  {
+    ...VIRTUAL_RUN_PARTICIPANT_ENGAGEMENT_ARTICLE,
+    contentHtml: VIRTUAL_RUN_PARTICIPANT_ENGAGEMENT_PAYLOAD.contentHtml,
+    coverImageUrl: VIRTUAL_RUN_PARTICIPANT_ENGAGEMENT_COVER_IMAGE_URL,
+    coverImageAlt: VIRTUAL_RUN_PARTICIPANT_ENGAGEMENT_ARTICLE.coverImageAlt,
+    ogImageUrl: VIRTUAL_RUN_PARTICIPANT_ENGAGEMENT_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-10-27T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/participant-communication-timeline-virtual-running-events','/blog/how-to-promote-a-virtual-run','/blog/virtual-run-registration-fee-pricing','/blog/how-to-create-a-virtual-run-certificate','/blog/fair-and-consistent-run-proof-review-checklist-for-organizers']
   }
 ];
 
