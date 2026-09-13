@@ -280,6 +280,7 @@ const { ARTICLE: FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_ARTICLE, buildArt
 const { ARTICLE: YEAR_END_5K_RUNNING_GOAL_ARTICLE, buildArticlePayload: buildYearEnd5kRunningGoalPayload } = require('../content/year-end-5k-running-goal');
 const { ARTICLE: RUNNING_GOALS_2027_ARTICLE, buildArticlePayload: buildRunningGoals2027Payload } = require('../content/running-goals-2027');
 const { ARTICLE: NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildNewYearRunningPlanForBeginnersPayload } = require('../content/new-year-running-plan-for-beginners');
+const { ARTICLE: RESTART_RUNNING_AFTER_HOLIDAY_BREAK_ARTICLE, buildArticlePayload: buildRestartRunningAfterHolidayBreakPayload } = require('../content/restart-running-after-holiday-break');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -470,6 +471,8 @@ const RUNNING_GOALS_2027_COVER_IMAGE_URL = '/images/blog/covers/running-goals-20
 const RUNNING_GOALS_2027_PAYLOAD = buildRunningGoals2027Payload({ coverImageUrl: RUNNING_GOALS_2027_COVER_IMAGE_URL });
 const NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/new-year-running-plan-for-beginners.webp';
 const NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_PAYLOAD = buildNewYearRunningPlanForBeginnersPayload({ coverImageUrl: NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_COVER_IMAGE_URL });
+const RESTART_RUNNING_AFTER_HOLIDAY_BREAK_COVER_IMAGE_URL = '/images/blog/covers/restart-running-after-holiday-break.webp';
+const RESTART_RUNNING_AFTER_HOLIDAY_BREAK_PAYLOAD = buildRestartRunningAfterHolidayBreakPayload({ coverImageUrl: RESTART_RUNNING_AFTER_HOLIDAY_BREAK_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2201,6 +2204,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/run-walk-method-beginner-friendly-way-build-endurance','/blog/beginner-5k-training-plan-new-runners','/blog/what-is-a-running-base','/blog/how-often-should-you-run','/blog/running-recovery-days-explained','/blog/running-goals-2027']
+  },
+  {
+    ...RESTART_RUNNING_AFTER_HOLIDAY_BREAK_ARTICLE,
+    contentHtml: RESTART_RUNNING_AFTER_HOLIDAY_BREAK_PAYLOAD.contentHtml,
+    coverImageUrl: RESTART_RUNNING_AFTER_HOLIDAY_BREAK_COVER_IMAGE_URL,
+    coverImageAlt: RESTART_RUNNING_AFTER_HOLIDAY_BREAK_ARTICLE.coverImageAlt,
+    ogImageUrl: RESTART_RUNNING_AFTER_HOLIDAY_BREAK_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-12-21T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/returning-to-running-after-a-break-gradual-restart-plan','/blog/what-is-a-running-base','/blog/easy-run-explained','/blog/running-recovery-days-explained','/blog/new-year-running-plan-for-beginners']
   }
 ];
 
