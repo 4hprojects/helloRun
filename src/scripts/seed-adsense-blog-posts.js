@@ -278,6 +278,7 @@ const { ARTICLE: RUNNING_WHILE_TRAVELING_ARTICLE, buildArticlePayload: buildRunn
 const { ARTICLE: TREADMILL_VS_OUTDOOR_RUNNING_ARTICLE, buildArticlePayload: buildTreadmillVsOutdoorRunningPayload } = require('../content/treadmill-vs-outdoor-running');
 const { ARTICLE: FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_ARTICLE, buildArticlePayload: buildFinishAccumulatedDistanceRunningChallengePayload } = require('../content/finish-accumulated-distance-running-challenge');
 const { ARTICLE: YEAR_END_5K_RUNNING_GOAL_ARTICLE, buildArticlePayload: buildYearEnd5kRunningGoalPayload } = require('../content/year-end-5k-running-goal');
+const { ARTICLE: RUNNING_GOALS_2027_ARTICLE, buildArticlePayload: buildRunningGoals2027Payload } = require('../content/running-goals-2027');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -464,6 +465,8 @@ const FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_COVER_IMAGE_URL = '/images/b
 const FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_PAYLOAD = buildFinishAccumulatedDistanceRunningChallengePayload({ coverImageUrl: FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_COVER_IMAGE_URL });
 const YEAR_END_5K_RUNNING_GOAL_COVER_IMAGE_URL = '/images/blog/covers/year-end-5k-running-goal.webp';
 const YEAR_END_5K_RUNNING_GOAL_PAYLOAD = buildYearEnd5kRunningGoalPayload({ coverImageUrl: YEAR_END_5K_RUNNING_GOAL_COVER_IMAGE_URL });
+const RUNNING_GOALS_2027_COVER_IMAGE_URL = '/images/blog/covers/running-goals-2027.webp';
+const RUNNING_GOALS_2027_PAYLOAD = buildRunningGoals2027Payload({ coverImageUrl: RUNNING_GOALS_2027_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2171,6 +2174,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/beginner-5k-training-plan-new-runners','/blog/how-to-run-a-faster-5k','/blog/beginners-guide-to-running-pace','/blog/run-walk-method-beginner-friendly-way-build-endurance','/blog/how-to-choose-a-safe-route-for-your-virtual-run','/blog/how-accurate-is-phone-gps-for-running']
+  },
+  {
+    ...RUNNING_GOALS_2027_ARTICLE,
+    contentHtml: RUNNING_GOALS_2027_PAYLOAD.contentHtml,
+    coverImageUrl: RUNNING_GOALS_2027_COVER_IMAGE_URL,
+    coverImageAlt: RUNNING_GOALS_2027_ARTICLE.coverImageAlt,
+    ogImageUrl: RUNNING_GOALS_2027_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-12-17T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/how-to-review-your-running-year','/blog/5k-10k-or-21k-next-running-goal','/blog/how-to-run-a-faster-5k','/blog/how-to-run-a-faster-10k','/blog/21k-half-marathon-for-beginners','/blog/what-is-a-running-base','/blog/year-end-5k-running-goal']
   }
 ];
 
