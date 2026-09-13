@@ -270,6 +270,7 @@ const { ARTICLE: MAINTAIN_RUNNING_FITNESS_DURING_HOLIDAYS_ARTICLE, buildArticleP
 const { ARTICLE: VIRTUAL_RUN_PARTICIPANT_RETENTION_ARTICLE, buildArticlePayload: buildVirtualRunParticipantRetentionPayload } = require('../content/virtual-run-participant-retention');
 const { ARTICLE: END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_ARTICLE, buildArticlePayload: buildEndOfYearVirtualRunningChallengePayload } = require('../content/end-of-year-virtual-running-challenge');
 const { ARTICLE: HOW_TO_REVIEW_YOUR_RUNNING_YEAR_ARTICLE, buildArticlePayload: buildHowToReviewYourRunningYearPayload } = require('../content/how-to-review-your-running-year');
+const { ARTICLE: DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildDecemberRunningChallengeForBeginnersPayload } = require('../content/december-running-challenge-for-beginners');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -440,6 +441,8 @@ const END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_COVER_IMAGE_URL = '/images/blog/cove
 const END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_PAYLOAD = buildEndOfYearVirtualRunningChallengePayload({ coverImageUrl: END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_COVER_IMAGE_URL });
 const HOW_TO_REVIEW_YOUR_RUNNING_YEAR_COVER_IMAGE_URL = '/images/blog/covers/how-to-review-your-running-year.webp';
 const HOW_TO_REVIEW_YOUR_RUNNING_YEAR_PAYLOAD = buildHowToReviewYourRunningYearPayload({ coverImageUrl: HOW_TO_REVIEW_YOUR_RUNNING_YEAR_COVER_IMAGE_URL });
+const DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/december-running-challenge-for-beginners.webp';
+const DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_PAYLOAD = buildDecemberRunningChallengeForBeginnersPayload({ coverImageUrl: DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2051,6 +2054,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/how-to-set-running-goals-for-the-rest-of-the-year','/blog/5k-10k-or-21k-next-running-goal','/blog/what-is-a-running-base','/blog/how-to-run-a-faster-5k','/blog/how-to-run-a-faster-10k','/blog/21k-half-marathon-for-beginners','/blog/maintain-running-fitness-during-holidays']
+  },
+  {
+    ...DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_ARTICLE,
+    contentHtml: DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_PAYLOAD.contentHtml,
+    coverImageUrl: DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_COVER_IMAGE_URL,
+    coverImageAlt: DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_ARTICLE.coverImageAlt,
+    ogImageUrl: DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-12-01T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/maintain-running-fitness-during-holidays','/blog/running-recovery-days-explained','/blog/running-in-cool-weather-philippines','/blog/how-to-review-your-running-year','/blog/30-day-running-challenge-for-beginners','/blog/run-walk-method-beginner-friendly-way-build-endurance','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school']
   }
 ];
 

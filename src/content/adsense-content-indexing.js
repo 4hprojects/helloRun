@@ -86,7 +86,8 @@ const NOINDEX_SLUGS = Object.freeze([
   'how-to-recover-after-a-long-run',
   'running-in-cool-weather-philippines',
   'maintain-running-fitness-during-holidays',
-  'how-to-review-your-running-year'
+  'how-to-review-your-running-year',
+  'december-running-challenge-for-beginners'
 ]);
 
 const HEALTH_SAFETY_SLUGS = Object.freeze(NOINDEX_SLUGS.filter((slug) => ![
