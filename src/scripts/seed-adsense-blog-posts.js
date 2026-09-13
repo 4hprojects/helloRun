@@ -281,6 +281,7 @@ const { ARTICLE: YEAR_END_5K_RUNNING_GOAL_ARTICLE, buildArticlePayload: buildYea
 const { ARTICLE: RUNNING_GOALS_2027_ARTICLE, buildArticlePayload: buildRunningGoals2027Payload } = require('../content/running-goals-2027');
 const { ARTICLE: NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildNewYearRunningPlanForBeginnersPayload } = require('../content/new-year-running-plan-for-beginners');
 const { ARTICLE: RESTART_RUNNING_AFTER_HOLIDAY_BREAK_ARTICLE, buildArticlePayload: buildRestartRunningAfterHolidayBreakPayload } = require('../content/restart-running-after-holiday-break');
+const { ARTICLE: RUNNING_LOG_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildRunningLogForBeginnersPayload } = require('../content/running-log-for-beginners');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -473,6 +474,8 @@ const NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers
 const NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_PAYLOAD = buildNewYearRunningPlanForBeginnersPayload({ coverImageUrl: NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_COVER_IMAGE_URL });
 const RESTART_RUNNING_AFTER_HOLIDAY_BREAK_COVER_IMAGE_URL = '/images/blog/covers/restart-running-after-holiday-break.webp';
 const RESTART_RUNNING_AFTER_HOLIDAY_BREAK_PAYLOAD = buildRestartRunningAfterHolidayBreakPayload({ coverImageUrl: RESTART_RUNNING_AFTER_HOLIDAY_BREAK_COVER_IMAGE_URL });
+const RUNNING_LOG_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/running-log-for-beginners.webp';
+const RUNNING_LOG_FOR_BEGINNERS_PAYLOAD = buildRunningLogForBeginnersPayload({ coverImageUrl: RUNNING_LOG_FOR_BEGINNERS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2216,6 +2219,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/returning-to-running-after-a-break-gradual-restart-plan','/blog/what-is-a-running-base','/blog/easy-run-explained','/blog/running-recovery-days-explained','/blog/new-year-running-plan-for-beginners']
+  },
+  {
+    ...RUNNING_LOG_FOR_BEGINNERS_ARTICLE,
+    contentHtml: RUNNING_LOG_FOR_BEGINNERS_PAYLOAD.contentHtml,
+    coverImageUrl: RUNNING_LOG_FOR_BEGINNERS_COVER_IMAGE_URL,
+    coverImageAlt: RUNNING_LOG_FOR_BEGINNERS_ARTICLE.coverImageAlt,
+    ogImageUrl: RUNNING_LOG_FOR_BEGINNERS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-12-23T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/beginners-guide-to-running-pace','/blog/running-heart-rate-explained','/blog/running-cadence-explained','/blog/how-to-use-strava-for-running','/blog/how-to-review-your-running-year','/blog/running-goals-2027']
   }
 ];
 
