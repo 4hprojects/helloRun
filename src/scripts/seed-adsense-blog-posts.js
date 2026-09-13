@@ -264,6 +264,7 @@ const { ARTICLE: TEMPO_RUN_VS_INTERVAL_RUN_ARTICLE, buildArticlePayload: buildTe
 const { ARTICLE: HOW_TO_RUN_A_FASTER_5K_ARTICLE, buildArticlePayload: buildHowToRunAFaster5kPayload } = require('../content/how-to-run-a-faster-5k');
 const { ARTICLE: HOW_TO_RUN_A_FASTER_10K_ARTICLE, buildArticlePayload: buildHowToRunAFaster10kPayload } = require('../content/how-to-run-a-faster-10k');
 const { ARTICLE: RUNNING_RECOVERY_DAYS_EXPLAINED_ARTICLE, buildArticlePayload: buildRunningRecoveryDaysExplainedPayload } = require('../content/running-recovery-days-explained');
+const { ARTICLE: HOW_TO_RECOVER_AFTER_A_LONG_RUN_ARTICLE, buildArticlePayload: buildHowToRecoverAfterALongRunPayload } = require('../content/how-to-recover-after-a-long-run');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -422,6 +423,8 @@ const HOW_TO_RUN_A_FASTER_10K_COVER_IMAGE_URL = '/images/blog/covers/how-to-run-
 const HOW_TO_RUN_A_FASTER_10K_PAYLOAD = buildHowToRunAFaster10kPayload({ coverImageUrl: HOW_TO_RUN_A_FASTER_10K_COVER_IMAGE_URL });
 const RUNNING_RECOVERY_DAYS_EXPLAINED_COVER_IMAGE_URL = '/images/blog/covers/running-recovery-days-explained.webp';
 const RUNNING_RECOVERY_DAYS_EXPLAINED_PAYLOAD = buildRunningRecoveryDaysExplainedPayload({ coverImageUrl: RUNNING_RECOVERY_DAYS_EXPLAINED_COVER_IMAGE_URL });
+const HOW_TO_RECOVER_AFTER_A_LONG_RUN_COVER_IMAGE_URL = '/images/blog/covers/how-to-recover-after-a-long-run.webp';
+const HOW_TO_RECOVER_AFTER_A_LONG_RUN_PAYLOAD = buildHowToRecoverAfterALongRunPayload({ coverImageUrl: HOW_TO_RECOVER_AFTER_A_LONG_RUN_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1961,6 +1964,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back','/blog/easy-run-explained','/blog/tempo-run-explained','/blog/interval-running-for-beginners','/blog/strength-training-for-runners-beginners','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school']
+  },
+  {
+    ...HOW_TO_RECOVER_AFTER_A_LONG_RUN_ARTICLE,
+    contentHtml: HOW_TO_RECOVER_AFTER_A_LONG_RUN_PAYLOAD.contentHtml,
+    coverImageUrl: HOW_TO_RECOVER_AFTER_A_LONG_RUN_COVER_IMAGE_URL,
+    coverImageAlt: HOW_TO_RECOVER_AFTER_A_LONG_RUN_ARTICLE.coverImageAlt,
+    ogImageUrl: HOW_TO_RECOVER_AFTER_A_LONG_RUN_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-11-19T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/what-is-a-long-run-for-beginners','/blog/how-to-prepare-for-a-long-run','/blog/what-to-eat-after-running','/blog/hydration-for-runners','/blog/running-recovery-days-explained','/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back']
   }
 ];
 
