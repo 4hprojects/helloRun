@@ -268,6 +268,7 @@ const { ARTICLE: HOW_TO_RECOVER_AFTER_A_LONG_RUN_ARTICLE, buildArticlePayload: b
 const { ARTICLE: RUNNING_IN_COOL_WEATHER_PHILIPPINES_ARTICLE, buildArticlePayload: buildRunningInCoolWeatherPhilippinesPayload } = require('../content/running-in-cool-weather-philippines');
 const { ARTICLE: MAINTAIN_RUNNING_FITNESS_DURING_HOLIDAYS_ARTICLE, buildArticlePayload: buildMaintainRunningFitnessDuringHolidaysPayload } = require('../content/maintain-running-fitness-during-holidays');
 const { ARTICLE: VIRTUAL_RUN_PARTICIPANT_RETENTION_ARTICLE, buildArticlePayload: buildVirtualRunParticipantRetentionPayload } = require('../content/virtual-run-participant-retention');
+const { ARTICLE: END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_ARTICLE, buildArticlePayload: buildEndOfYearVirtualRunningChallengePayload } = require('../content/end-of-year-virtual-running-challenge');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -434,6 +435,8 @@ const MAINTAIN_RUNNING_FITNESS_DURING_HOLIDAYS_COVER_IMAGE_URL = '/images/blog/c
 const MAINTAIN_RUNNING_FITNESS_DURING_HOLIDAYS_PAYLOAD = buildMaintainRunningFitnessDuringHolidaysPayload({ coverImageUrl: MAINTAIN_RUNNING_FITNESS_DURING_HOLIDAYS_COVER_IMAGE_URL });
 const VIRTUAL_RUN_PARTICIPANT_RETENTION_COVER_IMAGE_URL = '/images/blog/covers/virtual-run-participant-retention.webp';
 const VIRTUAL_RUN_PARTICIPANT_RETENTION_PAYLOAD = buildVirtualRunParticipantRetentionPayload({ coverImageUrl: VIRTUAL_RUN_PARTICIPANT_RETENTION_COVER_IMAGE_URL });
+const END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_COVER_IMAGE_URL = '/images/blog/covers/end-of-year-virtual-running-challenge.webp';
+const END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_PAYLOAD = buildEndOfYearVirtualRunningChallengePayload({ coverImageUrl: END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2021,6 +2024,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/participant-communication-timeline-virtual-running-events','/blog/how-to-promote-a-virtual-run','/blog/virtual-run-registration-fee-pricing','/blog/virtual-run-participant-engagement','/blog/how-to-create-a-virtual-run-certificate','/blog/fair-and-consistent-run-proof-review-checklist-for-organizers']
+  },
+  {
+    ...END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_ARTICLE,
+    contentHtml: END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_PAYLOAD.contentHtml,
+    coverImageUrl: END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_COVER_IMAGE_URL,
+    coverImageAlt: END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_ARTICLE.coverImageAlt,
+    ogImageUrl: END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-11-27T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/how-schools-and-organizations-can-use-virtual-runs','/blog/how-accumulated-distance-challenges-work','/blog/how-to-promote-a-virtual-run','/blog/virtual-run-registration-fee-pricing','/blog/virtual-run-participant-engagement','/blog/how-to-create-a-virtual-run-certificate','/blog/virtual-run-participant-retention']
   }
 ];
 
