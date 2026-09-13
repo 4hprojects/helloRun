@@ -73,7 +73,8 @@ const NOINDEX_SLUGS = Object.freeze([
   'what-to-do-after-your-first-10k',
   '5k-10k-or-21k-next-running-goal',
   'what-is-a-running-base',
-  'running-form-for-beginners'
+  'running-form-for-beginners',
+  'running-strides-for-beginners'
 ]);
 
 const HEALTH_SAFETY_SLUGS = Object.freeze(NOINDEX_SLUGS.filter((slug) => ![

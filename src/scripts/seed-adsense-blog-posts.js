@@ -257,6 +257,7 @@ const { ARTICLE: WHAT_TO_DO_AFTER_YOUR_FIRST_10K_ARTICLE, buildArticlePayload: b
 const { ARTICLE: NEXT_RUNNING_GOAL_5K_10K_21K_ARTICLE, buildArticlePayload: buildNextRunningGoal5k10k21kPayload } = require('../content/5k-10k-or-21k-next-running-goal');
 const { ARTICLE: WHAT_IS_A_RUNNING_BASE_ARTICLE, buildArticlePayload: buildWhatIsARunningBasePayload } = require('../content/what-is-a-running-base');
 const { ARTICLE: RUNNING_FORM_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildRunningFormForBeginnersPayload } = require('../content/running-form-for-beginners');
+const { ARTICLE: RUNNING_STRIDES_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildRunningStridesForBeginnersPayload } = require('../content/running-strides-for-beginners');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -401,6 +402,8 @@ const WHAT_IS_A_RUNNING_BASE_COVER_IMAGE_URL = '/images/blog/covers/what-is-a-ru
 const WHAT_IS_A_RUNNING_BASE_PAYLOAD = buildWhatIsARunningBasePayload({ coverImageUrl: WHAT_IS_A_RUNNING_BASE_COVER_IMAGE_URL });
 const RUNNING_FORM_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/running-form-for-beginners.webp';
 const RUNNING_FORM_FOR_BEGINNERS_PAYLOAD = buildRunningFormForBeginnersPayload({ coverImageUrl: RUNNING_FORM_FOR_BEGINNERS_COVER_IMAGE_URL });
+const RUNNING_STRIDES_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/running-strides-for-beginners.webp';
+const RUNNING_STRIDES_FOR_BEGINNERS_PAYLOAD = buildRunningStridesForBeginnersPayload({ coverImageUrl: RUNNING_STRIDES_FOR_BEGINNERS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1856,6 +1859,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/what-is-a-running-base','/blog/running-cadence-explained','/blog/easy-run-explained','/blog/hill-running-for-beginners','/blog/strength-training-for-runners-beginners']
+  },
+  {
+    ...RUNNING_STRIDES_FOR_BEGINNERS_ARTICLE,
+    contentHtml: RUNNING_STRIDES_FOR_BEGINNERS_PAYLOAD.contentHtml,
+    coverImageUrl: RUNNING_STRIDES_FOR_BEGINNERS_COVER_IMAGE_URL,
+    coverImageAlt: RUNNING_STRIDES_FOR_BEGINNERS_ARTICLE.coverImageAlt,
+    ogImageUrl: RUNNING_STRIDES_FOR_BEGINNERS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-11-05T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/what-is-a-running-base','/blog/easy-run-explained','/blog/running-form-for-beginners','/blog/running-cadence-explained','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school']
   }
 ];
 
