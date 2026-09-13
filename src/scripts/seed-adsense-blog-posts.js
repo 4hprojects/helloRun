@@ -284,6 +284,7 @@ const { ARTICLE: RESTART_RUNNING_AFTER_HOLIDAY_BREAK_ARTICLE, buildArticlePayloa
 const { ARTICLE: RUNNING_LOG_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildRunningLogForBeginnersPayload } = require('../content/running-log-for-beginners');
 const { ARTICLE: JANUARY_VIRTUAL_RUNNING_CHALLENGE_ARTICLE, buildArticlePayload: buildJanuaryVirtualRunningChallengePayload } = require('../content/january-virtual-running-challenge');
 const { ARTICLE: NEW_YEAR_VIRTUAL_RUN_THEME_IDEAS_ARTICLE, buildArticlePayload: buildNewYearVirtualRunThemeIdeasPayload } = require('../content/new-year-virtual-run-theme-ideas');
+const { ARTICLE: VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_ARTICLE, buildArticlePayload: buildVirtualRunMetricsOrganizersShouldTrackPayload } = require('../content/virtual-run-metrics-organizers-should-track');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -482,6 +483,8 @@ const JANUARY_VIRTUAL_RUNNING_CHALLENGE_COVER_IMAGE_URL = '/images/blog/covers/j
 const JANUARY_VIRTUAL_RUNNING_CHALLENGE_PAYLOAD = buildJanuaryVirtualRunningChallengePayload({ coverImageUrl: JANUARY_VIRTUAL_RUNNING_CHALLENGE_COVER_IMAGE_URL });
 const NEW_YEAR_VIRTUAL_RUN_THEME_IDEAS_COVER_IMAGE_URL = '/images/blog/covers/new-year-virtual-run-theme-ideas.webp';
 const NEW_YEAR_VIRTUAL_RUN_THEME_IDEAS_PAYLOAD = buildNewYearVirtualRunThemeIdeasPayload({ coverImageUrl: NEW_YEAR_VIRTUAL_RUN_THEME_IDEAS_COVER_IMAGE_URL });
+const VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_COVER_IMAGE_URL = '/images/blog/covers/virtual-run-metrics-organizers-should-track.webp';
+const VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_PAYLOAD = buildVirtualRunMetricsOrganizersShouldTrackPayload({ coverImageUrl: VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2261,6 +2264,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/january-virtual-running-challenge','/blog/how-schools-and-organizations-can-use-virtual-runs','/blog/how-accumulated-distance-challenges-work','/blog/how-to-design-fair-distance-categories-and-challenge-goals','/blog/virtual-run-participant-engagement']
+  },
+  {
+    ...VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_ARTICLE,
+    contentHtml: VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_PAYLOAD.contentHtml,
+    coverImageUrl: VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_COVER_IMAGE_URL,
+    coverImageAlt: VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_ARTICLE.coverImageAlt,
+    ogImageUrl: VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-12-29T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/how-schools-and-organizations-can-use-virtual-runs','/blog/virtual-run-participant-engagement','/blog/virtual-run-participant-retention','/blog/virtual-run-registration-fee-pricing','/blog/participant-communication-timeline-virtual-running-events','/blog/fair-and-consistent-run-proof-review-checklist-for-organizers','/blog/how-to-design-fair-distance-categories-and-challenge-goals']
   }
 ];
 
