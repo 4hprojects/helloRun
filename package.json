@@ -117,6 +117,7 @@
     "blog:update-recovery-days": "node src/scripts/update-adsense-blog.js --slug running-recovery-days-explained",
     "blog:update-long-run-recovery": "node src/scripts/update-adsense-blog.js --slug how-to-recover-after-a-long-run",
     "blog:update-cool-weather": "node src/scripts/update-adsense-blog.js --slug running-in-cool-weather-philippines",
+    "blog:update-holiday-maintenance": "node src/scripts/update-adsense-blog.js --slug maintain-running-fitness-during-holidays",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",
