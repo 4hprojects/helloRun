@@ -133,6 +133,7 @@
     "blog:update-new-year-running-plan": "node src/scripts/update-adsense-blog.js --slug new-year-running-plan-for-beginners",
     "blog:update-holiday-restart": "node src/scripts/update-adsense-blog.js --slug restart-running-after-holiday-break",
     "blog:update-running-log": "node src/scripts/update-adsense-blog.js --slug running-log-for-beginners",
+    "blog:update-january-challenge": "node src/scripts/update-adsense-blog.js --slug january-virtual-running-challenge",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",

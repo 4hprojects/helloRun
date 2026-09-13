@@ -24,7 +24,8 @@ const INDEX_CANDIDATE_SLUGS = Object.freeze([
   'how-to-create-a-virtual-run-certificate',
   'virtual-run-participant-engagement',
   'virtual-run-participant-retention',
-  'end-of-year-virtual-running-challenge'
+  'end-of-year-virtual-running-challenge',
+  'january-virtual-running-challenge'
 ]);
 
 const NOINDEX_SLUGS = Object.freeze([

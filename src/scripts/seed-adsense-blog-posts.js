@@ -282,6 +282,7 @@ const { ARTICLE: RUNNING_GOALS_2027_ARTICLE, buildArticlePayload: buildRunningGo
 const { ARTICLE: NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildNewYearRunningPlanForBeginnersPayload } = require('../content/new-year-running-plan-for-beginners');
 const { ARTICLE: RESTART_RUNNING_AFTER_HOLIDAY_BREAK_ARTICLE, buildArticlePayload: buildRestartRunningAfterHolidayBreakPayload } = require('../content/restart-running-after-holiday-break');
 const { ARTICLE: RUNNING_LOG_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildRunningLogForBeginnersPayload } = require('../content/running-log-for-beginners');
+const { ARTICLE: JANUARY_VIRTUAL_RUNNING_CHALLENGE_ARTICLE, buildArticlePayload: buildJanuaryVirtualRunningChallengePayload } = require('../content/january-virtual-running-challenge');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -476,6 +477,8 @@ const RESTART_RUNNING_AFTER_HOLIDAY_BREAK_COVER_IMAGE_URL = '/images/blog/covers
 const RESTART_RUNNING_AFTER_HOLIDAY_BREAK_PAYLOAD = buildRestartRunningAfterHolidayBreakPayload({ coverImageUrl: RESTART_RUNNING_AFTER_HOLIDAY_BREAK_COVER_IMAGE_URL });
 const RUNNING_LOG_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/running-log-for-beginners.webp';
 const RUNNING_LOG_FOR_BEGINNERS_PAYLOAD = buildRunningLogForBeginnersPayload({ coverImageUrl: RUNNING_LOG_FOR_BEGINNERS_COVER_IMAGE_URL });
+const JANUARY_VIRTUAL_RUNNING_CHALLENGE_COVER_IMAGE_URL = '/images/blog/covers/january-virtual-running-challenge.webp';
+const JANUARY_VIRTUAL_RUNNING_CHALLENGE_PAYLOAD = buildJanuaryVirtualRunningChallengePayload({ coverImageUrl: JANUARY_VIRTUAL_RUNNING_CHALLENGE_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2231,6 +2234,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/beginners-guide-to-running-pace','/blog/running-heart-rate-explained','/blog/running-cadence-explained','/blog/how-to-use-strava-for-running','/blog/how-to-review-your-running-year','/blog/running-goals-2027']
+  },
+  {
+    ...JANUARY_VIRTUAL_RUNNING_CHALLENGE_ARTICLE,
+    contentHtml: JANUARY_VIRTUAL_RUNNING_CHALLENGE_PAYLOAD.contentHtml,
+    coverImageUrl: JANUARY_VIRTUAL_RUNNING_CHALLENGE_COVER_IMAGE_URL,
+    coverImageAlt: JANUARY_VIRTUAL_RUNNING_CHALLENGE_ARTICLE.coverImageAlt,
+    ogImageUrl: JANUARY_VIRTUAL_RUNNING_CHALLENGE_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-12-25T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/end-of-year-virtual-running-challenge','/blog/how-schools-and-organizations-can-use-virtual-runs','/blog/how-to-promote-a-virtual-run','/blog/virtual-run-registration-fee-pricing','/blog/virtual-run-participant-engagement','/blog/virtual-run-participant-retention']
   }
 ];
 
