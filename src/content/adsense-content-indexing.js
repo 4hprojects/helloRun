@@ -71,7 +71,8 @@ const NOINDEX_SLUGS = Object.freeze([
   'how-to-prepare-for-a-long-run',
   'how-to-use-strava-for-running',
   'what-to-do-after-your-first-10k',
-  '5k-10k-or-21k-next-running-goal'
+  '5k-10k-or-21k-next-running-goal',
+  'what-is-a-running-base'
 ]);
 
 const HEALTH_SAFETY_SLUGS = Object.freeze(NOINDEX_SLUGS.filter((slug) => ![

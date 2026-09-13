@@ -255,6 +255,7 @@ const { ARTICLE: HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_ARTICLE, buildArticlePa
 const { ARTICLE: VIRTUAL_RUN_PARTICIPANT_ENGAGEMENT_ARTICLE, buildArticlePayload: buildVirtualRunParticipantEngagementPayload } = require('../content/virtual-run-participant-engagement');
 const { ARTICLE: WHAT_TO_DO_AFTER_YOUR_FIRST_10K_ARTICLE, buildArticlePayload: buildWhatToDoAfterYourFirst10kPayload } = require('../content/what-to-do-after-your-first-10k');
 const { ARTICLE: NEXT_RUNNING_GOAL_5K_10K_21K_ARTICLE, buildArticlePayload: buildNextRunningGoal5k10k21kPayload } = require('../content/5k-10k-or-21k-next-running-goal');
+const { ARTICLE: WHAT_IS_A_RUNNING_BASE_ARTICLE, buildArticlePayload: buildWhatIsARunningBasePayload } = require('../content/what-is-a-running-base');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -395,6 +396,8 @@ const WHAT_TO_DO_AFTER_YOUR_FIRST_10K_COVER_IMAGE_URL = '/images/blog/covers/wha
 const WHAT_TO_DO_AFTER_YOUR_FIRST_10K_PAYLOAD = buildWhatToDoAfterYourFirst10kPayload({ coverImageUrl: WHAT_TO_DO_AFTER_YOUR_FIRST_10K_COVER_IMAGE_URL });
 const NEXT_RUNNING_GOAL_5K_10K_21K_COVER_IMAGE_URL = '/images/blog/covers/5k-10k-or-21k-next-running-goal.webp';
 const NEXT_RUNNING_GOAL_5K_10K_21K_PAYLOAD = buildNextRunningGoal5k10k21kPayload({ coverImageUrl: NEXT_RUNNING_GOAL_5K_10K_21K_COVER_IMAGE_URL });
+const WHAT_IS_A_RUNNING_BASE_COVER_IMAGE_URL = '/images/blog/covers/what-is-a-running-base.webp';
+const WHAT_IS_A_RUNNING_BASE_PAYLOAD = buildWhatIsARunningBasePayload({ coverImageUrl: WHAT_IS_A_RUNNING_BASE_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1826,6 +1829,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/events','/blog/beginner-5k-training-plan-new-runners','/blog/10k-training-plan-for-beginners','/blog/how-to-run-your-first-10k-virtual-run','/blog/what-to-do-after-your-first-10k','/blog/21k-half-marathon-for-beginners','/blog/what-is-a-long-run-for-beginners','/blog/how-to-increase-running-distance','/blog/how-to-run-with-a-busy-schedule','/blog/how-to-set-running-goals-for-the-rest-of-the-year']
+  },
+  {
+    ...WHAT_IS_A_RUNNING_BASE_ARTICLE,
+    contentHtml: WHAT_IS_A_RUNNING_BASE_PAYLOAD.contentHtml,
+    coverImageUrl: WHAT_IS_A_RUNNING_BASE_COVER_IMAGE_URL,
+    coverImageAlt: WHAT_IS_A_RUNNING_BASE_ARTICLE.coverImageAlt,
+    ogImageUrl: WHAT_IS_A_RUNNING_BASE_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-11-01T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/events','/blog/easy-run-explained','/blog/what-is-a-long-run-for-beginners','/blog/strength-training-for-runners-beginners','/blog/how-to-increase-running-distance','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school','/blog/run-walk-method-beginner-friendly-way-build-endurance','/blog/beginner-5k-training-plan-new-runners','/blog/10k-training-plan-for-beginners','/blog/21k-half-marathon-for-beginners']
   }
 ];
 
