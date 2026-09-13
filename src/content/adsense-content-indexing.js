@@ -62,7 +62,8 @@ const NOINDEX_SLUGS = Object.freeze([
   'hill-running-for-beginners',
   'what-to-eat-before-running',
   'what-to-eat-after-running',
-  'hydration-for-runners'
+  'hydration-for-runners',
+  'running-heart-rate-explained'
 ]);
 
 const HEALTH_SAFETY_SLUGS = Object.freeze(NOINDEX_SLUGS.filter((slug) => ![

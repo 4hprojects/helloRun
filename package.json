@@ -97,6 +97,7 @@
     "blog:update-pre-run-food": "node src/scripts/update-adsense-blog.js --slug what-to-eat-before-running",
     "blog:update-post-run-food": "node src/scripts/update-adsense-blog.js --slug what-to-eat-after-running",
     "blog:update-runner-hydration": "node src/scripts/update-adsense-blog.js --slug hydration-for-runners",
+    "blog:update-running-heart-rate": "node src/scripts/update-adsense-blog.js --slug running-heart-rate-explained",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",

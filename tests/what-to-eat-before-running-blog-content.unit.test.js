@@ -59,8 +59,8 @@ test('guide is registered and seeded exactly once for October 9', () => {
   const rows = POSTS.filter((post) => post.slug === CANONICAL_SLUG);
   const seed = rows[0];
   assert.equal(getArticleModule(CANONICAL_SLUG).ARTICLE, ARTICLE);
-  assert.equal(listArticleSlugs().length, 59);
-  assert.equal(POSTS.length, 59);
+  assert.equal(listArticleSlugs().length, 60);
+  assert.equal(POSTS.length, 60);
   assert.equal(rows.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seed);
   assert.equal(buildContentHtml(seed), seed.contentHtml);

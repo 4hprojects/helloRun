@@ -243,6 +243,10 @@ const {
   ARTICLE: HYDRATION_FOR_RUNNERS_ARTICLE,
   buildArticlePayload: buildHydrationForRunnersPayload
 } = require('../content/hydration-for-runners');
+const {
+  ARTICLE: RUNNING_HEART_RATE_EXPLAINED_ARTICLE,
+  buildArticlePayload: buildRunningHeartRateExplainedPayload
+} = require('../content/running-heart-rate-explained');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -365,6 +369,8 @@ const WHAT_TO_EAT_AFTER_RUNNING_COVER_IMAGE_URL = '/images/blog/covers/what-to-e
 const WHAT_TO_EAT_AFTER_RUNNING_PAYLOAD = buildWhatToEatAfterRunningPayload({ coverImageUrl: WHAT_TO_EAT_AFTER_RUNNING_COVER_IMAGE_URL });
 const HYDRATION_FOR_RUNNERS_COVER_IMAGE_URL = '/images/blog/covers/hydration-for-runners.webp';
 const HYDRATION_FOR_RUNNERS_PAYLOAD = buildHydrationForRunnersPayload({ coverImageUrl: HYDRATION_FOR_RUNNERS_COVER_IMAGE_URL });
+const RUNNING_HEART_RATE_EXPLAINED_COVER_IMAGE_URL = '/images/blog/covers/running-heart-rate-explained.webp';
+const RUNNING_HEART_RATE_EXPLAINED_PAYLOAD = buildRunningHeartRateExplainedPayload({ coverImageUrl: RUNNING_HEART_RATE_EXPLAINED_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1688,6 +1694,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/events','/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back','/blog/how-to-run-safely-during-hot-and-humid-weather','/blog/how-to-choose-a-safe-route-for-your-virtual-run','/blog/what-is-a-long-run-for-beginners','/blog/what-to-eat-after-running','/blog/10k-training-plan-for-beginners']
+  },
+  {
+    ...RUNNING_HEART_RATE_EXPLAINED_ARTICLE,
+    contentHtml: RUNNING_HEART_RATE_EXPLAINED_PAYLOAD.contentHtml,
+    coverImageUrl: RUNNING_HEART_RATE_EXPLAINED_COVER_IMAGE_URL,
+    coverImageAlt: RUNNING_HEART_RATE_EXPLAINED_ARTICLE.coverImageAlt,
+    ogImageUrl: RUNNING_HEART_RATE_EXPLAINED_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-10-15T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/events','/blog/running-cadence-explained','/blog/gps-watch-vs-running-app','/blog/beginners-guide-to-running-pace','/blog/hill-running-for-beginners','/blog/how-to-run-safely-during-hot-and-humid-weather']
   }
 ];
 
