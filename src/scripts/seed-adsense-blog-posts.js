@@ -259,6 +259,7 @@ const { ARTICLE: WHAT_IS_A_RUNNING_BASE_ARTICLE, buildArticlePayload: buildWhatI
 const { ARTICLE: RUNNING_FORM_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildRunningFormForBeginnersPayload } = require('../content/running-form-for-beginners');
 const { ARTICLE: RUNNING_STRIDES_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildRunningStridesForBeginnersPayload } = require('../content/running-strides-for-beginners');
 const { ARTICLE: TEMPO_RUN_EXPLAINED_ARTICLE, buildArticlePayload: buildTempoRunExplainedPayload } = require('../content/tempo-run-explained');
+const { ARTICLE: INTERVAL_RUNNING_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildIntervalRunningForBeginnersPayload } = require('../content/interval-running-for-beginners');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -407,6 +408,8 @@ const RUNNING_STRIDES_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/runni
 const RUNNING_STRIDES_FOR_BEGINNERS_PAYLOAD = buildRunningStridesForBeginnersPayload({ coverImageUrl: RUNNING_STRIDES_FOR_BEGINNERS_COVER_IMAGE_URL });
 const TEMPO_RUN_EXPLAINED_COVER_IMAGE_URL = '/images/blog/covers/tempo-run-explained.webp';
 const TEMPO_RUN_EXPLAINED_PAYLOAD = buildTempoRunExplainedPayload({ coverImageUrl: TEMPO_RUN_EXPLAINED_COVER_IMAGE_URL });
+const INTERVAL_RUNNING_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/interval-running-for-beginners.webp';
+const INTERVAL_RUNNING_FOR_BEGINNERS_PAYLOAD = buildIntervalRunningForBeginnersPayload({ coverImageUrl: INTERVAL_RUNNING_FOR_BEGINNERS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1886,6 +1889,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/what-is-a-running-base','/blog/easy-run-explained','/blog/running-heart-rate-explained','/blog/beginners-guide-to-running-pace','/blog/10k-training-plan-for-beginners','/blog/running-strides-for-beginners']
+  },
+  {
+    ...INTERVAL_RUNNING_FOR_BEGINNERS_ARTICLE,
+    contentHtml: INTERVAL_RUNNING_FOR_BEGINNERS_PAYLOAD.contentHtml,
+    coverImageUrl: INTERVAL_RUNNING_FOR_BEGINNERS_COVER_IMAGE_URL,
+    coverImageAlt: INTERVAL_RUNNING_FOR_BEGINNERS_ARTICLE.coverImageAlt,
+    ogImageUrl: INTERVAL_RUNNING_FOR_BEGINNERS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-11-09T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/run-walk-method-beginner-friendly-way-build-endurance','/blog/what-is-a-running-base','/blog/easy-run-explained','/blog/running-strides-for-beginners','/blog/running-heart-rate-explained','/blog/tempo-run-explained','/blog/10k-training-plan-for-beginners']
   }
 ];
 

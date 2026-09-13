@@ -110,6 +110,7 @@
     "blog:update-running-form": "node src/scripts/update-adsense-blog.js --slug running-form-for-beginners",
     "blog:update-running-strides": "node src/scripts/update-adsense-blog.js --slug running-strides-for-beginners",
     "blog:update-tempo-run": "node src/scripts/update-adsense-blog.js --slug tempo-run-explained",
+    "blog:update-interval-running": "node src/scripts/update-adsense-blog.js --slug interval-running-for-beginners",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",
