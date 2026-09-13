@@ -92,7 +92,8 @@ const NOINDEX_SLUGS = Object.freeze([
   'how-often-should-you-run',
   'running-motivation-vs-habits',
   'running-while-traveling',
-  'treadmill-vs-outdoor-running'
+  'treadmill-vs-outdoor-running',
+  'finish-accumulated-distance-running-challenge'
 ]);
 
 const HEALTH_SAFETY_SLUGS = Object.freeze(NOINDEX_SLUGS.filter((slug) => ![

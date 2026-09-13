@@ -276,6 +276,7 @@ const { ARTICLE: HOW_OFTEN_SHOULD_YOU_RUN_ARTICLE, buildArticlePayload: buildHow
 const { ARTICLE: RUNNING_MOTIVATION_VS_HABITS_ARTICLE, buildArticlePayload: buildRunningMotivationVsHabitsPayload } = require('../content/running-motivation-vs-habits');
 const { ARTICLE: RUNNING_WHILE_TRAVELING_ARTICLE, buildArticlePayload: buildRunningWhileTravelingPayload } = require('../content/running-while-traveling');
 const { ARTICLE: TREADMILL_VS_OUTDOOR_RUNNING_ARTICLE, buildArticlePayload: buildTreadmillVsOutdoorRunningPayload } = require('../content/treadmill-vs-outdoor-running');
+const { ARTICLE: FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_ARTICLE, buildArticlePayload: buildFinishAccumulatedDistanceRunningChallengePayload } = require('../content/finish-accumulated-distance-running-challenge');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -458,6 +459,8 @@ const RUNNING_WHILE_TRAVELING_COVER_IMAGE_URL = '/images/blog/covers/running-whi
 const RUNNING_WHILE_TRAVELING_PAYLOAD = buildRunningWhileTravelingPayload({ coverImageUrl: RUNNING_WHILE_TRAVELING_COVER_IMAGE_URL });
 const TREADMILL_VS_OUTDOOR_RUNNING_COVER_IMAGE_URL = '/images/blog/covers/treadmill-vs-outdoor-running.webp';
 const TREADMILL_VS_OUTDOOR_RUNNING_PAYLOAD = buildTreadmillVsOutdoorRunningPayload({ coverImageUrl: TREADMILL_VS_OUTDOOR_RUNNING_COVER_IMAGE_URL });
+const FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_COVER_IMAGE_URL = '/images/blog/covers/finish-accumulated-distance-running-challenge.webp';
+const FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_PAYLOAD = buildFinishAccumulatedDistanceRunningChallengePayload({ coverImageUrl: FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2141,6 +2144,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/how-to-record-a-treadmill-run-for-a-virtual-event','/blog/how-to-choose-a-safe-route-for-your-virtual-run','/blog/beginners-guide-to-running-pace','/blog/how-accurate-is-phone-gps-for-running','/blog/gps-watch-vs-running-app','/blog/easy-run-explained','/blog/running-while-traveling']
+  },
+  {
+    ...FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_ARTICLE,
+    contentHtml: FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_PAYLOAD.contentHtml,
+    coverImageUrl: FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_COVER_IMAGE_URL,
+    coverImageAlt: FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_ARTICLE.coverImageAlt,
+    ogImageUrl: FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-12-13T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/how-accumulated-distance-challenges-work','/blog/what-counts-as-valid-run-proof','/blog/fair-and-consistent-run-proof-review-checklist-for-organizers','/blog/how-to-submit-run-proof-correctly-hellorun','/blog/running-recovery-days-explained','/blog/how-to-increase-running-distance']
   }
 ];
 
