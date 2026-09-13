@@ -7,8 +7,8 @@ const {
   htmlToText
 } = require('../src/scripts/seed-adsense-blog-posts');
 
-test('AdSense blog seed contains only the 75 publication-eligible registered guides', () => {
-  assert.equal(POSTS.length, 75);
+test('AdSense blog seed contains only the 76 publication-eligible registered guides', () => {
+  assert.equal(POSTS.length, 76);
 
   const slugs = new Set();
   for (const post of POSTS) {

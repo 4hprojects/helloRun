@@ -113,6 +113,7 @@
     "blog:update-interval-running": "node src/scripts/update-adsense-blog.js --slug interval-running-for-beginners",
     "blog:update-tempo-vs-interval": "node src/scripts/update-adsense-blog.js --slug tempo-run-vs-interval-run",
     "blog:update-faster-5k": "node src/scripts/update-adsense-blog.js --slug how-to-run-a-faster-5k",
+    "blog:update-faster-10k": "node src/scripts/update-adsense-blog.js --slug how-to-run-a-faster-10k",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",
