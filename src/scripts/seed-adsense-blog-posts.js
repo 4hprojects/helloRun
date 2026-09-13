@@ -247,6 +247,7 @@ const {
   ARTICLE: RUNNING_HEART_RATE_EXPLAINED_ARTICLE,
   buildArticlePayload: buildRunningHeartRateExplainedPayload
 } = require('../content/running-heart-rate-explained');
+const { ARTICLE: EASY_RUN_EXPLAINED_ARTICLE, buildArticlePayload: buildEasyRunExplainedPayload } = require('../content/easy-run-explained');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -371,6 +372,8 @@ const HYDRATION_FOR_RUNNERS_COVER_IMAGE_URL = '/images/blog/covers/hydration-for
 const HYDRATION_FOR_RUNNERS_PAYLOAD = buildHydrationForRunnersPayload({ coverImageUrl: HYDRATION_FOR_RUNNERS_COVER_IMAGE_URL });
 const RUNNING_HEART_RATE_EXPLAINED_COVER_IMAGE_URL = '/images/blog/covers/running-heart-rate-explained.webp';
 const RUNNING_HEART_RATE_EXPLAINED_PAYLOAD = buildRunningHeartRateExplainedPayload({ coverImageUrl: RUNNING_HEART_RATE_EXPLAINED_COVER_IMAGE_URL });
+const EASY_RUN_EXPLAINED_COVER_IMAGE_URL = '/images/blog/covers/easy-run-explained.webp';
+const EASY_RUN_EXPLAINED_PAYLOAD = buildEasyRunExplainedPayload({ coverImageUrl: EASY_RUN_EXPLAINED_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1706,6 +1709,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/events','/blog/running-cadence-explained','/blog/gps-watch-vs-running-app','/blog/beginners-guide-to-running-pace','/blog/hill-running-for-beginners','/blog/how-to-run-safely-during-hot-and-humid-weather']
+  },
+  {
+    ...EASY_RUN_EXPLAINED_ARTICLE,
+    contentHtml: EASY_RUN_EXPLAINED_PAYLOAD.contentHtml,
+    coverImageUrl: EASY_RUN_EXPLAINED_COVER_IMAGE_URL,
+    coverImageAlt: EASY_RUN_EXPLAINED_ARTICLE.coverImageAlt,
+    ogImageUrl: EASY_RUN_EXPLAINED_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-10-17T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/events','/blog/beginners-guide-to-running-pace','/blog/how-to-breathe-while-running','/blog/running-heart-rate-explained','/blog/running-cadence-explained','/blog/run-walk-method-beginner-friendly-way-build-endurance','/blog/what-is-a-long-run-for-beginners','/blog/how-to-increase-running-distance']
   }
 ];
 
