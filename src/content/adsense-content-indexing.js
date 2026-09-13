@@ -77,7 +77,8 @@ const NOINDEX_SLUGS = Object.freeze([
   'running-strides-for-beginners',
   'tempo-run-explained',
   'interval-running-for-beginners',
-  'tempo-run-vs-interval-run'
+  'tempo-run-vs-interval-run',
+  'how-to-run-a-faster-5k'
 ]);
 
 const HEALTH_SAFETY_SLUGS = Object.freeze(NOINDEX_SLUGS.filter((slug) => ![

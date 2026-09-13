@@ -261,6 +261,7 @@ const { ARTICLE: RUNNING_STRIDES_FOR_BEGINNERS_ARTICLE, buildArticlePayload: bui
 const { ARTICLE: TEMPO_RUN_EXPLAINED_ARTICLE, buildArticlePayload: buildTempoRunExplainedPayload } = require('../content/tempo-run-explained');
 const { ARTICLE: INTERVAL_RUNNING_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildIntervalRunningForBeginnersPayload } = require('../content/interval-running-for-beginners');
 const { ARTICLE: TEMPO_RUN_VS_INTERVAL_RUN_ARTICLE, buildArticlePayload: buildTempoRunVsIntervalRunPayload } = require('../content/tempo-run-vs-interval-run');
+const { ARTICLE: HOW_TO_RUN_A_FASTER_5K_ARTICLE, buildArticlePayload: buildHowToRunAFaster5kPayload } = require('../content/how-to-run-a-faster-5k');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -413,6 +414,8 @@ const INTERVAL_RUNNING_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/inte
 const INTERVAL_RUNNING_FOR_BEGINNERS_PAYLOAD = buildIntervalRunningForBeginnersPayload({ coverImageUrl: INTERVAL_RUNNING_FOR_BEGINNERS_COVER_IMAGE_URL });
 const TEMPO_RUN_VS_INTERVAL_RUN_COVER_IMAGE_URL = '/images/blog/covers/tempo-run-vs-interval-run.webp';
 const TEMPO_RUN_VS_INTERVAL_RUN_PAYLOAD = buildTempoRunVsIntervalRunPayload({ coverImageUrl: TEMPO_RUN_VS_INTERVAL_RUN_COVER_IMAGE_URL });
+const HOW_TO_RUN_A_FASTER_5K_COVER_IMAGE_URL = '/images/blog/covers/how-to-run-a-faster-5k.webp';
+const HOW_TO_RUN_A_FASTER_5K_PAYLOAD = buildHowToRunAFaster5kPayload({ coverImageUrl: HOW_TO_RUN_A_FASTER_5K_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1916,6 +1919,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/tempo-run-explained','/blog/interval-running-for-beginners','/blog/easy-run-explained','/blog/what-is-a-running-base','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school','/blog/10k-training-plan-for-beginners']
+  },
+  {
+    ...HOW_TO_RUN_A_FASTER_5K_ARTICLE,
+    contentHtml: HOW_TO_RUN_A_FASTER_5K_PAYLOAD.contentHtml,
+    coverImageUrl: HOW_TO_RUN_A_FASTER_5K_COVER_IMAGE_URL,
+    coverImageAlt: HOW_TO_RUN_A_FASTER_5K_ARTICLE.coverImageAlt,
+    ogImageUrl: HOW_TO_RUN_A_FASTER_5K_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-11-13T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/events','/blog/beginner-5k-training-plan-new-runners','/blog/what-is-a-running-base','/blog/easy-run-explained','/blog/running-strides-for-beginners','/blog/tempo-run-explained','/blog/interval-running-for-beginners','/blog/strength-training-for-runners-beginners','/blog/beginners-guide-to-running-pace']
   }
 ];
 
