@@ -279,6 +279,7 @@ const { ARTICLE: TREADMILL_VS_OUTDOOR_RUNNING_ARTICLE, buildArticlePayload: buil
 const { ARTICLE: FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_ARTICLE, buildArticlePayload: buildFinishAccumulatedDistanceRunningChallengePayload } = require('../content/finish-accumulated-distance-running-challenge');
 const { ARTICLE: YEAR_END_5K_RUNNING_GOAL_ARTICLE, buildArticlePayload: buildYearEnd5kRunningGoalPayload } = require('../content/year-end-5k-running-goal');
 const { ARTICLE: RUNNING_GOALS_2027_ARTICLE, buildArticlePayload: buildRunningGoals2027Payload } = require('../content/running-goals-2027');
+const { ARTICLE: NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildNewYearRunningPlanForBeginnersPayload } = require('../content/new-year-running-plan-for-beginners');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -467,6 +468,8 @@ const YEAR_END_5K_RUNNING_GOAL_COVER_IMAGE_URL = '/images/blog/covers/year-end-5
 const YEAR_END_5K_RUNNING_GOAL_PAYLOAD = buildYearEnd5kRunningGoalPayload({ coverImageUrl: YEAR_END_5K_RUNNING_GOAL_COVER_IMAGE_URL });
 const RUNNING_GOALS_2027_COVER_IMAGE_URL = '/images/blog/covers/running-goals-2027.webp';
 const RUNNING_GOALS_2027_PAYLOAD = buildRunningGoals2027Payload({ coverImageUrl: RUNNING_GOALS_2027_COVER_IMAGE_URL });
+const NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/new-year-running-plan-for-beginners.webp';
+const NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_PAYLOAD = buildNewYearRunningPlanForBeginnersPayload({ coverImageUrl: NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2186,6 +2189,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/how-to-review-your-running-year','/blog/5k-10k-or-21k-next-running-goal','/blog/how-to-run-a-faster-5k','/blog/how-to-run-a-faster-10k','/blog/21k-half-marathon-for-beginners','/blog/what-is-a-running-base','/blog/year-end-5k-running-goal']
+  },
+  {
+    ...NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_ARTICLE,
+    contentHtml: NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_PAYLOAD.contentHtml,
+    coverImageUrl: NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_COVER_IMAGE_URL,
+    coverImageAlt: NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_ARTICLE.coverImageAlt,
+    ogImageUrl: NEW_YEAR_RUNNING_PLAN_FOR_BEGINNERS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-12-19T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/run-walk-method-beginner-friendly-way-build-endurance','/blog/beginner-5k-training-plan-new-runners','/blog/what-is-a-running-base','/blog/how-often-should-you-run','/blog/running-recovery-days-explained','/blog/running-goals-2027']
   }
 ];
 
