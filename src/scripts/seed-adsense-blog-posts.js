@@ -251,6 +251,7 @@ const { ARTICLE: EASY_RUN_EXPLAINED_ARTICLE, buildArticlePayload: buildEasyRunEx
 const { ARTICLE: STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_ARTICLE, buildArticlePayload: buildStrengthTrainingForRunnersBeginnersPayload } = require('../content/strength-training-for-runners-beginners');
 const { ARTICLE: HOW_TO_PREPARE_FOR_A_LONG_RUN_ARTICLE, buildArticlePayload: buildHowToPrepareForALongRunPayload } = require('../content/how-to-prepare-for-a-long-run');
 const { ARTICLE: HOW_TO_USE_STRAVA_FOR_RUNNING_ARTICLE, buildArticlePayload: buildHowToUseStravaForRunningPayload } = require('../content/how-to-use-strava-for-running');
+const { ARTICLE: HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_ARTICLE, buildArticlePayload: buildHowToCreateAVirtualRunCertificatePayload } = require('../content/how-to-create-a-virtual-run-certificate');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -383,6 +384,8 @@ const HOW_TO_PREPARE_FOR_A_LONG_RUN_COVER_IMAGE_URL = '/images/blog/covers/how-t
 const HOW_TO_PREPARE_FOR_A_LONG_RUN_PAYLOAD = buildHowToPrepareForALongRunPayload({ coverImageUrl: HOW_TO_PREPARE_FOR_A_LONG_RUN_COVER_IMAGE_URL });
 const HOW_TO_USE_STRAVA_FOR_RUNNING_COVER_IMAGE_URL = '/images/blog/covers/how-to-use-strava-for-running.webp';
 const HOW_TO_USE_STRAVA_FOR_RUNNING_PAYLOAD = buildHowToUseStravaForRunningPayload({ coverImageUrl: HOW_TO_USE_STRAVA_FOR_RUNNING_COVER_IMAGE_URL });
+const HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_COVER_IMAGE_URL = '/images/blog/covers/how-to-create-a-virtual-run-certificate.webp';
+const HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_PAYLOAD = buildHowToCreateAVirtualRunCertificatePayload({ coverImageUrl: HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1766,6 +1769,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/best-apps-to-track-your-virtual-run','/blog/how-accurate-is-phone-gps-for-running','/blog/gps-watch-vs-running-app','/blog/what-counts-as-valid-run-proof','/blog/how-to-submit-run-proof-correctly-hellorun','/blog/how-to-run-your-first-10k-virtual-run']
+  },
+  {
+    ...HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_ARTICLE,
+    contentHtml: HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_PAYLOAD.contentHtml,
+    coverImageUrl: HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_COVER_IMAGE_URL,
+    coverImageAlt: HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_ARTICLE.coverImageAlt,
+    ogImageUrl: HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-10-25T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/how-to-promote-a-virtual-run','/blog/virtual-run-registration-fee-pricing','/blog/participant-communication-timeline-virtual-running-events','/blog/how-to-write-clear-virtual-run-rules-participants-can-follow','/blog/fair-and-consistent-run-proof-review-checklist-for-organizers']
   }
 ];
 
