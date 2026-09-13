@@ -248,6 +248,7 @@ const {
   buildArticlePayload: buildRunningHeartRateExplainedPayload
 } = require('../content/running-heart-rate-explained');
 const { ARTICLE: EASY_RUN_EXPLAINED_ARTICLE, buildArticlePayload: buildEasyRunExplainedPayload } = require('../content/easy-run-explained');
+const { ARTICLE: STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_ARTICLE, buildArticlePayload: buildStrengthTrainingForRunnersBeginnersPayload } = require('../content/strength-training-for-runners-beginners');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -374,6 +375,8 @@ const RUNNING_HEART_RATE_EXPLAINED_COVER_IMAGE_URL = '/images/blog/covers/runnin
 const RUNNING_HEART_RATE_EXPLAINED_PAYLOAD = buildRunningHeartRateExplainedPayload({ coverImageUrl: RUNNING_HEART_RATE_EXPLAINED_COVER_IMAGE_URL });
 const EASY_RUN_EXPLAINED_COVER_IMAGE_URL = '/images/blog/covers/easy-run-explained.webp';
 const EASY_RUN_EXPLAINED_PAYLOAD = buildEasyRunExplainedPayload({ coverImageUrl: EASY_RUN_EXPLAINED_COVER_IMAGE_URL });
+const STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/strength-training-for-runners-beginners.webp';
+const STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_PAYLOAD = buildStrengthTrainingForRunnersBeginnersPayload({ coverImageUrl: STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1721,6 +1724,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/events','/blog/beginners-guide-to-running-pace','/blog/how-to-breathe-while-running','/blog/running-heart-rate-explained','/blog/running-cadence-explained','/blog/run-walk-method-beginner-friendly-way-build-endurance','/blog/what-is-a-long-run-for-beginners','/blog/how-to-increase-running-distance']
+  },
+  {
+    ...STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_ARTICLE,
+    contentHtml: STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_PAYLOAD.contentHtml,
+    coverImageUrl: STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_COVER_IMAGE_URL,
+    coverImageAlt: STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_ARTICLE.coverImageAlt,
+    ogImageUrl: STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-10-19T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/events','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school','/blog/10k-training-plan-for-beginners','/blog/21k-half-marathon-for-beginners','/blog/how-to-increase-running-distance','/blog/hill-running-for-beginners']
   }
 ];
 
