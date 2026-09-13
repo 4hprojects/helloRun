@@ -258,6 +258,7 @@ const { ARTICLE: NEXT_RUNNING_GOAL_5K_10K_21K_ARTICLE, buildArticlePayload: buil
 const { ARTICLE: WHAT_IS_A_RUNNING_BASE_ARTICLE, buildArticlePayload: buildWhatIsARunningBasePayload } = require('../content/what-is-a-running-base');
 const { ARTICLE: RUNNING_FORM_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildRunningFormForBeginnersPayload } = require('../content/running-form-for-beginners');
 const { ARTICLE: RUNNING_STRIDES_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildRunningStridesForBeginnersPayload } = require('../content/running-strides-for-beginners');
+const { ARTICLE: TEMPO_RUN_EXPLAINED_ARTICLE, buildArticlePayload: buildTempoRunExplainedPayload } = require('../content/tempo-run-explained');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -404,6 +405,8 @@ const RUNNING_FORM_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/running-
 const RUNNING_FORM_FOR_BEGINNERS_PAYLOAD = buildRunningFormForBeginnersPayload({ coverImageUrl: RUNNING_FORM_FOR_BEGINNERS_COVER_IMAGE_URL });
 const RUNNING_STRIDES_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/running-strides-for-beginners.webp';
 const RUNNING_STRIDES_FOR_BEGINNERS_PAYLOAD = buildRunningStridesForBeginnersPayload({ coverImageUrl: RUNNING_STRIDES_FOR_BEGINNERS_COVER_IMAGE_URL });
+const TEMPO_RUN_EXPLAINED_COVER_IMAGE_URL = '/images/blog/covers/tempo-run-explained.webp';
+const TEMPO_RUN_EXPLAINED_PAYLOAD = buildTempoRunExplainedPayload({ coverImageUrl: TEMPO_RUN_EXPLAINED_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1871,6 +1874,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/what-is-a-running-base','/blog/easy-run-explained','/blog/running-form-for-beginners','/blog/running-cadence-explained','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school']
+  },
+  {
+    ...TEMPO_RUN_EXPLAINED_ARTICLE,
+    contentHtml: TEMPO_RUN_EXPLAINED_PAYLOAD.contentHtml,
+    coverImageUrl: TEMPO_RUN_EXPLAINED_COVER_IMAGE_URL,
+    coverImageAlt: TEMPO_RUN_EXPLAINED_ARTICLE.coverImageAlt,
+    ogImageUrl: TEMPO_RUN_EXPLAINED_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-11-07T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/what-is-a-running-base','/blog/easy-run-explained','/blog/running-heart-rate-explained','/blog/beginners-guide-to-running-pace','/blog/10k-training-plan-for-beginners','/blog/running-strides-for-beginners']
   }
 ];
 
