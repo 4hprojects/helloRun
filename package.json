@@ -126,6 +126,7 @@
     "blog:update-running-frequency": "node src/scripts/update-adsense-blog.js --slug how-often-should-you-run",
     "blog:update-running-motivation": "node src/scripts/update-adsense-blog.js --slug running-motivation-vs-habits",
     "blog:update-travel-running": "node src/scripts/update-adsense-blog.js --slug running-while-traveling",
+    "blog:update-treadmill-comparison": "node src/scripts/update-adsense-blog.js --slug treadmill-vs-outdoor-running",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",

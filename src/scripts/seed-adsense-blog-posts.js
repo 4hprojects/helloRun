@@ -275,6 +275,7 @@ const { ARTICLE: RUNNING_STREAKS_FOR_BEGINNERS_ARTICLE, buildArticlePayload: bui
 const { ARTICLE: HOW_OFTEN_SHOULD_YOU_RUN_ARTICLE, buildArticlePayload: buildHowOftenShouldYouRunPayload } = require('../content/how-often-should-you-run');
 const { ARTICLE: RUNNING_MOTIVATION_VS_HABITS_ARTICLE, buildArticlePayload: buildRunningMotivationVsHabitsPayload } = require('../content/running-motivation-vs-habits');
 const { ARTICLE: RUNNING_WHILE_TRAVELING_ARTICLE, buildArticlePayload: buildRunningWhileTravelingPayload } = require('../content/running-while-traveling');
+const { ARTICLE: TREADMILL_VS_OUTDOOR_RUNNING_ARTICLE, buildArticlePayload: buildTreadmillVsOutdoorRunningPayload } = require('../content/treadmill-vs-outdoor-running');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -455,6 +456,8 @@ const RUNNING_MOTIVATION_VS_HABITS_COVER_IMAGE_URL = '/images/blog/covers/runnin
 const RUNNING_MOTIVATION_VS_HABITS_PAYLOAD = buildRunningMotivationVsHabitsPayload({ coverImageUrl: RUNNING_MOTIVATION_VS_HABITS_COVER_IMAGE_URL });
 const RUNNING_WHILE_TRAVELING_COVER_IMAGE_URL = '/images/blog/covers/running-while-traveling.webp';
 const RUNNING_WHILE_TRAVELING_PAYLOAD = buildRunningWhileTravelingPayload({ coverImageUrl: RUNNING_WHILE_TRAVELING_COVER_IMAGE_URL });
+const TREADMILL_VS_OUTDOOR_RUNNING_COVER_IMAGE_URL = '/images/blog/covers/treadmill-vs-outdoor-running.webp';
+const TREADMILL_VS_OUTDOOR_RUNNING_PAYLOAD = buildTreadmillVsOutdoorRunningPayload({ coverImageUrl: TREADMILL_VS_OUTDOOR_RUNNING_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2126,6 +2129,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/how-to-choose-a-safe-route-for-your-virtual-run','/blog/how-accurate-is-phone-gps-for-running','/blog/gps-watch-vs-running-app','/blog/how-to-use-strava-for-running','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school','/blog/how-to-record-a-treadmill-run-for-a-virtual-event','/blog/maintain-running-fitness-during-holidays']
+  },
+  {
+    ...TREADMILL_VS_OUTDOOR_RUNNING_ARTICLE,
+    contentHtml: TREADMILL_VS_OUTDOOR_RUNNING_PAYLOAD.contentHtml,
+    coverImageUrl: TREADMILL_VS_OUTDOOR_RUNNING_COVER_IMAGE_URL,
+    coverImageAlt: TREADMILL_VS_OUTDOOR_RUNNING_ARTICLE.coverImageAlt,
+    ogImageUrl: TREADMILL_VS_OUTDOOR_RUNNING_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-12-11T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/how-to-record-a-treadmill-run-for-a-virtual-event','/blog/how-to-choose-a-safe-route-for-your-virtual-run','/blog/beginners-guide-to-running-pace','/blog/how-accurate-is-phone-gps-for-running','/blog/gps-watch-vs-running-app','/blog/easy-run-explained','/blog/running-while-traveling']
   }
 ];
 
