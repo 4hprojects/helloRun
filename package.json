@@ -128,6 +128,7 @@
     "blog:update-travel-running": "node src/scripts/update-adsense-blog.js --slug running-while-traveling",
     "blog:update-treadmill-comparison": "node src/scripts/update-adsense-blog.js --slug treadmill-vs-outdoor-running",
     "blog:update-finish-accumulated-challenge": "node src/scripts/update-adsense-blog.js --slug finish-accumulated-distance-running-challenge",
+    "blog:update-year-end-5k": "node src/scripts/update-adsense-blog.js --slug year-end-5k-running-goal",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",

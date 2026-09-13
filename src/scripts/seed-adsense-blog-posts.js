@@ -277,6 +277,7 @@ const { ARTICLE: RUNNING_MOTIVATION_VS_HABITS_ARTICLE, buildArticlePayload: buil
 const { ARTICLE: RUNNING_WHILE_TRAVELING_ARTICLE, buildArticlePayload: buildRunningWhileTravelingPayload } = require('../content/running-while-traveling');
 const { ARTICLE: TREADMILL_VS_OUTDOOR_RUNNING_ARTICLE, buildArticlePayload: buildTreadmillVsOutdoorRunningPayload } = require('../content/treadmill-vs-outdoor-running');
 const { ARTICLE: FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_ARTICLE, buildArticlePayload: buildFinishAccumulatedDistanceRunningChallengePayload } = require('../content/finish-accumulated-distance-running-challenge');
+const { ARTICLE: YEAR_END_5K_RUNNING_GOAL_ARTICLE, buildArticlePayload: buildYearEnd5kRunningGoalPayload } = require('../content/year-end-5k-running-goal');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -461,6 +462,8 @@ const TREADMILL_VS_OUTDOOR_RUNNING_COVER_IMAGE_URL = '/images/blog/covers/treadm
 const TREADMILL_VS_OUTDOOR_RUNNING_PAYLOAD = buildTreadmillVsOutdoorRunningPayload({ coverImageUrl: TREADMILL_VS_OUTDOOR_RUNNING_COVER_IMAGE_URL });
 const FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_COVER_IMAGE_URL = '/images/blog/covers/finish-accumulated-distance-running-challenge.webp';
 const FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_PAYLOAD = buildFinishAccumulatedDistanceRunningChallengePayload({ coverImageUrl: FINISH_ACCUMULATED_DISTANCE_RUNNING_CHALLENGE_COVER_IMAGE_URL });
+const YEAR_END_5K_RUNNING_GOAL_COVER_IMAGE_URL = '/images/blog/covers/year-end-5k-running-goal.webp';
+const YEAR_END_5K_RUNNING_GOAL_PAYLOAD = buildYearEnd5kRunningGoalPayload({ coverImageUrl: YEAR_END_5K_RUNNING_GOAL_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2156,6 +2159,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/how-accumulated-distance-challenges-work','/blog/what-counts-as-valid-run-proof','/blog/fair-and-consistent-run-proof-review-checklist-for-organizers','/blog/how-to-submit-run-proof-correctly-hellorun','/blog/running-recovery-days-explained','/blog/how-to-increase-running-distance']
+  },
+  {
+    ...YEAR_END_5K_RUNNING_GOAL_ARTICLE,
+    contentHtml: YEAR_END_5K_RUNNING_GOAL_PAYLOAD.contentHtml,
+    coverImageUrl: YEAR_END_5K_RUNNING_GOAL_COVER_IMAGE_URL,
+    coverImageAlt: YEAR_END_5K_RUNNING_GOAL_ARTICLE.coverImageAlt,
+    ogImageUrl: YEAR_END_5K_RUNNING_GOAL_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-12-15T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/beginner-5k-training-plan-new-runners','/blog/how-to-run-a-faster-5k','/blog/beginners-guide-to-running-pace','/blog/run-walk-method-beginner-friendly-way-build-endurance','/blog/how-to-choose-a-safe-route-for-your-virtual-run','/blog/how-accurate-is-phone-gps-for-running']
   }
 ];
 

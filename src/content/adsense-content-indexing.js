@@ -93,7 +93,8 @@ const NOINDEX_SLUGS = Object.freeze([
   'running-motivation-vs-habits',
   'running-while-traveling',
   'treadmill-vs-outdoor-running',
-  'finish-accumulated-distance-running-challenge'
+  'finish-accumulated-distance-running-challenge',
+  'year-end-5k-running-goal'
 ]);
 
 const HEALTH_SAFETY_SLUGS = Object.freeze(NOINDEX_SLUGS.filter((slug) => ![
