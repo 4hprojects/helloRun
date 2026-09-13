@@ -136,6 +136,7 @@
     "blog:update-january-challenge": "node src/scripts/update-adsense-blog.js --slug january-virtual-running-challenge",
     "blog:update-new-year-run-themes": "node src/scripts/update-adsense-blog.js --slug new-year-virtual-run-theme-ideas",
     "blog:update-virtual-run-metrics": "node src/scripts/update-adsense-blog.js --slug virtual-run-metrics-organizers-should-track",
+    "blog:update-virtual-run-review": "node src/scripts/update-adsense-blog.js --slug how-to-review-a-virtual-run-after-it-ends",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",

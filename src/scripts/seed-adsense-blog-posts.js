@@ -285,6 +285,7 @@ const { ARTICLE: RUNNING_LOG_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildRu
 const { ARTICLE: JANUARY_VIRTUAL_RUNNING_CHALLENGE_ARTICLE, buildArticlePayload: buildJanuaryVirtualRunningChallengePayload } = require('../content/january-virtual-running-challenge');
 const { ARTICLE: NEW_YEAR_VIRTUAL_RUN_THEME_IDEAS_ARTICLE, buildArticlePayload: buildNewYearVirtualRunThemeIdeasPayload } = require('../content/new-year-virtual-run-theme-ideas');
 const { ARTICLE: VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_ARTICLE, buildArticlePayload: buildVirtualRunMetricsOrganizersShouldTrackPayload } = require('../content/virtual-run-metrics-organizers-should-track');
+const { ARTICLE: HOW_TO_REVIEW_A_VIRTUAL_RUN_AFTER_IT_ENDS_ARTICLE, buildArticlePayload: buildHowToReviewAVirtualRunAfterItEndsPayload } = require('../content/how-to-review-a-virtual-run-after-it-ends');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -485,6 +486,8 @@ const NEW_YEAR_VIRTUAL_RUN_THEME_IDEAS_COVER_IMAGE_URL = '/images/blog/covers/ne
 const NEW_YEAR_VIRTUAL_RUN_THEME_IDEAS_PAYLOAD = buildNewYearVirtualRunThemeIdeasPayload({ coverImageUrl: NEW_YEAR_VIRTUAL_RUN_THEME_IDEAS_COVER_IMAGE_URL });
 const VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_COVER_IMAGE_URL = '/images/blog/covers/virtual-run-metrics-organizers-should-track.webp';
 const VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_PAYLOAD = buildVirtualRunMetricsOrganizersShouldTrackPayload({ coverImageUrl: VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_COVER_IMAGE_URL });
+const HOW_TO_REVIEW_A_VIRTUAL_RUN_AFTER_IT_ENDS_COVER_IMAGE_URL = '/images/blog/covers/how-to-review-a-virtual-run-after-it-ends.webp';
+const HOW_TO_REVIEW_A_VIRTUAL_RUN_AFTER_IT_ENDS_PAYLOAD = buildHowToReviewAVirtualRunAfterItEndsPayload({ coverImageUrl: HOW_TO_REVIEW_A_VIRTUAL_RUN_AFTER_IT_ENDS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2276,6 +2279,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/how-schools-and-organizations-can-use-virtual-runs','/blog/virtual-run-participant-engagement','/blog/virtual-run-participant-retention','/blog/virtual-run-registration-fee-pricing','/blog/participant-communication-timeline-virtual-running-events','/blog/fair-and-consistent-run-proof-review-checklist-for-organizers','/blog/how-to-design-fair-distance-categories-and-challenge-goals']
+  },
+  {
+    ...HOW_TO_REVIEW_A_VIRTUAL_RUN_AFTER_IT_ENDS_ARTICLE,
+    contentHtml: HOW_TO_REVIEW_A_VIRTUAL_RUN_AFTER_IT_ENDS_PAYLOAD.contentHtml,
+    coverImageUrl: HOW_TO_REVIEW_A_VIRTUAL_RUN_AFTER_IT_ENDS_COVER_IMAGE_URL,
+    coverImageAlt: HOW_TO_REVIEW_A_VIRTUAL_RUN_AFTER_IT_ENDS_ARTICLE.coverImageAlt,
+    ogImageUrl: HOW_TO_REVIEW_A_VIRTUAL_RUN_AFTER_IT_ENDS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-12-31T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/virtual-run-metrics-organizers-should-track','/blog/participant-communication-timeline-virtual-running-events','/blog/fair-and-consistent-run-proof-review-checklist-for-organizers','/blog/data-privacy-checklist-running-event-organizers','/blog/virtual-run-participant-engagement','/blog/virtual-run-participant-retention','/blog/how-to-create-a-virtual-run-certificate','/blog/how-to-promote-a-virtual-run','/blog/virtual-run-registration-fee-pricing']
   }
 ];
 
