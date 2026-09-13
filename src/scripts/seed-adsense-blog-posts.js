@@ -249,6 +249,7 @@ const {
 } = require('../content/running-heart-rate-explained');
 const { ARTICLE: EASY_RUN_EXPLAINED_ARTICLE, buildArticlePayload: buildEasyRunExplainedPayload } = require('../content/easy-run-explained');
 const { ARTICLE: STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_ARTICLE, buildArticlePayload: buildStrengthTrainingForRunnersBeginnersPayload } = require('../content/strength-training-for-runners-beginners');
+const { ARTICLE: HOW_TO_PREPARE_FOR_A_LONG_RUN_ARTICLE, buildArticlePayload: buildHowToPrepareForALongRunPayload } = require('../content/how-to-prepare-for-a-long-run');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -377,6 +378,8 @@ const EASY_RUN_EXPLAINED_COVER_IMAGE_URL = '/images/blog/covers/easy-run-explain
 const EASY_RUN_EXPLAINED_PAYLOAD = buildEasyRunExplainedPayload({ coverImageUrl: EASY_RUN_EXPLAINED_COVER_IMAGE_URL });
 const STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/strength-training-for-runners-beginners.webp';
 const STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_PAYLOAD = buildStrengthTrainingForRunnersBeginnersPayload({ coverImageUrl: STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_COVER_IMAGE_URL });
+const HOW_TO_PREPARE_FOR_A_LONG_RUN_COVER_IMAGE_URL = '/images/blog/covers/how-to-prepare-for-a-long-run.webp';
+const HOW_TO_PREPARE_FOR_A_LONG_RUN_PAYLOAD = buildHowToPrepareForALongRunPayload({ coverImageUrl: HOW_TO_PREPARE_FOR_A_LONG_RUN_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1736,6 +1739,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/events','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school','/blog/10k-training-plan-for-beginners','/blog/21k-half-marathon-for-beginners','/blog/how-to-increase-running-distance','/blog/hill-running-for-beginners']
+  },
+  {
+    ...HOW_TO_PREPARE_FOR_A_LONG_RUN_ARTICLE,
+    contentHtml: HOW_TO_PREPARE_FOR_A_LONG_RUN_PAYLOAD.contentHtml,
+    coverImageUrl: HOW_TO_PREPARE_FOR_A_LONG_RUN_COVER_IMAGE_URL,
+    coverImageAlt: HOW_TO_PREPARE_FOR_A_LONG_RUN_ARTICLE.coverImageAlt,
+    ogImageUrl: HOW_TO_PREPARE_FOR_A_LONG_RUN_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-10-21T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/events','/blog/what-is-a-long-run-for-beginners','/blog/how-to-increase-running-distance','/blog/how-to-choose-a-safe-route-for-your-virtual-run','/blog/how-to-choose-running-shoes-for-beginners','/blog/what-to-eat-before-running','/blog/hydration-for-runners','/blog/gps-watch-vs-running-app','/blog/how-accurate-is-phone-gps-for-running','/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back']
   }
 ];
 
