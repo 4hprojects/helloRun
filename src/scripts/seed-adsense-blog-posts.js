@@ -271,6 +271,7 @@ const { ARTICLE: VIRTUAL_RUN_PARTICIPANT_RETENTION_ARTICLE, buildArticlePayload:
 const { ARTICLE: END_OF_YEAR_VIRTUAL_RUNNING_CHALLENGE_ARTICLE, buildArticlePayload: buildEndOfYearVirtualRunningChallengePayload } = require('../content/end-of-year-virtual-running-challenge');
 const { ARTICLE: HOW_TO_REVIEW_YOUR_RUNNING_YEAR_ARTICLE, buildArticlePayload: buildHowToReviewYourRunningYearPayload } = require('../content/how-to-review-your-running-year');
 const { ARTICLE: DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildDecemberRunningChallengeForBeginnersPayload } = require('../content/december-running-challenge-for-beginners');
+const { ARTICLE: RUNNING_STREAKS_FOR_BEGINNERS_ARTICLE, buildArticlePayload: buildRunningStreaksForBeginnersPayload } = require('../content/running-streaks-for-beginners');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -443,6 +444,8 @@ const HOW_TO_REVIEW_YOUR_RUNNING_YEAR_COVER_IMAGE_URL = '/images/blog/covers/how
 const HOW_TO_REVIEW_YOUR_RUNNING_YEAR_PAYLOAD = buildHowToReviewYourRunningYearPayload({ coverImageUrl: HOW_TO_REVIEW_YOUR_RUNNING_YEAR_COVER_IMAGE_URL });
 const DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/december-running-challenge-for-beginners.webp';
 const DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_PAYLOAD = buildDecemberRunningChallengeForBeginnersPayload({ coverImageUrl: DECEMBER_RUNNING_CHALLENGE_FOR_BEGINNERS_COVER_IMAGE_URL });
+const RUNNING_STREAKS_FOR_BEGINNERS_COVER_IMAGE_URL = '/images/blog/covers/running-streaks-for-beginners.webp';
+const RUNNING_STREAKS_FOR_BEGINNERS_PAYLOAD = buildRunningStreaksForBeginnersPayload({ coverImageUrl: RUNNING_STREAKS_FOR_BEGINNERS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2066,6 +2069,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/maintain-running-fitness-during-holidays','/blog/running-recovery-days-explained','/blog/running-in-cool-weather-philippines','/blog/how-to-review-your-running-year','/blog/30-day-running-challenge-for-beginners','/blog/run-walk-method-beginner-friendly-way-build-endurance','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school']
+  },
+  {
+    ...RUNNING_STREAKS_FOR_BEGINNERS_ARTICLE,
+    contentHtml: RUNNING_STREAKS_FOR_BEGINNERS_PAYLOAD.contentHtml,
+    coverImageUrl: RUNNING_STREAKS_FOR_BEGINNERS_COVER_IMAGE_URL,
+    coverImageAlt: RUNNING_STREAKS_FOR_BEGINNERS_ARTICLE.coverImageAlt,
+    ogImageUrl: RUNNING_STREAKS_FOR_BEGINNERS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-12-03T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/december-running-challenge-for-beginners','/blog/running-recovery-days-explained','/blog/easy-run-explained','/blog/how-to-build-a-weekly-running-schedule-around-work-or-school','/blog/run-walk-method-beginner-friendly-way-build-endurance']
   }
 ];
 

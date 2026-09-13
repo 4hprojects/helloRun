@@ -122,6 +122,7 @@
     "blog:update-year-end-challenge": "node src/scripts/update-adsense-blog.js --slug end-of-year-virtual-running-challenge",
     "blog:update-running-year-review": "node src/scripts/update-adsense-blog.js --slug how-to-review-your-running-year",
     "blog:update-december-challenge": "node src/scripts/update-adsense-blog.js --slug december-running-challenge-for-beginners",
+    "blog:update-running-streaks": "node src/scripts/update-adsense-blog.js --slug running-streaks-for-beginners",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",
