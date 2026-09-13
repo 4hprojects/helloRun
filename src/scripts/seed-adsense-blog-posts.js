@@ -253,6 +253,7 @@ const { ARTICLE: HOW_TO_PREPARE_FOR_A_LONG_RUN_ARTICLE, buildArticlePayload: bui
 const { ARTICLE: HOW_TO_USE_STRAVA_FOR_RUNNING_ARTICLE, buildArticlePayload: buildHowToUseStravaForRunningPayload } = require('../content/how-to-use-strava-for-running');
 const { ARTICLE: HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_ARTICLE, buildArticlePayload: buildHowToCreateAVirtualRunCertificatePayload } = require('../content/how-to-create-a-virtual-run-certificate');
 const { ARTICLE: VIRTUAL_RUN_PARTICIPANT_ENGAGEMENT_ARTICLE, buildArticlePayload: buildVirtualRunParticipantEngagementPayload } = require('../content/virtual-run-participant-engagement');
+const { ARTICLE: WHAT_TO_DO_AFTER_YOUR_FIRST_10K_ARTICLE, buildArticlePayload: buildWhatToDoAfterYourFirst10kPayload } = require('../content/what-to-do-after-your-first-10k');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -389,6 +390,8 @@ const HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_COVER_IMAGE_URL = '/images/blog/co
 const HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_PAYLOAD = buildHowToCreateAVirtualRunCertificatePayload({ coverImageUrl: HOW_TO_CREATE_A_VIRTUAL_RUN_CERTIFICATE_COVER_IMAGE_URL });
 const VIRTUAL_RUN_PARTICIPANT_ENGAGEMENT_COVER_IMAGE_URL = '/images/blog/covers/virtual-run-participant-engagement.webp';
 const VIRTUAL_RUN_PARTICIPANT_ENGAGEMENT_PAYLOAD = buildVirtualRunParticipantEngagementPayload({ coverImageUrl: VIRTUAL_RUN_PARTICIPANT_ENGAGEMENT_COVER_IMAGE_URL });
+const WHAT_TO_DO_AFTER_YOUR_FIRST_10K_COVER_IMAGE_URL = '/images/blog/covers/what-to-do-after-your-first-10k.webp';
+const WHAT_TO_DO_AFTER_YOUR_FIRST_10K_PAYLOAD = buildWhatToDoAfterYourFirst10kPayload({ coverImageUrl: WHAT_TO_DO_AFTER_YOUR_FIRST_10K_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1796,6 +1799,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/participant-communication-timeline-virtual-running-events','/blog/how-to-promote-a-virtual-run','/blog/virtual-run-registration-fee-pricing','/blog/how-to-create-a-virtual-run-certificate','/blog/fair-and-consistent-run-proof-review-checklist-for-organizers']
+  },
+  {
+    ...WHAT_TO_DO_AFTER_YOUR_FIRST_10K_ARTICLE,
+    contentHtml: WHAT_TO_DO_AFTER_YOUR_FIRST_10K_PAYLOAD.contentHtml,
+    coverImageUrl: WHAT_TO_DO_AFTER_YOUR_FIRST_10K_COVER_IMAGE_URL,
+    coverImageAlt: WHAT_TO_DO_AFTER_YOUR_FIRST_10K_ARTICLE.coverImageAlt,
+    ogImageUrl: WHAT_TO_DO_AFTER_YOUR_FIRST_10K_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-10-29T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/events','/blog/how-to-run-your-first-10k-virtual-run','/blog/10k-training-plan-for-beginners','/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back','/blog/beginners-guide-to-running-pace','/blog/21k-half-marathon-for-beginners','/blog/what-is-a-long-run-for-beginners','/blog/how-to-set-running-goals-for-the-rest-of-the-year']
   }
 ];
 
