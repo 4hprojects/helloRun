@@ -101,6 +101,7 @@
     "blog:update-easy-run": "node src/scripts/update-adsense-blog.js --slug easy-run-explained",
     "blog:update-runner-strength": "node src/scripts/update-adsense-blog.js --slug strength-training-for-runners-beginners",
     "blog:update-long-run-preparation": "node src/scripts/update-adsense-blog.js --slug how-to-prepare-for-a-long-run",
+    "blog:update-strava-beginners": "node src/scripts/update-adsense-blog.js --slug how-to-use-strava-for-running",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "privacy:prepare-draft": "node src/scripts/prepare-privacy-policy-draft.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",

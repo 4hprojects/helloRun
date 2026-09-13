@@ -250,6 +250,7 @@ const {
 const { ARTICLE: EASY_RUN_EXPLAINED_ARTICLE, buildArticlePayload: buildEasyRunExplainedPayload } = require('../content/easy-run-explained');
 const { ARTICLE: STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_ARTICLE, buildArticlePayload: buildStrengthTrainingForRunnersBeginnersPayload } = require('../content/strength-training-for-runners-beginners');
 const { ARTICLE: HOW_TO_PREPARE_FOR_A_LONG_RUN_ARTICLE, buildArticlePayload: buildHowToPrepareForALongRunPayload } = require('../content/how-to-prepare-for-a-long-run');
+const { ARTICLE: HOW_TO_USE_STRAVA_FOR_RUNNING_ARTICLE, buildArticlePayload: buildHowToUseStravaForRunningPayload } = require('../content/how-to-use-strava-for-running');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -380,6 +381,8 @@ const STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_COVER_IMAGE_URL = '/images/blog/co
 const STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_PAYLOAD = buildStrengthTrainingForRunnersBeginnersPayload({ coverImageUrl: STRENGTH_TRAINING_FOR_RUNNERS_BEGINNERS_COVER_IMAGE_URL });
 const HOW_TO_PREPARE_FOR_A_LONG_RUN_COVER_IMAGE_URL = '/images/blog/covers/how-to-prepare-for-a-long-run.webp';
 const HOW_TO_PREPARE_FOR_A_LONG_RUN_PAYLOAD = buildHowToPrepareForALongRunPayload({ coverImageUrl: HOW_TO_PREPARE_FOR_A_LONG_RUN_COVER_IMAGE_URL });
+const HOW_TO_USE_STRAVA_FOR_RUNNING_COVER_IMAGE_URL = '/images/blog/covers/how-to-use-strava-for-running.webp';
+const HOW_TO_USE_STRAVA_FOR_RUNNING_PAYLOAD = buildHowToUseStravaForRunningPayload({ coverImageUrl: HOW_TO_USE_STRAVA_FOR_RUNNING_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -1751,6 +1754,18 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/events','/blog/what-is-a-long-run-for-beginners','/blog/how-to-increase-running-distance','/blog/how-to-choose-a-safe-route-for-your-virtual-run','/blog/how-to-choose-running-shoes-for-beginners','/blog/what-to-eat-before-running','/blog/hydration-for-runners','/blog/gps-watch-vs-running-app','/blog/how-accurate-is-phone-gps-for-running','/blog/post-run-recovery-basics-rest-hydration-when-to-ease-back']
+  },
+  {
+    ...HOW_TO_USE_STRAVA_FOR_RUNNING_ARTICLE,
+    contentHtml: HOW_TO_USE_STRAVA_FOR_RUNNING_PAYLOAD.contentHtml,
+    coverImageUrl: HOW_TO_USE_STRAVA_FOR_RUNNING_COVER_IMAGE_URL,
+    coverImageAlt: HOW_TO_USE_STRAVA_FOR_RUNNING_ARTICLE.coverImageAlt,
+    ogImageUrl: HOW_TO_USE_STRAVA_FOR_RUNNING_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-10-23T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/best-apps-to-track-your-virtual-run','/blog/how-accurate-is-phone-gps-for-running','/blog/gps-watch-vs-running-app','/blog/what-counts-as-valid-run-proof','/blog/how-to-submit-run-proof-correctly-hellorun','/blog/how-to-run-your-first-10k-virtual-run']
   }
 ];
 

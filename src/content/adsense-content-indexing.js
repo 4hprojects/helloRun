@@ -66,14 +66,16 @@ const NOINDEX_SLUGS = Object.freeze([
   'running-heart-rate-explained',
   'easy-run-explained',
   'strength-training-for-runners-beginners',
-  'how-to-prepare-for-a-long-run'
+  'how-to-prepare-for-a-long-run',
+  'how-to-use-strava-for-running'
 ]);
 
 const HEALTH_SAFETY_SLUGS = Object.freeze(NOINDEX_SLUGS.filter((slug) => ![
   'best-apps-to-track-your-virtual-run',
   'virtual-run-vs-traditional-race-which-one-should-you-join',
   'how-to-promote-a-virtual-run',
-  'virtual-run-registration-fee-pricing'
+  'virtual-run-registration-fee-pricing',
+  'how-to-use-strava-for-running'
 ].includes(slug)));
 
 function getInitialIndexingClassification(slug) {
