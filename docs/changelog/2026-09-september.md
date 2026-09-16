@@ -1,5 +1,18 @@
 # HelloRun Changelog — September 2026
 
+## September 17 — Mobile Submit tab works from every runner page
+
+- Fixed the runner mobile navigation's **Submit** tab on pages that intentionally do
+  not load the run-proof modal bundle, including public discovery and content pages.
+  Those pages previously rendered a modal-only button with no click handler, so the
+  tap appeared to do nothing.
+- When the modal is present, the tab remains a button and opens it in place. Otherwise
+  it links to `/runner/submissions?openRunProof=1`, where the existing query handler
+  removes the signal from the URL and opens the modal automatically.
+- Rendered and checked every runner, organiser, and administrator mobile-tab target.
+  Added focused coverage for both Submit modes and all role-specific destinations;
+  the 31-test mobile/navigation regression group passes.
+
 ## September 16 — Release validation and dependency security updates
 
 - Verified the live CNS event content through the dry-run-only sync command; the

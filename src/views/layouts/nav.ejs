@@ -193,7 +193,11 @@
     <i data-lucide="calendar-days" aria-hidden="true"></i>
     <span>Events</span>
   </a>
-  <button type="button" class="mobile-nav-tab mobile-nav-tab-submit" data-open-run-proof-modal data-run-proof-surface="runner-mobile-nav" aria-label="Submit activity"><i data-lucide="circle-plus" aria-hidden="true"></i><span>Submit</span></button>
+  <% if (locals.renderRunProofModal) { %>
+    <button type="button" class="mobile-nav-tab mobile-nav-tab-submit" data-open-run-proof-modal data-run-proof-surface="runner-mobile-nav" aria-label="Submit activity"><i data-lucide="circle-plus" aria-hidden="true"></i><span>Submit</span></button>
+  <% } else { %>
+    <a href="/runner/submissions?openRunProof=1" class="mobile-nav-tab mobile-nav-tab-submit" aria-label="Submit activity"><i data-lucide="circle-plus" aria-hidden="true"></i><span>Submit</span></a>
+  <% } %>
   <a href="/runner/submissions" class="mobile-nav-tab<%= isCurrent('/runner/submissions') ? ' is-active' : '' %>" aria-label="Submission History" <% if (isCurrent('/runner/submissions')) { %>aria-current="page"<% } %>>
     <i data-lucide="file-check" aria-hidden="true"></i>
     <span>Progress</span>
