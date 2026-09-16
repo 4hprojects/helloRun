@@ -56,13 +56,6 @@ function getWorkspaceDashboard(workspace) {
   return '/runner/dashboard';
 }
 
-function isOwnOrganizerEvent(user, event = {}) {
-  const safeUser = user || {};
-  if (safeUser.role !== 'organiser') return false;
-  const organizerId = event.organizerId?._id || event.organizerId;
-  return Boolean(safeUser._id && organizerId && String(safeUser._id) === String(organizerId));
-}
-
 module.exports = {
   WORKSPACES,
   getDefaultWorkspace,
@@ -70,6 +63,5 @@ module.exports = {
   canUseWorkspace,
   resolveActiveWorkspace,
   getWorkspaceForPath,
-  getWorkspaceDashboard,
-  isOwnOrganizerEvent
+  getWorkspaceDashboard
 };

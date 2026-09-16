@@ -10,15 +10,13 @@
       const postStatusEl = document.getElementById("adminPostStatus");
       const postReadingTimeEl = document.getElementById("adminPostReadingTime");
       const moderationStatusBadge = document.getElementById("moderationStatusBadge");
-      const pendingActionBlocks = document.querySelectorAll(".js-pending-actions");
-      const publishedActionBlocks = document.querySelectorAll(".js-published-actions");
       const adminComposer = document.getElementById("adminStructuredComposer");
       const adminBlockList = document.getElementById("adminComposerBlockList");
       const adminPreview = document.getElementById("adminComposerPreview");
       const adminContentBlocksInput = document.getElementById("adminContentBlocksJson");
       const adminContentHtml = document.getElementById("adminContentHtml");
       const adminCoverUrl = document.getElementById("adminCoverImageUrl");
-      let currentWorkflowStatus = String(reviewConfig.status || "");
+      let currentWorkflowStatus = String(reviewConfig.sourceStatus || reviewConfig.status || "");
       let currentContentVersion = Number(reviewConfig.contentVersion || 0);
       let currentEditVersion = reviewConfig.editVersion === null ? null : Number(reviewConfig.editVersion || 0);
 
@@ -45,6 +43,15 @@
         }
       });
       const scheduleWrap = document.getElementById("scheduledForWrap");
+      const populateLocalSchedule = (localId, hiddenId) => {
+        const local = document.getElementById(localId);
+        const hidden = document.getElementById(hiddenId);
+        const date = new Date(String(hidden?.value || ""));
+        if (!local || !Number.isFinite(date.getTime())) return;
+        local.value = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+      };
+      populateLocalSchedule("scheduledForLocal", "scheduledFor");
+      populateLocalSchedule("rescheduleForLocal", "rescheduleFor");
       document.querySelectorAll('input[name="publicationMode"]').forEach((radio) => radio.addEventListener("change", function () {
         const scheduled = document.querySelector('input[name="publicationMode"]:checked')?.value === "scheduled";
         if (scheduleWrap) scheduleWrap.hidden = !scheduled;
@@ -497,15 +504,6 @@
         textarea.selectionEnd = start + before.length + nextText.length;
       }
 
-      const syncModerationActions = function (status) {
-        pendingActionBlocks.forEach((block) => {
-          block.style.display = status === "pending" ? "" : "none";
-        });
-        publishedActionBlocks.forEach((block) => {
-          block.style.display = ["published", "scheduled"].includes(status) ? "" : "none";
-        });
-      };
-
       const textareas = document.querySelectorAll("textarea[data-count-target]");
       textareas.forEach((textarea) => {
         const counterId = textarea.getAttribute("data-count-target");
@@ -692,7 +690,6 @@
           if (postReadingTimeEl && typeof savedPost.readingTime === "number") {
             postReadingTimeEl.textContent = String(savedPost.readingTime);
           }
-          currentWorkflowStatus = String(savedPost.status || currentWorkflowStatus);
           const previewTitle = document.getElementById("adminPreviewTitle");
           const previewExcerpt = document.getElementById("adminPreviewExcerpt");
           const previewCategory = document.getElementById("adminPreviewCategory");
@@ -707,7 +704,6 @@
             previewCover.alt = savedPost.coverImageAlt || "";
             previewCover.style.display = savedPost.coverImageUrl ? "" : "none";
           }
-          syncModerationActions(savedPost.status);
           if (moderationStatusBadge && savedPost.status) {
             moderationStatusBadge.textContent = savedPost.status;
             moderationStatusBadge.classList.remove("status-pending", "status-published", "status-other");
@@ -860,8 +856,6 @@
       });
       renderAdminComposer();
 
-      syncModerationActions(String(document.getElementById("adminStatus")?.value || reviewConfig.status || "").trim().toLowerCase());
-
       const forms = document.querySelectorAll(".moderation-panel form");
       forms.forEach((form) => {
         form.addEventListener("submit", async (event) => {
@@ -878,6 +872,16 @@
               }
               if (hidden) hidden.value = scheduledDate.toISOString();
             } else if (hidden) hidden.value = "";
+          }
+          if (form.classList.contains("scheduled-reschedule-form")) {
+            const localValue = String(document.getElementById("rescheduleForLocal")?.value || "");
+            const scheduledDate = new Date(localValue);
+            if (!localValue || !Number.isFinite(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now()) {
+              window.alert("Choose a future publication date and time.");
+              return;
+            }
+            const hidden = document.getElementById("rescheduleFor");
+            if (hidden) hidden.value = scheduledDate.toISOString();
           }
           const button = form.querySelector("button[type='submit']");
           if (!button) return;

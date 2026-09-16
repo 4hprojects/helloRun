@@ -158,8 +158,8 @@ test('beginner 21K guide is registered and seeded once for September 28', () => 
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 68);
-  assert.equal(POSTS.length, 68);
+  assert.equal(listArticleSlugs().length, 99);
+  assert.equal(POSTS.length, 99);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -208,7 +208,8 @@ test('beginner 21K creation payload schedules the local cover with a current rev
   });
   assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.status, 'scheduled');
-  assert.equal(payload.publishedAt.toISOString(), publishAt);
+  assert.equal(payload.scheduledFor.toISOString(), publishAt);
+  assert.equal(payload.publishedAt, null);
   assert.equal(payload.searchIndexingStatus, 'noindex');
   assert.equal(payload.searchIndexingReason, 'pending_expert_review');
   assert.equal(hasCurrentPublicationReview(payload), true);

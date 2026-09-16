@@ -122,6 +122,11 @@ const registrantCancellationLimiter = createRateLimiter({
   maxRequests: 30,
   message: 'Too many cancellations. Please wait a few minutes and try again.'
 });
+const registrantDetailsLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 60,
+  message: 'Too many registration edits. Please wait a few minutes and try again.'
+});
 const registrantExportLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   maxRequests: 10,
@@ -749,7 +754,7 @@ function normalizeRunProofQueueContext(queryParams = {}) {
   });
 }
 
-function buildRunProofReviewRow(submission, event, filters, submissionKind) {
+function buildRunProofReviewRow(submission, event, filters, submissionKind, viewerId) {
   const registration = submission.registrationId || {};
   const participant = registration.participant || {};
   const reviewer = submission.reviewedBy || null;
@@ -819,6 +824,10 @@ function buildRunProofReviewRow(submission, event, filters, submissionKind) {
     reviewerEmail: reviewer?.email || '',
     rejectionReason: submission.rejectionReason || '',
     reviewNotes: submission.reviewNotes || '',
+    // Self-review is allowed but audited, so the reviewer is told before they act rather
+    // than discovering it from a failed POST.
+    isOwnSubmission: Boolean(viewerId) && Boolean(submission.runnerId)
+      && String(submission.runnerId) === String(viewerId),
     actionHref: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/review${queueContext ? `?${queueContext}` : ''}`
   };
 }
@@ -1762,6 +1771,7 @@ module.exports = {
   submissionReviewActionLimiter,
   registrantExportLimiter,
   registrantCancellationLimiter,
+  registrantDetailsLimiter,
   directMessageLimiter,
   // Sync utilities
   syncRegistrationPaymentShadowInBackground,

@@ -9,6 +9,7 @@ require('dotenv').config();
 const User = require('../src/models/User');
 const Blog = require('../src/models/Blog');
 const BlogRevision = require('../src/models/BlogRevision');
+const { buildTrustedEditorialReview } = require('../src/utils/blog-content-eligibility');
 
 const ROOT = path.resolve(__dirname, '..');
 const TEST_PORT = 3120;
@@ -16,11 +17,12 @@ const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
 
 let serverProc = null;
 let seed = null;
+const loginCookies = new Map();
 
 test.before(async () => {
   serverProc = spawn(process.execPath, ['src/server.js'], {
     cwd: ROOT,
-    env: { ...process.env, PORT: String(TEST_PORT) },
+    env: { ...process.env, PORT: String(TEST_PORT), NODE_ENV: 'test', CSRF_PROTECTION: '0' },
     stdio: ['ignore', 'ignore', 'ignore']
   });
   await waitForServerReady();
@@ -135,19 +137,17 @@ test('admin autosave tracks structured block changes', async () => {
       tags: ['structured'],
       contentBlocks: [
         { type: 'heading', content: { text: 'Updated Workout Summary' }, metadata: { level: 2 } },
-        {
+        ...makeEligibleParagraphs('structured-update').map((text) => ({
           type: 'paragraph',
-          content: {
-            text: 'This autosaved structured content contains enough detail for validation and review.'
-          }
-        },
+          content: { text }
+        })),
         { type: 'closing', content: { text: 'Consistency remains the goal.' } }
       ]
     })
   });
 
-  assert.equal(response.status, 200);
   const body = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(body));
   assert.equal(body.success, true);
   assert.ok(body.post.changedFields.includes('contentBlocks'));
   assert.match(body.post.contentHtml, /Updated Workout Summary/);
@@ -170,6 +170,7 @@ test('admin can approve a pending blog post', async () => {
       'Content-Type': 'application/json',
       Accept: 'application/json'
     },
+    body: JSON.stringify({ originalityConfirmed: true, publicationMode: 'now' }),
     redirect: 'manual'
   });
   assert.equal(response.status, 200);
@@ -200,6 +201,138 @@ test('approving a non-pending post returns 409', async () => {
   assert.equal(response.status, 409);
   const body = await response.json();
   assert.equal(body.success, false);
+});
+
+test('admin and author scheduled filters show the correct owned post', async () => {
+  const adminCookie = await login(seed.admin.email, seed.password);
+  await waitForAdminSessionReady(adminCookie);
+  const adminResponse = await fetch(`${BASE_URL}/admin/blog/review?status=scheduled`, {
+    headers: { Cookie: adminCookie, Accept: 'text/html' }
+  });
+  assert.equal(adminResponse.status, 200);
+  assert.match(await adminResponse.text(), new RegExp(escapeRegex(seed.scheduledPost.title)));
+
+  const authorCookie = await login(seed.author.email, seed.password);
+  await waitForSessionReady('/blogs/me/dashboard', authorCookie);
+  const authorResponse = await fetch(`${BASE_URL}/blogs/me/dashboard?status=scheduled`, {
+    headers: { Cookie: authorCookie, Accept: 'text/html' }
+  });
+  assert.equal(authorResponse.status, 200);
+  const html = await authorResponse.text();
+  assert.match(html, new RegExp(escapeRegex(seed.scheduledPost.title)));
+  assert.match(html, /Propose Update/);
+});
+
+test('admin can reschedule and then publish an eligible scheduled post with stale updates rejected', async () => {
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForAdminSessionReady(cookie);
+  const scheduledFor = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString();
+  const reschedule = await fetch(`${BASE_URL}/admin/blog/posts/${seed.scheduledPost.id}/reschedule`, {
+    method: 'POST',
+    headers: { Cookie: cookie, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ workflowVersion: 0, scheduledFor })
+  });
+  assert.equal(reschedule.status, 200);
+  const rescheduled = await reschedule.json();
+  assert.equal(new Date(rescheduled.post.scheduledFor).toISOString(), scheduledFor);
+  assert.equal(rescheduled.post.publishedAt, null);
+
+  const stale = await fetch(`${BASE_URL}/admin/blog/posts/${seed.scheduledPost.id}/reschedule`, {
+    method: 'POST',
+    headers: { Cookie: cookie, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ workflowVersion: 0, scheduledFor: new Date(Date.now() + 21 * 86400000).toISOString() })
+  });
+  assert.equal(stale.status, 409);
+
+  const publish = await fetch(`${BASE_URL}/admin/blog/posts/${seed.scheduledPost.id}/publish-now`, {
+    method: 'POST',
+    headers: { Cookie: cookie, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ workflowVersion: 1 })
+  });
+  assert.equal(publish.status, 200);
+  const published = await Blog.findById(seed.scheduledPost.id).lean();
+  assert.equal(published.status, 'published');
+  assert.equal(published.scheduledFor, null);
+  assert.ok(published.publishedAt);
+});
+
+test('admin can return a scheduled post to draft and clear publication review state', async () => {
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForAdminSessionReady(cookie);
+  const response = await fetch(`${BASE_URL}/admin/blog/posts/${seed.scheduledDraftPost.id}/return-draft`, {
+    method: 'POST',
+    headers: { Cookie: cookie, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ workflowVersion: 0 })
+  });
+  assert.equal(response.status, 200);
+  const post = await Blog.findById(seed.scheduledDraftPost.id).lean();
+  assert.equal(post.status, 'draft');
+  assert.equal(post.scheduledFor, null);
+  assert.equal(post.publishedAt, null);
+  assert.equal(post.approvedAt, null);
+  assert.equal(post.publicationReview, null);
+});
+
+test('scheduled author updates remain revisions through rejection and approval', async () => {
+  const authorCookie = await login(seed.author.email, seed.password);
+  await waitForSessionReady('/blogs/me/dashboard', authorCookie);
+  const original = await Blog.findById(seed.scheduledRevisionPost.id).lean();
+  const proposedTitle = `Revised Scheduled Article ${seed.stamp}`.slice(0, 120);
+  const submitRevision = async (title) => fetch(`${BASE_URL}/blogs/me/${seed.scheduledRevisionPost.id}`, {
+    method: 'POST',
+    headers: { Cookie: authorCookie, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      action: 'submit_review',
+      title,
+      excerpt: 'A revised scheduled article awaiting editorial approval.',
+      category: 'General',
+      coverImageUrl: original.coverImageUrl,
+      coverImageAlt: original.coverImageAlt,
+      contentHtml: makeEligibleHtml('scheduled-revision-update')
+    })
+  });
+
+  const firstSubmit = await submitRevision(proposedTitle);
+  assert.equal(firstSubmit.status, 200);
+  let source = await Blog.findById(seed.scheduledRevisionPost.id).lean();
+  assert.equal(source.status, 'scheduled');
+  assert.equal(source.title, original.title);
+  assert.equal(source.activeRevisionStatus, 'pending');
+
+  const adminCookie = await login(seed.admin.email, seed.password);
+  await waitForAdminSessionReady(adminCookie);
+  const reject = await fetch(`${BASE_URL}/admin/blog/posts/${seed.scheduledRevisionPost.id}/reject`, {
+    method: 'POST',
+    headers: { Cookie: adminCookie, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ rejectionReason: 'Please clarify the scheduled article before publication.' })
+  });
+  assert.equal(reject.status, 200);
+  source = await Blog.findById(seed.scheduledRevisionPost.id).lean();
+  assert.equal(source.status, 'scheduled');
+  assert.equal(source.title, original.title);
+  assert.equal(source.activeRevisionStatus, 'rejected');
+
+  const approvedTitle = `Approved Scheduled Revision ${seed.stamp}`.slice(0, 120);
+  const secondSubmit = await submitRevision(approvedTitle);
+  assert.equal(secondSubmit.status, 200);
+  const schedule = new Date(source.scheduledFor).toISOString();
+  const approve = await fetch(`${BASE_URL}/admin/blog/posts/${seed.scheduledRevisionPost.id}/approve`, {
+    method: 'POST',
+    headers: { Cookie: adminCookie, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      originalityConfirmed: true,
+      publicationMode: 'scheduled',
+      scheduledFor: schedule
+    })
+  });
+  assert.equal(approve.status, 200);
+  source = await Blog.findById(seed.scheduledRevisionPost.id).lean();
+  assert.equal(source.status, 'scheduled');
+  assert.equal(source.title, approvedTitle);
+  assert.equal(source.publishedAt, null);
+  assert.equal(source.activeRevisionStatus, '');
+  assert.notEqual(source.contentEligibility.sourceHash, original.contentEligibility.sourceHash);
+  assert.equal(source.contentEligibility.sourceHash, source.publicationReview.sourceHash);
 });
 
 // ─── Reject ──────────────────────────────────────────────────────────────────
@@ -297,6 +430,33 @@ test('archiving a non-published post returns 409', async () => {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+function makeEligibleText(prefix) {
+  const stem = String(prefix).replace(/[^a-z]/gi, '').toLowerCase();
+  const suffixFor = (number) => {
+    let value = number + 1;
+    let suffix = '';
+    while (value > 0) {
+      value -= 1;
+      suffix = String.fromCharCode(97 + (value % 26)) + suffix;
+      value = Math.floor(value / 26);
+    }
+    return suffix;
+  };
+  return Array.from({ length: 540 }, (_, index) => `${stem}${suffixFor(index)}`).join(' ');
+}
+
+function makeEligibleHtml(prefix) {
+  const sections = makeEligibleParagraphs(prefix);
+  return [0, 1, 2].map((section) => (
+    `<h2>${prefix} section ${section + 1}</h2><p>${sections[section]}</p>`
+  )).join('');
+}
+
+function makeEligibleParagraphs(prefix) {
+  const words = makeEligibleText(prefix).split(' ');
+  return [0, 1, 2].map((section) => words.slice(section * 180, (section + 1) * 180).join(' '));
+}
+
 async function seedFixture() {
   await ensureConnected();
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -332,7 +492,8 @@ async function seedFixture() {
     title: `BAW Pending Post Alpha ${stamp}`.slice(0, 150),
     slug: makeSlug('pending-alpha'),
     excerpt: 'Pending alpha excerpt',
-    contentHtml: '<p>Pending alpha content</p>',
+    contentHtml: makeEligibleHtml('pending-alpha'),
+    contentText: makeEligibleText('pending-alpha'),
     coverImageUrl: `https://example.com/cover-alpha-${stamp}.jpg`,
     category: 'General',
     status: 'pending',
@@ -384,15 +545,15 @@ async function seedFixture() {
     title: `BAW Structured Pending ${stamp}`.slice(0, 150),
     slug: makeSlug('structured'),
     excerpt: 'Structured pending excerpt',
-    contentHtml: '<h2>Workout Summary</h2><p>This structured pending post has enough detail for validation.</p>',
-    contentText: 'Workout Summary This structured pending post has enough detail for validation.',
+    contentHtml: `<h2>Workout Summary</h2><p>${makeEligibleText('structured-seed')}</p><h2>Takeaway</h2><p>Consistency remains the goal.</p>`,
+    contentText: makeEligibleText('structured-seed'),
     templateKey: 'training_journal',
     contentBlocks: [
       { type: 'heading', order: 0, content: { text: 'Workout Summary' }, metadata: { level: 2 } },
       {
         type: 'paragraph',
         order: 1,
-        content: { text: 'This structured pending post has enough detail for validation.' },
+        content: { text: makeEligibleText('structured-seed') },
         metadata: {}
       }
     ],
@@ -402,6 +563,37 @@ async function seedFixture() {
     status: 'pending',
     submittedAt: new Date()
   });
+
+  const createScheduledPost = async (label, daysAhead) => {
+    const reviewedAt = new Date();
+    const scheduledFor = new Date(reviewedAt.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+    const payload = {
+      authorId: author._id,
+      title: `BAW Scheduled ${label} ${stamp}`.slice(0, 150),
+      slug: makeSlug(`scheduled-${label}`),
+      excerpt: `Scheduled ${label} excerpt`,
+      contentHtml: makeEligibleHtml(`scheduled-${label}`),
+      contentText: makeEligibleText(`scheduled-${label}`),
+      contentRaw: makeEligibleText(`scheduled-${label}`),
+      coverImageUrl: `https://example.com/cover-scheduled-${label}-${stamp}.jpg`,
+      coverImageAlt: `Runner for scheduled ${label} article`,
+      category: 'General',
+      status: 'scheduled',
+      scheduledFor,
+      publishedAt: null,
+      approvedAt: reviewedAt,
+      approvedBy: admin._id,
+      contentRisk: 'general',
+      searchIndexingStatus: 'noindex',
+      searchIndexingReason: 'pending_value_review'
+    };
+    Object.assign(payload, buildTrustedEditorialReview(payload, admin._id, reviewedAt));
+    return Blog.create(payload);
+  };
+
+  const scheduledPost = await createScheduledPost('actions', 10);
+  const scheduledDraftPost = await createScheduledPost('draft', 11);
+  const scheduledRevisionPost = await createScheduledPost('revision', 12);
 
   return {
     stamp,
@@ -413,6 +605,9 @@ async function seedFixture() {
     publishedPost: { id: String(publishedPost._id) },
     draftPost: { id: String(draftPost._id) },
     structuredPost: { id: String(structuredPost._id), title: structuredPost.title },
+    scheduledPost: { id: String(scheduledPost._id), title: scheduledPost.title },
+    scheduledDraftPost: { id: String(scheduledDraftPost._id) },
+    scheduledRevisionPost: { id: String(scheduledRevisionPost._id), title: scheduledRevisionPost.title },
     createdPostIds: []
   };
 }
@@ -429,11 +624,17 @@ async function cleanupSeed(currentSeed) {
           currentSeed.publishedPost?.id,
           currentSeed.draftPost?.id,
           currentSeed.structuredPost?.id,
+          currentSeed.scheduledPost?.id,
+          currentSeed.scheduledDraftPost?.id,
+          currentSeed.scheduledRevisionPost?.id,
           ...(currentSeed.createdPostIds || [])
         ].filter(Boolean)
       }
     }),
-    BlogRevision.deleteMany({ postId: { $in: [currentSeed.structuredPost?.id].filter(Boolean) } }),
+    BlogRevision.deleteMany({ postId: { $in: [
+      currentSeed.structuredPost?.id,
+      currentSeed.scheduledRevisionPost?.id
+    ].filter(Boolean) } }),
     User.deleteMany({
       email: { $in: [currentSeed.admin?.email, currentSeed.author?.email].filter(Boolean) }
     })
@@ -441,6 +642,7 @@ async function cleanupSeed(currentSeed) {
 }
 
 async function login(email, password) {
+  if (loginCookies.has(email)) return loginCookies.get(email);
   const response = await fetch(`${BASE_URL}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -450,7 +652,9 @@ async function login(email, password) {
   assert.equal(response.status, 302);
   const setCookie = response.headers.get('set-cookie');
   assert.ok(setCookie);
-  return setCookie.split(';')[0];
+  const cookie = setCookie.split(';')[0];
+  loginCookies.set(email, cookie);
+  return cookie;
 }
 
 async function waitForServerReady() {

@@ -95,7 +95,26 @@ const {
   MAX_RUNNING_GROUP_NAME_LENGTH,
   normalizeRunningGroupMemberships
 } = require('../../utils/running-group-memberships');
-const { canUseRunnerWorkspace, isOwnOrganizerEvent } = require('../../utils/workspace');
+const { canUseRunnerWorkspace } = require('../../utils/workspace');
+const {
+  normalizeRegistrationDetailsInput,
+  applyRegistrationDetailsUpdate,
+  describeLeaderboardState
+} = require('../../services/registration-details.service');
+
+const LEADERBOARD_DISPLAY_OPTIONS = Object.freeze([
+  { value: 'full_name', label: 'Show my full name' },
+  { value: 'abbreviated', label: 'Show my first name and last initial' },
+  { value: 'hidden', label: 'Do not show me on the leaderboard' }
+]);
+const { invalidateLeaderboardCache } = require('../../services/leaderboard.service');
+const {
+  TRACKING_APP_OPTIONS,
+  OTHER_OPTION_ID,
+  normalizeTrackingApps,
+  normalizeTrackingAppOther,
+  formatTrackingAppsLabel
+} = require('../../utils/tracking-apps');
 
 exports.getEventRegistrationForm = async (req, res) => {
   try {
@@ -111,9 +130,6 @@ exports.getEventRegistrationForm = async (req, res) => {
     }
     if (!user) {
       return res.redirect('/login');
-    }
-    if (isOwnOrganizerEvent(user, event)) {
-      return renderOwnEventParticipationConflict(res);
     }
     const eligibilityError = getUserRegistrationEligibilityError(user);
     if (eligibilityError) {
@@ -182,6 +198,7 @@ exports.getEventRegistrationForm = async (req, res) => {
       }),
       waiverVersion: Number(event.waiverVersion || 1),
       registrationWindowError,
+      trackingAppOptions: TRACKING_APP_OPTIONS,
       existingRegistration: existing || null,
       registrationAddOns,
       raceCategoryOptions,
@@ -222,9 +239,6 @@ exports.postEventRegistration = async (req, res) => {
     if (!user) {
       return res.redirect('/login');
     }
-    if (isOwnOrganizerEvent(user, event)) {
-      return renderOwnEventParticipationConflict(res);
-    }
     const eligibilityError = getUserRegistrationEligibilityError(user);
     if (eligibilityError) {
       return res.status(403).render('error', {
@@ -254,7 +268,8 @@ exports.postEventRegistration = async (req, res) => {
       emergencyContactNumber,
       department: req.body.department,
       position: req.body.position,
-      preferredFitnessApp: req.body.preferredFitnessApp,
+      preferredTrackingApps: req.body.preferredTrackingApps,
+      preferredTrackingAppOther: req.body.preferredTrackingAppOther,
       leaderboardDisplayPreference: req.body.leaderboardDisplayPreference,
       consentToLeaderboard: req.body.consentToLeaderboard,
       participationMode: req.body.participationMode,
@@ -370,6 +385,7 @@ exports.postEventRegistration = async (req, res) => {
         }),
         waiverVersion: Number(event.waiverVersion || 1),
         registrationWindowError,
+        trackingAppOptions: TRACKING_APP_OPTIONS,
         existingRegistration: null,
         registrationAddOns,
         raceCategoryOptions,
@@ -404,7 +420,9 @@ exports.postEventRegistration = async (req, res) => {
         runningGroup: formData.runningGroup,
         department: formData.department,
         position: formData.position,
-        preferredFitnessApp: formData.preferredFitnessApp
+        preferredFitnessApp: formData.preferredFitnessApp,
+        preferredTrackingApps: formData.preferredTrackingApps,
+        preferredTrackingAppOther: formData.preferredTrackingAppOther
       },
       leaderboardDisplayPreference: formData.leaderboardDisplayPreference,
       consentToLeaderboard: formData.consentToLeaderboard,
@@ -659,6 +677,9 @@ exports.getMyRegistrations = async (req, res) => {
       registrationGroups: registrationPresentation.groups,
       registrationCounts: registrationPresentation.counts,
       message: getPageMessage(req.query),
+      trackingAppOptions: TRACKING_APP_OPTIONS,
+      leaderboardStateLabel: describeLeaderboardState,
+      leaderboardDisplayOptions: LEADERBOARD_DISPLAY_OPTIONS,
       countryName: getCountryName,
       genderLabel: formatGenderLabel,
       ageLabel: formatAgeFromDob
@@ -736,6 +757,67 @@ exports.postRequestCancellation = async (req, res) => {
     return res.redirect(
       `/my-registrations?type=error&msg=${encodeURIComponent(error.message || 'Could not send that request.')}`
     );
+  }
+};
+
+/**
+ * A runner changing their own registration: their leaderboard choice and the contact
+ * details captured at signup. Until now these were write-once, so a runner who left the
+ * consent box unticked had no way to appear on the leaderboard without asking an
+ * organiser to do it for them.
+ *
+ * The `userId` filter is the entire authorization: a runner can only ever load their own
+ * registration. No audit entry or notification here — unlike the organiser route, nobody
+ * is acting on someone else's record.
+ */
+exports.postRegistrationDetails = async (req, res) => {
+  const fail = (message) => res.redirect(
+    `/my-registrations?type=error&msg=${encodeURIComponent(message)}`
+  );
+  try {
+    const { registrationId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(String(registrationId || ''))) {
+      return fail('Registration not found.');
+    }
+
+    const registration = await Registration.findOne({
+      _id: registrationId,
+      userId: req.session.userId
+    }).populate('eventId', 'slug');
+    if (!registration) {
+      return fail('Registration not found.');
+    }
+    if (registration.status === 'cancelled') {
+      return fail('This registration was cancelled and can no longer be edited.');
+    }
+
+    // Runners correct their name on their profile, not per registration.
+    const { values, errors } = normalizeRegistrationDetailsInput(req.body, { allowName: false });
+    const firstError = Object.values(errors)[0];
+    if (firstError) {
+      return fail(firstError);
+    }
+
+    const outcome = applyRegistrationDetailsUpdate({ registration, values });
+    if (!outcome.changedFields.length) {
+      return res.redirect(`/my-registrations?msg=${encodeURIComponent('No changes to save.')}`);
+    }
+
+    // save(), not an atomic update: the post-save hook mirrors participant fields into
+    // the Postgres shadow.
+    await registration.save();
+
+    const eventSlug = registration.eventId?.slug;
+    if (outcome.leaderboardChanged && eventSlug) {
+      invalidateLeaderboardCache(eventSlug);
+    }
+
+    return res.redirect(
+      `/my-registrations?msg=${encodeURIComponent('Your registration was updated.')}`
+    );
+  } catch (error) {
+    logger.error('Error updating runner registration details:', error);
+    return fail('Could not update that registration.');
   }
 };
 
@@ -823,6 +905,10 @@ function getPageMessage(query) {
 
 function getRegistrationFormData(body = {}) {
   const runningGroups = normalizeRunnerGroups(body.runningGroups || body.runningGroup);
+  const preferredTrackingApps = normalizeTrackingApps(body.preferredTrackingApps);
+  const preferredTrackingAppOther = preferredTrackingApps.includes(OTHER_OPTION_ID)
+    ? normalizeTrackingAppOther(body.preferredTrackingAppOther)
+    : '';
   return {
     firstName: String(body.firstName || '').trim(),
     lastName: String(body.lastName || '').trim(),
@@ -837,7 +923,10 @@ function getRegistrationFormData(body = {}) {
     runningGroup: runningGroups[0] || '',
     department: String(body.department || '').trim(),
     position: String(body.position || '').trim(),
-    preferredFitnessApp: String(body.preferredFitnessApp || '').trim(),
+    preferredTrackingApps,
+    preferredTrackingAppOther,
+    // Readable summary stored alongside the ids for CSV exports and organiser review.
+    preferredFitnessApp: formatTrackingAppsLabel(preferredTrackingApps, preferredTrackingAppOther),
     leaderboardDisplayPreference: ['full_name', 'abbreviated', 'hidden'].includes(body.leaderboardDisplayPreference)
       ? body.leaderboardDisplayPreference
       : 'full_name',
@@ -1404,10 +1493,14 @@ function validateRegistrationForm(
     errors.position = 'Position or designation must be 120 characters or less.';
   }
   if (requiredRegistrationFields.has('position') && !formData.position) errors.position = 'Position or designation is required.';
-  if (formData.preferredFitnessApp.length > 80) {
-    errors.preferredFitnessApp = 'Preferred fitness app must be 80 characters or less.';
+  // The tracking field is optional by default. Only the free-text half of "Other" and
+  // events that still opt into preferred_fitness_app impose anything.
+  if (formData.preferredTrackingApps.includes(OTHER_OPTION_ID) && !formData.preferredTrackingAppOther) {
+    errors.preferredTrackingApps = 'Tell us which app or device you use, or clear the "Other" option.';
   }
-  if (requiredRegistrationFields.has('preferred_fitness_app') && !formData.preferredFitnessApp) errors.preferredFitnessApp = 'Preferred tracking app or device is required.';
+  if (requiredRegistrationFields.has('preferred_fitness_app') && !formData.preferredTrackingApps.length) {
+    errors.preferredTrackingApps = 'Choose at least one tracking app or device.';
+  }
   if (!allowedLeaderboardDisplayValues.has(formData.leaderboardDisplayPreference)) {
     errors.leaderboardDisplayPreference = 'Select a valid leaderboard display preference.';
   }
@@ -1547,14 +1640,6 @@ function getUserRegistrationEligibilityError(user) {
     return 'Your account is not eligible to register for events. Please verify your email first.';
   }
   return null;
-}
-
-function renderOwnEventParticipationConflict(res) {
-  return res.status(403).render('error', {
-    title: '403 - Registration Not Allowed',
-    status: 403,
-    message: 'Organizers cannot register for or compete in events they manage.'
-  });
 }
 
 async function generateConfirmationCode() {

@@ -6,6 +6,8 @@ const {
   renderServerError, getRequestIpAddress, getRequestUserAgent
 } = require('./_shared');
 const { applyAdminSubmissionCorrection } = require('../../services/submission.service');
+const { reverseSubmissionApproval } = require('../../services/approval-reversal.service');
+const { getPageMessage } = require('../../routes/organiser/_shared');
 
 // SECTION: Submission Review
 // ═══════════════════════════════════════════════════════════
@@ -96,7 +98,7 @@ exports.correctSubmission = async (req, res) => {
 exports.listSubmissions = async (req, res) => {
   try {
     const [hub, events] = await Promise.all([
-      listSubmissionHub({ filters: req.query }),
+      listSubmissionHub({ filters: req.query, viewerId: req.session.userId }),
       listSubmissionHubEvents()
     ]);
     const basePath = '/admin/submissions';
@@ -121,5 +123,69 @@ exports.listSubmissions = async (req, res) => {
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading run submissions.');
+  }
+};
+
+const APPROVED_ENTRIES_DEFAULTS = Object.freeze({
+  status: 'approved',
+  sort: 'newest',
+  pageSize: 25
+});
+
+// Admin twin of the organiser page. Same view and same reversal service; the only
+// difference is that this one is not scoped to events the viewer organizes.
+exports.listApprovedEntries = async (req, res) => {
+  try {
+    const filters = { ...req.query, status: 'approved' };
+    const [hub, events] = await Promise.all([
+      listSubmissionHub({ filters, defaults: APPROVED_ENTRIES_DEFAULTS, viewerId: req.session.userId }),
+      listSubmissionHubEvents()
+    ]);
+    const basePath = '/admin/approved-entries';
+    const buildPath = (overrides) => buildSubmissionHubPath(basePath, hub.filters, overrides, APPROVED_ENTRIES_DEFAULTS);
+
+    return res.render('organizer/approved-entries', {
+      title: 'Approved Entries - HelloRun Admin',
+      user: res.locals.user || null,
+      isAdminViewer: true,
+      basePath,
+      reversalBasePath: basePath,
+      filters: hub.filters,
+      submissions: hub.items,
+      counts: hub.counts,
+      pagination: hub.pagination,
+      events,
+      message: getPageMessage(req.query),
+      links: {
+        prev: hub.pagination.page > 1 ? buildPath({ page: hub.pagination.page - 1 }) : '',
+        next: hub.pagination.page < hub.pagination.totalPages ? buildPath({ page: hub.pagination.page + 1 }) : '',
+        reset: basePath,
+        submissions: '/admin/submissions',
+        dashboard: '/admin/dashboard'
+      }
+    });
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while loading approved entries.');
+  }
+};
+
+exports.reverseApprovedEntry = async (req, res) => {
+  const listPath = '/admin/approved-entries';
+  try {
+    const outcome = await reverseSubmissionApproval({
+      submissionId: req.params.submissionId,
+      actorUserId: req.session.userId,
+      actorRole: 'admin',
+      reason: req.body?.reason
+    });
+    const extras = [
+      outcome.certificateRevoked ? 'certificate revoked' : '',
+      outcome.badgesRevoked ? `${outcome.badgesRevoked} badge${outcome.badgesRevoked === 1 ? '' : 's'} withdrawn` : ''
+    ].filter(Boolean).join(', ');
+    const msg = extras ? `Approval reversed (${extras}).` : 'Approval reversed.';
+    return res.redirect(`${listPath}?msg=${encodeURIComponent(msg)}`);
+  } catch (error) {
+    logger.error('Admin approval reversal failed:', error);
+    return res.redirect(`${listPath}?type=error&msg=${encodeURIComponent(error.message || 'Could not reverse that approval.')}`);
   }
 };

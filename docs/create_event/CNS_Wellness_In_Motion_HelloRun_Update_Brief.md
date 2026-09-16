@@ -69,7 +69,8 @@ Replace the current event dates with:
 ### Registration Period
 
 - September 9, 2026
-- September 13, 2026
+- September 21, 2026 (extended September 14, 2026; the original close was
+  September 13, 2026)
 
 ### Wellness Activity Period
 
@@ -398,10 +399,11 @@ Collect:
 
 - Full name
 - Department or office
-- Position or designation
 - Email address
-- Contact number
-- Preferred fitness tracking application or device
+- Preferred tracking application or device — **optional**, a checkbox list of
+  common apps and devices with an "Other" free-text option and an explicit
+  "Not sure yet". Many participants have never used a tracking app, so this must
+  never block registration.
 - Consent to participate
 - Consent to leaderboard display, if applicable
 - Agreement to event rules
@@ -410,7 +412,7 @@ Collect:
 
 Registration should be open only from:
 
-**September 9 to September 13, 2026**
+**September 9 to September 21, 2026**
 
 Admin must be able to override or edit these dates.
 
@@ -422,8 +424,9 @@ The event page should clearly show the following near the top:
 
 - Official event title
 - CNS Faculty and Staff
-- Registration: September 9 to 13, 2026
+- Registration: September 9 to 21, 2026
 - Challenge period: September 14 to November 3, 2026
+- An exclusive event of the College of Natural Sciences
 - 50 km in 50 days
 - Walk, run, or hike
 - Virtual and self-paced
@@ -760,7 +763,8 @@ If the existing event already has registrations or submissions:
 
 The update is complete when:
 
-- Registration shows September 9 to 13, 2026.
+- Registration shows September 9 to 21, 2026.
+- The page states that this is an exclusive event of the College of Natural Sciences.
 - Event period shows September 14 to November 3, 2026.
 - The event is presented as a 50-day challenge.
 - The main challenge is 50 km.

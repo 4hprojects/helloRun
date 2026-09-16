@@ -86,8 +86,8 @@ test('guide is registered and seeded exactly once for October 1', () => {
   const seededPosts = POSTS.filter((post) => post.slug === CANONICAL_SLUG);
   const seededPost = seededPosts[0];
   assert.equal(getArticleModule(CANONICAL_SLUG).ARTICLE, ARTICLE);
-  assert.equal(listArticleSlugs().length, 68);
-  assert.equal(POSTS.length, 68);
+  assert.equal(listArticleSlugs().length, 99);
+  assert.equal(POSTS.length, 99);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -112,7 +112,8 @@ test('creator schedules the local cover with a current health review and noindex
   assert.deepEqual(classification, { contentRisk: 'health_safety', indexCandidate: false, plannedNoindex: true });
   const payload = buildCreatePayload({ slug: CANONICAL_SLUG, authorId: '507f1f77bcf86cd799439011', now: new Date('2026-09-13T01:00:00.000Z'), publishAt: new Date(PUBLISH_AT), confirmEditorialReview: true });
   assert.equal(payload.status, 'scheduled');
-  assert.equal(payload.publishedAt.toISOString(), PUBLISH_AT);
+  assert.equal(payload.scheduledFor.toISOString(), PUBLISH_AT);
+  assert.equal(payload.publishedAt, null);
   assert.equal(payload.searchIndexingStatus, 'noindex');
   assert.equal(payload.searchIndexingReason, 'pending_expert_review');
   assert.equal(hasCurrentPublicationReview(payload), true);

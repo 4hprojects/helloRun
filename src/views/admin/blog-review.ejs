@@ -192,7 +192,7 @@
       </div>
       <p class="moderation-panel-note">Choose what to do with this post after review.</p>
       <div class="moderation-actions">
-        <% if (['pending', 'published', 'scheduled'].includes(post.status)) { %>
+        <% if (sourcePost.status === 'pending' || reviewTarget?.kind === 'revision') { %>
           <section class="mod-card js-pending-actions">
             <h4>Primary Decision</h4>
             <p>Approve the reviewed content for immediate or scheduled publication.</p>
@@ -252,7 +252,7 @@
                 <label>Public profile URL<input name="expertReviewerProfileUrl" type="url" maxlength="2000"></label>
                 <label>Expert review date<input name="expertReviewedAt" type="date"></label>
               </fieldset>
-              <fieldset class="moderation-health-checks"><legend>Publication timing</legend><label class="admin-inline"><input type="radio" name="publicationMode" value="now" checked> Publish now</label><label class="admin-inline"><input type="radio" name="publicationMode" value="scheduled"> Schedule</label><label id="scheduledForWrap" hidden>Publish date and time<input id="scheduledForLocal" type="datetime-local"><input id="scheduledFor" type="hidden" name="scheduledFor"></label></fieldset>
+              <fieldset class="moderation-health-checks"><legend>Publication timing</legend><label class="admin-inline"><input type="radio" name="publicationMode" value="now" <%= sourcePost.status === 'scheduled' ? '' : 'checked' %>> Publish now</label><label class="admin-inline"><input type="radio" name="publicationMode" value="scheduled" <%= sourcePost.status === 'scheduled' ? 'checked' : '' %>> Schedule</label><label id="scheduledForWrap" <%= sourcePost.status === 'scheduled' ? '' : 'hidden' %>>Publish date and time<input id="scheduledForLocal" type="datetime-local" <%= sourcePost.status === 'scheduled' ? 'required' : '' %>><input id="scheduledFor" type="hidden" name="scheduledFor" value="<%= sourcePost.scheduledFor ? new Date(sourcePost.scheduledFor).toISOString() : '' %>"></label></fieldset>
               <button type="submit" class="mod-btn mod-btn-approve" data-loading-text="Publishing..." onclick="return confirm('Approve this post for publication?');">Approve Publication</button>
             </form>
           </section>
@@ -273,13 +273,44 @@
           </section>
         <% } %>
 
-        <% if (['published', 'scheduled'].includes(post.status)) { %>
+        <% if (sourcePost.status === 'scheduled') { %>
+          <section class="mod-card js-scheduled-actions">
+            <h4>Schedule</h4>
+            <p>Change the future publication time without altering the approved content or its review.</p>
+            <form method="POST" action="/admin/blog/posts/<%= sourcePost._id %>/reschedule" class="scheduled-reschedule-form">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <input type="hidden" name="workflowVersion" value="<%= sourcePost.workflowVersion || 0 %>">
+              <label>New publication date and time<input id="rescheduleForLocal" type="datetime-local" required><input id="rescheduleFor" type="hidden" name="scheduledFor" value="<%= sourcePost.scheduledFor ? new Date(sourcePost.scheduledFor).toISOString() : '' %>"></label>
+              <button type="submit" class="mod-btn" data-loading-text="Rescheduling...">Reschedule</button>
+            </form>
+          </section>
+          <section class="mod-card">
+            <h4>Publish now</h4>
+            <p>Publish the currently approved version immediately. Any pending revision remains in review.</p>
+            <form method="POST" action="/admin/blog/posts/<%= sourcePost._id %>/publish-now">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <input type="hidden" name="workflowVersion" value="<%= sourcePost.workflowVersion || 0 %>">
+              <button type="submit" class="mod-btn mod-btn-approve" data-loading-text="Publishing..." onclick="return confirm('Publish the approved scheduled version now?');">Publish Now</button>
+            </form>
+          </section>
+          <section class="mod-card">
+            <h4>Return to draft</h4>
+            <p>Cancel publication and clear the approval state. Any active revision is discarded with this transition.</p>
+            <form method="POST" action="/admin/blog/posts/<%= sourcePost._id %>/return-draft">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <input type="hidden" name="workflowVersion" value="<%= sourcePost.workflowVersion || 0 %>">
+              <button type="submit" class="mod-btn" data-loading-text="Returning..." onclick="return confirm('Cancel this schedule and return the post to draft?');">Return to Draft</button>
+            </form>
+          </section>
+        <% } %>
+
+        <% if (['published', 'scheduled'].includes(sourcePost.status)) { %>
           <section class="mod-card mod-card-danger js-published-actions" style="grid-column: 1 / -1;">
             <h4>Danger Zone</h4>
-            <p>Archiving removes this post from public listing.</p>
-            <form method="POST" action="/admin/blog/posts/<%= post._id %>/archive-form">
+            <p>Archiving removes a published post from public listings or cancels a scheduled post.</p>
+            <form method="POST" action="/admin/blog/posts/<%= sourcePost._id %>/archive-form">
               <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-              <button type="submit" class="mod-btn mod-btn-archive" data-loading-text="Archiving..." onclick="return confirm('Archive this published post?');">Archive</button>
+              <button type="submit" class="mod-btn mod-btn-archive" data-loading-text="Archiving..." onclick="return confirm('Archive this post?');">Archive</button>
             </form>
           </section>
         <% } %>
@@ -325,7 +356,7 @@
   </main>
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script id="adminBlogReviewConfig" type="application/json"><%- JSON.stringify({ status: post.status, contentVersion: Number(sourcePost.contentVersion || 0), editVersion: reviewTarget?.revision ? Number(reviewTarget.revision.editVersion || 0) : null, templateBlocksByKey: templateBlocksByKey || {}, blockLabels: (blockTypes || []).reduce((acc, item) => { acc[item.key] = item.label; return acc; }, {}), contentBlocks: post.contentBlocks || [], autosaveUrl: `/admin/blog/posts/${post._id}/autosave`, csrfToken: locals.csrfToken || '', featured: Boolean(post.featured) }).replace(/</g, '\\u003c') %></script>
+  <script id="adminBlogReviewConfig" type="application/json"><%- JSON.stringify({ status: post.status, sourceStatus: sourcePost.status, contentVersion: Number(sourcePost.contentVersion || 0), editVersion: reviewTarget?.revision ? Number(reviewTarget.revision.editVersion || 0) : null, templateBlocksByKey: templateBlocksByKey || {}, blockLabels: (blockTypes || []).reduce((acc, item) => { acc[item.key] = item.label; return acc; }, {}), contentBlocks: post.contentBlocks || [], autosaveUrl: `/admin/blog/posts/${post._id}/autosave`, csrfToken: locals.csrfToken || '', featured: Boolean(post.featured) }).replace(/</g, '\\u003c') %></script>
   <script src="/js/admin-blog-review.js"></script>
   <script>if(window.lucide) lucide.createIcons();</script>
 </body>

@@ -212,3 +212,101 @@ body.organizer-roster-dialog-open { overflow: hidden; }
   font-size: .75rem;
   color: #8a5a12;
 }
+
+/* Post-registration edits: leaderboard choice, name corrections and contact details. */
+.organizer-roster-edit {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e4e9e5;
+}
+
+.organizer-roster-edit > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-size: .78rem;
+  font-weight: 700;
+  color: #2f3a33;
+  cursor: pointer;
+}
+
+.organizer-roster-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.organizer-roster-edit-form fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.organizer-roster-edit-form legend {
+  margin-bottom: 6px;
+  font-size: .72rem;
+  font-weight: 800;
+  color: #2f3a33;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.organizer-roster-edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: .75rem;
+  color: #55645b;
+}
+
+.organizer-roster-edit-form input[type="text"],
+.organizer-roster-edit-form input[type="tel"],
+.organizer-roster-edit-form input:not([type]),
+.organizer-roster-edit-form select {
+  min-height: 40px;
+  padding: 8px;
+  border: 1px solid #d5ded8;
+  border-radius: 6px;
+  font-size: .8rem;
+}
+
+.organizer-roster-edit-grid,
+.organizer-roster-edit-checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.organizer-roster-edit-checks label,
+.organizer-roster-edit-check {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.35;
+}
+
+.organizer-roster-edit-checks input,
+.organizer-roster-edit-check input {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.organizer-roster-edit-note {
+  margin: 6px 0 0;
+  font-size: .7rem;
+  line-height: 1.45;
+  color: #6b7a71;
+}
+
+.organizer-roster-edit-form button {
+  align-self: flex-start;
+  min-height: 44px;
+}
+
+@media (max-width: 720px) {
+  .organizer-roster-edit-grid,
+  .organizer-roster-edit-checks {
+    grid-template-columns: 1fr;
+  }
+}

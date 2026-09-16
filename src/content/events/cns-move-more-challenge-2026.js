@@ -7,7 +7,7 @@ const SHORT_TITLE = 'CNS Move More Challenge 2026';
 const DATES = Object.freeze({
   publicAt: new Date('2026-09-09T00:00:00+08:00'),
   registrationOpenAt: new Date('2026-09-09T00:00:00+08:00'),
-  registrationCloseAt: new Date('2026-09-13T23:59:00+08:00'),
+  registrationCloseAt: new Date('2026-09-21T23:59:00+08:00'),
   activityStartAt: new Date('2026-09-14T00:00:00+08:00'),
   activityEndAt: new Date('2026-11-03T23:59:00+08:00'),
   submissionDeadlineAt: new Date('2026-11-03T23:59:00+08:00'),
@@ -16,7 +16,7 @@ const DATES = Object.freeze({
 
 const VENUE_NAME = 'Virtual — participant-selected eligible route';
 const AWARDING_VENUE = 'CAS Little Theater';
-const EVENT_DESCRIPTION = 'CNS faculty and staff are invited to complete 50 kilometers through walking, running, or hiking during Wellness In Motion. This virtual, self-paced challenge runs from September 14 to November 3, 2026. Track distance and elevation with Strava or another compatible sports app or device, then upload a screenshot of each activity to HelloRun.';
+const EVENT_DESCRIPTION = 'An exclusive event of the College of Natural Sciences. Registration is extended until September 21, 2026. CNS faculty and staff are invited to complete 50 kilometers through walking, running, or hiking during Wellness In Motion. This virtual, self-paced challenge runs from September 14 to November 3, 2026. Track your distance with a sports app or device if you have one, then upload a screenshot of each activity to HelloRun.';
 const BRAND_ASSETS = Object.freeze({
   logoUrl: '/images/events/cns-move-more-challenge-2026/cns-logo.jpg',
   bannerImageUrl: '/images/events/cns-move-more-challenge-2026/cns-move-more-hero.webp',
@@ -40,23 +40,82 @@ const RACE_CATEGORIES = Object.freeze([{
 }]);
 
 const EVENT_DETAILS_MARKDOWN = `
-## 50 km in 50 days
+## At a glance
 
-The College of Natural Sciences invites faculty and staff to join Wellness In Motion, a virtual and self-paced walk, run, and hike challenge from **September 14 to November 3, 2026**. Complete activities at your preferred location and pace and accumulate at least **50 kilometers**. Approved distance continues to count after you reach the goal.
+- **Who can join** — Exclusive to College of Natural Sciences faculty and staff.
+- **Your goal** — Accumulate at least **50 kilometers** of approved distance.
+- **Activity window** — **September 14 to November 3, 2026**.
+- **Registration** — Extended to **September 21, 2026**.
+- **Cost** — Free.
+- **What you need** — Comfortable shoes, and a way to record each activity.
 
-## Track distance and elevation
+## Step 1 — Choose how you will track
 
-Use Strava, Garmin, or another sports tracking application or device capable of recording distance and elevation. Walking, running, and hiking count. Cycling, swimming, general step accumulation, and unrelated activities do not count.
+Pick one way to record your distance and stay with it. You do not need an expensive
+watch, and you do not need to decide before you register.
 
-## Upload each activity to HelloRun
+- **Already have an app?** Strava, Garmin Connect, Apple Fitness, Samsung Health,
+  Google Fit, Fitbit, Nike Run Club, and Huawei Health all work.
+- **Only have a phone?** A built-in step counter or any free pedometer app is fine,
+  as long as its screen shows your distance.
+- **Not sure yet?** Choose "Not sure yet" during registration. You can decide any
+  time before your first activity.
+- **What it must record** — Distance at minimum, and elevation gain if your app
+  offers it.
 
-Submit each completed activity separately with an original, readable JPG, PNG, or WebP screenshot. Confirm the activity date, distance, activity type, tracking application or device, and elevation gain when available. Screenshots may look different across apps, but they must show enough information for a coordinator to validate the activity. Only approved, accurate, non-duplicate submissions within the activity window count toward official totals.
+## Step 2 — Move
 
-## Certificates and awarding
+Walk, run, or hike at any location and at your own pace. Break the 50 kilometers
+into as many activities as you like.
 
-Participants with at least **50 km of approved distance** receive a Finisher's Certificate. Participants with at least one approved activity who finish below 50 km receive a Certificate of Participation. The top-three award basis will be confirmed by the event coordinator and is not selected automatically by HelloRun.
+**These count:**
 
-Coordinators will finalize results and award decisions from **November 4 to 8, 2026**. Awarding is on **November 9, 2026** at the **CAS Little Theater**, in conjunction with the CNS Foundation Day celebration.
+- Walking
+- Running
+- Hiking
+
+**These do not count:**
+
+- Cycling
+- Swimming
+- General step accumulation that is not a recorded walk, run, or hike
+- Any other unrelated activity
+
+Approved distance keeps counting after you pass 50 kilometers, so you can carry on.
+
+## Step 3 — Upload each activity to HelloRun
+
+Submit every completed activity separately, each with its own screenshot. Do not
+combine several activities into one upload.
+
+**Your screenshot must show:**
+
+- The date of the activity
+- The distance covered
+- The activity type
+- The tracking app or device used
+- The elevation gain, when your app records it
+
+**File requirements:**
+
+- An original, readable JPG, PNG, or WebP image
+- Up to 5 MB
+
+Screenshots look different from app to app. That is fine, as long as a coordinator
+can read the details above. Only approved, accurate, non-duplicate submissions
+inside the activity window count toward your official total.
+
+## Step 4 — Certificates and awarding
+
+- **Finisher's Certificate** — At least **50 km** of approved distance.
+- **Certificate of Participation** — At least one approved activity, finishing
+  below 50 km.
+- **Top three** — The award basis will be confirmed by the event coordinator. It is
+  not selected automatically by HelloRun.
+
+Coordinators finalize results and award decisions from **November 4 to 8, 2026**.
+Awarding is on **November 9, 2026** at the **CAS Little Theater**, alongside the CNS
+Foundation Day celebration.
 `.trim();
 
 function buildCnsMoveMoreChallengeEventPayload({ organizerId, approvedBy, referenceCode, now = new Date() }) {
@@ -106,7 +165,7 @@ function buildCnsMoveMoreChallengeEventPayload({ organizerId, approvedBy, refere
     awardSettings: { rankingBasis: 'unconfirmed', autoSelectTopFinishers: false, topFinisherCount: 3 },
     participationCertificateEnabled: true,
     noActivityCertificateEnabled: false,
-    requiredRegistrationFields: ['mobile', 'department', 'position', 'preferred_fitness_app', 'leaderboard_consent'],
+    requiredRegistrationFields: ['department', 'leaderboard_consent'],
     feeMode: 'free',
     feeAmount: null,
     feeCurrency: 'PHP',

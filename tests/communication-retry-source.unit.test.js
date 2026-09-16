@@ -55,7 +55,12 @@ test('high-impact organizer workflow notifications use retry-backed delivery', (
   assert.match(organizerShopController, /await notifyWithRetry\('payment\.rejected'/);
   assert.match(submissionService, /notifyWithRetry\('result\.approved'/);
   assert.match(submissionService, /await notifyWithRetry\('result\.rejected'/);
-  assert.match(accumulatedActivityService, /await notifyWithRetry\(approved \? 'result\.approved' : 'result\.rejected'/);
+  // The accumulated branch now picks between three keys (a reversal is announced as a
+  // withdrawal, not a rejection). What matters here is unchanged: retry-backed delivery.
+  assert.match(accumulatedActivityService, /await notifyWithRetry\(approved \? 'result\.approved' :/);
+  assert.match(accumulatedActivityService, /'result\.approval_reversed'/);
+  assert.match(submissionService, /notifyWithRetry\('result\.approval_reversed'/);
+  assert.doesNotMatch(accumulatedActivityService, /await communicationService\.notify\('result\./);
 });
 
 test('admin communications exposes retry queue inspection and manual retry', () => {

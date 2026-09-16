@@ -1,7 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildPublicEventRunnerState } = require('../src/services/public-event-detail.service');
+const {
+  buildPublicEventRunnerState,
+  buildPublicEventRegistrationSummary
+} = require('../src/services/public-event-detail.service');
 const { parseDistanceLabelKm } = require('../src/services/accumulated-target.service');
 
 const NOW = new Date('2026-07-17T04:00:00.000Z');
@@ -289,4 +292,66 @@ test('missing accumulated targets remain explicit instead of fabricating progres
   assert.equal(state.progressPercentage, null);
   assert.equal(state.progressLabel, 'Ranking only — no completion goal');
   assert.equal(state.remainingDistanceLabel, 'Goal not listed');
+});
+
+// --- Registered state on the public event page, for non-accumulated formats -------------
+//
+// History: the page built its CTA from registration-window state alone, so a runner who
+// was already registered for a race-result event still saw a live Register CTA and only
+// discovered the duplicate on the registration form, which refuses it.
+
+test('a registered runner gets a clear registered summary', () => {
+  const summary = buildPublicEventRegistrationSummary({
+    event: buildEvent({ virtualCompletionMode: 'single_activity', feeMode: 'free' }),
+    registration: buildRegistration({ raceDistance: '10K', status: 'confirmed' })
+  });
+
+  assert.equal(summary.ctaLabel, 'You are registered');
+  assert.equal(summary.awaitingPayment, false);
+  assert.equal(summary.confirmationCode, 'HR-JULY25');
+  assert.match(summary.message, /10K place is saved/);
+  assert.equal(summary.actionHref, '/my-registrations');
+  assert.equal(summary.actionLabel, 'View My Registration');
+});
+
+test('an unpaid registration on a paid event asks for payment instead of re-registration', () => {
+  const summary = buildPublicEventRegistrationSummary({
+    event: buildEvent({ virtualCompletionMode: 'single_activity', feeMode: 'paid' }),
+    registration: buildRegistration({ status: 'pending_payment', paymentStatus: 'unpaid' })
+  });
+
+  assert.equal(summary.awaitingPayment, true);
+  assert.equal(summary.proofUnderReview, false);
+  assert.equal(summary.ctaLabel, 'Payment pending');
+  assert.equal(summary.actionLabel, 'Complete Payment');
+  assert.match(summary.title, /needs payment/i);
+});
+
+test('a submitted payment proof reads as under review, not as unpaid', () => {
+  const summary = buildPublicEventRegistrationSummary({
+    event: buildEvent({ virtualCompletionMode: 'single_activity', feeMode: 'paid' }),
+    registration: buildRegistration({ status: 'pending_payment', paymentStatus: 'proof_submitted' })
+  });
+
+  assert.equal(summary.proofUnderReview, true);
+  assert.match(summary.title, /awaiting payment review/i);
+  assert.match(summary.message, /reviewing your payment proof/i);
+});
+
+test('a confirmed registration on a paid event is not nagged for payment', () => {
+  const summary = buildPublicEventRegistrationSummary({
+    event: buildEvent({ virtualCompletionMode: 'single_activity', feeMode: 'paid' }),
+    registration: buildRegistration({ status: 'confirmed', paymentStatus: 'paid' })
+  });
+
+  assert.equal(summary.awaitingPayment, false);
+  assert.equal(summary.ctaLabel, 'You are registered');
+});
+
+test('a runner with no registration has no summary', () => {
+  assert.equal(buildPublicEventRegistrationSummary({
+    event: buildEvent({ virtualCompletionMode: 'single_activity' }),
+    registration: null
+  }), null);
+  assert.equal(buildPublicEventRegistrationSummary(), null);
 });

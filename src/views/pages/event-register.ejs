@@ -209,21 +209,61 @@
                 <% if (errors.pricing) { %><small class="error-text" id="registrationPricingError"><%= errors.pricing %></small><% } %>
               </fieldset>
 
-              <% const requiredFields = new Set(event.requiredRegistrationFields || []); %>
-              <% if (requiredFields.size) { %>
+              <%
+                // Each participant field is asked for only when the event lists it. Showing
+                // the whole set whenever any one was listed meant an event that wanted a
+                // department also collected a contact number and a job title it never used.
+                const requiredFields = new Set(event.requiredRegistrationFields || []);
+                const showLeaderboardChoice = requiredFields.has('leaderboard_consent');
+                const participantFieldCount = ['mobile', 'department', 'position'].filter((field) => requiredFields.has(field)).length;
+              %>
+              <% if (participantFieldCount || showLeaderboardChoice) { %>
                 <fieldset class="registration-choice-group" id="participantEventDetails">
                   <legend>Participant details</legend>
+                  <% if (participantFieldCount) { %>
                   <div class="register-field-grid">
-                    <div class="form-group <%= errors.mobile ? 'has-error' : '' %>"><label for="mobile">Contact number</label><input id="mobile" name="mobile" type="tel" maxlength="25" value="<%= formData.mobile || '' %>" <%= requiredFields.has('mobile') ? 'required' : '' %>><% if (errors.mobile) { %><small class="error-text"><%= errors.mobile %></small><% } %></div>
-                    <div class="form-group <%= errors.department ? 'has-error' : '' %>"><label for="department">Department or office</label><input id="department" name="department" maxlength="120" value="<%= formData.department || '' %>" <%= requiredFields.has('department') ? 'required' : '' %>><% if (errors.department) { %><small class="error-text"><%= errors.department %></small><% } %></div>
-                    <div class="form-group <%= errors.position ? 'has-error' : '' %>"><label for="position">Position or designation</label><input id="position" name="position" maxlength="120" value="<%= formData.position || '' %>" <%= requiredFields.has('position') ? 'required' : '' %>><% if (errors.position) { %><small class="error-text"><%= errors.position %></small><% } %></div>
-                    <div class="form-group <%= errors.preferredFitnessApp ? 'has-error' : '' %>"><label for="preferredFitnessApp">Preferred tracking app or device</label><input id="preferredFitnessApp" name="preferredFitnessApp" maxlength="80" value="<%= formData.preferredFitnessApp || '' %>" placeholder="Strava, Garmin, COROS, or another tracker" <%= requiredFields.has('preferred_fitness_app') ? 'required' : '' %>><% if (errors.preferredFitnessApp) { %><small class="error-text"><%= errors.preferredFitnessApp %></small><% } %></div>
+                    <% if (requiredFields.has('mobile')) { %><div class="form-group <%= errors.mobile ? 'has-error' : '' %>"><label for="mobile">Contact number</label><input id="mobile" name="mobile" type="tel" maxlength="25" value="<%= formData.mobile || '' %>" required><% if (errors.mobile) { %><small class="error-text"><%= errors.mobile %></small><% } %></div><% } %>
+                    <% if (requiredFields.has('department')) { %><div class="form-group <%= errors.department ? 'has-error' : '' %>"><label for="department">Department or office</label><input id="department" name="department" maxlength="120" value="<%= formData.department || '' %>" required><% if (errors.department) { %><small class="error-text"><%= errors.department %></small><% } %></div><% } %>
+                    <% if (requiredFields.has('position')) { %><div class="form-group <%= errors.position ? 'has-error' : '' %>"><label for="position">Position or designation</label><input id="position" name="position" maxlength="120" value="<%= formData.position || '' %>" required><% if (errors.position) { %><small class="error-text"><%= errors.position %></small><% } %></div><% } %>
                   </div>
+                  <% } %>
+                  <% if (showLeaderboardChoice) { %>
                   <label class="form-group" for="leaderboardDisplayPreference">Leaderboard name display
                     <select id="leaderboardDisplayPreference" name="leaderboardDisplayPreference"><option value="full_name" <%= formData.leaderboardDisplayPreference === 'full_name' ? 'selected' : '' %>>Full name</option><option value="abbreviated" <%= formData.leaderboardDisplayPreference === 'abbreviated' ? 'selected' : '' %>>First name and last initial</option><option value="hidden" <%= formData.leaderboardDisplayPreference === 'hidden' ? 'selected' : '' %>>Do not show me</option></select>
                   </label>
                   <label class="waiver-checkbox-row" for="consentToLeaderboard"><input id="consentToLeaderboard" name="consentToLeaderboard" type="checkbox" value="1" <%= formData.consentToLeaderboard ? 'checked' : '' %> aria-invalid="<%= errors.consentToLeaderboard ? 'true' : 'false' %>"><span>I consent to the selected leaderboard display. I can opt out by choosing “Do not show me.”</span></label>
                   <% if (errors.consentToLeaderboard) { %><small class="error-text"><%= errors.consentToLeaderboard %></small><% } %>
+                  <% } %>
+                </fieldset>
+              <% } %>
+
+              <%
+                // `typeof` guard, as with csrfToken above: during a rolling restart the view
+                // is read fresh from disk while an older controller is still in memory and
+                // passes no option list. Degrade to hiding the field rather than 500ing.
+                const availableTrackingAppOptions = typeof trackingAppOptions !== 'undefined' && Array.isArray(trackingAppOptions)
+                  ? trackingAppOptions
+                  : [];
+                const showTrackingApps = event.requireTrackingAppDevice === true || requiredFields.has('preferred_fitness_app');
+              %>
+              <% if (showTrackingApps && availableTrackingAppOptions.length) { %>
+                <% const selectedTrackingApps = formData.preferredTrackingApps || []; %>
+                <fieldset class="registration-choice-group registration-tracking-apps <%= errors.preferredTrackingApps ? 'has-error' : '' %>" id="participantTrackingApps" data-tracking-apps>
+                  <legend>Preferred tracking app or device <span class="registration-optional-hint">(optional)</span></legend>
+                  <p class="choice-helper" id="trackingAppsHelp">New to tracking apps? Choose &ldquo;Not sure yet&rdquo; &mdash; this does not affect your registration, and you can decide any time before your first activity. Pick as many as you like.</p>
+                  <div class="registration-tracking-app-grid" role="group" aria-describedby="trackingAppsHelp">
+                    <% availableTrackingAppOptions.forEach((option) => { %>
+                      <label class="registration-tracking-app-option" for="trackingApp-<%= option.id %>">
+                        <input type="checkbox" id="trackingApp-<%= option.id %>" name="preferredTrackingApps" value="<%= option.id %>" data-tracking-app-choice="<%= option.id %>" <%= selectedTrackingApps.includes(option.id) ? 'checked' : '' %>>
+                        <span><%= option.label %></span>
+                      </label>
+                    <% }); %>
+                  </div>
+                  <div class="form-group registration-tracking-app-other" data-tracking-app-other>
+                    <label for="preferredTrackingAppOther">Which app or device do you use?</label>
+                    <input id="preferredTrackingAppOther" name="preferredTrackingAppOther" maxlength="80" value="<%= formData.preferredTrackingAppOther || '' %>" placeholder="For example: COROS, Polar Flow, Suunto">
+                  </div>
+                  <% if (errors.preferredTrackingApps) { %><small class="error-text"><%= errors.preferredTrackingApps %></small><% } %>
                 </fieldset>
               <% } %>
 
@@ -438,6 +478,7 @@
               <div data-dialog-package-row hidden><dt>Package</dt><dd data-dialog-package>—</dd></div>
               <div data-dialog-addons-row hidden><dt>Add-ons</dt><dd data-dialog-addons>—</dd></div>
               <div class="registration-dialog-total"><dt><%= String(event.feeMode || '').trim() === 'paid' ? 'Total' : 'Registration' %></dt><dd data-dialog-total>—</dd></div>
+              <div data-dialog-tracking-row hidden><dt>Tracking</dt><dd data-dialog-tracking>—</dd></div>
               <div><dt>Waiver</dt><dd data-dialog-waiver>Not confirmed</dd></div>
             </dl>
             <p class="registration-dialog-note">Submitting creates the registration using the server-validated price and current event rules.</p>

@@ -62,6 +62,7 @@
         <option value="" <%= !selectedStatus ? 'selected' : '' %>>All</option>
         <option value="draft" <%= selectedStatus === 'draft' ? 'selected' : '' %>>Draft</option>
         <option value="pending" <%= selectedStatus === 'pending' ? 'selected' : '' %>>Pending</option>
+        <option value="scheduled" <%= selectedStatus === 'scheduled' ? 'selected' : '' %>>Scheduled</option>
         <option value="published" <%= selectedStatus === 'published' ? 'selected' : '' %>>Published</option>
         <option value="rejected" <%= selectedStatus === 'rejected' ? 'selected' : '' %>>Rejected</option>
         <option value="archived" <%= selectedStatus === 'archived' ? 'selected' : '' %>>Archived</option>
@@ -89,6 +90,9 @@
             <p style="margin: 0.55rem 0 0; color: #64748b; font-size: 0.85rem;">
               Updated: <%= post.updatedAt ? new Date(post.updatedAt).toLocaleString('en-US') : 'N/A' %>
             </p>
+            <% if (post.status === 'scheduled' && post.scheduledFor) { %>
+              <p style="margin: 0.35rem 0 0; color: #475569; font-size: 0.85rem;"><strong>Scheduled:</strong> <%= new Date(post.scheduledFor).toLocaleString('en-US') %></p>
+            <% } %>
             <div class="dash-metrics">
               <span class="dash-metric"><strong><%= Number(post.views || 0).toLocaleString('en-US') %></strong> views</span>
               <span class="dash-metric"><strong><%= Number(post.likesCount || 0).toLocaleString('en-US') %></strong> likes</span>
@@ -124,6 +128,15 @@
                   <form method="POST" action="/blogs/me/<%= post._id %>/revision/discard-form" style="display: inline;" onsubmit="return confirm('Discard the saved revision draft?');">
                     <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                     <button type="submit" class="dash-btn dash-btn-danger dash-btn-sm">Discard Revision</button>
+                  </form>
+                <% } %>
+              <% } %>
+              <% if (post.status === 'scheduled') { %>
+                <a href="/blogs/me/<%= post._id %>/edit" class="dash-btn dash-btn-secondary dash-btn-sm">Propose Update</a>
+                <% if (post.activeRevisionStatus === 'draft' || post.activeRevisionStatus === 'rejected') { %>
+                  <form method="POST" action="/blogs/me/<%= post._id %>/revision/discard-form" style="display: inline;" onsubmit="return confirm('Discard the proposed update?');">
+                    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                    <button type="submit" class="dash-btn dash-btn-danger dash-btn-sm">Discard Proposed Update</button>
                   </form>
                 <% } %>
               <% } %>

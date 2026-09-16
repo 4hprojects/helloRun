@@ -2312,7 +2312,7 @@ async function main() {
         : author;
       const payload = buildPostPayload(post, postAuthor, index);
       const existing = await Blog.findOne({ slug: post.slug })
-        .select('_id title status approvedAt publishedAt publicationReview contentRisk searchIndexingStatus searchIndexingReason indexingReview')
+        .select('_id title status approvedAt scheduledFor publishedAt publicationReview contentRisk searchIndexingStatus searchIndexingReason indexingReview')
         .lean();
       preservePublishedSeedState(payload, existing);
       results.push({
@@ -2423,7 +2423,8 @@ function buildPostPayload(post, author, index) {
     seoDescription: post.seoDescription || post.excerpt,
     ogImageUrl: post.ogImageUrl || coverImageUrl,
     isDeleted: false,
-    publishedAt,
+    scheduledFor: post.status === 'scheduled' ? publishedAt : null,
+    publishedAt: post.status === 'scheduled' ? null : publishedAt,
     approvedAt: post.status === 'scheduled' ? null : publishedAt,
     rejectionReason: '',
     moderationNotes: '',
@@ -2444,7 +2445,11 @@ function preservePublishedSeedState(payload, existing) {
   if (!payload || !existing) return payload;
   if (payload.status === 'scheduled' && existing.status === 'published') {
     payload.status = 'published';
-    payload.approvedAt = existing.approvedAt || existing.publishedAt || payload.publishedAt;
+    payload.scheduledFor = null;
+    payload.publishedAt = existing.publishedAt || null;
+    payload.approvedAt = existing.approvedAt || existing.publishedAt || payload.approvedAt;
+  } else if (payload.status === 'scheduled' && existing.status === 'scheduled') {
+    payload.approvedAt = existing.approvedAt || existing.publicationReview?.reviewedAt || null;
   }
   payload.publicationReview = existing.publicationReview || payload.publicationReview;
   payload.contentRisk = existing.contentRisk || payload.contentRisk;

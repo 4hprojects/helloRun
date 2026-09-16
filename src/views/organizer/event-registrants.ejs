@@ -170,12 +170,70 @@
               </div>
               <div class="organizer-roster-record-details" id="<%= detailId %>">
                 <section><h3>Runner profile</h3><dl><div><dt>Mobile</dt><dd><%= registration.participant?.mobile || 'Not provided' %></dd></div><div><dt>Country</dt><dd><%= registration.participant?.countryLabel || 'Not provided' %></dd></div><div><dt>Age</dt><dd><%= registration.participant?.ageLabel || 'Not provided' %></dd></div><div><dt>Gender</dt><dd><%= registration.participant?.genderLabel || 'Not provided' %></dd></div><div><dt>Running group</dt><dd><%= registration.participant?.runningGroup || 'Not provided' %></dd></div><div><dt>Emergency contact</dt><dd><%= registration.participant?.emergencyContactName || 'Not provided' %><% if (registration.participant?.emergencyContactNumber) { %><br><small><%= registration.participant.emergencyContactNumber %></small><% } %></dd></div></dl><noscript><form method="POST" action="<%= basePath %>/<%= registration._id %>/send-message" class="organizer-roster-noscript-message"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><label>Subject<input name="subject" maxlength="200"></label><label>Message<textarea name="message" maxlength="1000" required></textarea></label><button type="submit" class="nav-login-btn">Send message</button></form></noscript></section>
-                <section><h3>Registration</h3><dl><div><dt>Mode</dt><dd><%= registration.participationMode %></dd></div><div><dt>Distance</dt><dd><%= registration.raceDistance %></dd></div><div><dt>Package</dt><dd><%= registration.pricingSnapshot?.packageName || 'None' %></dd></div><div><dt>Signup option</dt><dd><%= registration.signupOptionLabel || 'None' %></dd></div><div><dt>Pricing period</dt><dd><%= registration.pricingPeriodLabel || 'None' %></dd></div><div><dt>Add-ons</dt><dd><%= (registration.addOns || []).length ? registration.addOns.map((item) => `${item.quantity || 1}× ${item.name}`).join(', ') : 'None' %></dd></div><div><dt>Waiver</dt><dd>Version <%= registration.waiver?.version || 'N/A' %> · <%= registration.waiver?.signature || 'No signature' %><% if (registration.waiverAcceptedAtLabel) { %><br><small>Accepted <%= registration.waiverAcceptedAtLabel %></small><% } %></dd></div></dl>
+                <section><h3>Registration</h3><dl><div><dt>Mode</dt><dd><%= registration.participationMode %></dd></div><div><dt>Distance</dt><dd><%= registration.raceDistance %></dd></div><div><dt>Package</dt><dd><%= registration.pricingSnapshot?.packageName || 'None' %></dd></div><div><dt>Signup option</dt><dd><%= registration.signupOptionLabel || 'None' %></dd></div><div><dt>Pricing period</dt><dd><%= registration.pricingPeriodLabel || 'None' %></dd></div><div><dt>Add-ons</dt><dd><%= (registration.addOns || []).length ? registration.addOns.map((item) => `${item.quantity || 1}× ${item.name}`).join(', ') : 'None' %></dd></div><div><dt>Leaderboard</dt><dd><%= leaderboardStateLabel(registration) %><% if (registration.consentToLeaderboard === false) { %><br><small>Consent not given</small><% } %></dd></div><div><dt>Waiver</dt><dd>Version <%= registration.waiver?.version || 'N/A' %> · <%= registration.waiver?.signature || 'No signature' %><% if (registration.waiverAcceptedAtLabel) { %><br><small>Accepted <%= registration.waiverAcceptedAtLabel %></small><% } %></dd></div></dl>
                   <% if (registration.cancellationRequestedAt) { %>
                     <p class="organizer-roster-cancel-requested">
                       This runner asked to cancel<% if (registration.cancellationRequestReason) { %> — <%= registration.cancellationRequestReason %><% } %>.
                       Nothing is cancelled until you do it below, including anything owed back.
                     </p>
+                  <% } %>
+                  <% if (registration.status !== 'cancelled') { %>
+                    <details class="organizer-roster-edit">
+                      <summary>Edit leaderboard and details</summary>
+                      <form method="POST" action="<%= basePath %>/<%= registration._id %>/details" class="organizer-roster-edit-form">
+                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+
+                        <fieldset>
+                          <legend>Leaderboard</legend>
+                          <label>Show this runner as
+                            <select name="leaderboardDisplayPreference">
+                              <% leaderboardDisplayOptions.forEach((option) => { %>
+                                <option value="<%= option.value %>" <%= (registration.leaderboardDisplayPreference || 'full_name') === option.value ? 'selected' : '' %>><%= option.label %></option>
+                              <% }); %>
+                            </select>
+                          </label>
+                          <label class="organizer-roster-edit-check"><input type="checkbox" name="consentToLeaderboard" value="1" <%= registration.consentToLeaderboard !== false ? 'checked' : '' %>><span>The runner consents to being shown on the public leaderboard. Clear this, or choose &ldquo;Do not show&rdquo;, to keep them off it.</span></label>
+                        </fieldset>
+
+                        <fieldset>
+                          <legend>Name on this registration</legend>
+                          <div class="organizer-roster-edit-grid">
+                            <label>First name<input name="firstName" maxlength="60" value="<%= registration.participant?.firstName || '' %>"></label>
+                            <label>Last name<input name="lastName" maxlength="60" value="<%= registration.participant?.lastName || '' %>"></label>
+                          </div>
+                          <p class="organizer-roster-edit-note">This corrects the registration record, the roster and the exports. If this runner has a HelloRun account, their leaderboard name and certificate follow their account profile instead, which only they can change.</p>
+                        </fieldset>
+
+                        <fieldset>
+                          <legend>Contact details</legend>
+                          <div class="organizer-roster-edit-grid">
+                            <label>Contact number<input name="mobile" type="tel" maxlength="25" value="<%= registration.participant?.mobile || '' %>"></label>
+                            <label>Department or office<input name="department" maxlength="120" value="<%= registration.participant?.department || '' %>"></label>
+                            <label>Position or designation<input name="position" maxlength="120" value="<%= registration.participant?.position || '' %>"></label>
+                            <label>Running group<input name="runningGroup" maxlength="120" value="<%= registration.participant?.runningGroup || '' %>"></label>
+                            <label>Emergency contact name<input name="emergencyContactName" maxlength="120" value="<%= registration.participant?.emergencyContactName || '' %>"></label>
+                            <label>Emergency contact number<input name="emergencyContactNumber" type="tel" maxlength="25" value="<%= registration.participant?.emergencyContactNumber || '' %>"></label>
+                          </div>
+                        </fieldset>
+
+                        <% const selectedTrackingApps = registration.participant?.preferredTrackingApps || []; %>
+                        <fieldset>
+                          <legend>Tracking app or device</legend>
+                          <div class="organizer-roster-edit-checks">
+                            <% (trackingAppOptions || []).forEach((option) => { %>
+                              <label><input type="checkbox" name="preferredTrackingApps" value="<%= option.id %>" <%= selectedTrackingApps.includes(option.id) ? 'checked' : '' %>><span><%= option.label %></span></label>
+                            <% }); %>
+                          </div>
+                          <label>If &ldquo;Other&rdquo;, which one<input name="preferredTrackingAppOther" maxlength="80" value="<%= registration.participant?.preferredTrackingAppOther || '' %>"></label>
+                        </fieldset>
+
+                        <label class="organizer-roster-edit-reason">Reason for this change (required, recorded in the audit log)
+                          <input name="reason" maxlength="500" required placeholder="For example: the runner asked to be added to the leaderboard">
+                        </label>
+                        <p class="organizer-roster-edit-note">The runner is notified that you changed their registration.</p>
+                        <button type="submit" class="nav-signup-btn">Save changes</button>
+                      </form>
+                    </details>
                   <% } %>
                   <% if (!isAdminViewer && ['pending_payment', 'paid', 'confirmed'].includes(registration.status)) { %>
                     <form method="POST" action="<%= basePath %>/<%= registration._id %>/cancel" class="organizer-roster-cancel-form" data-high-risk-confirm data-confirm-title="Cancel this registration" data-confirm-target="<%= runnerName %>" data-confirm-impact="Frees the category slot, voids any assigned bib so it can be reissued, and notifies the runner." data-confirm-reversibility="The runner would have to register again; this cannot be undone here." data-confirm-privilege="Event organiser" data-confirm-button="Cancel registration">

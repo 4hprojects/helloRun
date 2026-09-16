@@ -57,6 +57,21 @@
     const setText = (selector, value) => document.querySelectorAll(selector).forEach((node) => { node.textContent = value; });
     const setRow = (selector, visible) => document.querySelectorAll(selector).forEach((node) => { node.hidden = !visible; });
 
+    // Optional tracking selection, echoed back in the confirm dialog.
+    const getTrackingAppSummary = () => {
+      const boxes = Array.from(document.querySelectorAll('[data-tracking-app-choice]:checked'));
+      if (!boxes.length) return '';
+      const otherText = document.getElementById('preferredTrackingAppOther')?.value?.trim() || '';
+      return boxes
+        .map((box) => {
+          const label = box.closest('label')?.querySelector('span')?.textContent?.trim() || '';
+          if (box.dataset.trackingAppChoice !== 'other') return label;
+          return otherText ? `Other: ${otherText}` : 'Other';
+        })
+        .filter(Boolean)
+        .join(', ');
+    };
+
     const getSelectionSummary = () => {
       const mode = findByValue(data.modes, fieldValue('participationMode'));
       const distance = findByValue(data.distances, fieldValue('raceDistance'));
@@ -111,6 +126,10 @@
       setRow('[data-review-option-row], [data-dialog-option-row]', Boolean(summary.optionLabel));
       setRow('[data-review-package-row], [data-dialog-package-row]', Boolean(summary.packageLabel));
       setRow('[data-review-addons-row], [data-dialog-addons-row]', summary.addOns.length > 0);
+
+      const trackingLabel = getTrackingAppSummary();
+      setText('[data-dialog-tracking]', trackingLabel || '—');
+      setRow('[data-dialog-tracking-row]', Boolean(trackingLabel));
     };
 
     const normalizeName = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -200,6 +219,42 @@
       if (emergencyFields) emergencyFields.hidden = isVirtual;
     };
 
+    // The tracking-app field is optional. "Other" reveals its own text box, and
+    // "Not sure yet" is exclusive: it is an answer on its own, not a qualifier.
+    const trackingAppsGroup = document.querySelector('[data-tracking-apps]');
+    const trackingAppOther = trackingAppsGroup?.querySelector('[data-tracking-app-other]') || null;
+    const trackingAppOtherInput = document.getElementById('preferredTrackingAppOther');
+
+    const trackingAppBoxes = () => Array.from(
+      trackingAppsGroup?.querySelectorAll('[data-tracking-app-choice]') || []
+    );
+
+    const updateTrackingAppVisibility = () => {
+      if (!trackingAppsGroup || !trackingAppOther) return;
+      const otherChecked = Boolean(
+        trackingAppsGroup.querySelector('[data-tracking-app-choice="other"]')?.checked
+      );
+      trackingAppOther.hidden = !otherChecked;
+      if (!otherChecked && trackingAppOtherInput) trackingAppOtherInput.value = '';
+    };
+
+    const applyTrackingAppExclusivity = (changed) => {
+      if (!trackingAppsGroup || !changed?.checked) return;
+      const isUndecided = changed.dataset.trackingAppChoice === 'undecided';
+      trackingAppBoxes().forEach((box) => {
+        if (box === changed) return;
+        const boxIsUndecided = box.dataset.trackingAppChoice === 'undecided';
+        if (isUndecided || boxIsUndecided) box.checked = false;
+      });
+    };
+
+    trackingAppsGroup?.addEventListener('change', (event) => {
+      const changed = event.target.closest('[data-tracking-app-choice]');
+      if (!changed) return;
+      applyTrackingAppExclusivity(changed);
+      updateTrackingAppVisibility();
+    });
+
     form.addEventListener('input', () => {
       updateReview();
       clearClientErrors();
@@ -274,6 +329,7 @@
     });
 
     updateEmergencyContactVisibility();
+    updateTrackingAppVisibility();
     updateReview();
   };
 

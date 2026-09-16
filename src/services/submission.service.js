@@ -24,7 +24,6 @@ const { evaluatePublishedRankingAchievements } = require('./achievement.service'
 const { syncSubmissionShadow } = require('./submission-shadow.service');
 const { recordSyncFailureInBackground } = require('./sync-failure.service');
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
-const { isOwnOrganizerEvent } = require('../utils/workspace');
 const { resolveEventAccess } = require('./event-access.service');
 
 const APPROVABLE_STATUS = new Set(['submitted', 'rejected']);
@@ -119,10 +118,6 @@ async function createSubmission({
 async function editRejectedSubmissionMetadata({ submissionId, runnerId, distanceKm, elapsedMs, runDate, runLocation, runType }) {
   const submission = await Submission.findOne({ _id: submissionId, runnerId });
   if (!submission) throw new Error('Submission not found or you do not have access.');
-  await assertNoOwnOrganizerEventParticipation({
-    registrationId: submission.registrationId,
-    runnerId
-  });
   if (submission.status !== 'rejected') throw new Error('Only rejected submissions can have their details updated.');
   if (String(submission.source || '') === 'strava') throw new Error('Strava submission metadata cannot be edited manually.');
 
@@ -363,7 +358,11 @@ async function reviewSubmission({
   rejectionCode,
   checklistVersion,
   verifiedCriteria,
-  requireVerification = false
+  requireVerification = false,
+  // Ordinary review treats an approved result as final. Reversing one is a separate,
+  // separately-audited capability that unwinds the certificate, badges and ranking, so
+  // it opts in explicitly rather than widening REJECTABLE_STATUS for every caller.
+  allowApprovedReversal = false
 }) {
   const safeAction = String(action || '').trim().toLowerCase();
   if (safeAction !== 'approve' && safeAction !== 'reject') {
@@ -374,10 +373,13 @@ async function reviewSubmission({
   if (!submission) {
     throw new Error('Submission not found.');
   }
+  const isApprovalReversal = safeAction === 'reject'
+    && submission.status === 'approved'
+    && allowApprovedReversal === true;
   if (safeAction === 'approve' && !APPROVABLE_STATUS.has(submission.status)) {
     throw new Error('Only submitted or rejected results can be approved.');
   }
-  if (safeAction === 'reject' && !REJECTABLE_STATUS.has(submission.status)) {
+  if (safeAction === 'reject' && !REJECTABLE_STATUS.has(submission.status) && !isApprovalReversal) {
     throw new Error('Only submitted results can be rejected.');
   }
 
@@ -392,6 +394,11 @@ async function reviewSubmission({
   if (!isAdminReviewer && !await resolveEventAccess({ eventId: event._id, userId: organizerId, userRole: normalizedReviewerRole })) {
     throw new Error('Submission not found or inaccessible.');
   }
+  // Organisers and co-organisers may join events they manage, so a reviewer can be the
+  // runner. Blocking that deadlocked a sole organiser with no co-organiser, so self-review
+  // is allowed and recorded instead. See the extra audit event below.
+  const isSelfReview = Boolean(submission.runnerId)
+    && String(submission.runnerId) === String(organizerId || '');
 
   const previousStatus = submission.status;
   const reviewedAt = new Date();
@@ -438,14 +445,20 @@ async function reviewSubmission({
     throw new Error(
       safeAction === 'approve'
         ? 'Only submitted or rejected results can be approved.'
-        : 'Only submitted results can be rejected.'
+        : isApprovalReversal
+          ? 'This result was already reviewed by someone else. Refresh and try again.'
+          : 'Only submitted results can be rejected.'
     );
   }
 
   syncSubmissionShadowInBackground(reviewedSubmission);
   recordCriticalAuditEventInBackground({
     actorMongoUserId: organizerId,
-    action: safeAction === 'approve' ? 'submission.approved' : 'submission.rejected',
+    // A reversal gets its own action so it is not read as an ordinary rejection, and so
+    // it does not feed the rejection-volume anomaly alarm.
+    action: safeAction === 'approve'
+      ? 'submission.approved'
+      : isApprovalReversal ? 'submission.approval_reversed' : 'submission.rejected',
     targetType: 'submission',
     targetId: String(reviewedSubmission._id),
     statusFrom: previousStatus,
@@ -455,10 +468,29 @@ async function reviewSubmission({
       : (reviewedSubmission.rejectionReason || reviewedSubmission.reviewNotes),
     occurredAt: reviewedSubmission.reviewedAt
   });
+  if (isSelfReview) {
+    // A second row alongside the normal approve/reject event. Renaming the original action
+    // would fragment the existing audit filters and the rejection-volume detector; an extra
+    // row keeps self-reviews independently countable.
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: organizerId,
+      action: 'submission.self_reviewed',
+      targetType: 'submission',
+      targetId: String(reviewedSubmission._id),
+      statusFrom: previousStatus,
+      statusTo: reviewedSubmission.status,
+      notes: `Reviewer is the runner on this entry (${safeAction}).`,
+      occurredAt: reviewedSubmission.reviewedAt
+    });
+  }
   if (safeAction === 'approve') {
     await applyApprovedSubmissionEffects(reviewedSubmission, event, { performedBy: organizerId });
   } else {
-    const backgroundTask = attachCertAndNotifyInBackground(reviewedSubmission, safeAction, event.title || 'Event');
+    const backgroundTask = attachCertAndNotifyInBackground(
+      reviewedSubmission,
+      isApprovalReversal ? 'reverse' : safeAction,
+      event.title || 'Event'
+    );
     if (runSubmissionBackgroundTasksInline) {
       await backgroundTask;
     }
@@ -728,20 +760,17 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
   const limit = clampInt(options.limit, 1, 100, 30);
   const now = options.now instanceof Date ? options.now : new Date();
 
-  const [registrations, runner] = await Promise.all([
-    Registration.find({
-      userId: runnerId,
-      paymentStatus: 'paid',
-      status: 'confirmed'
+  const registrations = await Registration.find({
+    userId: runnerId,
+    paymentStatus: 'paid',
+    status: 'confirmed'
+  })
+    .sort({ registeredAt: -1 })
+    .populate({
+      path: 'eventId',
+      select: 'title slug status organizerId eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps raceCategories targetDistanceKm minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt'
     })
-      .sort({ registeredAt: -1 })
-      .populate({
-        path: 'eventId',
-        select: 'title slug status organizerId eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps raceCategories targetDistanceKm minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt'
-      })
-      .lean(),
-    User.findById(runnerId).select('role').lean()
-  ]);
+    .lean();
 
   const registrationIds = registrations.map((item) => item?._id).filter(Boolean);
   const submissions = registrationIds.length
@@ -756,7 +785,6 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
   const eligibleRegistrations = registrations
     .filter((registration) => {
       if (!registration?.eventId) return false;
-      if (isOwnOrganizerEvent(runner, registration.eventId)) return false;
       if (!isSubmissionWindowOpen({ registration, event: registration.eventId, now })) return false;
 
       const submission = submissionByRegistrationId.get(String(registration._id));
@@ -848,10 +876,6 @@ async function getEligibleRunnerRegistration({ registrationId, runnerId }) {
   if (!event || event.isDeleted || event.status !== 'published') {
     throw new Error('Event not found for this registration.');
   }
-  const runner = await User.findById(runnerId).select('role').lean();
-  if (isOwnOrganizerEvent(runner, event)) {
-    throw new Error('Organizers cannot submit results to events they manage.');
-  }
   if (!isSubmissionWindowOpen({ registration, event })) {
     throw new Error('Event is not currently accepting result submissions.');
   }
@@ -860,19 +884,6 @@ async function getEligibleRunnerRegistration({ registrationId, runnerId }) {
     ...registration,
     resultProofMinimumDistanceKm: getStandardSubmissionMinimumDistanceKm(registration, event)
   };
-}
-
-async function assertNoOwnOrganizerEventParticipation({ registrationId, runnerId }) {
-  if (!registrationId) return;
-  const [registration, runner] = await Promise.all([
-    Registration.findById(registrationId).select('eventId').lean(),
-    User.findById(runnerId).select('role').lean()
-  ]);
-  if (!registration || !runner || runner.role !== 'organiser') return;
-  const event = await Event.findById(registration.eventId).select('organizerId').lean();
-  if (isOwnOrganizerEvent(runner, event)) {
-    throw new Error('Organizers cannot submit results to events they manage.');
-  }
 }
 
 async function createPersonalRecordSubmission({
@@ -1640,6 +1651,41 @@ async function sendRunnerReviewNotifications({
       return;
     }
 
+    if (action === 'reverse') {
+      // The ordinary rejection copy tells the runner to resubmit, which is the wrong
+      // thing to say when a result they were already credited for has been withdrawn.
+      await notifyWithRetry('result.approval_reversed', {
+        notification: {
+          userId: submission.runnerId,
+          type: 'result_approval_reversed',
+          title: 'Approved result withdrawn',
+          message: `Your approved result for ${eventTitle} was reviewed again and is no longer approved.`,
+          href: `/runner/submissions/${String(submission._id)}`,
+          metadata: {
+            submissionId: String(submission._id),
+            registrationId: String(submission.registrationId || ''),
+            eventTitle
+          }
+        },
+        email: runner.email ? {
+          to: runner.email,
+          firstName: runnerFirstName,
+          eventTitle,
+          confirmationCode,
+          rejectionReason: submission.rejectionReason || '',
+          reviewNotes: submission.reviewNotes || '',
+          recipientUserId: submission.runnerId,
+          metadata: {
+            submissionId: String(submission._id),
+            registrationId: String(submission.registrationId || '')
+          }
+        } : null
+      }, {
+        source: 'submission.approval_reversed'
+      });
+      return;
+    }
+
     if (action === 'reject') {
       await notifyWithRetry('result.rejected', {
         notification: {
@@ -1840,6 +1886,7 @@ function __setDisableSubmissionSyncBackgroundTasks(value) {
 
 module.exports = {
   applyApprovedSubmissionEffects,
+  syncEventRankingsInBackground,
   syncSubmissionShadowInBackground,
   createSubmission,
   editRejectedSubmissionMetadata,

@@ -101,7 +101,7 @@ test('clear virtual run rules guide is registered and seeded once for August 3',
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 68);
+  assert.equal(listArticleSlugs().length, 99);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -132,7 +132,8 @@ test('clear virtual run rules guide supports exact future scheduling and updates
   assert.deepEqual(parseUpdateArguments(['--slug', CANONICAL_SLUG]), { slug: CANONICAL_SLUG, mode: 'dry-run' });
   assert.equal(String(payload.authorId), String(authorId));
   assert.equal(payload.status, 'scheduled');
-  assert.equal(payload.publishedAt.toISOString(), PUBLISH_AT);
+  assert.equal(payload.scheduledFor.toISOString(), PUBLISH_AT);
+  assert.equal(payload.publishedAt, null);
   assert.equal(payload.approvedAt, null);
   assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);

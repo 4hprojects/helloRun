@@ -136,6 +136,12 @@
         </div>
 
         <aside class="submission-review-actions" aria-labelledby="decision-heading">
+          <% if (locals.isOwnSubmission) { %>
+            <p class="submission-review-self-notice" role="note">
+              <strong>This is your own entry.</strong>
+              You can review it, and the decision is recorded in the event audit log as a self-review.
+            </p>
+          <% } %>
           <% if (isActionable) { %>
             <div class="submission-review-action-header"><span class="status-badge <%= statusBadgeClass %>"><%= status === 'needs_clarification' ? 'Needs Clarification' : 'Pending Review' %></span><h2 id="decision-heading">Decision</h2><p>Complete the checks and choose one outcome.</p></div>
             <div class="review-decision-tabs" role="tablist" aria-label="Review decision">

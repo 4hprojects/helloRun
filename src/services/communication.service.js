@@ -754,6 +754,9 @@ async function sendEventEmail(eventKey, payload = {}) {
       email.cancellationReason
     );
   }
+  if (eventKey === 'registration.updated_by_organiser') {
+    return emailService.sendRegistrationUpdatedByOrganizerEmail(email.to, email);
+  }
   if (eventKey === 'payment.receipt_submitted') {
     return emailService.sendPaymentProofSubmittedEmailToOrganizer(
       email.to,
@@ -784,6 +787,9 @@ async function sendEventEmail(eventKey, payload = {}) {
       email.confirmationCode,
       email.elapsedLabel
     );
+  }
+  if (eventKey === 'result.approval_reversed') {
+    return emailService.sendApprovalReversedEmailToRunner(email.to, email);
   }
   if (eventKey === 'result.rejected') {
     return emailService.sendResultRejectedEmailToRunner(
@@ -848,6 +854,7 @@ function getSubjectForEvent(eventKey, payload = {}) {
     'registration.cancelled': `Registration Cancelled: ${eventTitle}`,
     'registration.guest_confirmed': `You are registered for ${eventTitle}`,
     'registration.cancellation_requested': `Cancellation Requested: ${eventTitle}`,
+    'registration.updated_by_organiser': `Registration Updated: ${eventTitle}`,
     'organiser.runner_contact': `Message about ${eventTitle}`,
     'organiser.direct_message': `Message about ${eventTitle}`,
     'payment.receipt_submitted': `Payment Receipt Submitted: ${eventTitle}`,
@@ -855,6 +862,7 @@ function getSubjectForEvent(eventKey, payload = {}) {
     'payment.rejected': `Payment Rejected: ${eventTitle}`,
     'result.approved': `Result Approved: ${eventTitle}`,
     'result.rejected': `Result Rejected: ${eventTitle}`,
+    'result.approval_reversed': `Approved Result Withdrawn: ${eventTitle}`,
     'certificate.issued': `Certificate Available: ${eventTitle}`,
     'badge.earned': `Badge Earned: ${email.badgeName || 'Achievement Badge'}`,
     'event.promotion': `Don't miss it: ${eventTitle} — Register Now`

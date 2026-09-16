@@ -1,5 +1,11 @@
 <%
-  const isRunnerAuthenticated = Boolean(locals && locals.isAuthenticated && locals.isRunnerWorkspace);
+  // canUseRunnerWorkspace is populated on every page by populateAuthLocals and is the
+  // condition that actually governs whether a submit will be accepted. isRunnerWorkspace is
+  // only set by requireRunnerWorkspace, so it is false on the public event page and would
+  // bounce a signed-in participant to login.
+  const isRunnerAuthenticated = Boolean(
+    locals && locals.isAuthenticated && (locals.canUseRunnerWorkspace || locals.isRunnerWorkspace)
+  );
   const modalConfig = (locals && locals.runProofModalConfig) || {};
   const defaultMode = String(modalConfig.mode || 'submit').trim() || 'submit';
   const modalTitle = String(modalConfig.title || 'Submit Run Result').trim() || 'Submit Run Result';

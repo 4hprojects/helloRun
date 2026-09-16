@@ -67,6 +67,14 @@ async function evaluateSubmissionAchievements(submissionOrId, options = {}) {
   });
 
   const sql = options.sql || getPostgresClient();
+
+  // If this entry's approval was previously reversed, put back the badges that reversal
+  // withdrew. They cannot simply be re-awarded: hasRevokedBadge skips them permanently.
+  await restoreBadgesForSubmission({
+    mongoSubmissionId: String(submission._id),
+    performedBy: options.performedBy || submission.reviewedBy || null
+  }, { sql }).catch(() => []);
+
   const context = await buildSubmissionContext({ submission, registration, event, sql });
   if (!context) return [];
 
@@ -627,6 +635,100 @@ async function revokeUserBadge(userBadgeId, input = {}, options = {}) {
   }, { sql });
 
   return revoked;
+}
+
+// Marker on revoke_reason so a reversal-driven revocation can be told apart from a
+// deliberate admin one. It matters because awardEligibleBadges permanently skips any
+// badge with a revoked row for the same runner/badge/event (the anti-gaming guard in
+// hasRevokedBadge). Without this marker, reversing an approval and then re-approving it
+// would lose the badge for good.
+const APPROVAL_REVERSAL_REVOKE_MARKER = '[approval-reversed]';
+
+function isApprovalReversalRevokeReason(reason) {
+  return String(reason || '').startsWith(APPROVAL_REVERSAL_REVOKE_MARKER);
+}
+
+/**
+ * Withdraw every badge awarded off one submission, used when an approval is reversed.
+ * user_badges.submission_id carries its own index, so the awards are traceable back to
+ * the entry that earned them.
+ */
+async function revokeBadgesForSubmission({ mongoSubmissionId, performedBy, reason }, options = {}) {
+  if (!process.env.DATABASE_URL) return [];
+
+  const submissionId = String(mongoSubmissionId || '').trim();
+  if (!submissionId) return [];
+
+  const sql = options.sql || getPostgresClient();
+  const rows = await sql`
+    SELECT id
+    FROM user_badges
+    WHERE mongo_submission_id = ${submissionId}
+      AND verification_status != 'revoked'
+  `;
+  if (!rows.length) return [];
+
+  const markedReason = `${APPROVAL_REVERSAL_REVOKE_MARKER} ${String(reason || '').trim()}`.trim().slice(0, 500);
+  const revoked = [];
+  for (const row of rows) {
+    const result = await revokeUserBadge(row.id, { performedBy, reason: markedReason }, { sql });
+    if (result) revoked.push(result);
+  }
+  return revoked;
+}
+
+/**
+ * Put back the badges a reversal withdrew, when the same entry is approved again.
+ *
+ * Restores rather than re-awards: hasRevokedBadge would otherwise skip them forever.
+ * Only rows carrying the reversal marker are restored, so a deliberate admin revocation
+ * keeps its permanent block.
+ */
+async function restoreBadgesForSubmission({ mongoSubmissionId, performedBy }, options = {}) {
+  if (!process.env.DATABASE_URL) return [];
+
+  const submissionId = String(mongoSubmissionId || '').trim();
+  if (!submissionId) return [];
+
+  const sql = options.sql || getPostgresClient();
+  const rows = await sql`
+    SELECT id, badge_definition_id, event_core_id, runner_user_id, revoke_reason,
+           mongo_user_id, mongo_event_id
+    FROM user_badges
+    WHERE mongo_submission_id = ${submissionId}
+      AND verification_status = 'revoked'
+  `;
+  const restorable = rows.filter((row) => isApprovalReversalRevokeReason(row.revoke_reason));
+  if (!restorable.length) return [];
+
+  const actor = await resolveAppUserId(performedBy, { sql });
+  const restored = [];
+  for (const row of restorable) {
+    const updated = await sql`
+      UPDATE user_badges
+      SET verification_status = 'verified', revoke_reason = NULL
+      WHERE id = ${row.id}
+        AND verification_status = 'revoked'
+      RETURNING *
+    `;
+    if (!updated[0]) continue;
+    restored.push(updated[0]);
+    await logBadgeAudit({
+      badgeDefinitionId: row.badge_definition_id,
+      userBadgeId: row.id,
+      eventCoreId: row.event_core_id,
+      runnerUserId: row.runner_user_id,
+      action: 'badge_restored',
+      performedBy: actor,
+      reason: 'Approval reinstated after a reversal.',
+      metadata: {
+        mongoUserId: row.mongo_user_id || '',
+        mongoEventId: row.mongo_event_id || '',
+        mongoSubmissionId: submissionId
+      }
+    }, { sql });
+  }
+  return restored;
 }
 
 async function updateBadgeDefinitionStatus(badgeDefinitionId, input = {}, options = {}) {
@@ -1555,6 +1657,10 @@ module.exports = {
   listAdminUserBadges,
   getAdminBadgeAnalytics,
   revokeUserBadge,
+  revokeBadgesForSubmission,
+  restoreBadgesForSubmission,
+  isApprovalReversalRevokeReason,
+  APPROVAL_REVERSAL_REVOKE_MARKER,
   updateBadgeDefinitionStatus,
   updateBadgeDefinitionEmailLevel,
   recalculateBadgeAwards,

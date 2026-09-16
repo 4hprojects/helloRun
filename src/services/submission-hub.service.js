@@ -100,7 +100,7 @@ async function listSubmissionHub(options = {}) {
       { $project: { _hubSortAt: 0 } }
     ]).allowDiskUse(true)
     : [];
-  const pagedItems = docs.map((submission) => normalizeSubmissionRow(submission, submission.submissionKind));
+  const pagedItems = docs.map((submission) => normalizeSubmissionRow(submission, submission.submissionKind, options.viewerId));
 
   return {
     filters: { ...filters, page },
@@ -222,7 +222,7 @@ async function listSubmissionHubEvents(options = {}) {
     })));
 }
 
-function normalizeSubmissionRow(submission, submissionKind) {
+function normalizeSubmissionRow(submission, submissionKind, viewerId) {
   const event = submission.eventId || null;
   const registration = submission.registrationId || null;
   if (!event?._id || !registration?._id) {
@@ -266,6 +266,14 @@ function normalizeSubmissionRow(submission, submissionKind) {
     submittedAtLabel: formatDateTime(submittedAt),
     waitingLabel: formatWaitingLabel(submittedAt, submission.status),
     reviewedAtLabel: formatDateTime(submission.reviewedAt),
+    // Surfaced so a reviewer can see, before reversing an approval, that doing so will
+    // revoke a certificate the runner already holds.
+    certificateIssued: Boolean(submission.certificate?.url)
+      && String(submission.certificate?.status || '') !== 'revoked',
+    certificateRevoked: String(submission.certificate?.status || '') === 'revoked',
+    // Self-review is allowed but audited; flag it so the reviewer is warned up front.
+    isOwnSubmission: Boolean(viewerId) && Boolean(submission.runnerId)
+      && String(submission.runnerId) === String(viewerId),
     suspiciousFlag: Boolean(submission.suspiciousFlag),
     suspiciousFlagReason: String(submission.suspiciousFlagReason || '').trim(),
     reviewSignal,

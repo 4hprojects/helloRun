@@ -34,7 +34,7 @@ async function publishEligibleScheduledPosts({ BlogModel = Blog, now = new Date(
     post.status = 'published';
     post.publishedAt = now;
     post.scheduledFor = null;
-    post.approvedAt = now;
+    post.approvedAt = post.approvedAt || post.publicationReview?.reviewedAt || now;
     post.approvedBy = post.approvedBy || null;
     await post.save();
     summary.published += 1;

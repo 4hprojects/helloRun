@@ -1560,6 +1560,83 @@ exports.sendRegistrationCancelledEmailToRunner = async (
   }
 };
 
+exports.sendApprovalReversedEmailToRunner = async (
+  runnerEmail,
+  { firstName, eventTitle, confirmationCode, rejectionReason, reviewNotes, certificateRevoked } = {}
+) => {
+  try {
+    const reasonText = escapeHtml(rejectionReason || 'The entry did not meet the event rules on a second review.');
+    const notesText = escapeHtml(reviewNotes || '');
+
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: runnerEmail,
+      subject: `Approved Result Withdrawn: ${eventTitle}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#b45309;">An Approved Result Was Withdrawn</h2>
+          <p>Hi ${escapeHtml(firstName || 'Runner')},</p>
+          <p>A result for <strong>${escapeHtml(eventTitle || 'your event')}</strong> that had been approved was reviewed again and is no longer approved. It no longer counts toward your total or the leaderboard.</p>
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            ${confirmationCode ? `<p style="margin:0 0 8px;"><strong>Confirmation Code:</strong> ${escapeHtml(confirmationCode)}</p>` : ''}
+            <p style="margin:0 0 8px;"><strong>Reason:</strong> ${reasonText}</p>
+            ${notesText ? `<p style="margin:0;"><strong>Reviewer notes:</strong> ${notesText}</p>` : ''}
+          </div>
+          ${certificateRevoked ? '<p><strong>Your certificate for this entry has been revoked</strong> and will no longer verify.</p>' : ''}
+          <p>If you believe this was a mistake, contact the event organizer.</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send approval reversed email');
+    }
+
+    return data;
+  } catch (error) {
+    logger.error('Email service error:', error);
+    throw error;
+  }
+};
+
+exports.sendRegistrationUpdatedByOrganizerEmail = async (
+  runnerEmail,
+  { firstName, eventTitle, confirmationCode, changeSummary, reason } = {}
+) => {
+  try {
+    const summaryText = escapeHtml(changeSummary || 'Your registration details were updated.');
+    const reasonText = escapeHtml(reason || '');
+
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: runnerEmail,
+      subject: `Registration Updated: ${eventTitle}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#1d4ed8;">Your Registration Was Updated</h2>
+          <p>Hi ${escapeHtml(firstName || 'Runner')},</p>
+          <p>An organizer updated your registration for <strong>${escapeHtml(eventTitle || 'your event')}</strong>.</p>
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            <p style="margin:0 0 8px;"><strong>Confirmation Code:</strong> ${escapeHtml(confirmationCode || 'N/A')}</p>
+            <p style="margin:0 0 8px;"><strong>What changed:</strong> ${summaryText}</p>
+            ${reasonText ? `<p style="margin:0;"><strong>Reason given:</strong> ${reasonText}</p>` : ''}
+          </div>
+          <p>You can review and change your own leaderboard preference any time from your registrations page. If this change was not what you expected, contact the event organizer.</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send registration updated email');
+    }
+
+    return data;
+  } catch (error) {
+    logger.error('Email service error:', error);
+    throw error;
+  }
+};
+
 exports.sendPaymentRejectedEmailToRunner = async (
   runnerEmail,
   runnerFirstName,

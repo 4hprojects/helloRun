@@ -11,8 +11,7 @@ const {
   canUseWorkspace,
   resolveActiveWorkspace,
   getWorkspaceForPath,
-  getWorkspaceDashboard,
-  isOwnOrganizerEvent
+  getWorkspaceDashboard
 } = require('../src/utils/workspace');
 
 const root = path.join(__dirname, '..');
@@ -82,24 +81,42 @@ test('workspace paths activate only workspaces authorized by the permanent role'
   );
 });
 
-test('organizer own-event conflicts compare stable user and event IDs', () => {
-  const organizer = { _id: 'organizer-1', role: 'organiser' };
-  assert.equal(isOwnOrganizerEvent(organizer, { organizerId: 'organizer-1' }), true);
-  assert.equal(isOwnOrganizerEvent(organizer, { organizerId: { _id: 'organizer-1' } }), true);
-  assert.equal(isOwnOrganizerEvent(organizer, { organizerId: 'organizer-2' }), false);
-  assert.equal(isOwnOrganizerEvent({ _id: 'organizer-1', role: 'runner' }, { organizerId: 'organizer-1' }), false);
+test('organisers and co-organisers are no longer blocked from joining their own events', () => {
+  // The platform used to refuse registration, payment actions, and submissions on any
+  // event the signed-in organiser owned. That rule is gone; the only thing that stays
+  // off limits is reviewing your own work (asserted below).
+  const workspace = read('src/utils/workspace.js');
+  const registration = read('src/controllers/page/registration.controller.js');
+  const submission = read('src/controllers/page/submission.controller.js');
+  const submissionService = read('src/services/submission.service.js');
+  const eventDetails = read('src/views/pages/event-details.ejs');
+
+  for (const source of [workspace, registration, submission, submissionService, eventDetails]) {
+    assert.doesNotMatch(source, /isOwnOrganizerEvent/);
+    assert.doesNotMatch(source, /ownEventParticipationConflict/);
+  }
+  assert.doesNotMatch(submission, /OWN_EVENT_CONFLICT/);
+  assert.doesNotMatch(submissionService, /Organizers cannot submit results to events they manage/);
 });
 
-test('isOwnOrganizerEvent tolerates a null/undefined user (signed-out visitors)', () => {
-  // Regression: guests have res.locals.user === null. A default parameter only
-  // applies to `undefined`, so passing `null` previously reached `user.role`
-  // and threw, 500ing the public event-details page for every signed-out
-  // visitor. The contract is: no user => not their own event, never a throw.
-  assert.doesNotThrow(() => isOwnOrganizerEvent(null, { organizerId: 'organizer-1' }));
-  assert.equal(isOwnOrganizerEvent(null, { organizerId: 'organizer-1' }), false);
-  assert.equal(isOwnOrganizerEvent(undefined, { organizerId: 'organizer-1' }), false);
-  assert.equal(isOwnOrganizerEvent(null, null), false);
-  assert.equal(isOwnOrganizerEvent(null), false);
+test('reviewing your own entry is recorded, not blocked', () => {
+  // Blocking it deadlocked a sole organiser: with no co-organiser, and a submission that
+  // is not auto-approvable, nobody could approve their entry. The conflict-of-interest
+  // signal is kept as an extra audit row instead.
+  const submissionService = read('src/services/submission.service.js');
+  const accumulated = read('src/services/accumulated-activity.service.js');
+
+  for (const source of [submissionService, accumulated]) {
+    assert.doesNotMatch(source, /You cannot review your own/);
+    assert.match(source, /const isSelfReview = Boolean\(/);
+    assert.match(source, /action: 'submission\.self_reviewed'/);
+  }
+
+  // Payment proofs keep their own self-approval block; that is a money control and was
+  // deliberately left in place.
+  const review = read('src/routes/organiser/review.js');
+  assert.match(review, /You cannot approve your own payment proof/);
+  assert.match(review, /payment\.self_approval_blocked/);
 });
 
 test('workspace switching UI uses CSRF-protected forms on desktop and mobile', () => {
@@ -114,14 +131,8 @@ test('workspace switching UI uses CSRF-protected forms on desktop and mobile', (
   assert.match(authRoutes, /router\.post\('\/workspace\/:workspace', requireAuth, requireCsrfProtection/);
 });
 
-test('participant mutation paths and own-event guards are enforced server-side', () => {
+test('participant mutation paths stay behind the runner workspace gate', () => {
   const pageRoutes = read('src/routes/pageRoutes.js');
-  const registration = read('src/controllers/page/registration.controller.js');
-  const submission = read('src/controllers/page/submission.controller.js');
-  const submissionService = read('src/services/submission.service.js');
 
   assert.match(pageRoutes, /\/events\/:slug\/register', requireAuth, requireRunnerWorkspace/);
-  assert.match(registration, /isOwnOrganizerEvent\(user, event\)/);
-  assert.match(submission, /OWN_EVENT_CONFLICT/);
-  assert.match(submissionService, /Organizers cannot submit results to events they manage/);
 });

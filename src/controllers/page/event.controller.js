@@ -73,14 +73,50 @@ const {
   getPublishedEventBySlug,
   renderEventNotFound
 } = require('./_shared');
-const { getPublicEventRunnerState } = require('../../services/public-event-detail.service');
+const {
+  getPublicEventRunnerState,
+  getPublicEventRegistrationSummary
+} = require('../../services/public-event-detail.service');
 const {
   getContactCooldown,
   startContactCooldown,
   acquireContactSendLock
 } = require('../../services/event-contact-protection.service');
-const { isOwnOrganizerEvent } = require('../../utils/workspace');
 const { listPublicCoOrganizers } = require('../../services/event-co-organizer.service');
+
+/**
+ * Copy for a signed-in viewer whose account cannot enter the runner workspace.
+ * `requireRunnerWorkspace` rejects these accounts on /events/:slug/register, so the
+ * event page states the reason instead of offering a CTA that dead-ends on a 403.
+ * Returns null for guests, who register after signing in or through the guest flow.
+ */
+function buildRunnerAccessNotice(locals = {}) {
+  if (!locals.isAuthenticated || locals.canUseRunnerWorkspace) return null;
+
+  const viewer = locals.user || {};
+  if (viewer.role === 'admin') {
+    return {
+      title: 'You are signed in as an admin',
+      message: 'Admin accounts review events, submissions, and results, so they cannot register for or compete in events. Use a runner account to take part.',
+      actionLabel: 'Admin Dashboard',
+      actionHref: '/admin/dashboard'
+    };
+  }
+  if (viewer.emailVerified !== true) {
+    return {
+      title: 'Verify your email to register',
+      message: 'Registration opens once your email address is verified. We can send the verification link again.',
+      actionLabel: 'Resend Verification',
+      actionHref: '/resend-verification'
+    };
+  }
+  return {
+    title: 'Registration is not available for this account',
+    message: 'Runner access is paused while your account is restricted. Contact support to restore it.',
+    actionLabel: 'Contact Support',
+    actionHref: '/contact'
+  };
+}
 
 exports.getEventDetails = async (req, res) => {
   try {
@@ -90,7 +126,7 @@ exports.getEventDetails = async (req, res) => {
     }
 
     const now = new Date();
-    const [registrationCount, badges, eventShopProducts, relatedEvents, runnerEventState, contactCooldown, coOrganizerNames] = await Promise.all([
+    const [registrationCount, badges, eventShopProducts, relatedEvents, runnerEventState, existingRegistration, contactCooldown, coOrganizerNames] = await Promise.all([
       Registration.countDocuments({
         eventId: event._id,
         status: { $ne: 'cancelled' }
@@ -100,6 +136,14 @@ exports.getEventDetails = async (req, res) => {
       getRelatedEvents(event, getPublicEventVisibilityQuery(now), now).catch(() => []),
       getPublicEventRunnerState({ event, userId: req.session.userId, now }).catch((error) => {
         logger.warn('Unable to load public event runner progress:', {
+          eventId: String(event._id),
+          userId: String(req.session.userId || ''),
+          error: error.message
+        });
+        return null;
+      }),
+      getPublicEventRegistrationSummary({ event, userId: req.session.userId }).catch((error) => {
+        logger.warn('Unable to load existing registration for public event page:', {
           eventId: String(event._id),
           userId: String(req.session.userId || ''),
           error: error.message
@@ -118,10 +162,18 @@ exports.getEventDetails = async (req, res) => {
     ]);
     const baseUrl = getSitemapBaseUrl(req);
     const publicEvent = buildPublicEventView(event, { registrationCount, eventBadges: badges, coOrganizerNames });
-    const ownEventParticipationConflict = isOwnOrganizerEvent(res.locals.user, event);
-    if (ownEventParticipationConflict) {
+    const runnerAccessNotice = buildRunnerAccessNotice(res.locals);
+    if (runnerAccessNotice) {
       publicEvent.primaryCta = {
-        label: 'Organizer cannot register',
+        label: 'Registration not available',
+        href: '',
+        disabled: true
+      };
+    } else if (existingRegistration) {
+      // Registering twice is already refused on POST. Say so here so the CTA reflects the
+      // runner's real state instead of sending them to a form that rejects them.
+      publicEvent.primaryCta = {
+        label: existingRegistration.ctaLabel,
         href: '',
         disabled: true
       };
@@ -144,6 +196,19 @@ exports.getEventDetails = async (req, res) => {
       }
     }
 
+    // The event page renders "Add activity" buttons, but the run-proof modal and its OCR
+    // bundle are normally only loaded on /my-registrations and /runner/*, which left those
+    // buttons inert. Load it here only when this viewer really can submit, so public and
+    // guest visitors do not pay for the modal, stylesheet, Tesseract and OCR scripts.
+    const visibleRunnerState = runnerAccessNotice ? null : runnerEventState;
+    const runnerActionTypes = [
+      visibleRunnerState?.primaryAction?.type,
+      visibleRunnerState?.secondaryAction?.type
+    ];
+    if (runnerActionTypes.some((type) => type === 'submit' || type === 'resubmit')) {
+      res.locals.renderRunProofModal = true;
+    }
+
     return res.render('pages/event-details', {
       title: `${event.title} - HelloRun`,
       seo: buildPublicEventSeo(event, baseUrl),
@@ -156,8 +221,9 @@ exports.getEventDetails = async (req, res) => {
       publicEvent,
       badges,
       eventShop,
-      runnerEventState: ownEventParticipationConflict ? null : runnerEventState,
-      ownEventParticipationConflict,
+      runnerEventState: visibleRunnerState,
+      runnerAccessNotice,
+      existingRegistration: runnerAccessNotice ? null : existingRegistration,
       contactCooldown: buildContactCooldownPresentation(contactCooldown),
       isSaved,
       relatedEvents,

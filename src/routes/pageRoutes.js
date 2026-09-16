@@ -44,6 +44,11 @@ const claimLimiter = createRateLimiter({
   maxRequests: 20,
   message: 'Too many claim attempts. Please wait a few minutes and try again.'
 });
+const registrationDetailsLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 30,
+  message: 'Too many registration updates. Please wait a few minutes and try again.'
+});
 const quickProfileUpdateLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   maxRequests: 15,
@@ -96,6 +101,7 @@ router.get('/my-registrations/claim', requireAuth, requireRunnerWorkspace, pageC
 router.post('/my-registrations/claim/:registrationId', requireAuth, requireRunnerWorkspace, requireCsrfProtection, claimLimiter, pageController.postClaimRegistration);
 router.get('/my-registrations/:registrationId/race-pass', requireAuth, requireRunnerWorkspace, pageController.getRacePass);
 router.post('/my-registrations/:registrationId/request-cancellation', requireAuth, requireRunnerWorkspace, requireCsrfProtection, pageController.postRequestCancellation);
+router.post('/my-registrations/:registrationId/details', requireAuth, requireRunnerWorkspace, requireCsrfProtection, registrationDetailsLimiter, pageController.postRegistrationDetails);
 router.get('/events/:slug/register', requireAuth, requireRunnerWorkspace, pageController.getEventRegistrationForm);
 router.post('/events/:slug/register', requireAuth, requireRunnerWorkspace, requireCsrfProtection, pageController.postEventRegistration);
 router.get('/events/:slug/leaderboard', pageController.getEventLeaderboardPage);

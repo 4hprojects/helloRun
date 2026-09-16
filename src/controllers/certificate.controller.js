@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const { issueSubmissionCertificate } = require('../services/certificate.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
 const { isAccumulatedChallenge } = require('../utils/challenge-metrics');
+const { revokeIssuedCertificate } = require('../services/certificate-revocation.service');
 
 async function regenerateCertificate(req, res, next) {
   try {
@@ -90,20 +91,11 @@ async function revokeCertificate(req, res, next) {
       return res.status(400).json({ success: false, error: 'Certificate has not been generated.' });
     }
 
-    const revokedAt = new Date();
-    context.record.certificate.status = 'revoked';
-    context.record.certificate.revokedAt = revokedAt;
-    await context.record.save();
-
-    recordCriticalAuditEventInBackground({
-      actorMongoUserId: req.session.userId,
-      action: 'certificate.revoked',
-      targetType: context.sourceType,
-      targetId: String(context.record._id),
-      statusFrom: '',
-      statusTo: 'revoked',
-      notes: String(req.body.reason || 'Certificate revoked.').slice(0, 500),
-      occurredAt: revokedAt
+    await revokeIssuedCertificate({
+      record: context.record,
+      sourceType: context.sourceType,
+      actorUserId: req.session.userId,
+      reason: req.body.reason
     });
 
     return redirectOrJson(req, res, context.event._id, true, 'Certificate revoked.');

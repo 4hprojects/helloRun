@@ -33,8 +33,9 @@ function buildEligiblePost(overrides = {}) {
   Object.assign(payload, buildTrustedEditorialReview(payload, null, new Date('2026-08-02T12:00:00.000Z')));
   return {
     _id: 'scheduled-id',
-    publishedAt: new Date('2026-08-03T11:00:00.000Z'),
-    approvedAt: null,
+    scheduledFor: new Date('2026-08-03T11:00:00.000Z'),
+    publishedAt: null,
+    approvedAt: new Date('2026-08-02T12:00:00.000Z'),
     approvedBy: null,
     saveCalls: 0,
     async save() { this.saveCalls += 1; },
@@ -88,11 +89,30 @@ test('scheduled publisher publishes only eligible due posts', async () => {
   assert.equal(summary.published, 1);
   assert.equal(summary.skipped, 1);
   assert.equal(eligible.status, 'published');
+  assert.equal(eligible.scheduledFor, null);
+  assert.equal(eligible.publishedAt, now);
   assert.equal(eligible.searchIndexingStatus, 'noindex');
-  assert.equal(eligible.approvedAt, now);
+  assert.equal(eligible.approvedAt.toISOString(), '2026-08-02T12:00:00.000Z');
   assert.equal(eligible.saveCalls, 1);
   assert.equal(ineligible.status, 'scheduled');
   assert.equal(ineligible.saveCalls, 0);
+});
+
+test('scheduled publisher publishes approved content while a revision remains pending', async () => {
+  const eligible = buildEligiblePost({
+    activeRevisionId: 'revision-id',
+    activeRevisionStatus: 'pending',
+    activeRevisionSubmittedAt: new Date('2026-08-03T10:00:00.000Z')
+  });
+  const BlogModel = { find: () => [eligible] };
+  const now = new Date('2026-08-03T11:03:00.000Z');
+
+  const summary = await publishEligibleScheduledPosts({ BlogModel, now });
+
+  assert.equal(summary.published, 1);
+  assert.equal(eligible.status, 'published');
+  assert.equal(eligible.activeRevisionId, 'revision-id');
+  assert.equal(eligible.activeRevisionStatus, 'pending');
 });
 
 test('scheduled publisher dry-run reports without changing records', async () => {

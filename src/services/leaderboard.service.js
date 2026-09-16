@@ -2432,5 +2432,8 @@ module.exports = {
   resolveEventLeaderboardSettings,
   invalidateLeaderboardCache,
   rankAccumulatedRows,
-  buildEventLeaderboardGroups
+  buildEventLeaderboardGroups,
+  // Pure helpers, exported so the per-registration privacy rules can be tested directly.
+  formatRunnerName,
+  isRegistrationPublicOnLeaderboard
 };

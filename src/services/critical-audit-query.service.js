@@ -18,7 +18,9 @@ const AUDIT_ACTION_GROUPS = Object.freeze({
     'submission.rejected',
     'approve',
     'reject',
-    'submission.auto_approved'
+    'submission.auto_approved',
+    'submission.approval_reversed',
+    'submission.self_reviewed'
   ],
   exports: [
     'organiser.registrants_exported',
@@ -63,6 +65,13 @@ const AUDIT_ACTION_GROUPS = Object.freeze({
     'certificate.issued',
     'certificate.regenerated',
     'certificate.revoked'
+  ],
+  // registration.cancelled predates this group and had no home, so it was written to the
+  // audit log but unreachable from the organiser audit filters.
+  registrations: [
+    'registration.cancelled',
+    'registration.leaderboard_preference_changed',
+    'registration.participant_details_updated'
   ]
 });
 
@@ -75,7 +84,8 @@ const AUDIT_GROUP_OPTIONS = Object.freeze([
   { value: 'admin', label: 'Admin actions' },
   { value: 'blogs', label: 'Blog moderation' },
   { value: 'events', label: 'Events and organiser applications' },
-  { value: 'certificates', label: 'Certificates' }
+  { value: 'certificates', label: 'Certificates' },
+  { value: 'registrations', label: 'Registration changes' }
 ]);
 
 const AUDIT_TARGET_TYPE_OPTIONS = Object.freeze([

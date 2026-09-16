@@ -98,7 +98,7 @@ test('comparison is registered and seeded once for September 22', () => {
   const seededPost = seededPosts[0];
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 68);
+  assert.equal(listArticleSlugs().length, 99);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -133,7 +133,8 @@ test('comparison creation payload schedules the local cover with a current revie
   });
   assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.status, 'scheduled');
-  assert.equal(payload.publishedAt.toISOString(), publishAt.toISOString());
+  assert.equal(payload.scheduledFor.toISOString(), publishAt.toISOString());
+  assert.equal(payload.publishedAt, null);
   assert.equal(payload.searchIndexingStatus, 'noindex');
   assert.equal(payload.searchIndexingReason, 'pending_expert_review');
   assert.equal(hasCurrentPublicationReview(payload), true);

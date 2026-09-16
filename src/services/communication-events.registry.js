@@ -221,6 +221,19 @@ const COMMUNICATION_EVENTS = Object.freeze([
     displayOrder: 205
   },
   {
+    eventKey: 'registration.updated_by_organiser',
+    name: 'Registration Updated by Organiser',
+    description: 'Tells a runner an organiser changed their registration, including their leaderboard display.',
+    category: 'registration',
+    priority: 'high',
+    required: false,
+    emailEnabled: true,
+    inAppEnabled: true,
+    locked: false,
+    recipientRoles: ['runner'],
+    displayOrder: 207
+  },
+  {
     eventKey: 'registration.cancellation_requested',
     name: 'Cancellation Requested',
     description: 'Tells an organiser a runner asked to cancel their registration.',
@@ -284,6 +297,19 @@ const COMMUNICATION_EVENTS = Object.freeze([
     locked: false,
     recipientRoles: ['runner'],
     displayOrder: 400
+  },
+  {
+    eventKey: 'result.approval_reversed',
+    name: 'Approved Result Withdrawn',
+    description: 'Notifies a runner that a previously approved result or activity was reviewed again and is no longer approved.',
+    category: 'result',
+    priority: 'high',
+    required: false,
+    emailEnabled: true,
+    inAppEnabled: true,
+    locked: false,
+    recipientRoles: ['runner'],
+    displayOrder: 411
   },
   {
     eventKey: 'result.rejected',

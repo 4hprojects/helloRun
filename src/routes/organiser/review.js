@@ -4,6 +4,7 @@ const router = express.Router();
 const { getRejectionReasonOptions, resolveRejectionReason } = require('../../utils/rejection-reasons');
 const { redirectWithFlash } = require('../../utils/session-flash');
 const { normalizeSubmissionHubFilters } = require('../../services/submission-hub.service');
+const { reverseSubmissionApproval } = require('../../services/approval-reversal.service');
 const { resolveChallengeConfig } = require('../../utils/challenge-metrics');
 const {
   REVIEW_CHECKLIST_VERSION,
@@ -247,7 +248,7 @@ router.get('/submissions', requireAuth, async (req, res) => {
     const accessibleEvents = await listAccessibleReviewEvents(user);
     const eventIds = accessibleEvents.map((event) => String(event._id));
     const [hub, events] = await Promise.all([
-      listSubmissionHub({ filters: req.query, eventIds, defaults: ORGANIZER_SUBMISSION_DEFAULTS }),
+      listSubmissionHub({ filters: req.query, eventIds, defaults: ORGANIZER_SUBMISSION_DEFAULTS, viewerId: user._id }),
       listSubmissionHubEvents({ eventIds })
     ]);
     const basePath = '/organizer/submissions';
@@ -295,6 +296,129 @@ router.get('/submissions', requireAuth, async (req, res) => {
     });
   }
 });
+
+const APPROVED_ENTRIES_DEFAULTS = Object.freeze({
+  status: 'approved',
+  sort: 'newest',
+  pageSize: 25
+});
+
+/**
+ * Approved entries, with the one action the other review surfaces do not offer:
+ * reversing an approval back to rejected.
+ *
+ * The hub already supports a status=approved filter, so this page is not about
+ * filtering. It exists so reversal lives somewhere deliberate rather than being an extra
+ * button on the pending-review queue, and so the consequences (an issued certificate,
+ * awarded badges) are visible next to the action.
+ */
+router.get('/approved-entries', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus accountStatus');
+    if (!user) {
+      return res.status(404).render('error', {
+        title: '404 - User Not Found',
+        status: 404,
+        message: 'User account not found.'
+      });
+    }
+    if (!canAccessRegistrantReview(user)) {
+      return res.status(403).render('error', {
+        title: '403 - Access Denied',
+        status: 403,
+        message: 'Only approved organizers or admins can review submissions.'
+      });
+    }
+
+    // Admins resolve to every event; everyone else goes through getAccessibleEventIdQuery,
+    // which already includes the events they co-organize.
+    const accessibleEvents = await listAccessibleReviewEvents(user);
+    const eventIds = accessibleEvents.map((event) => String(event._id));
+    // status is pinned, never read from the query string, so the page cannot be walked
+    // off its purpose with ?status=submitted.
+    const filters = { ...req.query, status: 'approved' };
+    const [hub, events] = await Promise.all([
+      listSubmissionHub({ filters, eventIds, defaults: APPROVED_ENTRIES_DEFAULTS, viewerId: user._id }),
+      listSubmissionHubEvents({ eventIds })
+    ]);
+    const basePath = '/organizer/approved-entries';
+    const buildPath = (overrides) => buildSubmissionHubPath(
+      basePath,
+      hub.filters,
+      overrides,
+      APPROVED_ENTRIES_DEFAULTS
+    );
+
+    return res.render('organizer/approved-entries', {
+      title: 'Approved Entries - HelloRun Organizer',
+      user,
+      isAdminViewer: user.role === 'admin',
+      basePath,
+      reversalBasePath: '/organizer/approved-entries',
+      filters: hub.filters,
+      submissions: hub.items,
+      counts: hub.counts,
+      pagination: hub.pagination,
+      events,
+      message: getPageMessage(req.query),
+      links: {
+        prev: hub.pagination.page > 1 ? buildPath({ page: hub.pagination.page - 1 }) : '',
+        next: hub.pagination.page < hub.pagination.totalPages ? buildPath({ page: hub.pagination.page + 1 }) : '',
+        reset: basePath,
+        submissions: '/organizer/submissions',
+        dashboard: user.role === 'admin' ? '/admin/dashboard' : '/organizer/dashboard'
+      }
+    });
+  } catch (error) {
+    logger.error('Error loading approved entries:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading approved entries.'
+    });
+  }
+});
+
+router.post(
+  '/approved-entries/:submissionId/reverse',
+  requireAuth,
+  requireCsrfProtection,
+  submissionReviewActionLimiter,
+  async (req, res) => {
+    const listPath = '/organizer/approved-entries';
+    try {
+      const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus accountStatus');
+      if (!user || !canAccessRegistrantReview(user)) {
+        return res.status(403).render('error', {
+          title: '403 - Access Denied',
+          status: 403,
+          message: 'Only approved organizers or admins can reverse an approval.'
+        });
+      }
+
+      const outcome = await reverseSubmissionApproval({
+        submissionId: req.params.submissionId,
+        actorUserId: user._id,
+        actorRole: user.role,
+        reason: req.body?.reason
+      });
+
+      const extras = [
+        outcome.certificateRevoked ? 'certificate revoked' : '',
+        outcome.badgesRevoked ? `${outcome.badgesRevoked} badge${outcome.badgesRevoked === 1 ? '' : 's'} withdrawn` : ''
+      ].filter(Boolean).join(', ');
+      const msg = extras
+        ? `Approval reversed (${extras}).`
+        : 'Approval reversed.';
+      return res.redirect(`${listPath}?msg=${encodeURIComponent(msg)}`);
+    } catch (error) {
+      logger.error('Error reversing approval:', error);
+      return res.redirect(
+        `${listPath}?type=error&msg=${encodeURIComponent(error.message || 'Could not reverse that approval.')}`
+      );
+    }
+  }
+);
 
 /* ==========================================
    POST: Quick Approve Clean Submission
@@ -463,7 +587,10 @@ router.get('/submissions/:submissionId/review-panel', requireAuth, async (req, r
           },
           correctionUrl: `/admin/submissions/${String(submission._id)}/correct`,
           reviewReasonOptions: Object.entries(REVIEW_REASON_LABELS).map(([value, label]) => ({ value, label }))
-        } : {})
+        } : {}),
+        // Self-review is permitted but audited; the panel warns before the decision.
+        isOwnSubmission: Boolean(submission.runnerId)
+          && String(submission.runnerId?._id || submission.runnerId) === String(user._id)
       }
     });
   } catch (error) {
@@ -583,7 +710,10 @@ async function approveCleanSubmission({ submissionId, eventIds, user, reviewNote
 
   const common = {
     organizerId: user._id,
-    reviewerRole: 'organiser',
+    // Forward the live role, as every other review call site does. Admins cannot reach
+    // this path today, but hard-coding 'organiser' would silently downgrade them if the
+    // 403 gates on quick/bulk approve were ever relaxed.
+    reviewerRole: user.role,
     action: 'approve',
     reviewNotes: String(reviewNotes || '').trim().slice(0, 1200)
   };
@@ -1048,7 +1178,7 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
 
     const reviewItems = mergeRunProofReviewDocs(standardDocs, accumulatedDocs, filters.sort)
       .slice(pageStart, pageEnd)
-      .map((item) => buildRunProofReviewRow(item.submission, event, filters, item.submissionKind));
+      .map((item) => buildRunProofReviewRow(item.submission, event, filters, item.submissionKind, user._id));
 
     const pendingCount = standardPending + accumulatedPending + accumulatedNeedsClarification;
     const approvedCount = standardApproved + accumulatedApproved;
@@ -1157,6 +1287,8 @@ router.get('/events/:id/submissions/:submissionId/review', requireAuth, async (r
       event,
       challengeConfig: resolveChallengeConfig(event),
       message: getPageMessage(req.query),
+      isOwnSubmission: Boolean(context.submission?.runnerId)
+        && String(context.submission.runnerId?._id || context.submission.runnerId) === String(user._id),
       ...context
     });
   } catch (error) {

@@ -81,13 +81,24 @@
       );
     %>
 
-    <% if (!isPreviewMode && typeof ownEventParticipationConflict !== 'undefined' && ownEventParticipationConflict) { %>
-      <section class="event-preview-notice" role="status" aria-label="Organizer participation restriction">
+
+    <% if (!isPreviewMode && typeof runnerAccessNotice !== 'undefined' && runnerAccessNotice) { %>
+      <section class="event-preview-notice" role="status" aria-label="Runner access restriction">
         <div>
-          <strong>You manage this event</strong>
-          <span>Organizers cannot register for, submit results to, or compete in events they manage.</span>
+          <strong><%= runnerAccessNotice.title %></strong>
+          <span><%= runnerAccessNotice.message %></span>
         </div>
-        <a href="/organizer/dashboard" class="btn btn-outline">Organizer Dashboard</a>
+        <a href="<%= runnerAccessNotice.actionHref %>" class="btn btn-outline"><%= runnerAccessNotice.actionLabel %></a>
+      </section>
+    <% } %>
+
+    <% if (!isPreviewMode && typeof existingRegistration !== 'undefined' && existingRegistration) { %>
+      <section class="event-preview-notice" role="status" aria-label="Existing registration">
+        <div>
+          <strong><%= existingRegistration.title %></strong>
+          <span><%= existingRegistration.message %><% if (existingRegistration.confirmationCode) { %> Confirmation code <%= existingRegistration.confirmationCode %>.<% } %></span>
+        </div>
+        <a href="<%= existingRegistration.actionHref %>" class="btn btn-outline"><%= existingRegistration.actionLabel %></a>
       </section>
     <% } %>
 
@@ -460,7 +471,8 @@
               <div><dt>What becomes official</dt><dd>Only your own approved, accurate, non-duplicate activities count toward your goal.</dd></div>
               <div><dt>Leaderboard privacy</dt><dd><%= details.isAccumulatedChallenge ? 'Choose during registration to show your full name, an abbreviated name, or stay off the public leaderboard.' : (details.virtualRules?.leaderboardMode || 'Not available') %></dd></div>
               <% if (details.slug === 'cns-move-more-challenge-2026') { %>
-                <div><dt>Tracking apps and devices</dt><dd>Use Strava, Garmin, or another sports tracking app or device capable of recording distance and elevation.</dd></div>
+                <div><dt>Who can join</dt><dd>An exclusive event of the College of Natural Sciences, open to CNS faculty and staff.</dd></div>
+                <div><dt>Tracking apps and devices</dt><dd>Use Strava, Garmin, or another sports tracking app or device capable of recording distance and elevation. A phone step counter that shows distance also works.</dd></div>
                 <div><dt>A good screenshot shows</dt><dd>The activity date, distance, app or device, and elevation gain when available. Upload an original, readable JPG, PNG, or WebP image up to 5 MB.</dd></div>
               <% } %>
             </dl>

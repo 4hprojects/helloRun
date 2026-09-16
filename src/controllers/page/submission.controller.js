@@ -76,7 +76,7 @@ const {
   getPublishedEventBySlug,
   renderEventNotFound
 } = require('./_shared');
-const { canUseRunnerWorkspace, isOwnOrganizerEvent } = require('../../utils/workspace');
+const { canUseRunnerWorkspace } = require('../../utils/workspace');
 
 let { syncRegistrationPaymentShadow } = require('../../services/registration-payment-shadow.service');
 
@@ -253,14 +253,6 @@ exports.postUploadPaymentProof = async (req, res) => {
       });
       return res.redirect(`/my-registrations?${query.toString()}`);
     }
-    if (isOwnOrganizerEvent(user, registration.eventId)) {
-      const query = new URLSearchParams({
-        type: 'error',
-        msg: 'Organizers cannot continue participant registration or payment actions for events they manage.'
-      });
-      return res.redirect(`/my-registrations?${query.toString()}`);
-    }
-
     if (!canRunnerSubmitPaymentProof(registration)) {
       const query = new URLSearchParams({
         type: 'error',
@@ -507,9 +499,6 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       : [];
     if (selectedRegistrations.length !== selectedEventRegistrationIds.length) {
       return respond('error', 'One or more selected events is no longer available.', { code: 'STALE_ELIGIBILITY', retryable: true });
-    }
-    if (selectedRegistrations.some((item) => isOwnOrganizerEvent(user, item.eventId))) {
-      return respond('error', 'Organizers cannot submit results to events they manage.', { code: 'OWN_EVENT_CONFLICT' });
     }
     const eventByRegistrationId = new Map(
       selectedRegistrations

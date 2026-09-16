@@ -2178,13 +2178,44 @@ textarea.contact-organiser-input {
     font-size: 1.3rem;
   }
 
+  /* On a phone the guide is one long column, so give each step a visible divider and
+     breathing room instead of letting the sections run together. */
   .event-rich-details h2 {
+    margin-top: 1.6rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
     font-size: 1.15rem;
+    font-weight: 800;
+  }
+
+  .event-rich-details > h2:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
   }
 
   .event-rich-details h3,
   .event-rich-details h4 {
     font-size: 1rem;
+  }
+
+  .event-rich-details p {
+    margin-bottom: 0.8rem;
+  }
+
+  .event-rich-details ul,
+  .event-rich-details ol {
+    padding-left: 1.15em;
+    margin-bottom: 0.9rem;
+  }
+
+  .event-rich-details li {
+    margin-bottom: 0.45rem;
+  }
+
+  /* Bulleted lead-ins carry the scanning weight once the text shrinks. */
+  .event-rich-details strong {
+    color: #0f172a;
   }
 
   #event-how-it-works .event-section-heading {
@@ -3289,6 +3320,21 @@ textarea.contact-organiser-input {
 }
 
 @media (max-width: 420px) {
+
+  .event-rich-details-shell {
+    padding: 10px;
+  }
+
+  .event-rich-details h2 {
+    margin-top: 1.35rem;
+    padding-top: 0.85rem;
+    font-size: 1.08rem;
+  }
+
+  .event-rich-details ul,
+  .event-rich-details ol {
+    padding-left: 1.05em;
+  }
   .event-contact-confirm-preview {
     grid-template-columns: 1fr;
   }

@@ -266,11 +266,40 @@ async function getEventLeaderboard(eventSlug, filter = {}, options = {}) {
   }
 }
 
+/**
+ * Remove one submission's published ranking row.
+ *
+ * syncEventRankings recomputes ranks from the currently-approved submissions, which
+ * self-heals everyone else's position, but it only ever writes rows — a submission that
+ * is no longer approved keeps its stale row forever. Reversing an approval has to delete
+ * it explicitly.
+ */
+async function deleteRankingEntry(mongoSubmissionId, options = {}) {
+  if (!process.env.DATABASE_URL) return null;
+
+  const submissionId = String(mongoSubmissionId || '').trim();
+  if (!submissionId) return null;
+
+  const sql = options.sql || getPostgresClient();
+  try {
+    const rows = await sql`
+      DELETE FROM rankings
+      WHERE mongo_submission_id = ${submissionId}
+      RETURNING *
+    `;
+    return rows[0] || null;
+  } catch (error) {
+    logger.error('Ranking delete error:', error.message);
+    throw error;
+  }
+}
+
 module.exports = {
   normalizeSingleActivityRanking,
   normalizeAccumulatedRanking,
   buildRankingChecksum,
   syncRankingEntry,
+  deleteRankingEntry,
   publishRankings,
   getEventLeaderboard,
 };

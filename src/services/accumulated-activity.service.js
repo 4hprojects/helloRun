@@ -96,7 +96,15 @@ async function reviewAccumulatedActivitySubmission({
   if (!isAdminReviewer && !await resolveEventAccess({ eventId: event._id, userId: organizerId, userRole: normalizedReviewerRole })) {
     throw new Error('Activity submission not found or inaccessible.');
   }
+  // Organisers and co-organisers may join events they manage, so a reviewer can be the
+  // runner. Blocking that deadlocked a sole organiser with no co-organiser, so self-review
+  // is allowed and recorded instead. See the extra audit event below.
+  const isSelfReview = Boolean(activity.runnerId)
+    && String(activity.runnerId) === String(organizerId || '');
 
+  // An approved activity was already rejectable here, unlike the standard path. Naming
+  // the case lets it be audited and announced as a reversal rather than a plain rejection.
+  const isApprovalReversal = safeAction === 'reject' && activity.status === 'approved';
   const previousStatus = activity.status;
   const reviewedAt = new Date();
   const safeReviewNotes = String(reviewNotes || '').trim().slice(0, 1200);
@@ -156,7 +164,7 @@ async function reviewAccumulatedActivitySubmission({
   };
   recordCriticalAuditEventInBackground({
     actorMongoUserId: organizerId,
-    action: auditActionByAction[safeAction],
+    action: isApprovalReversal ? 'submission.approval_reversed' : auditActionByAction[safeAction],
     targetType: 'accumulated_activity_submission',
     targetId: String(reviewedActivity._id),
     statusFrom: previousStatus,
@@ -166,6 +174,19 @@ async function reviewAccumulatedActivitySubmission({
       : reviewedActivity.reviewNotes,
     occurredAt: reviewedActivity.reviewedAt
   });
+
+  if (isSelfReview) {
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: organizerId,
+      action: 'submission.self_reviewed',
+      targetType: 'accumulated_activity_submission',
+      targetId: String(reviewedActivity._id),
+      statusFrom: previousStatus,
+      statusTo: reviewedActivity.status,
+      notes: `Reviewer is the runner on this activity (${safeAction}).`,
+      occurredAt: reviewedActivity.reviewedAt
+    });
+  }
 
   refreshAccumulatedChallengeProgress(reviewedActivity.registrationId, {
     performedBy: organizerId
@@ -194,7 +215,7 @@ async function reviewAccumulatedActivitySubmission({
   await sendActivityReviewNotifications({
     activity: reviewedActivity,
     eventTitle: event.title || 'Event',
-    action: safeAction,
+    action: isApprovalReversal ? 'reverse' : safeAction,
     certificateWasIssued: false
   });
 
@@ -497,20 +518,31 @@ async function sendActivityReviewNotifications({ activity, eventTitle, action, c
 
     const approved = action === 'approve';
     const needsClarification = action === 'clarify';
+    const reversed = action === 'reverse';
     const notificationTitle = approved
       ? 'Activity Approved'
-      : (needsClarification ? 'Activity Needs Clarification' : 'Activity Needs Update');
+      : (needsClarification
+        ? 'Activity Needs Clarification'
+        : reversed ? 'Approved activity withdrawn' : 'Activity Needs Update');
+    // "Submit another activity" is the wrong instruction when an activity the runner was
+    // already credited for has been withdrawn.
     const notificationMessage = approved
       ? `Your activity for ${eventTitle} was approved.`
       : (needsClarification
         ? `An organizer needs more information about your activity for ${eventTitle}. ${activity.reviewNotes || ''}`.trim()
-        : `Your activity for ${eventTitle} was rejected. Please review and submit another activity.`);
+        : reversed
+          ? `Your approved activity for ${eventTitle} was reviewed again and no longer counts toward your total.`
+          : `Your activity for ${eventTitle} was rejected. Please review and submit another activity.`);
     // Needs-clarification does not yet have a dedicated email template, so it
     // sends the in-app notification only until one is built.
-    await notifyWithRetry(approved ? 'result.approved' : 'result.rejected', {
+    await notifyWithRetry(approved ? 'result.approved' : (reversed ? 'result.approval_reversed' : 'result.rejected'), {
       notification: {
         userId: activity.runnerId,
-        type: approved ? 'result_approved' : (needsClarification ? 'result_needs_clarification' : 'result_rejected'),
+        type: approved
+          ? 'result_approved'
+          : (needsClarification
+            ? 'result_needs_clarification'
+            : reversed ? 'result_approval_reversed' : 'result_rejected'),
         title: notificationTitle,
         message: notificationMessage,
         href: '/my-registrations',

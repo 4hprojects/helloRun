@@ -128,7 +128,7 @@ test('pricing guide is registered and seeded once for September 26', () => {
   const seededPost = seededPosts[0];
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 68);
+  assert.equal(listArticleSlugs().length, 99);
   assert.equal(seededPosts.length, 1);
   assert.equal(getCanonicalSeed(CANONICAL_SLUG), seededPost);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
@@ -161,7 +161,8 @@ test('pricing creation payload schedules the local cover with a current review',
   });
   assert.equal(payload.coverImageUrl, COVER_IMAGE_URL);
   assert.equal(payload.status, 'scheduled');
-  assert.equal(payload.publishedAt.toISOString(), PUBLISH_AT);
+  assert.equal(payload.scheduledFor.toISOString(), PUBLISH_AT);
+  assert.equal(payload.publishedAt, null);
   assert.equal(payload.searchIndexingStatus, 'noindex');
   assert.equal(payload.searchIndexingReason, 'pending_value_review');
   assert.equal(hasCurrentPublicationReview(payload), true);

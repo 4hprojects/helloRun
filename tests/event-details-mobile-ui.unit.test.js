@@ -281,3 +281,23 @@ test('event detail mobile resilience includes narrow tables, focus handling, and
   assert.match(viewSource, /lastFocusedElement\.focus\(\)/);
   assert.match(viewSource, /event\.key === 'Escape'/);
 });
+
+test('the challenge guide separates its steps on mobile instead of running together', () => {
+  // On a phone the guide is one long column. Without dividers and list spacing the
+  // steps blur into a single block of grey text, which is what participants reported.
+  const mobileBlock = cssSource.slice(cssSource.indexOf('@media (max-width: 720px)'));
+
+  assert.match(mobileBlock, /\.event-rich-details h2\s*\{[^}]*border-top:\s*1px solid #e2e8f0/s);
+  assert.match(mobileBlock, /\.event-rich-details h2\s*\{[^}]*padding-top:\s*1rem/s);
+  assert.match(mobileBlock, /\.event-rich-details > h2:first-child\s*\{[^}]*border-top:\s*0/s);
+  assert.match(mobileBlock, /\.event-rich-details li\s*\{[^}]*margin-bottom:\s*0\.45rem/s);
+  assert.match(mobileBlock, /\.event-rich-details strong\s*\{[^}]*color:\s*#0f172a/s);
+
+  const narrowBlock = cssSource.slice(cssSource.lastIndexOf('@media (max-width: 420px)'));
+  assert.match(narrowBlock, /\.event-rich-details-shell\s*\{[^}]*padding:\s*10px/s);
+});
+
+test('the CNS event page states that it is exclusive to CNS', () => {
+  assert.match(viewSource, /An exclusive event of the College of Natural Sciences, open to CNS faculty and staff/);
+  assert.match(viewSource, /<dt>Who can join<\/dt>/);
+});

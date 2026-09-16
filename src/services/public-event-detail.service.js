@@ -35,6 +35,70 @@ async function getPublicEventRunnerState({ event, userId, now = new Date() }) {
   return buildPublicEventRunnerState({ event, registration, activities, eventPendingActivityCount, now });
 }
 
+/**
+ * "Already registered" summary for the public event page.
+ *
+ * Accumulated challenges get the richer progress card from getPublicEventRunnerState, so
+ * this covers every OTHER event format, where the page had no registered state at all: a
+ * runner who was already in still saw a live Register CTA and only learned about the
+ * duplicate after opening the registration form.
+ */
+async function getPublicEventRegistrationSummary({ event, userId }) {
+  if (!event?._id || !userId || isAccumulatedChallenge(event)) return null;
+
+  const registration = await Registration.findOne({
+    eventId: event._id,
+    userId,
+    status: { $nin: ['cancelled', 'refunded'] }
+  })
+    .sort({ registeredAt: -1, _id: -1 })
+    .select('status paymentStatus raceDistance participationMode confirmationCode registeredAt')
+    .lean();
+
+  return buildPublicEventRegistrationSummary({ event, registration });
+}
+
+function buildPublicEventRegistrationSummary({ event = {}, registration = null } = {}) {
+  if (!registration) return null;
+
+  const status = String(registration.status || '').trim().toLowerCase();
+  const paymentStatus = String(registration.paymentStatus || '').trim().toLowerCase();
+  const isPaidEvent = String(event.feeMode || 'free').trim().toLowerCase() === 'paid';
+  const settled = ['paid', 'refunded'].includes(paymentStatus);
+  const awaitingPayment = isPaidEvent && !settled && status !== 'confirmed';
+  const proofUnderReview = awaitingPayment && paymentStatus === 'proof_submitted';
+
+  const raceDistance = String(registration.raceDistance || '').trim();
+  const confirmationCode = String(registration.confirmationCode || '').trim();
+  const placeLine = raceDistance
+    ? `Your ${raceDistance} place is saved.`
+    : 'Your place is saved.';
+
+  let title = 'You are already registered';
+  let message = placeLine;
+  if (proofUnderReview) {
+    title = 'Your registration is awaiting payment review';
+    message = `${placeLine} The organizer is reviewing your payment proof.`;
+  } else if (awaitingPayment) {
+    title = 'Your registration needs payment';
+    message = `${placeLine} Complete payment to confirm your place.`;
+  }
+
+  return {
+    registrationId: String(registration._id || ''),
+    confirmationCode,
+    raceDistance,
+    participationMode: String(registration.participationMode || '').trim(),
+    awaitingPayment,
+    proofUnderReview,
+    ctaLabel: awaitingPayment ? 'Payment pending' : 'You are registered',
+    title,
+    message,
+    actionLabel: awaitingPayment ? 'Complete Payment' : 'View My Registration',
+    actionHref: '/my-registrations'
+  };
+}
+
 function buildPublicEventRunnerState({ event = {}, registration = {}, activities = [], eventPendingActivityCount = 0, now = new Date() }) {
   const isAccumulated = isAccumulatedChallenge(event);
   if (!isAccumulated) return null;
@@ -381,5 +445,7 @@ function parseDate(value) {
 
 module.exports = {
   getPublicEventRunnerState,
-  buildPublicEventRunnerState
+  buildPublicEventRunnerState,
+  getPublicEventRegistrationSummary,
+  buildPublicEventRegistrationSummary
 };

@@ -91,7 +91,6 @@ function buildCreatePayload({ slug, authorId, now = new Date(), publishAt = null
   const scheduledAt = publishAt ? new Date(publishAt) : null;
   if (scheduledAt && Number.isNaN(scheduledAt.getTime())) throw new Error('A valid scheduled publication timestamp is required.');
   if (scheduledAt && scheduledAt <= reviewedAt) throw new Error('Scheduled publication timestamp must be in the future.');
-  const publishedAt = scheduledAt || reviewedAt;
   const status = scheduledAt ? 'scheduled' : 'published';
 
   const payload = {
@@ -107,8 +106,9 @@ function buildCreatePayload({ slug, authorId, now = new Date(), publishAt = null
     likesCount: 0,
     commentsCount: 0,
     isDeleted: false,
-    publishedAt,
-    approvedAt: status === 'published' ? reviewedAt : null,
+    scheduledFor: scheduledAt,
+    publishedAt: status === 'published' ? reviewedAt : null,
+    approvedAt: status === 'published' || confirmEditorialReview ? reviewedAt : null,
     rejectionReason: '',
     moderationNotes: '',
     moderationFlags: [],
@@ -163,7 +163,8 @@ async function createAdsenseBlog({ slug, mode = 'dry-run', now = new Date(), pub
       authorEmail: author.email,
       authorId: String(author._id),
       createdId,
-      publishedAt: payload.publishedAt.toISOString(),
+      scheduledFor: payload.scheduledFor ? payload.scheduledFor.toISOString() : null,
+      publishedAt: payload.publishedAt ? payload.publishedAt.toISOString() : null,
       status: payload.status,
       featured: payload.featured,
       coverImageUrl: payload.coverImageUrl,

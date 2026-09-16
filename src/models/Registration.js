@@ -62,7 +62,11 @@ const registrationSchema = new mongoose.Schema(
       runningGroup: { type: String, trim: true, default: '', maxlength: 120 },
       department: { type: String, trim: true, default: '', maxlength: 120 },
       position: { type: String, trim: true, default: '', maxlength: 120 },
-      preferredFitnessApp: { type: String, trim: true, default: '', maxlength: 80 }
+      // Readable summary of preferredTrackingApps, kept so registrant CSV exports and
+      // organiser review fallbacks read the same field they always have.
+      preferredFitnessApp: { type: String, trim: true, default: '', maxlength: 200 },
+      preferredTrackingApps: { type: [String], default: [] },
+      preferredTrackingAppOther: { type: String, trim: true, default: '', maxlength: 80 }
     },
 
     // Answers to the organiser's own questions.

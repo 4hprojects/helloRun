@@ -162,6 +162,8 @@ router.post('/ads', requireAdmin, requireFullAdmin, adminContentSettingsLimiter,
 router.get('/reviews', requireAdmin, adminController.reviewQueue);
 router.get('/submissions', requireAdmin, adminController.listSubmissions);
 router.post('/submissions/bulk-reject', requireAdmin, adminModerationLimiter, adminController.bulkRejectSubmissions);
+router.get('/approved-entries', requireAdmin, adminController.listApprovedEntries);
+router.post('/approved-entries/:submissionId/reverse', requireAdmin, requireCsrfProtection, adminModerationLimiter, adminController.reverseApprovedEntry);
 router.post('/submissions/:submissionId/correct', requireAdmin, requireFullAdmin, adminModerationLimiter, adminController.correctSubmission);
 router.get('/privacy-policy', requireAdmin, adminController.listPrivacyPolicies);
 router.get('/privacy-policy/new', requireAdmin, adminController.renderNewPrivacyPolicyDraft);
@@ -233,6 +235,9 @@ router.post('/blog/posts/:id/assets-upload', requireAdmin, adminModerationLimite
 router.post('/blog/posts/:id/approve-form', requireAdmin, adminModerationLimiter, blogController.approveBlogPostPage);
 router.post('/blog/posts/:id/reject-form', requireAdmin, adminModerationLimiter, blogController.rejectBlogPostPage);
 router.post('/blog/posts/:id/archive-form', requireAdmin, adminModerationLimiter, blogController.archiveBlogPostPage);
+router.post('/blog/posts/:id/reschedule', requireAdmin, adminModerationLimiter, blogController.rescheduleBlogPost);
+router.post('/blog/posts/:id/publish-now', requireAdmin, adminModerationLimiter, blogController.publishScheduledBlogPostNow);
+router.post('/blog/posts/:id/return-draft', requireAdmin, adminModerationLimiter, blogController.returnScheduledBlogPostToDraft);
 
 router.get('/blog/pending', requireAdmin, blogController.listPendingBlogs);
 router.get('/blog/posts/:id', requireAdmin, blogController.previewBlogPost);

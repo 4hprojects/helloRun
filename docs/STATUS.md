@@ -2,9 +2,9 @@
 
 **Source of truth for delivery status**
 
-**Last reconciled:** August 8, 2026
+**Last reconciled:** September 16, 2026
 
-**Evidence window:** repository history through August 8, 2026
+**Evidence window:** repository history through September 16, 2026
 
 **Forward priorities and the tracked checklist:** [ROADMAP.md](ROADMAP.md)
 
@@ -75,7 +75,24 @@ core platform:
 - responsive runner, organiser, administrator, event-discovery, policy, and
   public-content refinements committed through July 29;
 - session-based organizer and runner workspaces, including verified-organizer
-  participation in other organizers' events and own-event conflict guards;
+  participation in any event, their own included, with reviewing your own
+  submission or payment proof as the one remaining conflict-of-interest guard
+  (September 14 — replaced the former blanket own-event participation ban);
+- organiser self-participation, audited September 16 — organisers and co-organisers can
+  register, upload and submit end to end, including on events they manage; reviewing your
+  own entry is permitted and recorded as `submission.self_reviewed` rather than blocked,
+  which previously deadlocked a sole organiser; admins remain excluded from participating
+  by design; payment-proof self-approval remains blocked;
+- approved-entry reversal, added September 16 — a dedicated approved-entries page for
+  organisers, co-organisers and admins, where an approval can be reversed to rejected;
+  the reversal revokes any issued certificate, withdraws badges earned off the entry
+  (restoring them if it is approved again), deletes the published ranking row and flushes
+  the leaderboard cache, under its own audit action;
+- post-signup registration edits, added September 15 — organisers and co-organisers
+  change a registrant's leaderboard choice, contact snapshot and name from the
+  registrants page (reason required, audited, runner notified), and runners change
+  their own leaderboard choice and event contact details from their registrations
+  page; both flush the cached leaderboard;
 - the reusable `@hellorun/threaded-comments` package and HelloRun blog
   integration.
 

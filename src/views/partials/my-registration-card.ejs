@@ -154,6 +154,52 @@
           <p><strong>Running group:</strong> <%= participant.runningGroup || 'N/A' %></p>
           <p><strong>Emergency contact:</strong> <%= participant.emergencyContactName || 'N/A' %></p>
         </div>
+        <% if (registration.status !== 'cancelled') { %>
+          <details class="my-reg-edit">
+            <summary>Leaderboard and contact details</summary>
+            <form method="POST" action="/my-registrations/<%= item.registrationId %>/details" class="my-reg-edit-form">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+
+              <fieldset>
+                <legend>How you appear on the leaderboard</legend>
+                <p class="my-reg-edit-current">Currently: <strong><%= leaderboardStateLabel(registration) %></strong></p>
+                <label>Show me as
+                  <select name="leaderboardDisplayPreference">
+                    <% leaderboardDisplayOptions.forEach((option) => { %>
+                      <option value="<%= option.value %>" <%= (registration.leaderboardDisplayPreference || 'full_name') === option.value ? 'selected' : '' %>><%= option.label %></option>
+                    <% }); %>
+                  </select>
+                </label>
+                <label class="my-reg-edit-check"><input type="checkbox" name="consentToLeaderboard" value="1" <%= registration.consentToLeaderboard !== false ? 'checked' : '' %>><span>I consent to appearing on the public leaderboard. Untick this, or choose &ldquo;Do not show me&rdquo;, to stay off it.</span></label>
+                <p class="my-reg-edit-note">The organizer can set a stricter display for the whole event, so your name may appear shortened even when you pick your full name.</p>
+              </fieldset>
+
+              <fieldset>
+                <legend>Your details for this event</legend>
+                <div class="my-reg-edit-grid">
+                  <label>Contact number<input name="mobile" type="tel" maxlength="25" value="<%= participant.mobile || '' %>"></label>
+                  <label>Department or office<input name="department" maxlength="120" value="<%= participant.department || '' %>"></label>
+                  <label>Position or designation<input name="position" maxlength="120" value="<%= participant.position || '' %>"></label>
+                  <label>Running group<input name="runningGroup" maxlength="120" value="<%= participant.runningGroup || '' %>"></label>
+                </div>
+                <p class="my-reg-edit-note">Your name and emergency contact come from your profile, so change them there to update them everywhere.</p>
+              </fieldset>
+
+              <% const selectedTrackingApps = participant.preferredTrackingApps || []; %>
+              <fieldset>
+                <legend>Tracking app or device (optional)</legend>
+                <div class="my-reg-edit-checks">
+                  <% (locals.trackingAppOptions || []).forEach((option) => { %>
+                    <label><input type="checkbox" name="preferredTrackingApps" value="<%= option.id %>" <%= selectedTrackingApps.includes(option.id) ? 'checked' : '' %>><span><%= option.label %></span></label>
+                  <% }); %>
+                </div>
+                <label>If &ldquo;Other&rdquo;, which one<input name="preferredTrackingAppOther" maxlength="80" value="<%= participant.preferredTrackingAppOther || '' %>"></label>
+              </fieldset>
+
+              <button type="submit" class="nav-signup-btn">Save changes</button>
+            </form>
+          </details>
+        <% } %>
         <% if (['pending_payment','paid','confirmed'].includes(registration.status)) { %>
             <% if (registration.cancellationRequestedAt) { %>
           <p class="my-reg-cancel-requested">You asked to cancel this registration. The organizer will be in touch.</p>

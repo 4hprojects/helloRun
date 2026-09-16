@@ -80,7 +80,7 @@ async function listManagedPosts(input = {}) {
       .sort(SORTS[filters.sort])
       .skip(skip)
       .limit(PAGE_SIZE)
-      .select('title slug status category customCategory coverImageUrl submittedAt scheduledFor publishedAt rejectedAt rejectionReason readingTime createdAt updatedAt activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason views likesCount commentsCount featured moderationFlags scheduledPublishFailures scheduledPublishLastAttemptAt scheduledPublishLastError')
+      .select('title slug status category customCategory coverImageUrl submittedAt scheduledFor publishedAt approvedAt rejectedAt rejectionReason readingTime createdAt updatedAt activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason views likesCount commentsCount featured moderationFlags scheduledPublishFailures scheduledPublishLastAttemptAt scheduledPublishLastError contentRisk searchIndexingStatus searchIndexingReason publicationReview.reviewedAt')
       .lean(),
     Blog.countDocuments(query),
     Blog.aggregate([

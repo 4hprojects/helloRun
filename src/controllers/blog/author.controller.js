@@ -30,6 +30,7 @@ const {
   getComposerBlockTypeOptions,
   getComposerTemplateBlocksByKey,
   EDITABLE_STATUSES,
+  REVISION_SOURCE_STATUSES,
   ADMIN_REVIEW_STATUSES,
   MIN_REJECTION_REASON_LENGTH,
   MAX_REJECTION_REASON_LENGTH,
@@ -97,7 +98,7 @@ exports.getMyBlogs = async (req, res) => {
 
     const posts = await Blog.find(query)
       .sort({ updatedAt: -1 })
-      .select('title slug status category customCategory submittedAt approvedAt rejectedAt rejectionReason publishedAt updatedAt createdAt views likesCount commentsCount activeRevisionId activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason');
+      .select('title slug status category customCategory submittedAt approvedAt rejectedAt rejectionReason scheduledFor publishedAt updatedAt createdAt views likesCount commentsCount activeRevisionId activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason');
 
     return res.json({
       success: true,
@@ -246,7 +247,7 @@ exports.updateDraft = async (req, res) => {
     if (!post) {
       return res.status(404).json({ success: false, message: 'Post not found.' });
     }
-    if (!EDITABLE_STATUSES.has(post.status) && post.status !== 'published') {
+    if (!EDITABLE_STATUSES.has(post.status) && !REVISION_SOURCE_STATUSES.has(post.status)) {
       return res.status(409).json({
         success: false,
         message: `Post with status "${post.status}" is locked for editing.`
@@ -256,7 +257,7 @@ exports.updateDraft = async (req, res) => {
     const payload = normalizeBlogPayload(req.body);
     const shouldSubmit = String(req.body.action || '').trim() === 'submit_review';
     const removeCoverImage = String(req.body.removeCoverImage || '').trim() === '1';
-    const existingGallery = post.status === 'published' && post.activeRevisionId
+    const existingGallery = REVISION_SOURCE_STATUSES.has(post.status) && post.activeRevisionId
       ? ((await getOrCreateAuthorRevision(post, user._id)).after?.galleryImageUrls || post.galleryImageUrls || [])
       : (post.galleryImageUrls || []);
     await uploadBlogAssetsForPayload({
@@ -280,7 +281,7 @@ exports.updateDraft = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Validation failed.', errors });
     }
 
-    if (post.status === 'published') {
+    if (REVISION_SOURCE_STATUSES.has(post.status)) {
       const readyErrors = shouldSubmit ? validateReadyForReview(payload) : [];
       if (readyErrors.length) {
         if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
@@ -489,7 +490,7 @@ exports.discardRevision = async (req, res) => {
     const post = await Blog.findOne({
       _id: req.params.id,
       authorId: user._id,
-      status: 'published',
+      status: { $in: ['published', 'scheduled'] },
       isDeleted: { $ne: true }
     });
     if (!post || !post.activeRevisionId) {
@@ -581,7 +582,7 @@ exports.renderAuthorDashboard = async (req, res) => {
 
     const posts = await Blog.find(query)
       .sort({ updatedAt: -1 })
-      .select('title slug status category customCategory submittedAt approvedAt rejectedAt rejectionReason publishedAt updatedAt createdAt views likesCount commentsCount activeRevisionId activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason');
+      .select('title slug status category customCategory submittedAt approvedAt rejectedAt rejectionReason scheduledFor publishedAt updatedAt createdAt views likesCount commentsCount activeRevisionId activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason');
 
     return res.render('blog/author-dashboard', {
       title: 'My Blogs - HelloRun',
@@ -777,7 +778,7 @@ exports.renderEditPage = async (req, res) => {
     let mode = 'edit';
     let submitLabel = 'Save Changes';
     let revision = null;
-    if (post.status === 'published') {
+    if (REVISION_SOURCE_STATUSES.has(post.status)) {
       revision = await getOrCreateAuthorRevision(post, user._id);
       formPost = {
         ...post.toObject(),
@@ -846,7 +847,7 @@ exports.updateDraftPage = async (req, res) => {
         message: 'Blog post not found.'
       });
     }
-    if (!EDITABLE_STATUSES.has(post.status) && post.status !== 'published') {
+    if (!EDITABLE_STATUSES.has(post.status) && !REVISION_SOURCE_STATUSES.has(post.status)) {
       return res.redirect('/blogs/me/dashboard?type=error&msg=This%20post%20cannot%20be%20edited.');
     }
 
@@ -871,7 +872,7 @@ exports.updateDraftPage = async (req, res) => {
     const payload = normalizeBlogPayload(req.body);
     const shouldSubmit = String(req.body.action || '').trim() === 'submit_review';
     const removeCoverImage = String(req.body.removeCoverImage || '').trim() === '1';
-    const revisionForGallery = post.status === 'published' ? await getOrCreateAuthorRevision(post, user._id) : null;
+    const revisionForGallery = REVISION_SOURCE_STATUSES.has(post.status) ? await getOrCreateAuthorRevision(post, user._id) : null;
     const existingGallery = revisionForGallery?.after?.galleryImageUrls || post.galleryImageUrls || [];
     await uploadBlogAssetsForPayload({
       req,
@@ -892,9 +893,9 @@ exports.updateDraftPage = async (req, res) => {
       return res.status(400).render('blog/author-form', {
         title: 'Edit Blog Draft - HelloRun',
         user,
-        mode: post.status === 'published' ? 'edit-published' : 'edit',
+        mode: REVISION_SOURCE_STATUSES.has(post.status) ? 'edit-published' : 'edit',
         formAction: `/blogs/me/${post._id}/edit`,
-        submitLabel: post.status === 'published' ? 'Save Revision Draft' : 'Save Changes',
+        submitLabel: REVISION_SOURCE_STATUSES.has(post.status) ? 'Save Revision Draft' : 'Save Changes',
         categories: BLOG_CATEGORIES,
         templates: getComposerTemplateOptions(),
         blockTypes: getComposerBlockTypeOptions(),
@@ -908,7 +909,7 @@ exports.updateDraftPage = async (req, res) => {
       });
     }
 
-    if (post.status === 'published') {
+    if (REVISION_SOURCE_STATUSES.has(post.status)) {
       const readyErrors = shouldSubmit ? validateReadyForReview(payload) : [];
       if (readyErrors.length) {
         if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);

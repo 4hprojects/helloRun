@@ -8,17 +8,40 @@ const Blog = require('../models/Blog');
 async function migrateScheduledFor({ BlogModel = Blog, dryRun = true } = {}) {
   const query = {
     status: 'scheduled',
-    scheduledFor: null,
-    publishedAt: { $ne: null }
+    $or: [
+      { scheduledFor: null, publishedAt: { $ne: null } },
+      { approvedAt: null, 'publicationReview.reviewedAt': { $ne: null } }
+    ]
   };
-  const records = await BlogModel.find(query).select('_id title publishedAt').lean();
+  const records = await BlogModel.find(query)
+    .select('_id title scheduledFor publishedAt approvedAt publicationReview.reviewedAt')
+    .lean();
   if (!dryRun && records.length) {
-    await Promise.all(records.map((record) => BlogModel.updateOne(
-      { _id: record._id, status: 'scheduled', scheduledFor: null },
-      { $set: { scheduledFor: record.publishedAt, publishedAt: null } }
-    )));
+    await Promise.all(records.map((record) => {
+      const set = {};
+      if (!record.scheduledFor && record.publishedAt) {
+        set.scheduledFor = record.publishedAt;
+        set.publishedAt = null;
+      }
+      if (!record.approvedAt && record.publicationReview?.reviewedAt) {
+        set.approvedAt = record.publicationReview.reviewedAt;
+      }
+      if (!Object.keys(set).length) return null;
+      return BlogModel.updateOne(
+        { _id: record._id, status: 'scheduled' },
+        { $set: set }
+      );
+    }));
   }
-  return { dryRun, matched: records.length, ids: records.map((record) => String(record._id)) };
+  return {
+    dryRun,
+    matched: records.length,
+    records: records.map((record) => ({
+      id: String(record._id),
+      scheduledFor: record.scheduledFor || record.publishedAt || null,
+      backfillApprovedAt: !record.approvedAt && Boolean(record.publicationReview?.reviewedAt)
+    }))
+  };
 }
 
 async function main() {

@@ -2,17 +2,17 @@
 
 // DB-free regression test for the public event-details page (`GET /events/:slug`).
 //
-// History: a signed-out visitor has `res.locals.user === null`. getEventDetails
-// calls `isOwnOrganizerEvent(res.locals.user, event)`, and the util's default
-// parameter only guarded `undefined`, so `null` reached `user.role` and threw —
-// 500ing the page for every guest on every event (fixed in b70b50d).
+// History: a signed-out visitor has `res.locals.user === null`. getEventDetails used
+// to call `isOwnOrganizerEvent(res.locals.user, event)`, whose default parameter only
+// guarded `undefined`, so `null` reached `user.role` and threw — 500ing the page for
+// every guest on every event (fixed in b70b50d). That helper is gone now that
+// organisers may join their own events, but the guest path it broke still needs
+// covering against any future null-user dereference.
 //
 // This test drives the real controller with a guest request. The heavy barrel
 // (`_shared`, Mongo models, DB-backed services) is stubbed in the require cache
-// BEFORE the controller loads, so nothing touches a database. The pieces central
-// to the bug stay REAL: `utils/workspace` (isOwnOrganizerEvent) and
-// `utils/event-public-view` (buildPublicEventView). Before the fix this test
-// throws inside getEventDetails and the assertions below fail.
+// BEFORE the controller loads, so nothing touches a database.
+// `utils/event-public-view` (buildPublicEventView) stays REAL.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -75,7 +75,8 @@ stub('../src/controllers/page/_shared', {
   logger: { warn() {}, error() {}, info() {} }
 });
 stub('../src/services/public-event-detail.service', {
-  getPublicEventRunnerState: async () => null
+  getPublicEventRunnerState: async () => null,
+  getPublicEventRegistrationSummary: async () => null
 });
 stub('../src/services/event-contact-protection.service', {
   getContactCooldown: async () => null,
@@ -104,7 +105,6 @@ test('getEventDetails renders the event page for a signed-out visitor without th
 
   assert.equal(res.statusCode, 200);
   assert.equal(captured.view, 'pages/event-details');
-  assert.equal(captured.options.ownEventParticipationConflict, false);
   assert.equal(captured.options.event.slug, 'move-more-challenge-2026');
   // Runner-specific state must be absent for a guest.
   assert.equal(captured.options.runnerEventState, null);

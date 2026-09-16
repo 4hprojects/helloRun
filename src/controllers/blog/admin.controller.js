@@ -72,6 +72,7 @@ const {
   getActivePendingRevision,
   resolveReviewTarget,
   approveReviewTarget,
+  resolvePublicationSchedule,
   getBlockingModerationFlags,
   rejectReviewTarget,
   validateBlogPayload,
@@ -84,6 +85,7 @@ const {
 } = require('./_shared');
 const { recordCriticalAuditEventInBackground } = require('../../services/critical-audit.service');
 const { invalidateIndexingReview } = require('../../utils/blog-indexing');
+const { hasCurrentEligibleContent, hasCurrentPublicationReview } = require('../../utils/blog-content-eligibility');
 const { listManagedPosts } = require('../../services/admin-blog-management.service');
 
 function recordBlogModerationAudit(req, input = {}) {
@@ -99,6 +101,79 @@ function recordBlogModerationAudit(req, input = {}) {
     userAgent: req.get?.('user-agent') || '',
     occurredAt: new Date()
   });
+}
+
+function wantsHtml(req) {
+  return req.accepts(['html', 'json']) === 'html';
+}
+
+function scheduledActionResponse(req, res, { post, message }) {
+  if (wantsHtml(req)) {
+    return res.redirect(`/admin/blog/posts/${post._id}/review?type=success&msg=${encodeURIComponent(message)}`);
+  }
+  return res.json({ success: true, message, post });
+}
+
+function scheduledActionError(req, res, error, fallbackMessage) {
+  const status = Number(error.status || 500);
+  const message = error.status ? error.message : fallbackMessage;
+  if (wantsHtml(req)) {
+    return res.redirect(`/admin/blog/posts/${req.params.id}/review?type=error&msg=${encodeURIComponent(message)}`);
+  }
+  return res.status(status).json({ success: false, message });
+}
+
+function requireExpectedWorkflowVersion(post, input = {}) {
+  const requested = Number.parseInt(input.workflowVersion, 10);
+  if (!Number.isInteger(requested) || requested < 0) {
+    const error = new Error('A valid workflow version is required. Reload the post and try again.');
+    error.status = 400;
+    throw error;
+  }
+  if (requested !== Number(post.workflowVersion || 0)) {
+    const error = new Error('This post changed in another session. Reload before continuing.');
+    error.status = 409;
+    throw error;
+  }
+  return requested;
+}
+
+function scheduledTransitionQuery(post, workflowVersion) {
+  const versionCondition = workflowVersion === 0
+    ? { $or: [{ workflowVersion: 0 }, { workflowVersion: { $exists: false } }] }
+    : { workflowVersion };
+  return { _id: post._id, status: 'scheduled', ...versionCondition };
+}
+
+async function loadScheduledPost(id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    const error = new Error('Invalid post id.');
+    error.status = 400;
+    throw error;
+  }
+  const post = await Blog.findOne({ _id: id, isDeleted: { $ne: true } });
+  if (!post) {
+    const error = new Error('Post not found.');
+    error.status = 404;
+    throw error;
+  }
+  if (post.status !== 'scheduled') {
+    const error = new Error(`Only scheduled posts support this action. Current status: "${post.status}".`);
+    error.status = 409;
+    throw error;
+  }
+  return post;
+}
+
+async function discardActiveRevisionForPost(post) {
+  const activeRevisionId = post.activeRevisionId || null;
+  if (!activeRevisionId) return false;
+  await BlogRevision.updateOne(
+    { _id: activeRevisionId, postId: post._id, status: { $in: ['draft', 'pending', 'rejected'] } },
+    { $set: { status: 'discarded', reviewedAt: new Date() } }
+  );
+  syncBlogRevisionState(post, null);
+  return true;
 }
 
 exports.listPendingBlogs = async (req, res) => {
@@ -280,12 +355,15 @@ exports.archiveBlogPost = async (req, res) => {
     }
 
     const previousStatus = post.status;
+    const revisionDiscarded = await discardActiveRevisionForPost(post);
     post.status = 'archived';
     post.scheduledFor = null;
+    if (previousStatus === 'scheduled') post.publishedAt = null;
     post.reviewedAt = new Date();
     await post.save();
     recordBlogModerationAudit(req, {
-      action: 'admin.blog.archived', postId: post._id, statusFrom: previousStatus, statusTo: 'archived'
+      action: 'admin.blog.archived', postId: post._id, statusFrom: previousStatus, statusTo: 'archived',
+      details: { revisionDiscarded }
     });
 
     return res.json({
@@ -296,6 +374,153 @@ exports.archiveBlogPost = async (req, res) => {
   } catch (error) {
     logger.error('archiveBlogPost error:', error);
     return res.status(500).json({ success: false, message: 'Failed to archive post.' });
+  }
+};
+
+exports.rescheduleBlogPost = async (req, res) => {
+  try {
+    const post = await loadScheduledPost(req.params.id);
+    const workflowVersion = requireExpectedWorkflowVersion(post, req.body);
+    const previousScheduledFor = post.scheduledFor || post.publishedAt || null;
+    const schedule = resolvePublicationSchedule({
+      publicationMode: 'scheduled',
+      scheduledFor: req.body.scheduledFor
+    });
+    const updated = await Blog.findOneAndUpdate(
+      scheduledTransitionQuery(post, workflowVersion),
+      {
+        $set: {
+          scheduledFor: schedule.scheduledFor,
+          publishedAt: null,
+          scheduledPublishFailures: 0,
+          scheduledPublishLastAttemptAt: null,
+          scheduledPublishLastError: ''
+        },
+        $inc: { workflowVersion: 1 }
+      },
+      { new: true, runValidators: true }
+    );
+    if (!updated) {
+      const error = new Error('This post changed while it was being rescheduled. Reload before continuing.');
+      error.status = 409;
+      throw error;
+    }
+    recordBlogModerationAudit(req, {
+      action: 'admin.blog.rescheduled',
+      postId: updated._id,
+      statusFrom: 'scheduled',
+      statusTo: 'scheduled',
+      details: { previousScheduledFor, scheduledFor: updated.scheduledFor }
+    });
+    return scheduledActionResponse(req, res, { post: updated, message: 'Post rescheduled successfully.' });
+  } catch (error) {
+    logger.error('rescheduleBlogPost error:', error);
+    return scheduledActionError(req, res, error, 'Failed to reschedule post.');
+  }
+};
+
+exports.publishScheduledBlogPostNow = async (req, res) => {
+  try {
+    const post = await loadScheduledPost(req.params.id);
+    const workflowVersion = requireExpectedWorkflowVersion(post, req.body);
+    if (!hasCurrentEligibleContent(post) || !hasCurrentPublicationReview(post)) {
+      const error = new Error('This scheduled post no longer has a current eligible content review. Submit it for review again before publishing.');
+      error.status = 409;
+      throw error;
+    }
+    const now = new Date();
+    const updated = await Blog.findOneAndUpdate(
+      scheduledTransitionQuery(post, workflowVersion),
+      {
+        $set: {
+          status: 'published',
+          scheduledFor: null,
+          publishedAt: now,
+          approvedAt: post.approvedAt || post.publicationReview?.reviewedAt || now,
+          reviewedAt: post.reviewedAt || post.publicationReview?.reviewedAt || now,
+          scheduledPublishFailures: 0,
+          scheduledPublishLastAttemptAt: null,
+          scheduledPublishLastError: ''
+        },
+        $inc: { workflowVersion: 1 }
+      },
+      { new: true, runValidators: true }
+    );
+    if (!updated) {
+      const error = new Error('This post changed while it was being published. Reload before continuing.');
+      error.status = 409;
+      throw error;
+    }
+    recordBlogModerationAudit(req, {
+      action: 'admin.blog.published_now',
+      postId: updated._id,
+      statusFrom: 'scheduled',
+      statusTo: 'published',
+      details: { publishedAt: updated.publishedAt }
+    });
+    return scheduledActionResponse(req, res, { post: updated, message: 'Scheduled post published successfully.' });
+  } catch (error) {
+    logger.error('publishScheduledBlogPostNow error:', error);
+    return scheduledActionError(req, res, error, 'Failed to publish scheduled post.');
+  }
+};
+
+exports.returnScheduledBlogPostToDraft = async (req, res) => {
+  try {
+    const post = await loadScheduledPost(req.params.id);
+    const workflowVersion = requireExpectedWorkflowVersion(post, req.body);
+    const activeRevisionId = post.activeRevisionId || null;
+    const updated = await Blog.findOneAndUpdate(
+      scheduledTransitionQuery(post, workflowVersion),
+      {
+        $set: {
+          status: 'draft',
+          scheduledFor: null,
+          publishedAt: null,
+          approvedAt: null,
+          approvedBy: null,
+          reviewedAt: null,
+          contentEligibility: null,
+          publicationReview: null,
+          searchIndexingStatus: 'noindex',
+          searchIndexingReason: post.contentRisk === 'health_safety' ? 'pending_expert_review' : 'pending_value_review',
+          indexingReview: null,
+          scheduledPublishFailures: 0,
+          scheduledPublishLastAttemptAt: null,
+          scheduledPublishLastError: '',
+          activeRevisionId: null,
+          activeRevisionStatus: '',
+          activeRevisionSubmittedAt: null,
+          activeRevisionUpdatedAt: null,
+          activeRevisionRejectedAt: null,
+          activeRevisionRejectionReason: ''
+        },
+        $inc: { workflowVersion: 1 }
+      },
+      { new: true, runValidators: true }
+    );
+    if (!updated) {
+      const error = new Error('This post changed while it was being returned to draft. Reload before continuing.');
+      error.status = 409;
+      throw error;
+    }
+    if (activeRevisionId) {
+      await BlogRevision.updateOne(
+        { _id: activeRevisionId, postId: post._id, status: { $in: ['draft', 'pending', 'rejected'] } },
+        { $set: { status: 'discarded', reviewedAt: new Date() } }
+      );
+    }
+    recordBlogModerationAudit(req, {
+      action: 'admin.blog.returned_to_draft',
+      postId: updated._id,
+      statusFrom: 'scheduled',
+      statusTo: 'draft',
+      details: { revisionDiscarded: Boolean(activeRevisionId) }
+    });
+    return scheduledActionResponse(req, res, { post: updated, message: 'Scheduled post returned to draft.' });
+  } catch (error) {
+    logger.error('returnScheduledBlogPostToDraft error:', error);
+    return scheduledActionError(req, res, error, 'Failed to return scheduled post to draft.');
   }
 };
 
@@ -886,12 +1111,15 @@ exports.archiveBlogPostPage = async (req, res) => {
     }
 
     const previousStatus = post.status;
+    const revisionDiscarded = await discardActiveRevisionForPost(post);
     post.status = 'archived';
     post.scheduledFor = null;
+    if (previousStatus === 'scheduled') post.publishedAt = null;
     post.reviewedAt = new Date();
     await post.save();
     recordBlogModerationAudit(req, {
-      action: 'admin.blog.archived', postId: post._id, statusFrom: previousStatus, statusTo: 'archived'
+      action: 'admin.blog.archived', postId: post._id, statusFrom: previousStatus, statusTo: 'archived',
+      details: { revisionDiscarded }
     });
 
     return res.redirect(`/admin/blog/posts/${post._id}/review?type=success&msg=Post%20archived.`);

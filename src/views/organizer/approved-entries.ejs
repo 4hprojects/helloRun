@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Approved Entries - HelloRun Organizer' }) %>
+  <link rel="stylesheet" href="/css/submission-hub.css">
+  <link rel="stylesheet" href="/css/approved-entries.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="organizer-submission-page" id="main-content">
+    <div class="organizer-submission-shell">
+      <header class="organizer-submission-header">
+        <div>
+          <p class="organizer-submission-kicker">Result moderation</p>
+          <h1>Approved Entries</h1>
+          <p>Entries that already count. Reverse one if it should not have been approved &mdash; that also withdraws any certificate and badges it earned.</p>
+        </div>
+        <nav class="organizer-submission-header-actions" aria-label="Approved entries actions">
+          <a href="<%= links.dashboard %>" class="nav-login-btn"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span><%= isAdminViewer ? 'Admin Dashboard' : 'Dashboard' %></span></a>
+          <a href="<%= links.submissions %>" class="nav-login-btn"><i data-lucide="clipboard-check" aria-hidden="true"></i><span>All submissions</span></a>
+        </nav>
+      </header>
+
+      <% if (message) { %><div class="page-message page-message-<%= message.type %>" role="status"><%= message.text %></div><% } %>
+
+      <form method="GET" action="<%= basePath %>" class="organizer-submission-filters">
+        <label>Search
+          <input type="search" name="q" value="<%= filters.q %>" maxlength="120" placeholder="Runner, email or confirmation code">
+        </label>
+        <label>Event
+          <select name="eventId">
+            <option value="">All events</option>
+            <% (events || []).forEach((event) => { %>
+              <option value="<%= event.id %>" <%= filters.eventId === event.id ? 'selected' : '' %>><%= event.title %></option>
+            <% }); %>
+          </select>
+        </label>
+        <label>Type
+          <select name="type">
+            <option value="all" <%= filters.type === 'all' ? 'selected' : '' %>>All types</option>
+            <option value="standard" <%= filters.type === 'standard' ? 'selected' : '' %>>Run results</option>
+            <option value="accumulated" <%= filters.type === 'accumulated' ? 'selected' : '' %>>Accumulated activities</option>
+          </select>
+        </label>
+        <label>Sort
+          <select name="sort">
+            <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest first</option>
+            <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest first</option>
+          </select>
+        </label>
+        <div class="organizer-submission-filter-actions">
+          <button type="submit" class="nav-signup-btn">Apply</button>
+          <a href="<%= links.reset %>" class="nav-login-btn">Clear</a>
+        </div>
+      </form>
+
+      <p class="approved-entries-count" role="status"><strong><%= pagination.totalItems %></strong> approved <%= pagination.totalItems === 1 ? 'entry' : 'entries' %></p>
+
+      <% if (submissions && submissions.length) { %>
+        <div class="organizer-submission-table-wrap">
+          <table class="organizer-submission-table">
+            <thead><tr>
+              <th>Runner &amp; event</th><th>Result</th><th>Evidence</th><th>Approved</th><th>Recognition</th><th>Reverse</th>
+            </tr></thead>
+            <tbody>
+              <% submissions.forEach((item) => { %>
+                <tr data-submission-id="<%= item.id %>" data-status="<%= item.status %>">
+                  <td data-label="Runner &amp; event" class="organizer-submission-identity">
+                    <strong><%= item.participantName %></strong>
+                    <span><%= item.participantEmail %> · <span class="mono"><%= item.confirmationCode %></span></span>
+                    <a href="<%= item.eventQueueHref %>"><%= item.eventTitle %></a>
+                    <small><%= item.raceDistance %> · <%= item.submissionTypeLabel %></small>
+                  </td>
+                  <td data-label="Result"><strong><%= item.distanceLabel %></strong><span><%= item.elapsedLabel %></span></td>
+                  <td data-label="Evidence"><strong><%= item.sourceLabel %></strong><span><%= item.proofTypeLabel %></span></td>
+                  <td data-label="Approved">
+                    <strong><%= item.reviewedAtLabel || 'N/A' %></strong>
+                    <span class="status-badge status-badge-<%= item.statusClass %>"><%= item.statusLabel %></span>
+                  </td>
+                  <td data-label="Recognition">
+                    <% if (item.certificateIssued) { %>
+                      <span class="approved-entries-flag approved-entries-flag-certificate"><i data-lucide="award" aria-hidden="true"></i>Certificate issued</span>
+                    <% } else if (item.certificateRevoked) { %>
+                      <span class="approved-entries-flag">Certificate revoked</span>
+                    <% } else { %>
+                      <span class="approved-entries-flag-none">No certificate</span>
+                    <% } %>
+                  </td>
+                  <td data-label="Reverse" class="organizer-submission-actions">
+                    <details class="approved-entries-reverse">
+                      <summary>Reverse approval</summary>
+                      <form method="POST" action="<%= reversalBasePath %>/<%= item.id %>/reverse" class="approved-entries-reverse-form">
+                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                        <p class="approved-entries-warning">
+                          This marks the entry rejected and removes it from the leaderboard.
+                          <% if (item.certificateIssued) { %><strong>The runner's certificate will be revoked and will stop verifying.</strong><% } %>
+                          Any badges earned from it are withdrawn. The runner is notified.
+                        </p>
+                        <label>Reason (required, shared with the runner)
+                          <input name="reason" maxlength="500" minlength="5" required placeholder="For example: duplicate of an earlier activity">
+                        </label>
+                        <button type="submit" class="nav-login-btn approved-entries-reverse-btn">Reverse approval</button>
+                      </form>
+                    </details>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+
+        <% if (pagination.totalPages > 1) { %>
+          <nav class="organizer-submission-pagination" aria-label="Approved entries pagination">
+            <% if (links.prev) { %><a href="<%= links.prev %>" class="nav-login-btn"><i data-lucide="chevron-left" aria-hidden="true"></i>Previous</a><% } else { %><span></span><% } %>
+            <p>Page <strong><%= pagination.page %></strong> of <strong><%= pagination.totalPages %></strong></p>
+            <% if (links.next) { %><a href="<%= links.next %>" class="nav-login-btn">Next<i data-lucide="chevron-right" aria-hidden="true"></i></a><% } else { %><span></span><% } %>
+          </nav>
+        <% } %>
+      <% } else { %>
+        <section class="organizer-submission-empty">
+          <i data-lucide="circle-check-big" aria-hidden="true"></i>
+          <% if (!filters.q && !filters.eventId && filters.type === 'all') { %>
+            <h2>No approved entries yet</h2><p>Entries appear here once they are approved.</p>
+            <a href="<%= links.submissions %>" class="nav-login-btn">Go to submissions</a>
+          <% } else { %>
+            <h2>No matching approved entries</h2><p>Try another search or clear the current filters.</p>
+            <a href="<%= links.reset %>" class="nav-login-btn">Clear filters</a>
+          <% } %>
+        </section>
+      <% } %>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js" defer></script>
+</body>
+</html>

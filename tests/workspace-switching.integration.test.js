@@ -107,21 +107,22 @@ test('restricted organizers and admins cannot enter runner mode', async () => {
   }
 });
 
-test('organizers can register for other events but not events they manage', async () => {
+test('organizers can register for their own events and for other events', async () => {
   const session = await login(users.organizer.email);
 
   const ownDetails = await fetch(`${BASE_URL}/events/${events.owned.slug}`, {
     headers: { Cookie: session.cookie }
   });
   assert.equal(ownDetails.status, 200);
-  assert.match(await ownDetails.text(), /Organizers cannot register for, submit results to, or compete in events they manage/i);
+  const ownDetailsHtml = await ownDetails.text();
+  assert.doesNotMatch(ownDetailsHtml, /Organizers cannot register for, submit results to, or compete in events they manage/i);
+  assert.doesNotMatch(ownDetailsHtml, /Organizer cannot register/i);
 
   const ownRegistration = await fetch(`${BASE_URL}/events/${events.owned.slug}/register`, {
     headers: { Cookie: session.cookie },
     redirect: 'manual'
   });
-  assert.equal(ownRegistration.status, 403);
-  assert.match(await ownRegistration.text(), /cannot register for or compete in events they manage/i);
+  assert.equal(ownRegistration.status, 200);
 
   const otherRegistration = await fetch(`${BASE_URL}/events/${events.other.slug}/register`, {
     headers: { Cookie: session.cookie },

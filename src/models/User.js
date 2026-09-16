@@ -385,9 +385,12 @@ userSchema.methods.isApprovedOrganizer = function() {
          this.organizerStatus === 'approved';
 };
 
+// Admins are deliberately excluded: they review events, submissions and results, so
+// competing in one is a conflict of interest. This has to agree with canUseRunnerWorkspace
+// in utils/workspace.js, which gates every register and submit route.
 userSchema.methods.canParticipateInEvents = function() {
   if (this.accountStatus === 'restricted') return false;
-  return this.emailVerified && (this.role === 'runner' || this.role === 'organiser' || this.role === 'admin');
+  return this.emailVerified && (this.role === 'runner' || this.role === 'organiser');
 };
 
 // Identity approval only gates paid/physical event setups (checked at event save);

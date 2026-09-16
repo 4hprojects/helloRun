@@ -140,6 +140,7 @@
                   <td data-label="Submitted"><strong><%= item.submittedAtLabel %></strong><span class="organizer-submission-waiting"><%= item.waitingLabel %></span></td>
                   <td data-label="Status">
                     <span class="status-badge status-badge-<%= item.statusClass %>"><%= item.statusLabel %></span>
+                    <% if (item.isOwnSubmission) { %><span class="run-proof-self-badge" title="Reviewing your own entry is recorded in the audit log">Your own entry</span><% } %>
                     <% if (item.suspiciousFlag || item.reviewSignal?.label) { %><span class="organizer-submission-warning" title="<%= item.reviewSignal?.description || item.suspiciousFlagReason %>"><i data-lucide="triangle-alert" aria-hidden="true"></i><%= item.reviewSignal?.label || 'Integrity review required' %></span><% } %>
                   </td>
                   <td data-label="Actions" class="organizer-submission-actions">

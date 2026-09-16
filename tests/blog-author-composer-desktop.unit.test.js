@@ -51,7 +51,9 @@ test('shared composer preserves form compatibility and legacy editing', () => {
   assert.match(view, /name="contentBlocksJson"/);
   assert.match(view, /name="contentHtml"/);
   assert.match(view, /name="galleryImageFiles"[^>]*multiple/);
-  assert.match(view, /name="publishedAt"/);
+  assert.doesNotMatch(view, /name="publishedAt"/);
+  assert.doesNotMatch(view, /name="status"/);
+  assert.match(view, /Scheduling and publication are managed by admins/);
   assert.match(view, /name="customCategory"/);
   assert.match(view, /value="save_draft"[^>]*data-submit-action="save_draft"/);
   assert.match(view, /value="submit_review"[^>]*data-submit-action="submit_review"/);
@@ -59,4 +61,3 @@ test('shared composer preserves form compatibility and legacy editing', () => {
   assert.match(view, /<div class="legacy-editor">/);
   assert.doesNotThrow(() => ejs.compile(view, { filename: templatePath }));
 });
-

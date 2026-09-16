@@ -64,6 +64,8 @@ const {
 
 const EDITABLE_STATUSES = new Set(['draft', 'pending', 'rejected']);
 
+const REVISION_SOURCE_STATUSES = new Set(['published', 'scheduled']);
+
 const ADMIN_REVIEW_STATUSES = new Set(['all', 'pending', 'published', 'scheduled', 'rejected', 'archived', 'draft']);
 
 const MIN_REJECTION_REASON_LENGTH = 15;
@@ -109,7 +111,7 @@ const ADMIN_AUTOSAVE_TRACKED_FIELDS = Object.freeze([
 
 function normalizeStatusFilter(input) {
   const value = String(input || '').trim().toLowerCase();
-  const allowed = new Set(['draft', 'pending', 'published', 'rejected', 'archived']);
+  const allowed = new Set(['draft', 'pending', 'scheduled', 'published', 'rejected', 'archived']);
   return allowed.has(value) ? value : '';
 }
 
@@ -1112,6 +1114,7 @@ module.exports = {
   getComposerBlockTypeOptions,
   getComposerTemplateBlocksByKey,
   EDITABLE_STATUSES,
+  REVISION_SOURCE_STATUSES,
   ADMIN_REVIEW_STATUSES,
   MIN_REJECTION_REASON_LENGTH,
   MAX_REJECTION_REASON_LENGTH,

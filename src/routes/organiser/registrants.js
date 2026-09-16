@@ -14,6 +14,7 @@ const {
   requireCsrfProtection,
   registrantExportLimiter,
   registrantCancellationLimiter,
+  registrantDetailsLimiter,
   getCountryName,
   buildAccumulatedProgress,
   getAccumulatedActivitiesForRegistrations,
@@ -36,10 +37,25 @@ const {
   getRegistrantAccessibleEventOrNull,
   getPageMessage,
   getRequestIpAddress,
-  getRequestUserAgent
+  getRequestUserAgent,
+  notifyWithRetryInBackground
 } = require('./_shared');
 const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('../../services/accumulated-target.service');
 const { cancelRegistration } = require('../../services/registration-cancellation.service');
+const {
+  normalizeRegistrationDetailsInput,
+  applyRegistrationDetailsUpdate,
+  normalizeReason,
+  describeLeaderboardState
+} = require('../../services/registration-details.service');
+const { TRACKING_APP_OPTIONS } = require('../../utils/tracking-apps');
+
+const LEADERBOARD_DISPLAY_OPTIONS = Object.freeze([
+  { value: 'full_name', label: 'Full name' },
+  { value: 'abbreviated', label: 'First name and last initial' },
+  { value: 'hidden', label: 'Do not show on the leaderboard' }
+]);
+const { invalidateLeaderboardCache } = require('../../services/leaderboard.service');
 
 function formatRegistrantDateTime(value) {
   if (!value) return '';
@@ -250,6 +266,9 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       title: `Registrants - ${event.title}`,
       user,
       isAdminViewer: user.role === 'admin',
+      trackingAppOptions: TRACKING_APP_OPTIONS,
+      leaderboardStateLabel: describeLeaderboardState,
+      leaderboardDisplayOptions: LEADERBOARD_DISPLAY_OPTIONS,
       event,
       registrations,
       selectedMode,
@@ -516,5 +535,138 @@ router.get('/events/:id/registrants/export-xlsx', requireAuth, registrantExportL
     });
   }
 });
+
+// Edit a registration after the fact: the runner's leaderboard choice, their contact
+// snapshot, and name corrections. The leaderboard half is privacy-sensitive — an
+// organiser is changing whether someone else appears in public — so it demands a reason,
+// writes an audit entry, and tells the runner what happened.
+router.post(
+  '/events/:id/registrants/:registrationId/details',
+  requireAuth,
+  requireCsrfProtection,
+  registrantDetailsLimiter,
+  async (req, res) => {
+    const listPath = `/organizer/events/${req.params.id}/registrants`;
+    const fail = (message) => res.redirect(`${listPath}?type=error&msg=${encodeURIComponent(message)}`);
+    try {
+      const user = await User.findById(req.session.userId);
+      if (!user || !canAccessRegistrantReview(user)) {
+        return res.status(403).render('error', {
+          title: '403 - Access Denied',
+          status: 403,
+          message: 'Only approved organizers or admins can edit a registration.'
+        });
+      }
+
+      const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
+      if (!event) {
+        return res.status(404).render('error', {
+          title: '404 - Event Not Found',
+          status: 404,
+          message: 'Event not found.'
+        });
+      }
+
+      const reason = normalizeReason(req.body?.reason);
+      if (!reason) {
+        return fail('Give a short reason for the change, for example that the runner asked for it.');
+      }
+
+      // Scoped to this event so a registration id from elsewhere cannot be edited here.
+      const registration = await Registration.findOne({
+        _id: req.params.registrationId,
+        eventId: event._id
+      });
+      if (!registration) {
+        return fail('Registration record not found.');
+      }
+
+      const { values, errors } = normalizeRegistrationDetailsInput(req.body, { allowName: true });
+      const firstError = Object.values(errors)[0];
+      if (firstError) {
+        return fail(firstError);
+      }
+
+      const outcome = applyRegistrationDetailsUpdate({ registration, values });
+      if (!outcome.changedFields.length) {
+        return res.redirect(`${listPath}?msg=${encodeURIComponent('No changes to save.')}`);
+      }
+
+      // save(), not an atomic update: the post-save hook mirrors the participant fields
+      // into the Postgres shadow.
+      await registration.save();
+
+      if (outcome.leaderboardChanged && event.slug) {
+        // The cached leaderboard holds rendered names with hidden runners already removed,
+        // so without this the change is invisible for up to the cache TTL.
+        invalidateLeaderboardCache(event.slug);
+      }
+
+      const runnerName = [registration.participant?.firstName, registration.participant?.lastName]
+        .filter(Boolean)
+        .join(' ') || 'The registration';
+      const occurredAt = new Date();
+
+      // Field names only. An audit log is the wrong place to accumulate a second copy of
+      // participants' contact details.
+      recordCriticalAuditEventInBackground({
+        actorMongoUserId: user._id,
+        action: outcome.leaderboardChanged
+          ? 'registration.leaderboard_preference_changed'
+          : 'registration.participant_details_updated',
+        targetType: 'registration',
+        targetId: String(registration._id),
+        statusFrom: outcome.leaderboardChanged ? describeLeaderboardState(outcome.before) : '',
+        statusTo: outcome.leaderboardChanged ? describeLeaderboardState(outcome.after) : '',
+        notes: `Updated ${outcome.changedFields.join(', ')}. Reason: ${reason}`,
+        ipAddress: getRequestIpAddress(req),
+        userAgent: getRequestUserAgent(req),
+        occurredAt
+      });
+
+      if (registration.userId) {
+        const leaderboardLine = outcome.leaderboardChanged
+          ? ` Your leaderboard display is now “${describeLeaderboardState(outcome.after)}”.`
+          : '';
+        notifyWithRetryInBackground('registration.updated_by_organiser', {
+          notification: {
+            userId: registration.userId,
+            type: 'registration_updated',
+            title: 'Your registration was updated',
+            message: `An organizer updated your registration for ${event.title || 'an event'}.${leaderboardLine}`,
+            href: `/my-registrations#registration-${String(registration._id)}`,
+            metadata: {
+              registrationId: String(registration._id),
+              eventId: String(event._id),
+              eventTitle: event.title || ''
+            }
+          },
+          email: registration.participant?.email ? {
+            to: registration.participant.email,
+            firstName: registration.participant?.firstName || 'Runner',
+            eventTitle: event.title || 'Event',
+            confirmationCode: registration.confirmationCode || '',
+            recipientUserId: registration.userId,
+            changeSummary: outcome.leaderboardChanged
+              ? `Leaderboard display: ${describeLeaderboardState(outcome.after)}`
+              : 'Registration details were updated.',
+            reason,
+            metadata: {
+              registrationId: String(registration._id),
+              eventId: String(event._id)
+            }
+          } : null
+        }, { source: 'organizer.registration_details_update' });
+      }
+
+      return res.redirect(
+        `${listPath}?msg=${encodeURIComponent(`${runnerName} was updated.`)}`
+      );
+    } catch (error) {
+      logger.error('Error updating registration details:', error);
+      return fail(error.message || 'Could not update that registration.');
+    }
+  }
+);
 
 module.exports = router;

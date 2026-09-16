@@ -312,9 +312,70 @@ test('registration page keeps backend contracts and progressive review hooks', (
   assert.doesNotMatch(css, /\.registration-review-card\s*\{[^}]*border-top:\s*4px solid var\(--register-accent\)/);
   assert.match(controller, /waiverVersion: Number\(event\.waiverVersion \|\| 1\)/);
   assert.match(controller, /participationMode: defaultParticipationMode,\s*raceDistance: allowedRaceDistances\.length === 1 \? allowedRaceDistances\[0\] : '',/);
-  assert.match(controller, /Preferred tracking app or device is required/);
+  assert.match(controller, /Choose at least one tracking app or device\./);
   assert.match(controller, /renderedWaiver,/);
   assert.match(communication, /email\.waiverVersion,[\s\S]*email\.renderedWaiver/);
   assert.match(email, /Accepted event waiver/);
   assert.match(email, /renderWaiverTemplate\(String\(renderedWaiver\)\)/);
+});
+
+test('the tracking app field is an optional checkbox group, not required free text', () => {
+  // Participants who have never used a tracking app used to be forced to type a name
+  // they were guessing at. The field now offers concrete choices and accepts none.
+  const form = read('src/views/pages/event-register.ejs');
+
+  assert.match(form, /name="preferredTrackingApps" value="<%= option\.id %>"/);
+  assert.match(form, /type="checkbox" id="trackingApp-<%= option\.id %>"/);
+  assert.match(form, /Preferred tracking app or device <span class="registration-optional-hint">\(optional\)<\/span>/);
+  assert.doesNotMatch(form, /id="preferredFitnessApp"/);
+
+  // Nothing in the tracking fieldset may carry `required`.
+  const fieldset = form.slice(form.indexOf('id="participantTrackingApps"'), form.indexOf('<% } %>', form.indexOf('id="participantTrackingApps"')));
+  assert.doesNotMatch(fieldset, /\brequired\b/);
+
+  // It must render for tracking events even when no other participant field is required.
+  assert.match(form, /event\.requireTrackingAppDevice === true \|\| requiredFields\.has\('preferred_fitness_app'\)/);
+});
+
+test('each participant field renders only when the event asks for it', () => {
+  // Previously one listed field rendered all of them, so an event wanting a department
+  // also collected a contact number and a job title it never used.
+  const form = read('src/views/pages/event-register.ejs');
+
+  assert.match(form, /<% if \(requiredFields\.has\('mobile'\)\) \{ %>.*name="mobile"/);
+  assert.match(form, /<% if \(requiredFields\.has\('department'\)\) \{ %>.*name="department"/);
+  assert.match(form, /<% if \(requiredFields\.has\('position'\)\) \{ %>.*name="position"/);
+  assert.match(form, /const showLeaderboardChoice = requiredFields\.has\('leaderboard_consent'\)/);
+
+  // A rendered participant field is always one the event asked for, so it is required.
+  assert.doesNotMatch(form, /requiredFields\.has\('mobile'\) \? 'required' : ''/);
+  assert.doesNotMatch(form, /requiredFields\.has\('position'\) \? 'required' : ''/);
+
+  // No empty fieldset when the event asks for nothing.
+  assert.match(form, /if \(participantFieldCount \|\| showLeaderboardChoice\)/);
+});
+
+test('the tracking fieldset degrades instead of 500ing when the option list is absent', () => {
+  // Regression: EJS reads the view from disk per render while the controller stays cached
+  // in memory, so during a restart a new view can meet an older controller that passes no
+  // `trackingAppOptions`. A bare reference to an undefined local is a ReferenceError in
+  // EJS, which 500'd the whole registration page. Guard it the way csrfToken is guarded.
+  const form = read('src/views/pages/event-register.ejs');
+
+  assert.match(form, /typeof trackingAppOptions !== 'undefined' && Array\.isArray\(trackingAppOptions\)/);
+  assert.match(form, /availableTrackingAppOptions\.forEach/);
+  assert.doesNotMatch(form, /<% trackingAppOptions\.forEach/);
+  // The gate reads the safe local, never the raw one.
+  assert.match(form, /showTrackingApps && availableTrackingAppOptions\.length/);
+});
+
+test('"Other" and "Not sure yet" behave correctly in the registration form script', () => {
+  const script = read('src/public/js/event-register.js');
+
+  // The free-text box is visible without JS and hidden on init, so a no-JS
+  // participant can still type an app name.
+  assert.match(script, /trackingAppOther\.hidden = !otherChecked/);
+  assert.match(script, /updateTrackingAppVisibility\(\);\n    updateReview\(\)/);
+  assert.match(script, /applyTrackingAppExclusivity/);
+  assert.match(script, /isUndecided \|\| boxIsUndecided/);
 });

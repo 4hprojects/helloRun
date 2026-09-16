@@ -127,6 +127,7 @@
                     <p><%= item.participantEmail %></p>
                   </div>
                   <span class="status-badge status-badge-<%= item.statusClass %>"><%= item.statusLabel %></span>
+                  <% if (item.isOwnSubmission) { %><span class="run-proof-self-badge" title="Reviewing your own entry is recorded in the audit log">Your own entry</span><% } %>
                 </div>
 
                 <div class="run-proof-card-labels">

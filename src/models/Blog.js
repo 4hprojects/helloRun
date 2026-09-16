@@ -173,6 +173,11 @@ const blogSchema = new mongoose.Schema(
       min: 0,
       default: 0
     },
+    workflowVersion: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
     submittedAt: {
       type: Date,
       default: null
