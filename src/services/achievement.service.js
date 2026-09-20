@@ -731,6 +731,97 @@ async function restoreBadgesForSubmission({ mongoSubmissionId, performedBy }, op
   return restored;
 }
 
+// Marker on revoke_reason for a rank badge withdrawn because a corrected time moved the
+// runner below the badge's rank. hasRevokedBadge skips revoked badges permanently, so only
+// rows carrying this exact reason are restored, and only once the rank is met again.
+const RANK_UNMET_REVOKE_REASON = 'Published rank fell below this badge after an organizer correction.';
+
+/**
+ * Reconcile one runner's rank badges for one event against the rankings as they stand now.
+ *
+ * Ranking sync only ever awards: it never withdraws a rank badge whose holder has since
+ * slowed down. This closes that gap for the runner whose entry was corrected. It is
+ * deliberately not run for runners displaced by someone else's entry, which matches how
+ * approving a faster entry has always behaved.
+ *
+ * With no published ranking row at all the outcome cannot be judged, so nothing is revoked.
+ *
+ * @returns {Promise<{ revoked: Array, restored: Array }>}
+ */
+async function reconcileRankBadgesForRunner({ mongoUserId, mongoEventId, performedBy = null } = {}, options = {}) {
+  const empty = { revoked: [], restored: [] };
+  if (!options.sql && !process.env.DATABASE_URL) return empty;
+
+  const sql = options.sql || getPostgresClient();
+  const [runnerUserId, eventRows] = await Promise.all([
+    resolveAppUserId(String(mongoUserId || ''), { sql }),
+    sql`SELECT id FROM events_core WHERE mongo_event_id = ${String(mongoEventId || '')} LIMIT 1`
+  ]);
+  const eventCoreId = eventRows[0]?.id;
+  if (!runnerUserId || !eventCoreId) return empty;
+
+  const [badgeRows, rankingRows] = await Promise.all([
+    sql`
+      SELECT ub.id, ub.badge_definition_id, ub.verification_status,
+             bd.requirement_type, bd.requirement_value
+      FROM user_badges ub
+      JOIN badge_definitions bd ON bd.id = ub.badge_definition_id
+      WHERE ub.runner_user_id = ${runnerUserId}
+        AND ub.event_core_id = ${eventCoreId}
+        AND ub.source = 'system_auto_award'
+        AND bd.requirement_type = 'rank_achieved'
+        AND (
+          ub.verification_status = 'verified'
+          OR (ub.verification_status = 'revoked' AND ub.revoke_reason = ${RANK_UNMET_REVOKE_REASON})
+        )
+    `,
+    sql`
+      SELECT *
+      FROM rankings
+      WHERE runner_user_id = ${runnerUserId}
+        AND event_core_id = ${eventCoreId}
+        AND published_at IS NOT NULL
+    `
+  ]);
+  if (!badgeRows.length || !rankingRows.length) return empty;
+
+  const contexts = rankingRows.map((ranking) => buildRankingContext(ranking));
+  const actor = await resolveAppUserId(performedBy, { sql });
+  const result = { revoked: [], restored: [] };
+
+  for (const row of badgeRows) {
+    const met = contexts.some((context) => checkBadgeRequirement(row, context));
+
+    if (row.verification_status === 'verified' && !met) {
+      const revoked = await revokeUserBadge(row.id, { performedBy, reason: RANK_UNMET_REVOKE_REASON }, { sql });
+      if (revoked) result.revoked.push(revoked);
+    } else if (row.verification_status === 'revoked' && met) {
+      const updated = await sql`
+        UPDATE user_badges
+        SET verification_status = 'verified', revoke_reason = NULL
+        WHERE id = ${row.id}
+          AND verification_status = 'revoked'
+          AND revoke_reason = ${RANK_UNMET_REVOKE_REASON}
+        RETURNING *
+      `;
+      if (!updated[0]) continue;
+      result.restored.push(updated[0]);
+      await logBadgeAudit({
+        badgeDefinitionId: row.badge_definition_id,
+        userBadgeId: row.id,
+        eventCoreId,
+        runnerUserId,
+        action: 'badge_restored',
+        performedBy: actor,
+        reason: 'Published rank reached this badge again.',
+        metadata: { mongoUserId: String(mongoUserId || ''), mongoEventId: String(mongoEventId || '') }
+      }, { sql });
+    }
+  }
+
+  return result;
+}
+
 async function updateBadgeDefinitionStatus(badgeDefinitionId, input = {}, options = {}) {
   if (!process.env.DATABASE_URL) return null;
 
@@ -1659,6 +1750,8 @@ module.exports = {
   revokeUserBadge,
   revokeBadgesForSubmission,
   restoreBadgesForSubmission,
+  reconcileRankBadgesForRunner,
+  RANK_UNMET_REVOKE_REASON,
   isApprovalReversalRevokeReason,
   APPROVAL_REVERSAL_REVOKE_MARKER,
   updateBadgeDefinitionStatus,

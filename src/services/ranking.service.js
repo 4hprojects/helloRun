@@ -140,6 +140,8 @@ async function syncRankingEntry(entry, eventData, runnerData, options = {}) {
       )
       ON CONFLICT (mongo_submission_id) DO UPDATE SET
         rank_position = EXCLUDED.rank_position,
+        -- A corrected finish time must reach the published row, not just reorder it.
+        elapsed_ms = EXCLUDED.elapsed_ms,
         approved_distance_km = EXCLUDED.approved_distance_km,
         approved_steps = EXCLUDED.approved_steps,
         primary_metric = EXCLUDED.primary_metric,

@@ -109,6 +109,19 @@ async function getRunnerBadgeProgress(mongoUserId, options = {}) {
   }));
 }
 
+// Marker on revoke_reason so a shortfall-driven revocation can be told apart from a
+// deliberate admin one. awardCompletedGlobalDistanceBadges skips any badge with a revoked
+// row for good (the anti-gaming guard), so only rows carrying this exact reason are ever
+// restored, and only when the lifetime total meets the milestone again.
+const GLOBAL_DISTANCE_UNMET_REVOKE_REASON = 'Verified lifetime distance fell below this milestone after an organizer correction.';
+
+/**
+ * Recomputes lifetime approved distance and awards milestones reached.
+ *
+ * `options.revokeUnmet` additionally revokes auto-awarded milestones the total no longer
+ * reaches. It is opt-in: only an organizer correction can lower an approved total, and
+ * ordinary review flows must not start revoking badges they never used to touch.
+ */
 async function refreshGlobalDistanceMilestoneProgress(mongoUserId, options = {}) {
   if (!process.env.DATABASE_URL) return null;
 
@@ -136,12 +149,15 @@ async function refreshGlobalDistanceMilestoneProgress(mongoUserId, options = {})
   };
 
   const progressRows = await upsertGlobalDistanceProgressRows(context, { sql });
+  const revoked = options.revokeUnmet
+    ? await revokeUnmetGlobalDistanceBadges(context, { sql, performedBy: options.performedBy || null })
+    : [];
   const awards = await awardCompletedGlobalDistanceBadges(context, {
     sql,
     performedBy: options.performedBy || null
   });
 
-  return { progressRows, awards, currentValue };
+  return { progressRows, awards, revoked, currentValue };
 }
 
 function refreshGlobalDistanceMilestoneProgressInBackground(mongoUserId, options = {}) {
@@ -434,6 +450,47 @@ async function revokeUnmetChallengeBadges(context, options = {}) {
   `;
 }
 
+async function revokeUnmetGlobalDistanceBadges(context, options = {}) {
+  const sql = options.sql || getPostgresClient();
+  const badges = await findActiveGlobalBadgeDefinitions(['global_distance'], { sql });
+  const unmetIds = badges
+    .filter((badge) => !checkBadgeRequirement(badge, context))
+    .map((badge) => badge.id);
+  if (!unmetIds.length) return [];
+
+  const revoked = await sql`
+    UPDATE user_badges
+    SET verification_status = 'revoked',
+        revoke_reason = ${GLOBAL_DISTANCE_UNMET_REVOKE_REASON},
+        is_featured = false,
+        updated_at = NOW()
+    WHERE runner_user_id = ${context.runnerUserId}
+      AND event_core_id IS NULL
+      AND badge_definition_id = ANY(${unmetIds})
+      AND verification_status = 'verified'
+      AND source = 'system_auto_award'
+    RETURNING *
+  `;
+
+  const performedBy = await resolveAppUserId(options.performedBy, { sql });
+  for (const row of revoked) {
+    await logBadgeAudit({
+      badgeDefinitionId: row.badge_definition_id,
+      userBadgeId: row.id,
+      eventCoreId: null,
+      runnerUserId: context.runnerUserId,
+      action: 'badge_revoked',
+      performedBy,
+      reason: GLOBAL_DISTANCE_UNMET_REVOKE_REASON,
+      metadata: {
+        currentValue: context.currentValue,
+        mongoUserId: context.mongoUserId
+      }
+    }, { sql });
+  }
+  return revoked;
+}
+
 async function awardCompletedGlobalDistanceBadges(context, options = {}) {
   const sql = options.sql || getPostgresClient();
   const badges = await findActiveGlobalBadgeDefinitions(['global_distance'], { sql });
@@ -442,6 +499,35 @@ async function awardCompletedGlobalDistanceBadges(context, options = {}) {
 
   for (const badge of badges) {
     if (!checkBadgeRequirement(badge, context)) continue;
+
+    const restoredRows = await sql`
+      UPDATE user_badges
+      SET verification_status = 'verified',
+          revoke_reason = null,
+          updated_at = NOW()
+      WHERE runner_user_id = ${context.runnerUserId}
+        AND badge_definition_id = ${badge.id}
+        AND event_core_id IS NULL
+        AND verification_status = 'revoked'
+        AND source = 'system_auto_award'
+        AND revoke_reason = ${GLOBAL_DISTANCE_UNMET_REVOKE_REASON}
+      RETURNING *
+    `;
+    if (restoredRows[0]) {
+      await logBadgeAudit({
+        badgeDefinitionId: badge.id,
+        userBadgeId: restoredRows[0].id,
+        eventCoreId: null,
+        runnerUserId: context.runnerUserId,
+        action: 'badge_restored',
+        performedBy: awardedByAppUserId,
+        reason: 'Verified lifetime distance reached this milestone again.',
+        metadata: { currentValue: context.currentValue, mongoUserId: context.mongoUserId }
+      }, { sql });
+      awarded.push(restoredRows[0]);
+      continue;
+    }
+
     if (await hasRevokedGlobalBadge({
       runnerUserId: context.runnerUserId,
       badgeDefinitionId: badge.id,
@@ -722,6 +808,9 @@ module.exports = {
   ensureGlobalDistanceMilestoneBadges,
   sumApprovedLifetimeDistanceKm,
   GLOBAL_DISTANCE_MILESTONES_KM,
+  GLOBAL_DISTANCE_UNMET_REVOKE_REASON,
+  revokeUnmetGlobalDistanceBadges,
+  awardCompletedGlobalDistanceBadges,
   getRunnerBadgeProgress,
   getRunnerNextMilestones,
   calculateProgressPercent,

@@ -1778,10 +1778,12 @@ function refreshGlobalDistanceMilestonesSafe(mongoUserId, options = {}) {
   }
 }
 
+// Resolves once the re-rank and the ranking-achievement evaluation have finished. Existing
+// callers fire and forget; the returned promise never rejects.
 function syncEventRankingsInBackground(submission, eventSlug) {
-  if (disableSubmissionSyncBackgroundTasks) return;
-  if (!process.env.DATABASE_URL || !eventSlug || submission.isPersonalRecord) return;
-  (async () => {
+  if (disableSubmissionSyncBackgroundTasks) return Promise.resolve();
+  if (!process.env.DATABASE_URL || !eventSlug || submission.isPersonalRecord) return Promise.resolve();
+  return (async () => {
     try {
       const allApproved = await Submission.find({
         eventId: submission.eventId,

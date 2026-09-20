@@ -96,7 +96,11 @@ core platform:
   required); the runner is notified by email and in-app, each correction is audit-logged
   as `submission.values_corrected` and kept as before/after history on the entry, and an
   approved entry's ranking, leaderboard cache, certificate (standard) or challenge
-  progress (accumulated) are recalculated. Badges already earned are not re-evaluated;
+  progress (accumulated) are recalculated, and value-dependent badges follow the
+  corrected values in both directions (lifetime distance milestones and the corrected
+  runner's rank badges are revoked or restored, accumulated challenge badges are
+  refreshed); per-entry badges depend only on status and category and are unaffected.
+  Rank badges of runners displaced by someone else's entry are not revoked, as before;
 - run-proof review queue redesign, September 20 — responsive desktop, tablet and phone
   layouts with visible validation signals, moved to a dedicated scoped stylesheet;
 - post-signup registration edits, added September 15 — organisers and co-organisers

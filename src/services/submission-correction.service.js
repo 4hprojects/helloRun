@@ -5,7 +5,7 @@
 // Status changes stay with the review services. This only fixes the recorded values
 // (distance, elapsed time, run date, location, run type) and, for an entry that is
 // already approved, re-runs everything derived from them: the published ranking, the
-// leaderboard cache, accumulated progress and the certificate. Every correction is
+// leaderboard cache, accumulated progress, the certificate and value-dependent badges. Every correction is
 // audit-logged, stored as structured before/after pairs for the runner-facing history,
 // and announced to the runner.
 
@@ -20,8 +20,10 @@ const { assertRunDateNotFuture } = require('../utils/platform-date');
 const { resolveEventAccess } = require('./event-access.service');
 const { syncEventRankingsInBackground } = require('./submission.service');
 const {
-  refreshAccumulatedChallengeProgress
+  refreshAccumulatedChallengeProgress,
+  refreshGlobalDistanceMilestoneProgress
 } = require('./badge-progress.service');
+const { reconcileRankBadgesForRunner } = require('./achievement.service');
 const { reconcileAccumulatedCertificateAfterReview } = require('./accumulated-activity.service');
 const { issueSubmissionCertificate } = require('./certificate.service');
 const { invalidateLeaderboardCache } = require('./leaderboard.service');
@@ -213,9 +215,50 @@ async function regenerateStandardCertificate({ record, event, actorUserId }) {
   return true;
 }
 
+/**
+ * Badges that depend on the corrected values, in the direction the values moved.
+ *
+ * Per-entry badges (result approved, distance completed, mode completed) depend on the
+ * entry's status and category, never on its distance, time or date, so a correction cannot
+ * change them. Three kinds are value-sensitive:
+ * - accumulated challenge badges, handled by refreshAccumulatedChallengeProgress, which
+ *   already awards and revokes;
+ * - lifetime distance milestones, revoked or restored here when the distance changed;
+ * - rank badges, reconciled for this runner once the re-rank has finished, when the time
+ *   changed. Both revoke paths are scoped to the corrected runner.
+ */
+function reevaluateBadgesInBackground({ record, submissionKind, event, actorUserId, changes, ranking }) {
+  if (!record.runnerId) return;
+  const runnerId = String(record.runnerId);
+  const changed = (field) => changes.some((change) => change.field === field);
+  const logFailure = (kind) => (error) => {
+    logger.error(`Correction could not re-evaluate ${kind} badges:`, {
+      submissionId: String(record._id),
+      error: error.message
+    });
+  };
+
+  if (changed('distanceKm') && !record.isPersonalRecord) {
+    refreshGlobalDistanceMilestoneProgress(runnerId, { performedBy: actorUserId, revokeUnmet: true })
+      .catch(logFailure('distance milestone'));
+  }
+
+  if (submissionKind === 'standard' && changed('elapsedMs')) {
+    // The ranking table must be re-ranked first, or the reconcile would judge stale ranks.
+    Promise.resolve(ranking)
+      .then(() => reconcileRankBadgesForRunner({
+        mongoUserId: runnerId,
+        mongoEventId: String(event._id),
+        performedBy: actorUserId
+      }))
+      .catch(logFailure('rank'));
+  }
+}
+
 async function applyApprovedEntryEffects({ record, submissionKind, event, actorUserId, changes }) {
   let certificateRegenerated = false;
   const affectsCertificate = changes.some((change) => ['distanceKm', 'elapsedMs', 'runDate'].includes(change.field));
+  let ranking = null;
 
   if (submissionKind === 'standard') {
     if (affectsCertificate) {
@@ -228,7 +271,7 @@ async function applyApprovedEntryEffects({ record, submissionKind, event, actorU
         });
       }
     }
-    syncEventRankingsInBackground(record, event.slug);
+    ranking = syncEventRankingsInBackground(record, event.slug);
   } else {
     refreshAccumulatedChallengeProgress(record.registrationId, { performedBy: actorUserId }).catch((error) => {
       logger.error('Correction could not refresh accumulated progress:', {
@@ -250,6 +293,8 @@ async function applyApprovedEntryEffects({ record, submissionKind, event, actorU
       }
     }
   }
+
+  reevaluateBadgesInBackground({ record, submissionKind, event, actorUserId, changes, ranking });
 
   invalidateLeaderboardCache(event.slug);
   return certificateRegenerated;

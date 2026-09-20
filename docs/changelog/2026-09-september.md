@@ -1,5 +1,36 @@
 # HelloRun Changelog — September 2026
 
+## September 20 — Badge re-evaluation after organizer corrections
+
+Closes the gap recorded in the previous entry. Reading the badge requirement checks showed
+which badges a correction can actually affect: per-entry badges (result approved, distance
+completed, mode completed) depend on status and category, never on distance, time or date,
+so they cannot change. Three kinds are value-sensitive:
+
+- **Accumulated challenge badges** were already refreshed in both directions by
+  `refreshAccumulatedChallengeProgress`, which the correction service calls. No change.
+- **Lifetime distance milestones** were not refreshed after a correction and never revoked
+  when a total fell. `refreshGlobalDistanceMilestoneProgress` now takes an opt-in
+  `revokeUnmet` option, used only by the correction service, that revokes auto-awarded
+  milestones the corrected total no longer reaches. Revocations carry a dedicated reason and
+  are audit-logged; the award pass restores exactly those rows (and nothing an admin
+  revoked) when the total reaches the milestone again. Ordinary review flows do not pass
+  the option, so their behaviour is unchanged.
+- **Rank badges**: ranking sync already awarded newly qualifying ranks but never withdrew
+  one. New `reconcileRankBadgesForRunner` runs for the corrected runner once the re-rank has
+  finished, revoking rank badges the published ranking no longer earns and restoring ones it
+  earns again, with the same marker-reason guard. It judges nothing when the runner has no
+  published ranking row. Rank badges of runners displaced by another runner's entry are not
+  revoked, which matches how approving a faster entry has always behaved.
+- **Ranking row defect found on the way:** the `rankings` upsert updated the rank but not
+  `elapsed_ms`, so a corrected finish time reordered the ranking while the published row kept
+  the old time (visible to the reporting view and the rank-badge context). It is now
+  refreshed on conflict. `syncEventRankingsInBackground` also returns its promise (still
+  never rejecting) so follow-up work can wait for the re-rank.
+- 14 DB-free tests use an injected fake Postgres client to cover the revoke, keep, restore
+  and admin-revocation-stays-permanent paths and pin the wiring. Nothing was run against a
+  real database.
+
 ## September 20 — Per-runner submissions page with organizer value corrections
 
 - Added `/organizer/events/:id/registrants/:registrationId/submissions`, listing every
@@ -22,7 +53,7 @@
 - For approved entries the service also recalculates derived data: published ranking and
   leaderboard cache; standard certificates are regenerated when distance, time or date
   change; accumulated entries refresh challenge progress and reconcile the certificate.
-  Known gap: badges and milestones already awarded are neither revoked nor re-evaluated.
+  Badge follow-up: see the next entry.
 - Added DB-free coverage: validation and diffing rules, service wiring, route middleware
   and ownership guard, and view/CSS structure (34 tests in three new files). Integration
   suites were not run because the configured databases are not confirmed non-production.
