@@ -12,6 +12,7 @@ const {
 } = require('../../utils/run-proof-review');
 const { getAvailableDecisions, isDecisionAllowed } = require('../../utils/entry-decision-actions');
 const { getReversalReasonOptions, resolveReversalReason } = require('../../utils/reversal-reasons');
+const { resolveChallengeConfig } = require('../../utils/challenge-metrics');
 const {
   logger,
   mongoose,
@@ -89,8 +90,32 @@ function toEditValues(item) {
     seconds: totalSeconds % 60,
     runDate: item.runDate ? new Date(item.runDate).toISOString().slice(0, 10) : '',
     runLocation: item.runLocation || '',
-    runType: item.runType || 'run'
+    runType: item.runType || 'run',
+    elevationGain: item.elevationGain === null || item.elevationGain === undefined ? '' : Math.round(Number(item.elevationGain)),
+    steps: item.steps === null || item.steps === undefined ? '' : Number(item.steps),
+    trackingAppDevice: item.trackingAppDevice || ''
   };
+}
+
+const RUN_TYPE_LABELS = Object.freeze({
+  run: 'Run',
+  walk: 'Walk',
+  hike: 'Hike',
+  trail_run: 'Trail run',
+  treadmill: 'Treadmill'
+});
+
+// The details a runner supplied beyond distance, time and date, for the compact row on each
+// card. Only values that exist are listed, so an entry with none shows no row at all.
+function buildDetailFacts(item) {
+  const facts = [
+    ['Location', String(item.runLocation || '').trim()],
+    ['Activity type', item.runType ? (RUN_TYPE_LABELS[item.runType] || item.runType) : ''],
+    ['Elevation', item.elevationGain === null || item.elevationGain === undefined ? '' : `${Math.round(Number(item.elevationGain))} m`],
+    ['Steps', item.steps === null || item.steps === undefined ? '' : Number(item.steps).toLocaleString('en-US')],
+    ['Tracking app or device', String(item.trackingAppDevice || '').trim()]
+  ];
+  return facts.filter(([, value]) => value !== '').map(([label, value]) => ({ label, value }));
 }
 
 function toCorrectionHistory(item) {
@@ -131,6 +156,7 @@ router.get('/events/:id/registrants/:registrationId/submissions', requireAuth, a
         edit: toEditValues(item.submission),
         corrections: toCorrectionHistory(item.submission),
         editAction: `${entryBase}/${item.submission._id}/edit`,
+        detailFacts: buildDetailFacts(item.submission),
         decisionAction: `${entryBase}/${item.submission._id}/decision`,
         decision,
         // Same builders the review page uses, and only when the matching dialog will render.
@@ -168,6 +194,11 @@ router.get('/events/:id/registrants/:registrationId/submissions', requireAuth, a
       entries,
       counts,
       reviewChecklistVersion: REVIEW_CHECKLIST_VERSION,
+      // What the event requires of the extra details, so the edit dialog marks them required.
+      editConfig: {
+        stepsRequired: resolveChallengeConfig(event).tracksSteps,
+        deviceRequired: Boolean(event.requireTrackingAppDevice)
+      },
       message: getPageMessage(req.query),
       links: {
         registrants: `/organizer/events/${event._id}/registrants`,
@@ -228,7 +259,10 @@ router.post(
           elapsedMs: readElapsedMs(req.body),
           runDate: req.body.runDate,
           runLocation: req.body.runLocation,
-          runType: req.body.runType
+          runType: req.body.runType,
+          elevationGain: req.body.elevationGain,
+          steps: req.body.steps,
+          trackingAppDevice: req.body.trackingAppDevice
         },
         reason: req.body.reason,
         ipAddress: getRequestIpAddress(req),

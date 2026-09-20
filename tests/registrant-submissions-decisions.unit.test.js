@@ -380,3 +380,64 @@ test('desktop cards split roughly 70/30 with the actions in a panel of their own
 test('the review link carries its own class so the grid can place it', () => {
   assert.match(render(entry()), /<a href="#" class="rs-btn-neutral rs-btn-review">/);
 });
+
+// ---- Elevation, steps and tracking app/device in the edit dialog and on the card ---------------
+
+const renderWith = (item, extra = {}) => ejs.render(renderable, {
+  title: 'Submissions', user: {}, isAdminViewer: false, event: { _id: 'e1', title: 'Sample' },
+  runner: { name: 'Jordan', email: 'j@example.test', confirmationCode: 'HR-1', categoryLabel: '10K' },
+  entries: [item], counts: { total: 1, approved: 0, pending: 1, rejected: 0 }, message: null,
+  links: { registrants: '#', queue: '#' }, csrfToken: 'tok', reviewChecklistVersion: 'run-proof-v1',
+  ...extra
+}, { filename: path.join(ROOT, 'src/views/organizer/registrant-submissions.ejs') });
+
+const editDialog = (html) => html.slice(html.indexOf('id="edit-sub-1"'), html.indexOf('</dialog>', html.indexOf('id="edit-sub-1"')));
+const detailedEdit = { distanceKm: '5.02', hours: 0, minutes: 31, seconds: 12, runDate: '2026-09-18', runLocation: 'Cebu', runType: 'trail_run', elevationGain: 128, steps: 8500, trackingAppDevice: 'Garmin Forerunner 265' };
+
+test('the edit dialog carries elevation, steps and tracking app/device, prefilled and optional by default', () => {
+  const dialog = editDialog(renderWith(entry({ edit: detailedEdit }), { editConfig: { stepsRequired: false, deviceRequired: false } }));
+  assert.match(dialog, /<input id="edit-entry-sub-1-elevation" name="elevationGain" type="number" inputmode="numeric" step="1" min="0" max="20000" value="128">/);
+  assert.match(dialog, /<input id="edit-entry-sub-1-steps" name="steps" type="number" inputmode="numeric" step="1" min="1" max="200000" value="8500" >/);
+  assert.match(dialog, /<input id="edit-entry-sub-1-device" name="trackingAppDevice" type="text" maxlength="120" value="Garmin Forerunner 265" >/);
+  assert.doesNotMatch(dialog, /required for this event/);
+  assert.match(dialog, /Clearing an optional detail removes it from the entry\./);
+  for (const id of ['elevation', 'steps', 'device']) assert.match(dialog, new RegExp(`for="edit-entry-sub-1-${id}"`), id);
+});
+
+test('steps and device are marked and enforced as required only when the event requires them', () => {
+  const dialog = editDialog(renderWith(entry({ edit: detailedEdit }), { editConfig: { stepsRequired: true, deviceRequired: true } }));
+  assert.match(dialog, /name="steps"[^>]*value="8500" required>/);
+  assert.match(dialog, /name="trackingAppDevice"[^>]*value="Garmin Forerunner 265" required>/);
+  assert.equal((dialog.match(/\(required for this event\)/g) || []).length, 2);
+  // Elevation is never required.
+  assert.doesNotMatch(dialog.match(/<input[^>]*name="elevationGain"[^>]*>/)[0], /required/);
+  // A page rendered without any config falls back to everything optional.
+  assert.doesNotMatch(editDialog(renderWith(entry({ edit: detailedEdit }))), /required for this event/);
+});
+
+test('the card lists the details a runner supplied, and shows no row when there are none', () => {
+  const facts = [
+    { label: 'Location', value: 'Cebu' }, { label: 'Activity type', value: 'Trail run' }, { label: 'Elevation', value: '128 m' },
+    { label: 'Steps', value: '8,500' }, { label: 'Tracking app or device', value: 'Garmin Forerunner 265' }
+  ];
+  const html = renderWith(entry({ detailFacts: facts }));
+  assert.match(html, /<dl class="rs-detail-facts" aria-label="Activity details">/);
+  for (const fact of facts) assert.match(html, new RegExp(`<dt>${fact.label}</dt><dd>${fact.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</dd>`), fact.label);
+  assert.doesNotMatch(renderWith(entry({ detailFacts: [] })), /rs-detail-facts/);
+  assert.doesNotMatch(renderWith(entry()), /rs-detail-facts/, 'an entry with no detailFacts at all renders no row');
+});
+
+test('the card row escapes what runners typed', () => {
+  const html = renderWith(entry({ detailFacts: [{ label: 'Tracking app or device', value: '<script>alert(1)</script>' }] }));
+  assert.doesNotMatch(html, /<script>alert\(1\)<\/script>/);
+});
+
+test('the route forwards the new fields, feeds the dialog config and builds the card facts from the entry', () => {
+  assert.match(route, /elevationGain: req\.body\.elevationGain,\s*steps: req\.body\.steps,\s*trackingAppDevice: req\.body\.trackingAppDevice/);
+  assert.match(route, /editConfig: \{\s*stepsRequired: resolveChallengeConfig\(event\)\.tracksSteps,\s*deviceRequired: Boolean\(event\.requireTrackingAppDevice\)/);
+  assert.match(route, /detailFacts: buildDetailFacts\(item\.submission\)/);
+  assert.match(route, /elevationGain: item\.elevationGain === null \|\| item\.elevationGain === undefined \? '' : Math\.round\(Number\(item\.elevationGain\)\)/);
+  // Only values that exist are listed, and the activity type reads as words.
+  assert.match(route, /facts\.filter\(\(\[, value\]\) => value !== ''\)/);
+  assert.match(route, /trail_run: 'Trail run'/);
+});

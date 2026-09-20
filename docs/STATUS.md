@@ -107,8 +107,10 @@ core platform:
   a "Submissions" button on each registrants row (also linked from the individual review
   page and the run-proof queue) opens every entry one runner submitted for the event,
   standard and accumulated. Organisers, co-organisers and admins can correct an entry's
-  distance, elapsed time, run date, location and activity type on any status (reason
-  required); the runner is notified by email and in-app, each correction is audit-logged
+  distance, elapsed time, run date, location, activity type, elevation gain, steps and
+  tracking app or device on any status (reason required; steps and device stay required
+  where the event requires them, and OCR mismatch warnings are recomputed from the
+  corrected values); the runner is notified by email and in-app, each correction is audit-logged
   as `submission.values_corrected` and kept as before/after history on the entry, and an
   approved entry's ranking, leaderboard cache, certificate (standard) or challenge
   progress (accumulated) are recalculated, and value-dependent badges follow the

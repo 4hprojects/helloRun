@@ -178,3 +178,153 @@ test('both submission models carry the additive correction history', () => {
     assert.match(read(file), /organizerCorrections: \{\s*type: \[organizerCorrectionSchema\]/);
   }
 });
+
+// ---- Elevation, steps and tracking app/device --------------------------------------------------
+
+const {
+  refreshOcrComparisons,
+  MAX_ELEVATION_M,
+  MAX_STEPS,
+  MAX_DEVICE_LENGTH,
+  OCR_COMPARED_FIELDS,
+  OCR_MISMATCH_KEYS
+} = require('../src/services/submission-correction.service');
+
+const detailedRecord = () => ({ ...baseRecord(), elevationGain: 120, steps: 8500, trackingAppDevice: 'Garmin' });
+
+test('elevation gain: whole metres 0-20,000, blank clears, absent is untouched', () => {
+  assert.deepEqual(buildCorrection(detailedRecord(), { elevationGain: '150' }).changes, [{ field: 'elevationGain', from: 120, to: 150 }]);
+  assert.deepEqual(buildCorrection(detailedRecord(), { elevationGain: '149.6' }).changes, [{ field: 'elevationGain', from: 120, to: 150 }], 'rounded like the runner form');
+  assert.deepEqual(buildCorrection(detailedRecord(), { elevationGain: '' }).changes, [{ field: 'elevationGain', from: 120, to: null }]);
+  assert.deepEqual(buildCorrection({ ...baseRecord(), elevationGain: null }, { elevationGain: '0' }).changes, [{ field: 'elevationGain', from: null, to: 0 }], '0 is a real value');
+  assert.throws(() => buildCorrection(detailedRecord(), { elevationGain: '120' }), /No changes were made/);
+  assert.throws(() => buildCorrection(detailedRecord(), {}), /No changes were made/, 'absent fields change nothing');
+  for (const bad of ['-1', String(MAX_ELEVATION_M + 1), 'abc']) {
+    assert.throws(() => buildCorrection(detailedRecord(), { elevationGain: bad }), /Elevation gain must be between 0 and 20,000 m/, bad);
+  }
+});
+
+test('steps: whole numbers 1-200,000, blank clears, and a steps competition never allows clearing', () => {
+  assert.deepEqual(buildCorrection(detailedRecord(), { steps: '9200' }).changes, [{ field: 'steps', from: 8500, to: 9200 }]);
+  assert.deepEqual(buildCorrection(detailedRecord(), { steps: '' }).changes, [{ field: 'steps', from: 8500, to: null }]);
+  for (const bad of ['0', '-5', '12.5', String(MAX_STEPS + 1), 'many']) {
+    assert.throws(() => buildCorrection(detailedRecord(), { steps: bad }), /Steps must be a whole number between 1 and 200,000/, bad);
+  }
+  const stepsEvent = { tracksSteps: true };
+  assert.throws(() => buildCorrection(detailedRecord(), { steps: '' }, stepsEvent), /Steps are required for this event and must be between 1 and 200,000\./);
+  assert.deepEqual(buildCorrection(detailedRecord(), { steps: '9000' }, stepsEvent).changes, [{ field: 'steps', from: 8500, to: 9000 }]);
+});
+
+test('tracking app or device: trimmed, capped, blank clears, and required when the event says so', () => {
+  assert.deepEqual(buildCorrection(detailedRecord(), { trackingAppDevice: '  Coros Pace 3 ' }).changes, [{ field: 'trackingAppDevice', from: 'Garmin', to: 'Coros Pace 3' }]);
+  assert.equal(buildCorrection(detailedRecord(), { trackingAppDevice: 'x'.repeat(300) }).values.trackingAppDevice.length, MAX_DEVICE_LENGTH);
+  assert.deepEqual(buildCorrection(detailedRecord(), { trackingAppDevice: '' }).changes, [{ field: 'trackingAppDevice', from: 'Garmin', to: '' }]);
+  assert.throws(() => buildCorrection(detailedRecord(), { trackingAppDevice: '   ' }, { requireTrackingAppDevice: true }), /Tracking app or device is required for this event\./);
+  assert.throws(() => buildCorrection(detailedRecord(), { trackingAppDevice: 'Garmin' }), /No changes were made/);
+});
+
+test('an untouched dialog, with every field posted back as-is, is still a no-op', () => {
+  assert.throws(() => buildCorrection(detailedRecord(), {
+    distanceKm: '5.02', elapsedMs: 1872000, runDate: '2026-09-18', runLocation: 'Cebu', runType: 'run',
+    elevationGain: '120', steps: '8500', trackingAppDevice: 'Garmin'
+  }), /No changes were made/);
+});
+
+test('the new fields read naturally in the runner notice, the audit note and the correction history', () => {
+  assert.deepEqual(describeChanges([
+    { field: 'elevationGain', from: 120, to: 150 },
+    { field: 'steps', from: 8500, to: 9200 },
+    { field: 'steps', from: null, to: 1200 },
+    { field: 'trackingAppDevice', from: '', to: 'Garmin Forerunner 265' },
+    { field: 'elevationGain', from: 90, to: null }
+  ]), [
+    'Elevation gain: 120 m to 150 m',
+    'Steps: 8,500 to 9,200',
+    'Steps: not set to 1,200',
+    'Tracking app or device: not set to Garmin Forerunner 265',
+    'Elevation gain: 90 m to not set'
+  ]);
+});
+
+// ---- OCR warnings follow the corrected values --------------------------------------------------
+
+const ocrRecord = (overrides = {}) => ({
+  distanceKm: 6.4,
+  elapsedMs: 1800000,
+  runDate: new Date('2026-09-18T00:00:00.000Z'),
+  runLocation: 'Cebu',
+  runType: 'run',
+  elevationGain: 300,
+  steps: null,
+  status: 'submitted',
+  suspiciousFlag: true,
+  validation: { autoApprovalEligible: false },
+  ocrData: {
+    confidence: 0.95,
+    extractedDistanceKm: 5.0,
+    extractedTimeMs: 1800000,
+    extractedElevationGain: 120,
+    distanceMismatch: true,
+    timeMismatch: false,
+    elevationMismatch: true,
+    stepsMismatch: false,
+    dateMismatch: false,
+    locationMismatch: false,
+    runTypeMismatch: false
+  },
+  ...overrides
+});
+
+test('correcting a value to match the proof clears its warning; other warnings are left alone', () => {
+  const record = ocrRecord();
+  record.distanceKm = 5.0;
+  const changed = refreshOcrComparisons(record);
+  assert.deepEqual(changed, ['distanceMismatch']);
+  assert.equal(record.ocrData.distanceMismatch, false);
+  assert.equal(record.ocrData.elevationMismatch, true, 'elevation still disagrees with the proof');
+});
+
+test('moving a value away from the proof raises the warning', () => {
+  const record = ocrRecord({ distanceKm: 5.0, elevationGain: 120, ocrData: { ...ocrRecord().ocrData, distanceMismatch: false, elevationMismatch: false } });
+  record.distanceKm = 9.5;
+  assert.deepEqual(refreshOcrComparisons(record), ['distanceMismatch']);
+  assert.equal(record.ocrData.distanceMismatch, true);
+});
+
+test('the refresh only writes the mismatch flags and never touches the organizer\'s call', () => {
+  const record = ocrRecord();
+  record.distanceKm = 5.0;
+  refreshOcrComparisons(record);
+  assert.equal(record.status, 'submitted');
+  assert.equal(record.suspiciousFlag, true, 'the overall flag is not recomputed');
+  assert.deepEqual(record.validation, { autoApprovalEligible: false });
+  assert.equal(record.ocrData.extractedDistanceKm, 5.0, 'the stored OCR extraction is untouched');
+  assert.equal(record.ocrData.confidence, 0.95);
+  assert.deepEqual(OCR_MISMATCH_KEYS.filter((key) => !(key in record.ocrData)), [], 'every flag stays defined');
+});
+
+test('an entry with no OCR extraction has nothing to refresh and does not throw', () => {
+  assert.deepEqual(refreshOcrComparisons(ocrRecord({ ocrData: undefined })), []);
+  assert.deepEqual(refreshOcrComparisons(ocrRecord({ ocrData: {} })), []);
+});
+
+test('the refresh runs only for values the comparison actually looks at, and before the save', () => {
+  assert.deepEqual([...OCR_COMPARED_FIELDS].sort(), ['distanceKm', 'elapsedMs', 'elevationGain', 'runDate', 'runLocation', 'runType', 'steps']);
+  assert.ok(!OCR_COMPARED_FIELDS.includes('trackingAppDevice'), 'the device is not compared with the proof');
+
+  const source = read('src/services/submission-correction.service.js');
+  const main = source.slice(source.indexOf('async function correctSubmissionValues'));
+  const refresh = main.indexOf('refreshOcrComparisons(record)\n    : []');
+  assert.ok(refresh > -1 && refresh < main.indexOf('await record.save();'), 'flags are stored with the correction');
+  assert.match(source, /changes\.some\(\(change\) => OCR_COMPARED_FIELDS\.includes\(change\.field\)\)/);
+  assert.match(source, /OCR warnings refreshed: \$\{ocrWarningsChanged\.join\(', '\)\}/);
+});
+
+test('the event decides what is required, and a steps change reaches the accumulated certificate', () => {
+  const source = read('src/services/submission-correction.service.js');
+  assert.match(source, /tracksSteps: challengeConfig\.tracksSteps,\s*requireTrackingAppDevice: Boolean\(event\.requireTrackingAppDevice\)/);
+  assert.match(source, /submissionKind === 'accumulated' && change\.field === 'steps'/);
+  // Standard entries do not regenerate a certificate for a steps-only change.
+  const effects = source.slice(source.indexOf('async function applyApprovedEntryEffects'));
+  assert.match(effects, /const affectsCertificate = changes\.some\(\(change\) => \(\s*\['distanceKm', 'elapsedMs', 'runDate'\]\.includes\(change\.field\)\s*\|\|/);
+});

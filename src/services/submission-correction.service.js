@@ -17,6 +17,8 @@ const Registration = require('../models/Registration');
 const User = require('../models/User');
 const logger = require('../utils/logger');
 const { assertRunDateNotFuture } = require('../utils/platform-date');
+const { resolveChallengeConfig } = require('../utils/challenge-metrics');
+const { compareSubmissionWithOcr } = require('../utils/submission-integrity');
 const { resolveEventAccess } = require('./event-access.service');
 const { syncEventRankingsInBackground } = require('./submission.service');
 const {
@@ -35,6 +37,9 @@ const MAX_REASON_LENGTH = 500;
 const MIN_DISTANCE_KM = 0.1;
 const MAX_DISTANCE_KM = 500;
 const MAX_ELAPSED_MS = 7 * 24 * 60 * 60 * 1000;
+const MAX_ELEVATION_M = 20000;
+const MAX_STEPS = 200000;
+const MAX_DEVICE_LENGTH = 120;
 const RUN_TYPES = Object.freeze(['run', 'walk', 'hike', 'trail_run', 'treadmill']);
 
 const FIELD_LABELS = Object.freeze({
@@ -42,8 +47,18 @@ const FIELD_LABELS = Object.freeze({
   elapsedMs: 'Elapsed time',
   runDate: 'Run date',
   runLocation: 'Location',
-  runType: 'Activity type'
+  runType: 'Activity type',
+  elevationGain: 'Elevation gain',
+  steps: 'Steps',
+  trackingAppDevice: 'Tracking app or device'
 });
+
+// The values the OCR comparison looks at. Correcting any of them can make an OCR warning true or
+// false, so it is the trigger for refreshing those warnings; nothing else is ever touched.
+const OCR_COMPARED_FIELDS = Object.freeze(['distanceKm', 'elapsedMs', 'runDate', 'runLocation', 'runType', 'elevationGain', 'steps']);
+const OCR_MISMATCH_KEYS = Object.freeze([
+  'distanceMismatch', 'timeMismatch', 'elevationMismatch', 'stepsMismatch', 'dateMismatch', 'locationMismatch', 'runTypeMismatch'
+]);
 
 function normalizeCorrectionReason(value) {
   return String(value || '').trim().slice(0, MAX_REASON_LENGTH);
@@ -82,9 +97,13 @@ function parseRunDate(value) {
  * Elapsed time compares at whole-second precision, because the form cannot express
  * milliseconds and would otherwise report a phantom change on untouched entries.
  *
+ * Elevation, steps and the tracking app or device are optional details the form pre-fills, so
+ * for them an absent field is left alone and a blank one means "clear". `context` says which of
+ * them the event requires: `tracksSteps` (steps competitions) and `requireTrackingAppDevice`.
+ *
  * @returns {{ changes: Array<{field: string, from: *, to: *}>, values: object }}
  */
-function buildCorrection(record, input = {}) {
+function buildCorrection(record, input = {}, context = {}) {
   const changes = [];
   const values = {};
 
@@ -143,14 +162,93 @@ function buildCorrection(record, input = {}) {
     }
   }
 
+  if (input.elevationGain !== undefined && input.elevationGain !== null) {
+    const raw = String(input.elevationGain).trim();
+    let next = null;
+    if (raw !== '') {
+      const numeric = Number(raw);
+      if (!Number.isFinite(numeric) || numeric < 0 || numeric > MAX_ELEVATION_M) {
+        throw new Error(`Elevation gain must be between 0 and ${MAX_ELEVATION_M.toLocaleString('en-US')} m.`);
+      }
+      next = Math.round(numeric);
+    }
+    const before = record.elevationGain === null || record.elevationGain === undefined ? null : Math.round(Number(record.elevationGain));
+    if (before !== next) {
+      changes.push({ field: 'elevationGain', from: before, to: next });
+      values.elevationGain = next;
+    }
+  }
+
+  if (input.steps !== undefined && input.steps !== null) {
+    const raw = String(input.steps).trim();
+    let next = null;
+    if (raw === '') {
+      if (context.tracksSteps) {
+        throw new Error(`Steps are required for this event and must be between 1 and ${MAX_STEPS.toLocaleString('en-US')}.`);
+      }
+    } else {
+      const numeric = Number(raw);
+      if (!Number.isInteger(numeric) || numeric < 1 || numeric > MAX_STEPS) {
+        throw new Error(`Steps must be a whole number between 1 and ${MAX_STEPS.toLocaleString('en-US')}.`);
+      }
+      next = numeric;
+    }
+    const before = record.steps === null || record.steps === undefined ? null : Number(record.steps);
+    if (before !== next) {
+      changes.push({ field: 'steps', from: before, to: next });
+      values.steps = next;
+    }
+  }
+
+  if (input.trackingAppDevice !== undefined && input.trackingAppDevice !== null) {
+    const next = String(input.trackingAppDevice).trim().slice(0, MAX_DEVICE_LENGTH);
+    if (!next && context.requireTrackingAppDevice) {
+      throw new Error('Tracking app or device is required for this event.');
+    }
+    const before = String(record.trackingAppDevice || '');
+    if (before !== next) {
+      changes.push({ field: 'trackingAppDevice', from: before, to: next });
+      values.trackingAppDevice = next;
+    }
+  }
+
   if (!changes.length) throw new Error('No changes were made to this entry.');
   return { changes, values };
+}
+
+/**
+ * Recompute the OCR mismatch warnings from the entry's current (corrected) values and the OCR
+ * extraction stored at submission, so fixing a value to match the proof clears its warning and
+ * moving away from it raises one. Only the seven `*Mismatch` flags are ever written:
+ * `suspiciousFlag`, `validation` and `status` are the organizer's call and stay as they were.
+ * Pure apart from writing those flags onto `record.ocrData`.
+ *
+ * @returns {string[]} the flags whose value changed
+ */
+function refreshOcrComparisons(record) {
+  if (!record.ocrData) record.ocrData = {};
+  const stored = typeof record.ocrData.toObject === 'function' ? record.ocrData.toObject() : record.ocrData;
+  const comparisons = compareSubmissionWithOcr({
+    distanceKm: record.distanceKm,
+    elapsedMs: record.elapsedMs,
+    runDate: record.runDate,
+    runLocation: record.runLocation,
+    runType: record.runType,
+    elevationGain: record.elevationGain,
+    steps: record.steps,
+    ocrData: stored
+  });
+  const changed = OCR_MISMATCH_KEYS.filter((key) => Boolean(stored[key]) !== Boolean(comparisons[key]));
+  changed.forEach((key) => { record.ocrData[key] = Boolean(comparisons[key]); });
+  return changed;
 }
 
 function formatChangeValue(field, value) {
   if (value === null || value === undefined || value === '') return 'not set';
   if (field === 'distanceKm') return `${Number(value).toFixed(2)} km`;
   if (field === 'elapsedMs') return formatElapsed(value);
+  if (field === 'elevationGain') return `${Number(value)} m`;
+  if (field === 'steps') return Number(value).toLocaleString('en-US');
   return String(value);
 }
 
@@ -257,7 +355,12 @@ function reevaluateBadgesInBackground({ record, submissionKind, event, actorUser
 
 async function applyApprovedEntryEffects({ record, submissionKind, event, actorUserId, changes }) {
   let certificateRegenerated = false;
-  const affectsCertificate = changes.some((change) => ['distanceKm', 'elapsedMs', 'runDate'].includes(change.field));
+  // Steps only matter to a certificate for accumulated entries, where steps competitions finalize
+  // it from the summed steps.
+  const affectsCertificate = changes.some((change) => (
+    ['distanceKm', 'elapsedMs', 'runDate'].includes(change.field)
+    || (submissionKind === 'accumulated' && change.field === 'steps')
+  ));
   let ranking = null;
 
   if (submissionKind === 'standard') {
@@ -354,7 +457,8 @@ async function notifyRunnerOfCorrection({ record, submissionKind, event, changes
  * @returns {Promise<{
  *   submissionKind: string,
  *   changes: Array<{field: string, from: *, to: *}>,
- *   certificateRegenerated: boolean
+ *   certificateRegenerated: boolean,
+ *   ocrWarningsChanged: string[]
  * }>}
  */
 async function correctSubmissionValues({
@@ -386,8 +490,17 @@ async function correctSubmissionValues({
     throw new Error('Entry not found or inaccessible.');
   }
 
-  const { changes, values } = buildCorrection(record, input);
+  const challengeConfig = resolveChallengeConfig(typeof event.toObject === 'function' ? event.toObject() : event);
+  const { changes, values } = buildCorrection(record, input, {
+    tracksSteps: challengeConfig.tracksSteps,
+    requireTrackingAppDevice: Boolean(event.requireTrackingAppDevice)
+  });
   Object.assign(record, values);
+  // Warnings must follow the corrected values (see refreshOcrComparisons); done before save so the
+  // flags are stored with the correction.
+  const ocrWarningsChanged = changes.some((change) => OCR_COMPARED_FIELDS.includes(change.field))
+    ? refreshOcrComparisons(record)
+    : [];
   const editedAt = new Date();
   record.organizerCorrections.push({ editedBy: actorUserId, editedAt, reason: safeReason, changes });
   await record.save();
@@ -416,7 +529,7 @@ async function correctSubmissionValues({
     targetId: String(record._id),
     statusFrom: record.status,
     statusTo: record.status,
-    notes: `Reason: ${safeReason}. Values corrected: ${describeChanges(changes).join('; ')}`.slice(0, 1000),
+    notes: `Reason: ${safeReason}. Values corrected: ${describeChanges(changes).join('; ')}${ocrWarningsChanged.length ? `. OCR warnings refreshed: ${ocrWarningsChanged.join(', ')}` : ''}`.slice(0, 1000),
     ipAddress,
     userAgent,
     occurredAt: editedAt
@@ -442,15 +555,21 @@ async function correctSubmissionValues({
     certificateRegenerated
   });
 
-  return { submissionKind, changes, certificateRegenerated };
+  return { submissionKind, changes, certificateRegenerated, ocrWarningsChanged };
 }
 
 module.exports = {
   correctSubmissionValues,
   buildCorrection,
+  refreshOcrComparisons,
   describeChanges,
   normalizeCorrectionReason,
   MIN_REASON_LENGTH,
   MAX_REASON_LENGTH,
+  MAX_ELEVATION_M,
+  MAX_STEPS,
+  MAX_DEVICE_LENGTH,
+  OCR_COMPARED_FIELDS,
+  OCR_MISMATCH_KEYS,
   RUN_TYPES
 };

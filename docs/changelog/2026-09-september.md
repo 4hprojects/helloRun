@@ -1,5 +1,27 @@
 # HelloRun Changelog — September 2026
 
+## September 20 — Edit values covers elevation, steps and tracking app/device
+
+- The Edit values dialog on the per-runner submissions page now also corrects **elevation gain**
+  (whole metres, 0-20,000), **steps** (whole number, 1-200,000) and **tracking app or device**
+  (up to 120 characters), the other measurable details a runner supplies. The runner's proof note,
+  the proof file, the source and any Strava or OCR-extracted data stay read-only.
+- For these three, an absent field is left alone and a blank one clears the value. The event
+  decides what may be cleared: steps are required (and enforced) in steps competitions, and the
+  device is required where `requireTrackingAppDevice` is set. The dialog marks those fields required.
+- **OCR warnings follow the corrected values.** After a correction the seven `*Mismatch` flags are
+  recomputed from the corrected values and the stored OCR extraction (`compareSubmissionWithOcr`),
+  so fixing a value to match the proof clears its warning and moving away raises one. Only those
+  flags are written; the overall suspicious flag, the validation result and the status are the
+  organiser's call and are not touched. The audit note lists which warnings changed.
+- A steps correction on an approved accumulated entry now also reconciles the certificate (steps
+  competitions finalize it from summed steps); progress and badges already refreshed. Runner
+  emails, audit notes and correction history describe the new fields ("Steps: 8,500 to 9,200").
+- Each card gets a compact details row (location, activity type, elevation, steps, tracking app or
+  device) listing only what the runner supplied, so organisers can see what they are editing.
+- 27 new DB-free tests; dropping the steps-required rule, skipping the OCR refresh, or not telling
+  the dialog what the event requires makes them fail.
+
 ## September 20 — Submissions page: balanced 70/30 desktop cards
 
 - The action column on the per-runner submissions page was a fixed 13rem (about 18% of the card)

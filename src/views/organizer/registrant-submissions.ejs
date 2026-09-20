@@ -23,6 +23,7 @@
       ['treadmill', 'Treadmill']
     ];
     const todayKey = new Date().toISOString().slice(0, 10);
+    const editConfig = locals.editConfig || {};
     const summaryTiles = [
       { key: 'total', label: 'All entries', count: counts.total },
       { key: 'pending', label: 'Awaiting review', count: counts.pending },
@@ -131,6 +132,13 @@
                   <div><dt>Source</dt><dd><%= item.sourceLabel %></dd></div>
                 </dl>
 
+                <% if (item.detailFacts && item.detailFacts.length) { %>
+                  <dl class="rs-detail-facts" aria-label="Activity details">
+                    <% item.detailFacts.forEach((fact) => { %>
+                      <div><dt><%= fact.label %></dt><dd><%= fact.value %></dd></div>
+                    <% }) %>
+                  </dl>
+                <% } %>
               </div>
 
               <div class="rpr-card-side">
@@ -245,6 +253,22 @@
                     <div class="rs-field rs-field-wide">
                       <label for="<%= formId %>-location">Location</label>
                       <input id="<%= formId %>-location" name="runLocation" type="text" maxlength="200" value="<%= item.edit.runLocation %>">
+                    </div>
+
+                    <div class="rs-field">
+                      <label for="<%= formId %>-elevation">Elevation gain (m)</label>
+                      <input id="<%= formId %>-elevation" name="elevationGain" type="number" inputmode="numeric" step="1" min="0" max="20000" value="<%= item.edit.elevationGain %>">
+                    </div>
+
+                    <div class="rs-field">
+                      <label for="<%= formId %>-steps">Steps<% if (editConfig.stepsRequired) { %> <span class="rs-required">(required for this event)</span><% } %></label>
+                      <input id="<%= formId %>-steps" name="steps" type="number" inputmode="numeric" step="1" min="1" max="200000" value="<%= item.edit.steps %>" <%= editConfig.stepsRequired ? 'required' : '' %>>
+                    </div>
+
+                    <div class="rs-field rs-field-wide">
+                      <label for="<%= formId %>-device">Tracking app or device<% if (editConfig.deviceRequired) { %> <span class="rs-required">(required for this event)</span><% } %></label>
+                      <input id="<%= formId %>-device" name="trackingAppDevice" type="text" maxlength="120" value="<%= item.edit.trackingAppDevice %>" <%= editConfig.deviceRequired ? 'required' : '' %>>
+                      <small class="rs-hint">Clearing an optional detail removes it from the entry.</small>
                     </div>
 
                     <div class="rs-field rs-field-wide">
