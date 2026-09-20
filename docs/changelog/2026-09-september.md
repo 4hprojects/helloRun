@@ -1,5 +1,33 @@
 # HelloRun Changelog — September 2026
 
+## September 20 — Registrants roster: Message moved into Details, action buttons recolored
+
+- Only two actions now sit beside the progress bar: Submissions and Details. Message moved
+  into each record's expanded Details panel (Runner profile) as a labelled "Message runner"
+  button. It keeps the same `data-message-runner` hooks, so the existing dialog and send
+  route are unchanged. Without JavaScript the button is hidden and the existing `<noscript>`
+  message form remains.
+- Submissions is the solid brand-orange action; Details is a soft orange tint that turns
+  solid while its panel is open. Both are icon-only with the existing hover/focus tooltip
+  and show text labels on phones. They no longer use the shared `.nav-login-btn` skin, so
+  their border, radius and colors are defined with the roster styles.
+- With two buttons the actions column returns to 6.25rem, and last entry's 761-900px
+  minimum-width override was removed. Verified in Chromium at eight widths (320-1280px) for
+  free and paid events: no overlap and no horizontal overflow, except a 4px overflow at
+  exactly 761px that the original stylesheet also had before either feature.
+
+## September 20 — Registrants roster: actions column overlapped the progress bar
+
+- The per-runner "Submissions" button added to each roster row made three 44px actions in
+  a fixed 108px column (100px on tablet), so the first button overflowed left into the
+  "Result or progress" cell, over its progress bar, at every width above 760px. Phones use
+  a stacked layout and were unaffected.
+- The actions column is now one shared `--roster-actions-width` (9.4rem, enough for three
+  buttons and their gaps) used by all row grid templates, and narrow tablets (761-900px)
+  reduce the other columns' minimum widths so the wider column does not cause horizontal
+  page scroll. Verified in Chromium at eight widths from 320 to 1280px for free and paid
+  events. A unit test now fails if the column is narrower than the roster's actions need.
+
 ## September 20 — Badge re-evaluation after organizer corrections
 
 Closes the gap recorded in the previous entry. Reading the badge requirement checks showed
