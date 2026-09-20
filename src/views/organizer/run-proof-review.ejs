@@ -218,6 +218,12 @@
                     <i data-lucide="eye" aria-hidden="true"></i>
                     <%= item.status === 'submitted' ? 'Open Review' : 'View Details' %>
                   </a>
+                  <% if (item.runnerEntriesHref) { %>
+                    <a href="<%= item.runnerEntriesHref %>" class="rpr-proof-link">
+                      <i data-lucide="list-checks" aria-hidden="true"></i>
+                      All entries
+                    </a>
+                  <% } %>
                   <% if (item.proofUrl) { %>
                     <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="rpr-proof-link">
                       <i data-lucide="external-link" aria-hidden="true"></i>

@@ -1,5 +1,32 @@
 # HelloRun Changelog — September 2026
 
+## September 20 — Per-runner submissions page with organizer value corrections
+
+- Added `/organizer/events/:id/registrants/:registrationId/submissions`, listing every
+  entry one runner submitted for an event from both `Submission` and
+  `AccumulatedActivitySubmission`, newest first, on the same responsive card layout as the
+  run-proof queue. Entry points: a "Submissions" button on each registrants row, an "All
+  entries by this runner" link on the individual review page, and an "All entries" link on
+  each queue card. Access is owner, co-organizer and admin via the existing
+  `resolveEventAccess` path; the edit route adds CSRF protection, the review rate limiter
+  and a check that the entry belongs to the registration in the URL.
+- Organizers can now correct an entry's distance, elapsed time, run date, location and
+  activity type (`submission-correction.service.js`). A reason is required. Nothing
+  previously allowed this outside the admin-only data patch, which has no access check,
+  notification or downstream effects. Status changes remain on the existing review page.
+- Each correction is saved through `save()` (so the PostgreSQL shadow sync fires), audited
+  as `submission.values_corrected` (plus `submission.self_reviewed` for a self-edit),
+  stored as before/after pairs in a new additive `organizerCorrections` array on both
+  models, and announced to the runner through a new `result.corrected` communication event
+  (registry entry, sender, subject line and email template).
+- For approved entries the service also recalculates derived data: published ranking and
+  leaderboard cache; standard certificates are regenerated when distance, time or date
+  change; accumulated entries refresh challenge progress and reconcile the certificate.
+  Known gap: badges and milestones already awarded are neither revoked nor re-evaluated.
+- Added DB-free coverage: validation and diffing rules, service wiring, route middleware
+  and ownership guard, and view/CSS structure (34 tests in three new files). Integration
+  suites were not run because the configured databases are not confirmed non-production.
+
 ## September 20 — Run proof review queue: responsive redesign
 
 - Reworked `/organizer/events/:eventId/run-proofs/review` for desktop, tablet, and

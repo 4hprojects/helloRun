@@ -312,6 +312,19 @@ const COMMUNICATION_EVENTS = Object.freeze([
     displayOrder: 411
   },
   {
+    eventKey: 'result.corrected',
+    name: 'Result Corrected',
+    description: 'Notifies a runner that an organizer corrected the values on a submitted run result or activity.',
+    category: 'result',
+    priority: 'high',
+    required: false,
+    emailEnabled: true,
+    inAppEnabled: true,
+    locked: false,
+    recipientRoles: ['runner'],
+    displayOrder: 412
+  },
+  {
     eventKey: 'result.rejected',
     name: 'Result Rejected',
     description: 'Notifies a runner that a run result needs correction.',

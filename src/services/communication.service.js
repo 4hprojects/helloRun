@@ -791,6 +791,9 @@ async function sendEventEmail(eventKey, payload = {}) {
   if (eventKey === 'result.approval_reversed') {
     return emailService.sendApprovalReversedEmailToRunner(email.to, email);
   }
+  if (eventKey === 'result.corrected') {
+    return emailService.sendResultCorrectedEmailToRunner(email.to, email);
+  }
   if (eventKey === 'result.rejected') {
     return emailService.sendResultRejectedEmailToRunner(
       email.to,
@@ -863,6 +866,7 @@ function getSubjectForEvent(eventKey, payload = {}) {
     'result.approved': `Result Approved: ${eventTitle}`,
     'result.rejected': `Result Rejected: ${eventTitle}`,
     'result.approval_reversed': `Approved Result Withdrawn: ${eventTitle}`,
+    'result.corrected': `Result Corrected: ${eventTitle}`,
     'certificate.issued': `Certificate Available: ${eventTitle}`,
     'badge.earned': `Badge Earned: ${email.badgeName || 'Achievement Badge'}`,
     'event.promotion': `Don't miss it: ${eventTitle} — Register Now`

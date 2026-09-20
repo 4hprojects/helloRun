@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { organizerCorrectionSchema } = require('./organizer-correction.schema');
 const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const manualReviewChecklistSchema = new mongoose.Schema({
@@ -315,6 +316,10 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
         type: Number,
         default: null
       }
+    },
+    organizerCorrections: {
+      type: [organizerCorrectionSchema],
+      default: []
     }
   },
   {

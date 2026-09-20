@@ -1,0 +1,305 @@
+/* ============================================
+   Registrant submissions (per-runner entries page)
+   Builds on run-proof-review.css (cards, badges, buttons, breakpoints) and only
+   adds the summary tiles, the inline edit form and the correction history.
+   Every rule is scoped to .registrant-submissions-page.
+   ============================================ */
+
+.registrant-submissions-page .rs-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- Summary tiles (read-only, unlike the queue tabs) ---------- */
+
+.registrant-submissions-page .rs-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.registrant-submissions-page .rs-summary .rpr-tab,
+.registrant-submissions-page .rs-summary .rpr-tab:hover {
+  background: var(--rpr-surface);
+  border-color: var(--rpr-line);
+  border-left-color: var(--rpr-tab-accent);
+  cursor: default;
+}
+
+/* ---------- Badges ---------- */
+
+.registrant-submissions-page .rs-corrected-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ---------- Disclosure toggles ---------- */
+
+.registrant-submissions-page .rs-edit,
+.registrant-submissions-page .rs-history {
+  margin-top: 0.7rem;
+}
+
+.registrant-submissions-page .rs-edit-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: var(--rpr-control);
+  padding: 0 0.85rem;
+  border: 1px solid var(--rpr-line-strong);
+  border-radius: 10px;
+  background: var(--rpr-surface);
+  color: #334155;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.registrant-submissions-page .rs-edit-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.registrant-submissions-page .rs-edit-toggle:hover {
+  border-color: #94a3b8;
+  background: var(--rpr-surface-alt);
+}
+
+.registrant-submissions-page .rs-edit[open] > .rs-edit-toggle,
+.registrant-submissions-page .rs-history[open] > .rs-edit-toggle {
+  border-color: var(--rpr-brand);
+  color: var(--rpr-brand);
+}
+
+.registrant-submissions-page .rs-edit-toggle i,
+.registrant-submissions-page .rs-edit-toggle svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+/* ---------- Edit form ---------- */
+
+.registrant-submissions-page .rs-edit-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.85rem 1rem;
+  margin-top: 0.7rem;
+  padding: 1rem;
+  border: 1px solid var(--rpr-line);
+  border-radius: 12px;
+  background: var(--rpr-surface-alt);
+}
+
+.registrant-submissions-page .rs-field {
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.registrant-submissions-page .rs-field > label,
+.registrant-submissions-page .rs-field > legend {
+  margin: 0;
+  padding: 0;
+  color: var(--rpr-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.registrant-submissions-page .rs-required {
+  color: var(--rpr-subtle);
+  font-weight: 600;
+}
+
+.registrant-submissions-page .rs-field-wide {
+  grid-column: 1 / -1;
+}
+
+.registrant-submissions-page .rs-field-time {
+  grid-column: span 2;
+}
+
+.registrant-submissions-page .rs-time-inputs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.registrant-submissions-page .rs-time-inputs label {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  color: var(--rpr-subtle);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.registrant-submissions-page .rs-edit-form input,
+.registrant-submissions-page .rs-edit-form select,
+.registrant-submissions-page .rs-edit-form textarea {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0.75rem;
+  border: 1px solid var(--rpr-line-strong);
+  border-radius: 10px;
+  background-color: var(--rpr-surface);
+  color: var(--rpr-ink);
+  font-family: inherit;
+  font-size: 1rem; /* 16px prevents iOS zoom-on-focus */
+  box-sizing: border-box;
+}
+
+.registrant-submissions-page .rs-edit-form input,
+.registrant-submissions-page .rs-edit-form select {
+  height: var(--rpr-control);
+}
+
+.registrant-submissions-page .rs-edit-form textarea {
+  min-height: 4.5rem;
+  padding: 0.6rem 0.75rem;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.registrant-submissions-page .rs-form-footer {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.registrant-submissions-page .rs-note {
+  display: flex;
+  flex: 1 1 16rem;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0;
+  color: var(--rpr-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.registrant-submissions-page .rs-note i,
+.registrant-submissions-page .rs-note svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  margin-top: 0.12rem;
+}
+
+/* ---------- Correction history ---------- */
+
+.registrant-submissions-page .rs-history-list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.registrant-submissions-page .rs-history-list > li {
+  padding: 0.65rem 0.8rem;
+  border-left: 3px solid #c7d2fe;
+  border-radius: 0 8px 8px 0;
+  background: var(--rpr-surface-alt);
+}
+
+.registrant-submissions-page .rs-history-list ul {
+  margin: 0.3rem 0;
+  padding-left: 1.1rem;
+  color: var(--rpr-ink);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.registrant-submissions-page .rs-history-meta,
+.registrant-submissions-page .rs-history-reason {
+  margin: 0;
+  color: var(--rpr-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.registrant-submissions-page .rs-history-meta strong {
+  color: var(--rpr-ink);
+}
+
+/* ============================================
+   Tablet
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .registrant-submissions-page .rs-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* ============================================
+   Mobile
+   ============================================ */
+
+@media (max-width: 640px) {
+  /* Four short tiles fit a 2x2 grid, so they do not need the queue's swipe strip. */
+  .registrant-submissions-page .rs-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-right: 0;
+    margin-left: 0;
+    padding: 0;
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .registrant-submissions-page .rs-summary .rpr-tab {
+    min-width: 0;
+  }
+
+  .registrant-submissions-page .rs-edit-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .registrant-submissions-page .rs-edit-form {
+    grid-template-columns: 1fr;
+    padding: 0.85rem;
+  }
+
+  .registrant-submissions-page .rs-field-time {
+    grid-column: 1 / -1;
+  }
+
+  .registrant-submissions-page .rs-form-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .registrant-submissions-page .rs-form-footer .rpr-btn {
+    width: 100%;
+  }
+
+  /* In the column layout flex-basis becomes a height, so reset it to content size. */
+  .registrant-submissions-page .rs-note {
+    flex: 0 0 auto;
+  }
+}

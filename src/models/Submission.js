@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { organizerCorrectionSchema } = require('./organizer-correction.schema');
 const { syncSubmissionShadow } = require('../services/submission-shadow.service');
 const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 const logger = require('../utils/logger');
@@ -380,6 +381,10 @@ const submissionSchema = new mongoose.Schema(
         type: Number,
         default: null
       }
+    },
+    organizerCorrections: {
+      type: [organizerCorrectionSchema],
+      default: []
     }
   },
   {

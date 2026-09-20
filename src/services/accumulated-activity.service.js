@@ -639,6 +639,7 @@ function getSubmissionServiceHelpers() {
 module.exports = {
   createAccumulatedActivitySubmission,
   reviewAccumulatedActivitySubmission,
+  reconcileAccumulatedCertificateAfterReview,
   getRegistrationAccumulatedProgress,
   getAccumulatedActivitiesForRegistrations,
   getAccumulatedLeaderboardRows,

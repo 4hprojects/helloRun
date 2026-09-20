@@ -40,6 +40,9 @@
         </div>
         <div class="header-actions">
           <a href="<%= backHref %>" class="nav-login-btn registrant-header-btn"><i data-lucide="arrow-left"></i> Back to Run Proof Queue</a>
+          <% if (registration && registration.id) { %>
+            <a href="/organizer/events/<%= event._id %>/registrants/<%= registration.id %>/submissions" class="nav-login-btn registrant-header-btn"><i data-lucide="list-checks"></i> All entries by this runner</a>
+          <% } %>
           <% if (isAdminViewer) { %>
             <a href="/admin/reviews?type=results" class="nav-login-btn registrant-header-btn"><i data-lucide="list-checks"></i> Admin Queue</a>
           <% } else { %>

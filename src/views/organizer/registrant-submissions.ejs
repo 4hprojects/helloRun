@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+  <link rel="stylesheet" href="/css/run-proof-review.css">
+  <link rel="stylesheet" href="/css/registrant-submissions.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <%
+    const runTypeOptions = [
+      ['run', 'Run'],
+      ['walk', 'Walk'],
+      ['hike', 'Hike'],
+      ['trail_run', 'Trail run'],
+      ['treadmill', 'Treadmill']
+    ];
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const summaryTiles = [
+      { key: 'total', label: 'All entries', count: counts.total },
+      { key: 'pending', label: 'Awaiting review', count: counts.pending },
+      { key: 'approved', label: 'Approved', count: counts.approved },
+      { key: 'rejected', label: 'Rejected', count: counts.rejected }
+    ];
+  %>
+
+  <main class="events-page organizer-registrants-page run-proof-review-page registrant-submissions-page">
+    <section class="events-shell">
+      <header class="events-header rpr-header">
+        <div class="rpr-heading">
+          <p class="rpr-eyebrow"><%= event.title %></p>
+          <h1><%= runner.name %></h1>
+          <p class="rpr-subtitle">
+            <%= runner.email %>
+            <% if (runner.confirmationCode) { %> · <span class="rs-code"><%= runner.confirmationCode %></span><% } %>
+            · <%= runner.categoryLabel %>
+          </p>
+        </div>
+        <div class="header-actions run-proof-header-actions" aria-label="Runner submissions navigation">
+          <a href="<%= links.registrants %>" class="rpr-btn rpr-btn-secondary">
+            <i data-lucide="arrow-left" aria-hidden="true"></i><span>Registrants</span>
+          </a>
+          <a href="<%= links.queue %>" class="rpr-btn rpr-btn-secondary">
+            <i data-lucide="scan-search" aria-hidden="true"></i><span>Run proof queue</span>
+          </a>
+        </div>
+      </header>
+
+      <% if (message) { %>
+        <div class="page-message page-message-<%= message.type %>" role="status"><%= message.text %></div>
+      <% } %>
+
+      <div class="registrant-summary rpr-tabs rs-summary" role="group" aria-label="Entry totals">
+        <% summaryTiles.forEach((tile) => { %>
+          <div class="summary-card rpr-tab rpr-tab-<%= tile.key %>">
+            <span class="rpr-tab-label"><%= tile.label %></span>
+            <strong class="rpr-tab-count"><%= tile.count %></strong>
+          </div>
+        <% }) %>
+      </div>
+
+      <% if (entries.length) { %>
+        <div class="results-meta run-proof-results-meta">
+          <span><strong><%= entries.length %></strong> entr<%= entries.length === 1 ? 'y' : 'ies' %>, newest first. Corrections notify the runner and are recorded in the audit log.</span>
+        </div>
+
+        <section class="run-proof-review-list" aria-label="Runner entries">
+          <% entries.forEach((item, index) => { %>
+            <% const formId = `edit-entry-${item.id}`; %>
+            <article class="run-proof-review-card rpr-card rpr-card-<%= item.statusClass %>" id="entry-<%= item.id %>">
+              <div class="rpr-media">
+                <% if (item.proofUrl && item.isImageProof) { %>
+                  <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="run-proof-image-link" aria-label="Open run proof image, entry <%= entries.length - index %>">
+                    <img src="<%= item.proofUrl %>" alt="Run proof for entry <%= entries.length - index %>" loading="lazy" decoding="async">
+                  </a>
+                <% } else if (item.proofUrl) { %>
+                  <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="rpr-media-fallback" aria-label="Open run proof file, entry <%= entries.length - index %>">
+                    <i data-lucide="file-text" aria-hidden="true"></i>
+                    <span>Proof file</span>
+                  </a>
+                <% } else { %>
+                  <div class="rpr-media-fallback rpr-media-missing" role="img" aria-label="No run proof file is available for this entry">
+                    <i data-lucide="image-off" aria-hidden="true"></i>
+                    <span>No proof</span>
+                  </div>
+                <% } %>
+              </div>
+
+              <div class="run-proof-card-header rpr-card-head">
+                <div class="rpr-identity">
+                  <h2>Entry <%= entries.length - index %> · <%= item.submissionTypeLabel %></h2>
+                  <p>Submitted <%= item.submittedAtLabel || 'N/A' %></p>
+                </div>
+                <div class="rpr-status">
+                  <span class="status-badge status-badge-<%= item.statusClass %>"><%= item.statusLabel %></span>
+                  <% if (item.corrections.length) { %><span class="rs-corrected-badge">Corrected<% if (item.corrections.length > 1) { %> ×<%= item.corrections.length %><% } %></span><% } %>
+                  <% if (item.isOwnSubmission) { %><span class="run-proof-self-badge" title="Editing your own entry is recorded in the audit log">Your own entry</span><% } %>
+                </div>
+              </div>
+
+              <div class="rpr-card-body">
+                <% if (item.suspiciousFlag || item.reviewSignal?.label || item.hasOcrMismatch) { %>
+                  <ul class="rpr-signals" aria-label="Validation signals">
+                    <% if (item.suspiciousFlag || item.reviewSignal?.label) { %>
+                      <li>
+                        <i data-lucide="triangle-alert" aria-hidden="true"></i>
+                        <span><strong><%= item.reviewSignal?.label || 'Suspicious' %></strong> <%= item.reviewSignal?.description || item.suspiciousFlagReason || 'This submission was flagged for manual review.' %></span>
+                      </li>
+                    <% } %>
+                    <% if (item.hasOcrMismatch) { %>
+                      <li>
+                        <i data-lucide="scan-text" aria-hidden="true"></i>
+                        <span><strong>OCR mismatch</strong> A value read from the proof image does not match what was entered. Check the proof carefully.</span>
+                      </li>
+                    <% } %>
+                  </ul>
+                <% } %>
+
+                <dl class="run-proof-meta-grid">
+                  <div><dt>Distance</dt><dd><%= item.distanceLabel %></dd></div>
+                  <div><dt>Elapsed</dt><dd><%= item.elapsedLabel %></dd></div>
+                  <div><dt>Run Date</dt><dd><%= item.runDateLabel || 'N/A' %></dd></div>
+                  <div><dt>Source</dt><dd><%= item.sourceLabel %></dd></div>
+                </dl>
+
+                <details class="rs-edit">
+                  <summary class="rs-edit-toggle">
+                    <i data-lucide="pencil" aria-hidden="true"></i>
+                    Edit values
+                  </summary>
+                  <form method="POST" action="<%= item.editAction %>" class="rs-edit-form">
+                    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+
+                    <div class="rs-field">
+                      <label for="<%= formId %>-distance">Distance (km)</label>
+                      <input id="<%= formId %>-distance" name="distanceKm" type="number" inputmode="decimal" step="0.01" min="0.1" max="500" value="<%= item.edit.distanceKm %>">
+                    </div>
+
+                    <fieldset class="rs-field rs-field-time">
+                      <legend>Elapsed time</legend>
+                      <div class="rs-time-inputs">
+                        <label for="<%= formId %>-hours"><span>Hours</span>
+                          <input id="<%= formId %>-hours" name="elapsedHours" type="number" inputmode="numeric" min="0" max="168" step="1" value="<%= item.edit.hours %>">
+                        </label>
+                        <label for="<%= formId %>-minutes"><span>Minutes</span>
+                          <input id="<%= formId %>-minutes" name="elapsedMinutes" type="number" inputmode="numeric" min="0" max="59" step="1" value="<%= item.edit.minutes %>">
+                        </label>
+                        <label for="<%= formId %>-seconds"><span>Seconds</span>
+                          <input id="<%= formId %>-seconds" name="elapsedSeconds" type="number" inputmode="numeric" min="0" max="59" step="1" value="<%= item.edit.seconds %>">
+                        </label>
+                      </div>
+                    </fieldset>
+
+                    <div class="rs-field">
+                      <label for="<%= formId %>-date">Run date</label>
+                      <input id="<%= formId %>-date" name="runDate" type="date" max="<%= todayKey %>" value="<%= item.edit.runDate %>">
+                    </div>
+
+                    <div class="rs-field">
+                      <label for="<%= formId %>-type">Activity type</label>
+                      <select id="<%= formId %>-type" name="runType">
+                        <% runTypeOptions.forEach(([value, label]) => { %>
+                          <option value="<%= value %>" <%= item.edit.runType === value ? 'selected' : '' %>><%= label %></option>
+                        <% }) %>
+                      </select>
+                    </div>
+
+                    <div class="rs-field rs-field-wide">
+                      <label for="<%= formId %>-location">Location</label>
+                      <input id="<%= formId %>-location" name="runLocation" type="text" maxlength="200" value="<%= item.edit.runLocation %>">
+                    </div>
+
+                    <div class="rs-field rs-field-wide">
+                      <label for="<%= formId %>-reason">Reason for the correction <span class="rs-required">(required)</span></label>
+                      <textarea id="<%= formId %>-reason" name="reason" rows="2" minlength="5" maxlength="500" required placeholder="Shown to the runner and recorded in the audit log"></textarea>
+                    </div>
+
+                    <div class="rs-form-footer">
+                      <p class="rs-note">
+                        <i data-lucide="bell" aria-hidden="true"></i>
+                        The runner is notified by email and in-app.
+                        <% if (item.status === 'approved') { %>Because this entry is approved, its ranking<%= item.submissionKind === 'accumulated' ? ' and challenge progress' : ' and certificate' %> will be recalculated.<% } %>
+                      </p>
+                      <button type="submit" class="rpr-btn rpr-btn-primary">
+                        <i data-lucide="save" aria-hidden="true"></i><span>Save correction</span>
+                      </button>
+                    </div>
+                  </form>
+                </details>
+
+                <% if (item.corrections.length) { %>
+                  <details class="rs-history">
+                    <summary class="rs-edit-toggle">
+                      <i data-lucide="history" aria-hidden="true"></i>
+                      Correction history (<%= item.corrections.length %>)
+                    </summary>
+                    <ol class="rs-history-list">
+                      <% item.corrections.forEach((entry) => { %>
+                        <li>
+                          <p class="rs-history-meta"><strong><%= entry.editorName %></strong> · <%= entry.editedAtLabel %></p>
+                          <ul>
+                            <% entry.lines.forEach((line) => { %><li><%= line %></li><% }) %>
+                          </ul>
+                          <p class="rs-history-reason">Reason: <%= entry.reason %></p>
+                        </li>
+                      <% }) %>
+                    </ol>
+                  </details>
+                <% } %>
+              </div>
+
+              <div class="rpr-card-side">
+                <div class="run-proof-card-actions">
+                  <a href="<%= item.actionHref %>" class="rpr-btn <%= item.status === 'submitted' || item.status === 'needs_clarification' ? 'rpr-btn-primary' : 'rpr-btn-secondary' %>">
+                    <i data-lucide="eye" aria-hidden="true"></i>
+                    <span><%= item.status === 'submitted' || item.status === 'needs_clarification' ? 'Open Review' : 'View Details' %></span>
+                  </a>
+                  <% if (item.proofUrl) { %>
+                    <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="rpr-proof-link">
+                      <i data-lucide="external-link" aria-hidden="true"></i>
+                      Open proof
+                    </a>
+                  <% } %>
+                </div>
+
+                <% if (item.status !== 'submitted') { %>
+                  <div class="run-proof-history">
+                    <strong><%= item.isAutoApproved ? 'Approval History' : 'Review History' %></strong>
+                    <p><%= item.isAutoApproved ? 'Approved' : 'Reviewed' %>: <%= item.reviewedAtLabel || 'N/A' %></p>
+                    <% if (item.reviewerName) { %>
+                      <p>By: <%= item.reviewerName %></p>
+                    <% } else if (item.isAutoApproved) { %>
+                      <p>By: Auto-validation rules</p>
+                    <% } %>
+                    <% if (item.rejectionReason) { %>
+                      <p><strong>Reason:</strong> <%= item.rejectionReason %></p>
+                    <% } %>
+                    <% if (item.reviewNotes) { %>
+                      <p><strong>Notes:</strong> <%= item.reviewNotes %></p>
+                    <% } %>
+                  </div>
+                <% } %>
+              </div>
+            </article>
+          <% }) %>
+        </section>
+      <% } else { %>
+        <div class="empty-state rpr-empty">
+          <i data-lucide="file-x" aria-hidden="true"></i>
+          <h3>No entries yet</h3>
+          <p><%= runner.name %> has not submitted any run proofs or activities for this event.</p>
+          <a href="<%= links.registrants %>" class="rpr-btn rpr-btn-secondary">Back to registrants</a>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

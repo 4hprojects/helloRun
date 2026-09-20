@@ -88,6 +88,15 @@ core platform:
   the reversal revokes any issued certificate, withdraws badges earned off the entry
   (restoring them if it is approved again), deletes the published ranking row and flushes
   the leaderboard cache, under its own audit action;
+- per-runner submissions page and organizer value corrections, added September 20 —
+  a "Submissions" button on each registrants row (also linked from the individual review
+  page and the run-proof queue) opens every entry one runner submitted for the event,
+  standard and accumulated. Organisers, co-organisers and admins can correct an entry's
+  distance, elapsed time, run date, location and activity type on any status (reason
+  required); the runner is notified by email and in-app, each correction is audit-logged
+  as `submission.values_corrected` and kept as before/after history on the entry, and an
+  approved entry's ranking, leaderboard cache, certificate (standard) or challenge
+  progress (accumulated) are recalculated. Badges already earned are not re-evaluated;
 - run-proof review queue redesign, September 20 — responsive desktop, tablet and phone
   layouts with visible validation signals, moved to a dedicated scoped stylesheet;
 - post-signup registration edits, added September 15 — organisers and co-organisers

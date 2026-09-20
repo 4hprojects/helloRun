@@ -1599,6 +1599,49 @@ exports.sendApprovalReversedEmailToRunner = async (
   }
 };
 
+exports.sendResultCorrectedEmailToRunner = async (
+  runnerEmail,
+  { firstName, eventTitle, confirmationCode, changeLines, reason, certificateRegenerated } = {}
+) => {
+  try {
+    const lines = Array.isArray(changeLines) ? changeLines : [];
+    const changesHtml = lines.length
+      ? `<ul style="margin:0 0 8px;padding-left:18px;">${lines.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>`
+      : '<p style="margin:0 0 8px;">Some of the values on your entry were updated.</p>';
+    const reasonText = escapeHtml(reason || '');
+
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: runnerEmail,
+      subject: `Result Corrected: ${eventTitle}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#1d4ed8;">Your Submitted Entry Was Corrected</h2>
+          <p>Hi ${escapeHtml(firstName || 'Runner')},</p>
+          <p>An organizer corrected the values on your entry for <strong>${escapeHtml(eventTitle || 'your event')}</strong>.</p>
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            ${confirmationCode ? `<p style="margin:0 0 8px;"><strong>Confirmation Code:</strong> ${escapeHtml(confirmationCode)}</p>` : ''}
+            <p style="margin:0 0 4px;"><strong>What changed:</strong></p>
+            ${changesHtml}
+            ${reasonText ? `<p style="margin:0;"><strong>Reason given:</strong> ${reasonText}</p>` : ''}
+          </div>
+          ${certificateRegenerated ? '<p>Your certificate for this entry was regenerated to match the corrected values.</p>' : ''}
+          <p>If this correction does not look right, contact the event organizer.</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send result corrected email');
+    }
+
+    return data;
+  } catch (error) {
+    logger.error('Email service error:', error);
+    throw error;
+  }
+};
+
 exports.sendRegistrationUpdatedByOrganizerEmail = async (
   runnerEmail,
   { firstName, eventTitle, confirmationCode, changeSummary, reason } = {}

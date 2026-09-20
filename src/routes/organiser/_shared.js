@@ -828,7 +828,10 @@ function buildRunProofReviewRow(submission, event, filters, submissionKind, view
     // than discovering it from a failed POST.
     isOwnSubmission: Boolean(viewerId) && Boolean(submission.runnerId)
       && String(submission.runnerId) === String(viewerId),
-    actionHref: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/review${queueContext ? `?${queueContext}` : ''}`
+    actionHref: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/review${queueContext ? `?${queueContext}` : ''}`,
+    runnerEntriesHref: registration._id
+      ? `/organizer/events/${String(event._id)}/registrants/${String(registration._id)}/submissions`
+      : ''
   };
 }
 

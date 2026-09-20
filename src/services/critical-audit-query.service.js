@@ -20,6 +20,7 @@ const AUDIT_ACTION_GROUPS = Object.freeze({
     'reject',
     'submission.auto_approved',
     'submission.approval_reversed',
+    'submission.values_corrected',
     'submission.self_reviewed'
   ],
   exports: [
