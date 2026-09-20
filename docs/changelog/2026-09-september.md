@@ -1,5 +1,17 @@
 # HelloRun Changelog — September 2026
 
+## September 20 — Submissions page totals: single-row tiles, no colored edge
+
+- The four totals tiles at the top of the per-runner submissions page (All entries, Awaiting review,
+  Approved, Rejected) no longer carry a status-colored stripe on their left edge and no longer stack
+  the label over a large number. Each tile is now one quiet row: the label at the left and the count at
+  the right edge, with a normal 1px border. They are read-only figures, not the review queue's filter
+  tabs, so they no longer borrow those tabs' accent styling.
+- Applies at every width, including the 2x2 phone grid; on a very narrow screen a long label such as
+  "Awaiting review" may wrap to two lines while the tile height stays the same. Styles are scoped to this
+  page, so the run-proof review queue tabs are unchanged.
+- 2 new DB-free tests; restoring the colored left edge on the tiles makes them fail.
+
 ## September 20 — Elevation and steps on the single-entry review page
 
 - The organiser review page's "Submitted versus detected" table had no Elevation row at all, and

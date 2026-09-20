@@ -21,8 +21,30 @@
 .registrant-submissions-page .rs-summary .rpr-tab:hover {
   background: var(--rpr-surface);
   border-color: var(--rpr-line);
-  border-left-color: var(--rpr-tab-accent);
   cursor: default;
+}
+
+/* One quiet row per tile: the label at the left, the count at the right edge. The shared queue
+   tabs stack the two and carry a status-colored left edge; these totals are plain read-only
+   figures, so the edge is a normal border. */
+.registrant-submissions-page .rs-summary .rpr-tab {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3.25rem;
+  padding: 0.6rem 1rem;
+  border-left: 1px solid var(--rpr-line);
+}
+
+.registrant-submissions-page .rs-summary .rpr-tab-label {
+  min-width: 0;
+}
+
+.registrant-submissions-page .rs-summary .rpr-tab-count {
+  flex: 0 0 auto;
+  font-size: 1.25rem;
+  text-align: right;
 }
 
 /* ---------- Badges ---------- */
@@ -211,6 +233,7 @@
 
   .registrant-submissions-page .rs-summary .rpr-tab {
     min-width: 0;
+    min-height: 3.25rem;
   }
 
   .registrant-submissions-page .rs-edit-fields {

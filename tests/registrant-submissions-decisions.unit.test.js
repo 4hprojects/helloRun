@@ -441,3 +441,24 @@ test('the route forwards the new fields, feeds the dialog config and builds the 
   assert.match(route, /facts\.filter\(\(\[, value\]\) => value !== ''\)/);
   assert.match(route, /trail_run: 'Trail run'/);
 });
+
+test('the totals tiles are single rows: label left, count at the right edge, no status-colored left edge', () => {
+  const css = read('src/public/css/registrant-submissions.css');
+  const tile = css.match(/\.registrant-submissions-page \.rs-summary \.rpr-tab \{[^}]*flex-direction: row[^}]*\}/)[0];
+  assert.match(tile, /align-items: center/);
+  assert.match(tile, /justify-content: space-between/);
+  assert.match(tile, /border-left: 1px solid var\(--rpr-line\)/);
+  assert.doesNotMatch(tile, /--rpr-tab-accent|border-left: [2-9]px/);
+  // The hover rule no longer restores the accent color on the left edge either.
+  const hover = css.match(/\.rs-summary \.rpr-tab:hover \{[^}]*\}/)[0];
+  assert.doesNotMatch(hover, /--rpr-tab-accent/);
+  assert.match(css, /\.rs-summary \.rpr-tab-count \{[^}]*flex: 0 0 auto;[^}]*text-align: right/);
+  // Phones keep the same single-row tile inside the 2x2 grid.
+  assert.match(css, /@media \(max-width: 640px\) \{[\s\S]*?\.rs-summary \.rpr-tab \{[^}]*min-height: 3\.25rem/);
+});
+
+test('the totals still render label then count in that order', () => {
+  const html = render(entry());
+  const tiles = [...html.matchAll(/<div class="summary-card rpr-tab[^"]*">\s*<span class="rpr-tab-label">([^<]+)<\/span>\s*<strong class="rpr-tab-count">(\d+)<\/strong>/g)].map((m) => [m[1], m[2]]);
+  assert.deepEqual(tiles, [['All entries', '1'], ['Awaiting review', '1'], ['Approved', '0'], ['Rejected', '0']]);
+});
