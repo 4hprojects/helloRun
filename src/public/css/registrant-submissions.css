@@ -676,3 +676,60 @@
     width: 100vw;
   }
 }
+
+/* ============================================
+   Desktop: roughly 70 / 30 card, actions in their own panel
+   ============================================ */
+
+@media (min-width: 1025px) {
+  /* Facts on the left (about 70%), a distinct action panel on the right (about 30%). */
+  .registrant-submissions-page .rpr-card {
+    grid-template-columns: 7rem minmax(0, 1fr) minmax(17rem, 30%);
+    column-gap: 1.25rem;
+  }
+
+  .registrant-submissions-page .rpr-card-side {
+    align-self: stretch;
+    gap: 1rem;
+    padding: 0.9rem;
+    border: 1px solid var(--rpr-line);
+    border-radius: 12px;
+    background: var(--rpr-surface-alt);
+  }
+
+  /* Two buttons per row instead of one long stack. */
+  .registrant-submissions-page .rs-action-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .registrant-submissions-page .rs-group-label,
+  .registrant-submissions-page .rpr-proof-link {
+    grid-column: 1 / -1;
+  }
+
+  /* A lone decision (Reject approval, Approve instead) takes the full row. */
+  .registrant-submissions-page .rs-decisions > .rs-decision-btn:nth-child(2):last-child {
+    grid-column: 1 / -1;
+  }
+
+  /* With Edit and History filling the first row, the review link takes the second in full. */
+  .registrant-submissions-page .rs-action-group-manage:has([data-open-dialog^="history-"]) .rs-btn-review {
+    grid-column: 1 / -1;
+  }
+
+  /* Cells are narrower than a full-width column, so labels may wrap instead of overflowing. */
+  .registrant-submissions-page .rs-decision-btn,
+  .registrant-submissions-page .rs-btn-neutral {
+    padding: 0.35rem 0.6rem;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .registrant-submissions-page .run-proof-history {
+    border: 1px solid var(--rpr-line);
+    background: #fff;
+  }
+}

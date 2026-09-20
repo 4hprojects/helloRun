@@ -1,5 +1,17 @@
 # HelloRun Changelog — September 2026
 
+## September 20 — Submissions page: balanced 70/30 desktop cards
+
+- The action column on the per-runner submissions page was a fixed 13rem (about 18% of the card)
+  with every button stacked in it, which felt crowded. On desktop (1025px and up) the card now
+  splits roughly 70/30: the entry's facts on the left and a distinct action panel on the right
+  (`minmax(17rem, 30%)`, a bordered tinted surface). Inside the panel the buttons sit two per row:
+  Approve | Reject, Edit values | Correction history, then the review link and Open proof across
+  the full row; a lone decision such as Reject approval spans the row. Labels may wrap inside
+  the narrower cells rather than overflow.
+- Tablet and phone layouts are unchanged. Checked in Chromium at 1280, 1100, 1025, 1024 and 390px:
+  the panel measures 29% of the card, and no button overflows, clips or falls below 44px.
+
 ## September 20 — Per-runner submissions page: grouped actions, no status-colored edge
 
 - Each entry card's controls are now organised in one action column with two labelled groups:

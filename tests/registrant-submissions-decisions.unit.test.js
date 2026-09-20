@@ -285,7 +285,7 @@ test('Manage holds Edit values, Correction history, the review link and Open pro
     corrections: [{ editorName: 'Casey', editedAtLabel: 'Sep 20', reason: 'Typo', lines: ['Distance: 5.20 km to 5.02 km'] }]
   }));
   const manage = html.slice(html.indexOf('class="rs-action-group rs-action-group-manage"'));
-  const order = ['data-open-dialog="edit-sub-1"', 'data-open-dialog="history-sub-1"', '<a href="#" class="rs-btn-neutral">', 'class="rpr-proof-link"']
+  const order = ['data-open-dialog="edit-sub-1"', 'data-open-dialog="history-sub-1"', '<a href="#" class="rs-btn-neutral rs-btn-review">', 'class="rpr-proof-link"']
     .map((needle) => manage.indexOf(needle));
   assert.ok(order.every((index) => index > -1), 'all four are present');
   assert.deepEqual([...order].sort((a, b) => a - b), order, 'in reading order');
@@ -295,7 +295,7 @@ test('Manage holds Edit values, Correction history, the review link and Open pro
 test('the review link is one neutral button for every status, never a solid primary', () => {
   for (const status of ['submitted', 'approved', 'rejected']) {
     const html = render(entry({ status, statusClass: status }));
-    assert.match(html, /<a href="#" class="rs-btn-neutral">/, status);
+    assert.match(html, /<a href="#" class="rs-btn-neutral rs-btn-review">/, status);
     assert.doesNotMatch(html, /rpr-btn-primary"[^>]*>\s*<i data-lucide="eye"/, status);
   }
   assert.match(render(entry({ status: 'submitted' })), /<span>Open Review<\/span>/);
@@ -332,7 +332,7 @@ test('the dialog-only Manage buttons stay hidden until the script runs, and a no
   assert.match(html, /<noscript><style>[\s\S]*\.rs-dialog \{ display: block !important; position: static;/);
   assert.match(html, /\.rs-dialog-close[\s\S]*display: none !important/);
   // The review link is a plain anchor, so it works with no script at all.
-  assert.match(html, /<a href="#" class="rs-btn-neutral">/);
+  assert.match(html, /<a href="#" class="rs-btn-neutral rs-btn-review">/);
 });
 
 test('the page no longer uses disclosure toggles or a status-colored card class', () => {
@@ -359,4 +359,24 @@ test('entry cards have a plain uniform border, and buttons follow the semantic c
   assert.match(css, /@media \(max-width: 1024px\) \{[\s\S]*?\.rs-actions \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(css, /@media \(max-width: 640px\) \{[\s\S]*?\.rs-actions \{[^}]*align-items: stretch/);
   assert.equal(css.includes('rs-edit-toggle'), false, 'old disclosure styles are gone');
+});
+
+test('desktop cards split roughly 70/30 with the actions in a panel of their own, in two columns', () => {
+  const css = read('src/public/css/registrant-submissions.css');
+  const desktop = css.slice(css.indexOf('@media (min-width: 1025px) {'));
+  assert.match(desktop, /\.rpr-card \{[^}]*grid-template-columns: 7rem minmax\(0, 1fr\) minmax\(17rem, 30%\)/);
+  assert.match(desktop, /\.rpr-card-side \{[^}]*border: 1px solid var\(--rpr-line\);[^}]*border-radius: 12px;[^}]*background: var\(--rpr-surface-alt\)/);
+  assert.match(desktop, /\.rs-action-group \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  // Labels and the proof link span the row; a lone decision takes the full row.
+  assert.match(desktop, /\.rs-group-label,[\s\S]*?\.rpr-proof-link \{[^}]*grid-column: 1 \/ -1/);
+  assert.match(desktop, /\.rs-decisions > \.rs-decision-btn:nth-child\(2\):last-child \{[^}]*grid-column: 1 \/ -1/);
+  assert.match(desktop, /:has\(\[data-open-dialog\^="history-"\]\) \.rs-btn-review \{[^}]*grid-column: 1 \/ -1/);
+  // Narrower cells, so labels wrap rather than overflow.
+  assert.match(desktop, /\.rs-btn-neutral \{[^}]*white-space: normal/);
+  // Tablet and phone keep their own stacked layouts: the split applies from 1025px only.
+  assert.doesNotMatch(css.slice(0, css.indexOf('@media (min-width: 1025px) {')), /minmax\(17rem, 30%\)/);
+});
+
+test('the review link carries its own class so the grid can place it', () => {
+  assert.match(render(entry()), /<a href="#" class="rs-btn-neutral rs-btn-review">/);
 });
