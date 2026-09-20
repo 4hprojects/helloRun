@@ -1,5 +1,24 @@
 # HelloRun Changelog — September 2026
 
+## September 20 — Elevation and steps on the single-entry review page
+
+- The organiser review page's "Submitted versus detected" table had no Elevation row at all, and
+  printed Steps only in steps competitions, although the system records both, compares elevation
+  with the screenshot and raises "High-confidence OCR elevation mismatch detected". A reviewer saw the
+  warning without the numbers behind it.
+- New **Elevation gain** row (after Duration): the runner's value beside what the proof image showed,
+  in whole metres, with the red mismatch styling and an "Elevation mismatch" note when the two disagree.
+  It appears whenever the entry, the OCR reading or a mismatch flag has a value; 0 m is shown as a real
+  value. "Not provided" / "Not detected" say which side is missing.
+- **Steps** now appear in any event when the entry has steps, the OCR found steps or a mismatch is
+  flagged; steps competitions behave exactly as before (the row is always there).
+- When an entry has neither elevation nor steps anywhere, no rows are added and one line under the table
+  says so ("No elevation or step count was provided or detected for this entry"), so a missing value is
+  explained on the page instead of looking like the page is hiding it.
+- Template-only change; no route, service, model or CSS change. 14 new DB-free tests render the real
+  template; removing the row, the mismatch note or the explanation, or restoring steps-competition-only
+  steps, makes them fail.
+
 ## September 20 — Elevation and steps on the run-proof queue and the registrants list
 
 - Elevation gain and steps were already recorded on every entry that has them (runner form or

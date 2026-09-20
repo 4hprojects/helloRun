@@ -17,6 +17,11 @@
     const ocr = submission.ocrData || {};
     const tracksDistance = !locals.challengeConfig || !locals.challengeConfig.accumulated || locals.challengeConfig.tracksDistance;
     const tracksSteps = Boolean(locals.challengeConfig?.accumulated && locals.challengeConfig.tracksSteps);
+    // Elevation and steps are optional details. Their rows appear whenever the entry, the OCR reading
+    // or a mismatch flag carries a value, so a reviewer sees the numbers behind an OCR warning.
+    const hasElevationData = submission.elevationGain != null || ocr.extractedElevationGain != null || Boolean(ocr.elevationMismatch);
+    const hasStepsData = Number(submission.steps) > 0 || ocr.extractedSteps != null || Boolean(ocr.stepsMismatch);
+    const noMeasurements = !hasElevationData && !hasStepsData && !tracksSteps;
     const hasActivityTypeRequirement = Array.isArray(event.acceptedRunTypes) && event.acceptedRunTypes.length > 0;
     const hasIdentitySignal = Boolean(ocr.extractedName || ['matched', 'mismatched'].includes(String(ocr.nameMatchStatus || '')));
     const isActionable = status === 'submitted' || status === 'needs_clarification' || status === 'rejected';
@@ -92,11 +97,13 @@
                 <div class="proof-comparison-row <%= ocr.distanceMismatch ? 'has-mismatch' : '' %>" role="row"><strong role="rowheader">Distance</strong><span><%= Number(submission.distanceKm || 0).toFixed(2) %> km</span><span><%= ocr.extractedDistanceKm != null ? `${Number(ocr.extractedDistanceKm).toFixed(2)} km` : 'Not detected' %><% if (ocr.distanceMismatch) { %><small>Distance mismatch</small><% } %></span></div>
                 <div class="proof-comparison-row <%= ocr.timeMismatch ? 'has-mismatch' : '' %>" role="row"><strong role="rowheader">Duration</strong><span><%= submission.elapsedLabel || 'N/A' %></span><span><%= submission.ocrTimeLabel || 'Not detected' %><% if (ocr.timeMismatch) { %><small>Duration mismatch</small><% } %></span></div>
               <% } %>
-              <% if (tracksSteps) { %><div class="proof-comparison-row <%= ocr.stepsMismatch ? 'has-mismatch' : '' %>" role="row"><strong role="rowheader">Steps</strong><span><%= Number(submission.steps || 0).toLocaleString() %></span><span><%= ocr.extractedSteps != null ? Number(ocr.extractedSteps).toLocaleString() : 'Not detected' %><% if (ocr.stepsMismatch) { %><small>Step-count mismatch</small><% } %></span></div><% } %>
+              <% if (hasElevationData) { %><div class="proof-comparison-row <%= ocr.elevationMismatch ? 'has-mismatch' : '' %>" role="row"><strong role="rowheader">Elevation gain</strong><span><%= submission.elevationGain != null ? `${Math.round(Number(submission.elevationGain))} m` : 'Not provided' %></span><span><%= ocr.extractedElevationGain != null ? `${Math.round(Number(ocr.extractedElevationGain))} m` : 'Not detected' %><% if (ocr.elevationMismatch) { %><small>Elevation mismatch</small><% } %></span></div><% } %>
+              <% if (tracksSteps || hasStepsData) { %><div class="proof-comparison-row <%= ocr.stepsMismatch ? 'has-mismatch' : '' %>" role="row"><strong role="rowheader">Steps</strong><span><%= tracksSteps || Number(submission.steps) > 0 ? Number(submission.steps || 0).toLocaleString() : 'Not provided' %></span><span><%= ocr.extractedSteps != null ? Number(ocr.extractedSteps).toLocaleString() : 'Not detected' %><% if (ocr.stepsMismatch) { %><small>Step-count mismatch</small><% } %></span></div><% } %>
               <% if (hasActivityTypeRequirement) { %><div class="proof-comparison-row <%= ocr.runTypeMismatch ? 'has-mismatch' : '' %>" role="row"><strong role="rowheader">Activity type</strong><span><%= String(submission.runType || 'run').replace(/_/g, ' ') %></span><span><%= ocr.extractedRunType ? String(ocr.extractedRunType).replace(/_/g, ' ') : 'Not detected' %><% if (ocr.runTypeMismatch) { %><small>Activity-type mismatch</small><% } %></span></div><% } %>
               <% if (isImageProof && String(submission.source || '').toLowerCase() !== 'strava') { %><div class="proof-comparison-row" role="row"><strong role="rowheader">Source app or device</strong><span><%= submission.sourceLabel || String(submission.source || 'manual upload').replace(/_/g, ' ') %></span><span><%= ocr.detectedSource || 'Verify visually' %></span></div><% } %>
               <% if (hasIdentitySignal) { %><div class="proof-comparison-row <%= ocr.nameMatchStatus === 'mismatched' ? 'has-mismatch' : '' %>" role="row"><strong role="rowheader">Participant identity</strong><span><%= participant.name %></span><span><%= ocr.extractedName || 'Not detected' %><% if (ocr.nameMatchStatus === 'mismatched') { %><small>Identity mismatch</small><% } else if (ocr.nameMatchStatus === 'matched') { %><small class="comparison-match">Matched</small><% } %></span></div><% } %>
             </div>
+            <% if (noMeasurements) { %><p class="submission-review-muted">No elevation or step count was provided or detected for this entry.</p><% } %>
           </section>
 
           <% if (submission.suspiciousFlag || submission.reviewSignal?.code || Number(ocr.confidence || 0) > 0) { %>
