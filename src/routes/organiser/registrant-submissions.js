@@ -11,6 +11,7 @@ const {
   buildRunRejectionReasonOptions
 } = require('../../utils/run-proof-review');
 const { getAvailableDecisions, isDecisionAllowed } = require('../../utils/entry-decision-actions');
+const { getReversalReasonOptions, resolveReversalReason } = require('../../utils/reversal-reasons');
 const {
   logger,
   mongoose,
@@ -134,7 +135,8 @@ router.get('/events/:id/registrants/:registrationId/submissions', requireAuth, a
         decision,
         // Same builders the review page uses, and only when the matching dialog will render.
         verificationCriteria: decision.canApprove ? buildRunProofVerificationCriteria(event, item.submission) : [],
-        rejectionOptions: decision.canReject ? buildRunRejectionReasonOptions(event, item.submission) : []
+        rejectionOptions: decision.canReject ? buildRunRejectionReasonOptions(event, item.submission) : [],
+        reversalOptions: decision.canReverse ? getReversalReasonOptions() : []
       };
     });
 
@@ -299,12 +301,15 @@ router.post(
 
       if (action === 'reverse') {
         // An approved entry is always unwound through the reversal service, for both entry
-        // kinds, so its certificate, badges and ranking are withdrawn with it.
+        // kinds, so its certificate, badges and ranking are withdrawn with it. The quick reason
+        // and optional note become one runner-facing message; a missing or unknown reason (or
+        // "Other" with no explanation) throws here and returns to the page with the message.
+        const reversal = resolveReversalReason(req.body.reversalCode, req.body.reversalNote);
         const outcome = await reverseSubmissionApproval({
           submissionId: record._id,
           actorUserId: user._id,
           actorRole: user.role,
-          reason: req.body.reason
+          reason: reversal.runnerMessage
         });
         const extras = [
           outcome.certificateRevoked ? 'certificate revoked' : '',

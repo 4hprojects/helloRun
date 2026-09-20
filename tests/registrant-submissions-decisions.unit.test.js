@@ -91,7 +91,10 @@ test('approve and reject reuse the review services with the same arguments as th
 
 test('an approved entry is always unwound through the reversal service, for both entry kinds', () => {
   const reverse = decisionRoute.slice(decisionRoute.indexOf("if (action === 'reverse')"), decisionRoute.indexOf("} else if (action === 'approve')"));
-  assert.match(reverse, /reverseSubmissionApproval\(\{\s*submissionId: record\._id,\s*actorUserId: user\._id,\s*actorRole: user\.role,\s*reason: req\.body\.reason/);
+  assert.match(reverse, /const reversal = resolveReversalReason\(req\.body\.reversalCode, req\.body\.reversalNote\)/);
+  assert.match(reverse, /reverseSubmissionApproval\(\{\s*submissionId: record\._id,\s*actorUserId: user\._id,\s*actorRole: user\.role,\s*reason: reversal\.runnerMessage/);
+  // The service only ever receives the composed reason, never a free-text field from the client.
+  assert.doesNotMatch(reverse, /req\.body\.reason\b/);
   assert.doesNotMatch(reverse, /kind ===/, 'no per-kind branch, so standard and accumulated cannot diverge');
   assert.match(reverse, /certificate revoked/);
 });
@@ -105,6 +108,7 @@ test('page data carries the dialog inputs only when the matching action is avail
   assert.match(route, /verificationCriteria: decision\.canApprove \? buildRunProofVerificationCriteria\(event, item\.submission\) : \[\]/);
   assert.match(route, /rejectionOptions: decision\.canReject \? buildRunRejectionReasonOptions\(event, item\.submission\) : \[\]/);
   assert.match(route, /reviewChecklistVersion: REVIEW_CHECKLIST_VERSION/);
+  assert.match(route, /reversalOptions: decision\.canReverse \? getReversalReasonOptions\(\) : \[\]/);
 });
 
 const view = read('src/views/organizer/registrant-submissions.ejs');
@@ -117,6 +121,11 @@ const rejectionOptions = [
   { code: 'unclear_proof', label: 'Proof is unclear', defaultMessage: 'Please upload a clearer screenshot.' },
   { code: 'other', label: 'Other', defaultMessage: '' }
 ];
+const reversalOptions = [
+  { code: 'unclear_proof', label: 'Screenshot is unclear or cropped', guidance: 'Upload a clear screenshot.' },
+  { code: 'approved_by_mistake', label: 'Approved by mistake', guidance: 'Approved in error.' },
+  { code: 'other', label: 'Another activity issue needs correction', guidance: 'Submit corrected proof.' }
+];
 const entry = (overrides = {}) => ({
   id: 'sub-1', submissionKind: 'standard', submissionTypeLabel: 'Run Result', statusClass: 'submitted', statusLabel: 'Pending Review',
   status: 'submitted', isAutoApproved: false, suspiciousFlag: false, hasOcrMismatch: false, distanceLabel: '5.02 km',
@@ -125,6 +134,7 @@ const entry = (overrides = {}) => ({
   edit: { distanceKm: '5.02', hours: 0, minutes: 31, seconds: 12, runDate: '2026-09-18', runLocation: '', runType: 'run' },
   corrections: [], editAction: '/edit', decisionAction: '/organizer/events/e1/registrants/r1/submissions/sub-1/decision',
   decision: { canApprove: true, canReject: true, canReverse: false }, verificationCriteria: criteria, rejectionOptions,
+  reversalOptions,
   ...overrides
 });
 const render = (item) => ejs.render(renderable, {
@@ -178,14 +188,29 @@ test('the reject dialog needs a reason and a message, and carries each reason\'s
   assert.match(dialog, /Use suggested message/);
 });
 
-test('the reversal dialog spells out the consequences and requires a reason of at least 5 characters', () => {
+test('the reversal dialog spells out the consequences and offers quick reasons with an optional note', () => {
   const html = render(entry({ status: 'approved', decision: { canApprove: false, canReject: false, canReverse: true }, verificationCriteria: [], rejectionOptions: [] }));
   const dialog = html.slice(html.indexOf('id="reverse-sub-1"'), html.indexOf('</dialog>', html.indexOf('id="reverse-sub-1"')));
   assert.match(dialog, /<input type="hidden" name="action" value="reverse">/);
   assert.match(dialog, /revokes any certificate issued for it/);
   assert.match(dialog, /withdraws badges earned from it and removes its ranking/);
   assert.match(dialog, /tells the runner the approved result was withdrawn/);
-  assert.match(dialog, /<textarea id="reverse-sub-1-reason" name="reason" rows="3" minlength="5" maxlength="500" required>/);
+
+  // A required dropdown of quick reasons, each carrying its label and standard guidance.
+  assert.match(dialog, /<select id="reverse-sub-1-code" name="reversalCode" required data-reversal-code>/);
+  assert.match(dialog, /<option value="approved_by_mistake" data-label="Approved by mistake" data-guidance="Approved in error\.">Approved by mistake<\/option>/);
+  assert.match(dialog, /<option value="">Select the reason…<\/option>/);
+
+  // The note is optional: present, capped, and not required by default.
+  const note = dialog.match(/<textarea[^>]*name="reversalNote"[^>]*>/)[0];
+  assert.match(note, /maxlength="500"/);
+  assert.doesNotMatch(note, /required|minlength/);
+  assert.match(dialog, /Additional note <span class="rs-required">\(optional, shared with the runner\)<\/span>/);
+
+  // A live preview of what the runner will see, and no leftover free-text reason field.
+  assert.match(dialog, /What the runner will see/);
+  assert.match(dialog, /<p data-reversal-preview>Select a reason to preview the message\.<\/p>/);
+  assert.doesNotMatch(dialog, /name="reason"/);
 });
 
 test('every dialog control is labelled, and user-controlled text in the dialogs is escaped', () => {
@@ -209,6 +234,17 @@ test('the status buttons stay hidden until the script confirms dialog support, k
   assert.match(js, /button\.disabled = true/, 'double submits are prevented');
   // A hand-edited runner message is never overwritten by choosing another reason.
   assert.match(js, /message\.value === message\.dataset\.suggested/);
+});
+
+test('the script previews the reversal message and makes the note required only for "Other"', () => {
+  const js = read('src/public/js/registrant-submissions.js');
+  assert.match(js, /const isOther = select\.value === 'other';\s*note\.required = isOther;/);
+  assert.match(js, /note\.setAttribute\('minlength', '10'\)/);
+  assert.match(js, /else note\.removeAttribute\('minlength'\)/);
+  assert.match(js, /label \+ ': ' \+ \(text \|\| option\.dataset\.guidance/);
+  assert.match(js, /event\.target\.closest\('\[data-reversal-code\]'\)/);
+  assert.match(js, /addEventListener\('input'/);
+  assert.doesNotThrow(() => new (require('node:vm').Script)(js));
 });
 
 test('decision styles are scoped to the page and phones get a bottom sheet', () => {

@@ -1,5 +1,22 @@
 # HelloRun Changelog — September 2026
 
+## September 20 — Quick reasons for "Reject approval"
+
+- The Reject approval dialog on the per-runner submissions page now has a required quick-reason
+  dropdown and an optional note instead of one required free-text reason. The reasons are the
+  same run-proof reasons the Reject dialog offers plus one reversal-only reason, "Approved by
+  mistake", with "Other" last (`utils/reversal-reasons.js`).
+- The runner receives `<reason>: <note>`, or `<reason>: <standard guidance>` when no note is
+  given; "Other" needs a note of at least 10 characters. Composition delegates to the same
+  `resolveRejectionReason` as Reject, so the wording, the 500-character cap and the Other rule
+  cannot drift, and the reversal service is unchanged: it simply receives a well-formed reason.
+- The dialog previews exactly what the runner will see and makes the note required only for
+  "Other"; the server enforces the same rules. A page opened before this deploy posts the old
+  field and is told to select a reason, which a reload fixes.
+- The separate approved-entries page keeps its own free-text reversal form for now.
+- 10 new DB-free tests plus updated decision tests; sending a raw client reason to the service or
+  dropping the new reason makes them fail.
+
 ## September 20 — Approve, reject and reverse from the per-runner submissions page
 
 - Each entry on `/organizer/events/:id/registrants/:registrationId/submissions` now has status

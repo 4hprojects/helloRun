@@ -353,8 +353,22 @@
                       </ul>
                     </div>
                     <div class="rs-field">
-                      <label for="reverse-<%= item.id %>-reason">Reason <span class="rs-required">(required, shared with the runner and recorded in the audit log)</span></label>
-                      <textarea id="reverse-<%= item.id %>-reason" name="reason" rows="3" minlength="5" maxlength="500" required></textarea>
+                      <label for="reverse-<%= item.id %>-code">Reason <span class="rs-required">(shared with the runner and recorded in the audit log)</span></label>
+                      <select id="reverse-<%= item.id %>-code" name="reversalCode" required data-reversal-code>
+                        <option value="">Select the reason…</option>
+                        <% (item.reversalOptions || []).forEach((reason) => { %>
+                          <option value="<%= reason.code %>" data-label="<%= reason.label %>" data-guidance="<%= reason.guidance %>"><%= reason.label %></option>
+                        <% }) %>
+                      </select>
+                    </div>
+                    <div class="rs-field">
+                      <label for="reverse-<%= item.id %>-note">Additional note <span class="rs-required">(optional, shared with the runner)</span></label>
+                      <textarea id="reverse-<%= item.id %>-note" name="reversalNote" rows="3" maxlength="500" data-reversal-note></textarea>
+                      <small class="rs-hint" data-reversal-hint>Leave blank to send the reason&rsquo;s standard guidance. &ldquo;Other&rdquo; needs at least 10 characters of your own.</small>
+                    </div>
+                    <div class="rs-preview" aria-live="polite">
+                      <strong>What the runner will see</strong>
+                      <p data-reversal-preview>Select a reason to preview the message.</p>
                     </div>
                     <footer class="rs-dialog-footer">
                       <button type="button" class="rpr-btn rpr-btn-secondary" data-close-dialog>Cancel</button>

@@ -92,7 +92,8 @@ core platform:
   co-organisers and admins can approve, reject or reverse an entry without leaving the page.
   Pending entries offer Approve and Reject, approved entries offer Reject approval (the
   existing reversal, which also revokes the certificate, withdraws badges and ranking, and
-  notifies the runner), and rejected entries offer Approve again. Approving still requires the
+  notifies the runner) with a quick-reason dropdown and an optional note, and rejected
+  entries offer Approve again. Approving still requires the
   full proof checklist and rejecting a reason, because it calls the same review services;
   each decision is audited and the runner is notified as on the review page;
 - per-event submission review mode, added September 20 — organisers choose on the event

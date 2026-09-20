@@ -44,6 +44,7 @@ const baseEntry = (overrides = {}) => ({
   decision: { canApprove: false, canReject: false, canReverse: true },
   verificationCriteria: [],
   rejectionOptions: [],
+  reversalOptions: [],
   ...overrides
 });
 

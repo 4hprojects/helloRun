@@ -620,3 +620,24 @@
   font-weight: 800;
   letter-spacing: 0.02em;
 }
+
+.registrant-submissions-page .rs-preview {
+  padding: 0.7rem 0.9rem;
+  border-left: 3px solid #f97316;
+  border-radius: 6px;
+  background: #fff7ed;
+  color: #431407;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.registrant-submissions-page .rs-preview strong {
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.registrant-submissions-page .rs-preview p {
+  margin: 0.3rem 0 0;
+  overflow-wrap: anywhere;
+}

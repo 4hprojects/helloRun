@@ -27,6 +27,32 @@
     message.dataset.suggested = suggestion;
   }
 
+  // "Reject approval": the runner sees "<reason>: <note, or the reason's standard guidance>".
+  // "Other" has no standard guidance, so it needs a note of its own. The server enforces the same
+  // rules; this only gives early feedback and a preview.
+  function updateReversalPreview(dialog) {
+    const select = dialog?.querySelector('[data-reversal-code]');
+    const note = dialog?.querySelector('[data-reversal-note]');
+    const preview = dialog?.querySelector('[data-reversal-preview]');
+    if (!select || !note || !preview) return;
+
+    const option = select.selectedOptions[0];
+    const isOther = select.value === 'other';
+    note.required = isOther;
+    if (isOther) note.setAttribute('minlength', '10');
+    else note.removeAttribute('minlength');
+
+    const text = note.value.trim();
+    if (!select.value) {
+      preview.textContent = 'Select a reason to preview the message.';
+    } else if (isOther && text.length < 10) {
+      preview.textContent = 'Add a note of at least 10 characters for the runner.';
+    } else {
+      const label = option.dataset.label || option.textContent.trim();
+      preview.textContent = (label + ': ' + (text || option.dataset.guidance || '')).slice(0, 500);
+    }
+  }
+
   page.addEventListener('click', (event) => {
     const opener = event.target.closest('[data-open-dialog]');
     if (opener) {
@@ -48,6 +74,13 @@
   page.addEventListener('change', (event) => {
     const select = event.target.closest('[data-reject-code]');
     if (select) fillSuggestedMessage(select.closest('dialog'), { onlyIfEmpty: true });
+    const reversalSelect = event.target.closest('[data-reversal-code]');
+    if (reversalSelect) updateReversalPreview(reversalSelect.closest('dialog'));
+  });
+
+  page.addEventListener('input', (event) => {
+    const note = event.target.closest('[data-reversal-note]');
+    if (note) updateReversalPreview(note.closest('dialog'));
   });
 
   page.querySelectorAll('dialog.rs-dialog').forEach((dialog) => {
