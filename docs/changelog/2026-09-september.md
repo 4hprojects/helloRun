@@ -1,5 +1,26 @@
 # HelloRun Changelog — September 2026
 
+## September 20 — Per-runner submissions page: grouped actions, no status-colored edge
+
+- Each entry card's controls are now organised in one action column with two labelled groups:
+  **Decision** (Approve / Reject / Reject approval / Approve instead) above **Manage** (Edit
+  values, Correction history, Open Review or View Details, Open proof). The card body holds only
+  the entry's facts. On tablet the two groups sit side by side; on phones they stack full width.
+- **Edit values** and **Correction history** moved from disclosure toggles inside the card into
+  native dialogs, because their panels cannot expand inside the narrow action column. They use
+  the same dialog handling as the decision dialogs (Escape, backdrop, Cancel), and the edit form
+  keeps every field name, the CSRF token and the required reason. With JavaScript off a `<noscript>`
+  style shows the dialogs inline as plain blocks, so the edit and decision forms still work;
+  the review link and Open proof are plain anchors.
+- Removed the status-colored stripe down each entry card's left edge on this page only (status
+  is shown by the badge); the run-proof review queue and the totals tiles keep theirs.
+- Button colors follow roles: green approve, red reject and reject approval, one neutral slate
+  outline for every secondary action (Edit values, Correction history, Open Review, View Details,
+  Cancel), brand orange only for Save correction, and Open proof stays a text link. The review link
+  is no longer solid orange, so it no longer competes with Approve.
+- 9 new DB-free tests plus updated ones; putting the colored left edge back or moving the edit form
+  out of its dialog makes them fail.
+
 ## September 20 — Quick reasons for "Reject approval"
 
 - The Reject approval dialog on the per-runner submissions page now has a required quick-reason

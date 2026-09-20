@@ -42,64 +42,12 @@
   white-space: nowrap;
 }
 
-/* ---------- Disclosure toggles ---------- */
-
-.registrant-submissions-page .rs-edit,
-.registrant-submissions-page .rs-history {
-  margin-top: 0.7rem;
-}
-
-.registrant-submissions-page .rs-edit-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-height: var(--rpr-control);
-  padding: 0 0.85rem;
-  border: 1px solid var(--rpr-line-strong);
-  border-radius: 10px;
-  background: var(--rpr-surface);
-  color: #334155;
-  font-size: 0.88rem;
-  font-weight: 700;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.registrant-submissions-page .rs-edit-toggle::-webkit-details-marker {
-  display: none;
-}
-
-.registrant-submissions-page .rs-edit-toggle:hover {
-  border-color: #94a3b8;
-  background: var(--rpr-surface-alt);
-}
-
-.registrant-submissions-page .rs-edit[open] > .rs-edit-toggle,
-.registrant-submissions-page .rs-history[open] > .rs-edit-toggle {
-  border-color: var(--rpr-brand);
-  color: var(--rpr-brand);
-}
-
-.registrant-submissions-page .rs-edit-toggle i,
-.registrant-submissions-page .rs-edit-toggle svg {
-  width: 1rem;
-  height: 1rem;
-  flex: 0 0 auto;
-}
-
 /* ---------- Edit form ---------- */
 
-.registrant-submissions-page .rs-edit-form {
+.registrant-submissions-page .rs-edit-fields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.85rem 1rem;
-  margin-top: 0.7rem;
-  padding: 1rem;
-  border: 1px solid var(--rpr-line);
-  border-radius: 12px;
-  background: var(--rpr-surface-alt);
 }
 
 .registrant-submissions-page .rs-field {
@@ -150,9 +98,9 @@
   font-weight: 700;
 }
 
-.registrant-submissions-page .rs-edit-form input,
-.registrant-submissions-page .rs-edit-form select,
-.registrant-submissions-page .rs-edit-form textarea {
+.registrant-submissions-page .rs-edit-fields input,
+.registrant-submissions-page .rs-edit-fields select,
+.registrant-submissions-page .rs-edit-fields textarea {
   width: 100%;
   min-width: 0;
   margin: 0;
@@ -166,30 +114,20 @@
   box-sizing: border-box;
 }
 
-.registrant-submissions-page .rs-edit-form input,
-.registrant-submissions-page .rs-edit-form select {
+.registrant-submissions-page .rs-edit-fields input,
+.registrant-submissions-page .rs-edit-fields select {
   height: var(--rpr-control);
 }
 
-.registrant-submissions-page .rs-edit-form textarea {
+.registrant-submissions-page .rs-edit-fields textarea {
   min-height: 4.5rem;
   padding: 0.6rem 0.75rem;
   resize: vertical;
   line-height: 1.4;
 }
 
-.registrant-submissions-page .rs-form-footer {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem 1rem;
-}
-
 .registrant-submissions-page .rs-note {
   display: flex;
-  flex: 1 1 16rem;
   align-items: flex-start;
   gap: 0.45rem;
   margin: 0;
@@ -275,33 +213,15 @@
     min-width: 0;
   }
 
-  .registrant-submissions-page .rs-edit-toggle {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .registrant-submissions-page .rs-edit-form {
+  .registrant-submissions-page .rs-edit-fields {
     grid-template-columns: 1fr;
-    padding: 0.85rem;
   }
 
   .registrant-submissions-page .rs-field-time {
     grid-column: 1 / -1;
   }
 
-  .registrant-submissions-page .rs-form-footer {
-    flex-direction: column;
-    align-items: stretch;
-  }
 
-  .registrant-submissions-page .rs-form-footer .rpr-btn {
-    width: 100%;
-  }
-
-  /* In the column layout flex-basis becomes a height, so reset it to content size. */
-  .registrant-submissions-page .rs-note {
-    flex: 0 0 auto;
-  }
 }
 
 /* ============================================
@@ -579,18 +499,7 @@
   padding-top: 0.25rem;
 }
 
-@media (max-width: 1024px) {
-  .registrant-submissions-page .rs-decisions {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-}
-
 @media (max-width: 640px) {
-  .registrant-submissions-page .rs-decisions {
-    flex-direction: column;
-  }
-
   /* Phones: the dialog becomes a sheet pinned to the bottom edge. */
   .registrant-submissions-page .rs-dialog {
     width: 100vw;
@@ -607,7 +516,8 @@
     flex-direction: column-reverse;
   }
 
-  .registrant-submissions-page .rs-dialog-footer .rpr-btn {
+  .registrant-submissions-page .rs-dialog-footer .rpr-btn,
+  .registrant-submissions-page .rs-dialog-footer .rs-btn-neutral {
     width: 100%;
   }
 }
@@ -640,4 +550,129 @@
 .registrant-submissions-page .rs-preview p {
   margin: 0.3rem 0 0;
   overflow-wrap: anywhere;
+}
+
+/* ============================================
+   Entry cards: no status-colored edge, grouped actions
+   ============================================ */
+
+/* The status lives in the badge. The shared queue stylesheet gives every card a colored left
+   stripe; on this page the card is a plain bordered surface. */
+.registrant-submissions-page .rpr-card {
+  padding: 1rem;
+  border-left: 1px solid var(--rpr-line);
+}
+
+.registrant-submissions-page .rpr-card:hover {
+  border-left-color: var(--rpr-line-strong);
+}
+
+/* Desktop: one column, Decision above Manage. Tablet: the side column becomes a row and the
+   groups sit side by side. Phones: full-width stack. */
+.registrant-submissions-page .rs-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.registrant-submissions-page .rs-action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.registrant-submissions-page .rs-action-group[hidden],
+.registrant-submissions-page .rs-btn-neutral[hidden] {
+  display: none;
+}
+
+.registrant-submissions-page .rs-group-label {
+  margin: 0;
+  color: var(--rpr-subtle);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Secondary actions share one quiet style so the green and red decisions are the only colors. */
+.registrant-submissions-page .rs-btn-neutral {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--rpr-control);
+  padding: 0 0.9rem;
+  border: 1px solid var(--rpr-line-strong);
+  border-radius: 10px;
+  background: #fff;
+  color: #334155;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.registrant-submissions-page .rs-btn-neutral:hover {
+  border-color: #94a3b8;
+  background: var(--rpr-surface-alt);
+  color: var(--rpr-ink);
+}
+
+.registrant-submissions-page .rs-btn-neutral i,
+.registrant-submissions-page .rs-btn-neutral svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+.registrant-submissions-page .rs-dialog-wide {
+  width: min(40rem, calc(100vw - 1.5rem));
+}
+
+@media (max-width: 1024px) {
+  /* Tablet: Decision and Manage sit side by side, with the review history beside them. */
+  .registrant-submissions-page .rs-actions {
+    display: grid;
+    flex: 1 1 22rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 0.75rem 1.25rem;
+  }
+
+  .registrant-submissions-page .rs-action-group {
+    min-width: 0;
+  }
+
+  /* With no Decision group (nothing to decide) Manage would sit alone in the left column. */
+  .registrant-submissions-page .rs-action-group-manage:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .registrant-submissions-page .rpr-card {
+    padding: 0.85rem;
+  }
+
+  /* Phones: one full-width stack. */
+  .registrant-submissions-page .rs-actions {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+  }
+
+  .registrant-submissions-page .rs-dialog-wide {
+    width: 100vw;
+  }
 }

@@ -8,7 +8,7 @@
   // remains the way to approve or reject.
   if (typeof HTMLDialogElement !== 'function') return;
 
-  page.querySelectorAll('[data-rs-decisions]').forEach((group) => { group.hidden = false; });
+  page.querySelectorAll('[data-rs-decisions], [data-rs-js-only]').forEach((element) => { element.hidden = false; });
 
   const getDialog = (id) => {
     const dialog = id ? document.getElementById(id) : null;

@@ -161,9 +161,12 @@ test('approved entries offer only "Reject approval"; rejected entries offer "App
   );
 });
 
-test('an entry with no available action renders no buttons and no dialogs', () => {
+test('an entry with no available status change renders no decision group, buttons or dialogs', () => {
   const html = render(entry({ decision: { canApprove: false, canReject: false, canReverse: false }, verificationCriteria: [], rejectionOptions: [] }));
-  assert.doesNotMatch(html, /data-open-dialog|<dialog/);
+  assert.doesNotMatch(html, /rs-decision-btn|data-rs-decisions|>Decision</);
+  assert.doesNotMatch(html, /id="(?:approve|reject|reverse)-sub-1"/);
+  // Editing values is always available, so the Manage group and its dialog remain.
+  assert.match(html, /data-open-dialog="edit-sub-1"/);
 });
 
 test('the approve dialog requires every checklist item and carries the checklist version and CSRF token', () => {
@@ -223,13 +226,13 @@ test('every dialog control is labelled, and user-controlled text in the dialogs 
 
 test('the status buttons stay hidden until the script confirms dialog support, keeping Open Review as the fallback', () => {
   const html = render(entry());
-  assert.match(html, /<div class="rs-decisions" data-rs-decisions hidden>/);
+  assert.match(html, /<div class="rs-decisions rs-action-group" data-rs-decisions hidden>/);
   assert.match(html, /<script src="\/js\/registrant-submissions\.js" defer><\/script>/);
   assert.match(html, /Open Review/);
 
   const js = read('src/public/js/registrant-submissions.js');
   assert.match(js, /typeof HTMLDialogElement !== 'function'\) return;/);
-  assert.match(js, /group\.hidden = false/);
+  assert.match(js, /\[data-rs-decisions\], \[data-rs-js-only\]'\)\.forEach\(\(element\) => \{ element\.hidden = false; \}\)/);
   assert.match(js, /showModal\(\)/);
   assert.match(js, /button\.disabled = true/, 'double submits are prevented');
   // A hand-edited runner message is never overwritten by choosing another reason.
@@ -257,4 +260,103 @@ test('decision styles are scoped to the page and phones get a bottom sheet', () 
   assert.deepEqual(selectors, []);
   assert.match(css, /\.rs-dialog \{[^}]*width: 100vw;[^}]*border-radius: 16px 16px 0 0/);
   assert.match(css, /\.rs-decision-approve,[\s\S]*?background: #15803d/);
+});
+
+// ---- Layout: grouped actions, neutral secondary buttons, no status-colored card edge -----------
+
+const groupHtml = (html, group) => {
+  const start = html.indexOf(group);
+  return html.slice(start, html.indexOf('</div>', html.indexOf('</h4>', start) + 1) + 400);
+};
+
+test('the action column has a Decision group above a Manage group', () => {
+  const html = render(entry());
+  const decision = html.indexOf('class="rs-decisions rs-action-group"');
+  const manage = html.indexOf('class="rs-action-group rs-action-group-manage"');
+  assert.ok(decision > -1 && manage > decision, 'Decision comes first');
+  assert.match(html, /<h4 class="rs-group-label">Decision<\/h4>/);
+  assert.match(html, /<h4 class="rs-group-label">Manage<\/h4>/);
+  assert.ok(html.indexOf('data-open-dialog="approve-sub-1"') < manage, 'decisions sit inside the Decision group');
+});
+
+test('Manage holds Edit values, Correction history, the review link and Open proof, in that order', () => {
+  const html = render(entry({
+    proofUrl: 'https://example.test/p.png', isImageProof: true,
+    corrections: [{ editorName: 'Casey', editedAtLabel: 'Sep 20', reason: 'Typo', lines: ['Distance: 5.20 km to 5.02 km'] }]
+  }));
+  const manage = html.slice(html.indexOf('class="rs-action-group rs-action-group-manage"'));
+  const order = ['data-open-dialog="edit-sub-1"', 'data-open-dialog="history-sub-1"', '<a href="#" class="rs-btn-neutral">', 'class="rpr-proof-link"']
+    .map((needle) => manage.indexOf(needle));
+  assert.ok(order.every((index) => index > -1), 'all four are present');
+  assert.deepEqual([...order].sort((a, b) => a - b), order, 'in reading order');
+  assert.match(manage, /Correction history \(1\)/);
+});
+
+test('the review link is one neutral button for every status, never a solid primary', () => {
+  for (const status of ['submitted', 'approved', 'rejected']) {
+    const html = render(entry({ status, statusClass: status }));
+    assert.match(html, /<a href="#" class="rs-btn-neutral">/, status);
+    assert.doesNotMatch(html, /rpr-btn-primary"[^>]*>\s*<i data-lucide="eye"/, status);
+  }
+  assert.match(render(entry({ status: 'submitted' })), /<span>Open Review<\/span>/);
+  assert.match(render(entry({ status: 'approved' })), /<span>View Details<\/span>/);
+});
+
+test('Edit values opens a dialog holding the same form, with Cancel and an orange Save', () => {
+  const html = render(entry());
+  const dialog = html.slice(html.indexOf('id="edit-sub-1"'), html.indexOf('</dialog>', html.indexOf('id="edit-sub-1"')));
+  assert.match(dialog, /<form method="POST" action="\/edit"/);
+  assert.match(dialog, /<input type="hidden" name="_csrf" value="tok">/);
+  for (const name of ['distanceKm', 'elapsedHours', 'elapsedMinutes', 'elapsedSeconds', 'runDate', 'runType', 'runLocation', 'reason']) {
+    assert.match(dialog, new RegExp(`name="${name}"`), name);
+  }
+  assert.match(dialog, /<textarea[^>]*name="reason"[^>]*required/);
+  assert.match(dialog, /<button type="button" class="rs-btn-neutral" data-close-dialog>Cancel<\/button>/);
+  assert.match(dialog, /<button type="submit" class="rpr-btn rpr-btn-primary">[\s\S]*Save correction/);
+  assert.match(html, /<dialog class="rs-dialog rs-dialog-wide" id="edit-sub-1"/);
+});
+
+test('the correction history dialog and its button exist only for corrected entries', () => {
+  assert.doesNotMatch(render(entry()), /id="history-sub-1"|Correction history/);
+  const html = render(entry({ corrections: [{ editorName: 'Casey', editedAtLabel: 'Sep 20', reason: 'Typo', lines: ['Distance: 5.20 km to 5.02 km'] }] }));
+  const dialog = html.slice(html.indexOf('id="history-sub-1"'), html.indexOf('</dialog>', html.indexOf('id="history-sub-1"')));
+  assert.match(dialog, /Distance: 5\.20 km to 5\.02 km/);
+  assert.match(dialog, /Reason: Typo/);
+  assert.match(dialog, /data-close-dialog>Close<\/button>/);
+});
+
+test('the dialog-only Manage buttons stay hidden until the script runs, and a noscript style shows the forms inline', () => {
+  const html = render(entry());
+  const jsOnly = html.match(/<button[^>]*data-rs-js-only hidden>/g) || [];
+  assert.ok(jsOnly.length >= 1);
+  assert.match(html, /<noscript><style>[\s\S]*\.rs-dialog \{ display: block !important; position: static;/);
+  assert.match(html, /\.rs-dialog-close[\s\S]*display: none !important/);
+  // The review link is a plain anchor, so it works with no script at all.
+  assert.match(html, /<a href="#" class="rs-btn-neutral">/);
+});
+
+test('the page no longer uses disclosure toggles or a status-colored card class', () => {
+  const html = render(entry());
+  assert.doesNotMatch(html, /<details|<summary/);
+  assert.doesNotMatch(html, /class="run-proof-review-card rpr-card rpr-card-/);
+  assert.match(html, /<article class="run-proof-review-card rpr-card" id="entry-sub-1">/);
+});
+
+test('entry cards have a plain uniform border, and buttons follow the semantic color roles', () => {
+  const css = read('src/public/css/registrant-submissions.css');
+  const card = css.match(/\.registrant-submissions-page \.rpr-card \{[^}]*\}/)[0];
+  assert.match(card, /border-left: 1px solid var\(--rpr-line\)/);
+  assert.doesNotMatch(card, /--rpr-card-accent|border-left: [2-9]px/);
+  assert.match(css, /\.rpr-card:hover \{[^}]*border-left-color: var\(--rpr-line-strong\)/);
+
+  // Roles: neutral for secondary actions, green approve, red reject, orange only for Save.
+  assert.match(css, /\.rs-btn-neutral \{[^}]*background: #fff;[^}]*color: #334155/);
+  assert.match(css, /\.rs-decision-approve,[\s\S]*?background: #15803d/);
+  assert.match(css, /\.rs-btn-reject \{[^}]*background: #b91c1c/);
+  assert.doesNotMatch(css, /\.rs-btn-neutral \{[^}]*(?:#c2410c|#15803d|#b91c1c)/, 'the neutral button carries no accent color');
+
+  // Layout: groups side by side on tablet, a full-width stack on phones.
+  assert.match(css, /@media \(max-width: 1024px\) \{[\s\S]*?\.rs-actions \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(max-width: 640px\) \{[\s\S]*?\.rs-actions \{[^}]*align-items: stretch/);
+  assert.equal(css.includes('rs-edit-toggle'), false, 'old disclosure styles are gone');
 });

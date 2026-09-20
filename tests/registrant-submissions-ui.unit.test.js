@@ -140,12 +140,9 @@ test('user-controlled text is escaped', () => {
   assert.doesNotMatch(html, /<img src=x/);
 });
 
-test('the review link is primary for entries awaiting review and quiet otherwise', () => {
-  assert.match(render(), /rpr-btn rpr-btn-secondary"[\s\S]*?View Details/);
-  assert.match(
-    render({ entries: [baseEntry({ status: 'submitted', statusClass: 'submitted', statusLabel: 'Pending Review' })] }),
-    /rpr-btn rpr-btn-primary"[\s\S]*?Open Review/
-  );
+test('the review link is a neutral button whatever the entry status', () => {
+  assert.match(render({ entries: [baseEntry({ status: 'submitted', statusClass: 'submitted', statusLabel: 'Pending Review' })] }), /class="rs-btn-neutral"[\s\S]*?Open Review/);
+  assert.match(render(), /class="rs-btn-neutral"[\s\S]*?View Details/);
 });
 
 test('the empty state renders when the runner has no entries', () => {
