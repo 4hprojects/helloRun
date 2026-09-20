@@ -400,7 +400,8 @@ test('the edit dialog carries elevation, steps and tracking app/device, prefille
   assert.match(dialog, /<input id="edit-entry-sub-1-steps" name="steps" type="number" inputmode="numeric" step="1" min="1" max="200000" value="8500" >/);
   assert.match(dialog, /<input id="edit-entry-sub-1-device" name="trackingAppDevice" type="text" maxlength="120" value="Garmin Forerunner 265" >/);
   assert.doesNotMatch(dialog, /required for this event/);
-  assert.match(dialog, /Clearing an optional detail removes it from the entry\./);
+  assert.match(dialog, /Leave an optional detail blank to clear it\. The runner is notified by email and in-app\./);
+  assert.doesNotMatch(dialog, /Clearing an optional detail removes it from the entry/, 'the separate hint line is gone');
   for (const id of ['elevation', 'steps', 'device']) assert.match(dialog, new RegExp(`for="edit-entry-sub-1-${id}"`), id);
 });
 
@@ -461,4 +462,135 @@ test('the totals still render label then count in that order', () => {
   const html = render(entry());
   const tiles = [...html.matchAll(/<div class="summary-card rpr-tab[^"]*">\s*<span class="rpr-tab-label">([^<]+)<\/span>\s*<strong class="rpr-tab-count">(\d+)<\/strong>/g)].map((m) => [m[1], m[2]]);
   assert.deepEqual(tiles, [['All entries', '1'], ['Awaiting review', '1'], ['Approved', '0'], ['Rejected', '0']]);
+});
+
+// ---- Compact edit dialog -----------------------------------------------------------------------
+
+test('the edit dialog orders related fields together so they can share rows', () => {
+  const dialog = editDialog(renderWith(entry({ edit: detailedEdit }), { editConfig: {} }));
+  const order = ['distanceKm', 'runDate', 'elapsedHours', 'runType', 'elevationGain', 'steps', 'runLocation', 'trackingAppDevice', 'reason']
+    .map((name) => dialog.indexOf(`name="${name}"`));
+  assert.ok(order.every((index) => index > -1), 'every field is present');
+  assert.deepEqual([...order].sort((a, b) => a - b), order, 'distance, date and time; then type, elevation and steps; then location and device; then the reason');
+});
+
+test('field width classes drive the grid: three per row, location and device pair up, the reason is full width', () => {
+  const dialog = editDialog(renderWith(entry({ edit: detailedEdit }), { editConfig: {} }));
+  assert.match(dialog, /<div class="rs-field rs-field-distance">/);
+  assert.match(dialog, /<fieldset class="rs-field rs-field-time">/);
+  assert.match(dialog, /<div class="rs-field rs-field-type">/);
+  assert.equal((dialog.match(/class="rs-field rs-col-half"/g) || []).length, 2, 'location and device');
+  assert.doesNotMatch(dialog, /rs-col-2/);
+  assert.match(dialog, /<div class="rs-field rs-field-wide rs-field-reason">\s*<label for="edit-entry-sub-1-reason">/);
+  // Nothing else is wide, so each group's fields share a row.
+  assert.equal((dialog.match(/rs-field-wide/g) || []).length, 1);
+});
+
+test('the dialog has a single note line, not a note plus a separate hint', () => {
+  const dialog = editDialog(renderWith(entry({ edit: detailedEdit }), { editConfig: {} }));
+  assert.equal((dialog.match(/class="rs-note"/g) || []).length, 1);
+  assert.doesNotMatch(dialog, /rs-hint/);
+});
+
+test('desktop lays the dialog out on six columns (three fields per row); phones use two, with only short fields paired', () => {
+  const css = read('src/public/css/registrant-submissions.css');
+  const compact = css.slice(css.indexOf('   Compact edit dialog'));
+  assert.match(compact, /\.rs-dialog-wide \{\s*width: min\(42rem, calc\(100vw - 1\.5rem\)\)/);
+
+  const six = css.slice(css.indexOf('   Edit dialog: compact elapsed time on a six-column grid'));
+  assert.ok(six.length > 0 && css.indexOf('   Edit dialog: compact elapsed time') > css.indexOf('   Compact edit dialog'), 'the six-column rules come last so they win the cascade');
+  assert.match(six, /\.rs-dialog-wide \.rs-edit-fields \{\s*grid-template-columns: repeat\(6, minmax\(0, 1fr\)\)/);
+  assert.match(six, /\.rs-edit-fields > \.rs-field \{\s*grid-column: span 2/);
+  assert.match(six, /\.rs-edit-fields > \.rs-col-half \{\s*grid-column: span 3/);
+  assert.match(six, /\.rs-edit-fields > \.rs-field-wide \{\s*grid-column: 1 \/ -1/);
+
+  const phone = six.slice(six.indexOf('@media (max-width: 640px)'));
+  assert.match(phone, /\.rs-dialog-wide \.rs-edit-fields \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(phone, /\.rs-edit-fields > \.rs-field \{\s*grid-column: span 1/);
+  assert.match(phone, /> \.rs-field-time,[\s\S]*?> \.rs-field-type,[\s\S]*?> \.rs-col-half,[\s\S]*?> \.rs-field-wide \{\s*grid-column: 1 \/ -1/);
+});
+
+test('the elapsed time is compact: three inputs share a third of the row, and a three-digit hour still fits', () => {
+  const css = read('src/public/css/registrant-submissions.css');
+  const six = css.slice(css.indexOf('   Edit dialog: compact elapsed time on a six-column grid'));
+  assert.match(six, /\.rs-dialog-wide \.rs-time-inputs \{\s*gap: 0\.35rem/);
+  assert.match(six, /\.rs-time-inputs \.rs-unit-field input \{[^}]*padding-right: 1\.15rem/);
+  assert.match(six, /\.rs-time-inputs \.rs-unit \{[^}]*right: 0\.4rem/);
+});
+
+test('shorter controls are for mouse users only; touch keeps the 44px targets', () => {
+  const css = read('src/public/css/registrant-submissions.css');
+  const compact = css.slice(css.indexOf('   Compact edit dialog'));
+  const fine = compact.slice(compact.indexOf('@media (min-width: 641px) and (pointer: fine)'), compact.indexOf('@media (max-width: 640px)'));
+  assert.match(fine, /height: 2\.4rem/);
+  // The shortened height exists only inside the fine-pointer query.
+  assert.doesNotMatch(compact.replace(fine, ''), /height: 2\.4rem/);
+});
+
+// ---- Edit dialog: grouped and aligned ----------------------------------------------------------
+
+const groupedDialog = () => editDialog(renderWith(entry({ edit: detailedEdit }), { editConfig: {} }));
+
+test('three captions name the groups, in the right places', () => {
+  const dialog = groupedDialog();
+  const captions = [...dialog.matchAll(/<h4 class="rs-edit-caption">([^<]+)<\/h4>/g)].map((m) => m[1]);
+  assert.deepEqual(captions, ['Result', 'Activity', 'Place &amp; device']);
+
+  const at = (needle) => dialog.indexOf(needle);
+  const [result, activity, place] = ['>Result<', '>Activity<', 'Place &amp; device'].map((needle) => at(needle));
+  // Result: distance, date, time. Activity: type, elevation, steps. Place & device: location, device.
+  assert.ok(result < at('name="distanceKm"') && at('name="elapsedSeconds"') < activity);
+  assert.ok(activity < at('name="runType"') && at('name="steps"') < place);
+  assert.ok(place < at('name="runLocation"') && at('name="trackingAppDevice"') < at('name="reason"'));
+  // The first caption is the first thing in the field grid.
+  assert.match(dialog, /<div class="rs-edit-fields">\s*<h4 class="rs-edit-caption">Result<\/h4>/);
+});
+
+test('the time inputs carry their unit inside, with the words kept for screen readers', () => {
+  const dialog = groupedDialog();
+  for (const [id, word, unit, name] of [['hours', 'Hours', 'h', 'elapsedHours'], ['minutes', 'Minutes', 'm', 'elapsedMinutes'], ['seconds', 'Seconds', 's', 'elapsedSeconds']]) {
+    const label = dialog.match(new RegExp(`<label class="rs-unit-field" for="edit-entry-sub-1-${id}">[\\s\\S]*?</label>`))[0];
+    assert.match(label, new RegExp(`<span class="rs-sr-only">${word}</span>`), `${id}: accessible name`);
+    assert.match(label, new RegExp(`<input id="edit-entry-sub-1-${id}" name="${name}"`), `${id}: same id and name as before`);
+    assert.match(label, new RegExp(`<span class="rs-unit" aria-hidden="true">${unit}</span>`), `${id}: visible unit`);
+  }
+  // The small visible sub-labels above the inputs are gone, which is what misaligned the first row.
+  assert.doesNotMatch(dialog, /<label for="edit-entry-sub-1-(?:hours|minutes|seconds)"><span>/);
+  assert.match(dialog, /<legend>Elapsed time<\/legend>/);
+});
+
+test('the reason is set apart from the values it explains', () => {
+  const dialog = groupedDialog();
+  assert.match(dialog, /class="rs-field rs-field-wide rs-field-reason"/);
+  assert.equal((dialog.match(/rs-field-reason/g) || []).length, 1);
+});
+
+test('caption, unit and divider styles', () => {
+  const css = read('src/public/css/registrant-submissions.css');
+  const caption = css.match(/\.rs-dialog-wide \.rs-edit-caption \{[^}]*\}/)[0];
+  assert.match(caption, /grid-column: 1 \/ -1/);
+  assert.match(caption, /border-top: 1px solid var\(--rpr-line\)/);
+  assert.match(caption, /text-transform: uppercase/);
+  assert.match(css, /\.rs-edit-caption:first-child \{[^}]*border-top: 0/, 'no rule above the first caption');
+
+  // The unit sits inside the input's right edge, and the words stay available to assistive tech.
+  assert.match(css, /\.rs-time-inputs \.rs-unit-field \{[^}]*position: relative/);
+  assert.match(css, /\.rs-time-inputs \.rs-unit \{[^}]*position: absolute;[^}]*right: 0\.75rem/);
+  assert.match(css, /\.rs-time-inputs \.rs-unit-field input \{[^}]*padding-right: 1\.9rem/);
+  assert.match(css, /\.rs-sr-only \{[^}]*position: absolute;[^}]*clip: rect\(0 0 0 0\)/);
+  assert.match(css, /\.rs-dialog-wide \.rs-field-reason \{[^}]*border-top: 1px solid var\(--rpr-line\)/);
+});
+
+test('the time inputs get the same gap under the legend that a label gets, so they sit level with distance', () => {
+  const css = read('src/public/css/registrant-submissions.css');
+  assert.match(css, /\.rs-dialog-wide \.rs-field-time \.rs-time-inputs \{\s*margin-top: 0\.2rem/);
+  // ...which must equal the label-to-input gap of every other field.
+  assert.match(css, /\.rs-dialog-wide \.rs-field \{\s*gap: 0\.2rem/);
+});
+
+test('phones keep the captions but spend less height around them', () => {
+  const css = read('src/public/css/registrant-submissions.css');
+  const tail = css.slice(css.indexOf('@media (max-width: 640px)', css.indexOf('   Compact edit dialog')));
+  assert.match(tail, /\.rs-dialog-wide \.rs-edit-caption \{\s*padding-top: 0\.35rem/);
+  assert.match(tail, /\.rs-dialog-wide \.rs-edit-fields \{\s*gap: 0\.45rem 0\.65rem/);
 });

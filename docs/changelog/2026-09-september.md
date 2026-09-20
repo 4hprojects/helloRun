@@ -1,5 +1,37 @@
 # HelloRun Changelog — September 2026
 
+## September 20 — Compact, organised Edit values dialog
+
+- The Edit values dialog stacked nearly every field on its own line and had grown by one field at a
+  time (about 845px tall on desktop, 9 field rows). It is now laid out on a six-column grid in three
+  named groups of equal-width fields: **Result** (distance, run date and elapsed time), **Activity**
+  (activity type, elevation gain and steps) and **Place & device** (location beside tracking app or
+  device, half each). Slim uppercase captions and hairline dividers name the groups, and the reason for
+  the correction is set apart below a divider, above the note and the Cancel / Save buttons. Desktop
+  height drops to about 576px (a 32% reduction) and the dialog is 42rem wide.
+- The elapsed time is compacted to one third of a row: its hours, minutes and seconds inputs sit side
+  by side with the unit ("h", "m", "s") tucked inside each input's right edge, and the padding is
+  tightened so a three-digit hour such as 168 is not clipped (checked in Chromium at 1280, 820, 390 and
+  320px). The room this frees lets run date move up beside distance, which removes the previous
+  four-field row and leaves every group evenly filled.
+- The first row is level: hours, minutes and seconds carry their unit inside the input instead of a
+  small label above it, so all five inputs share one line with the Distance and Run date fields. The
+  words stay available to screen readers, and the elapsed-time legend gets the same gap under it that a
+  label gets, which measured as exactly level in Chromium.
+- The fields are ordered to match (date now sits with distance and time; elevation and steps sit with the
+  activity type, ahead of location),
+  the separate "Clearing an optional detail removes it from the entry" hint is folded into the single
+  note line ("Leave an optional detail blank to clear it. The runner is notified..."), and dialog
+  padding, gaps, headings and label spacing are tightened.
+- Mouse and trackpad users get slightly shorter controls (2.4rem); touch keeps the full 44px targets.
+  Phones use two columns with only short fields paired (distance/date, elevation/steps) and everything
+  else full width. Phone height is about the same as before, because touch targets stay 44px and the
+  captions add a little; the gain there is structure, not height.
+- No behaviour change: the same eight fields are posted with the same names, CSRF token and required
+  reason, the event-required steps and device rules still apply, and tab order follows the visual order.
+- 12 new DB-free tests and several updated; restoring four columns, the old field order, a caption, the
+  visible sub-labels, the alignment gap, or short controls for touch users makes them fail.
+
 ## September 20 — Submissions page totals: single-row tiles, no colored edge
 
 - The four totals tiles at the top of the per-runner submissions page (All entries, Awaiting review,

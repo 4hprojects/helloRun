@@ -216,43 +216,45 @@
                   </header>
 
                   <div class="rs-edit-fields">
-                    <div class="rs-field">
+                    <h4 class="rs-edit-caption">Result</h4>
+
+                    <div class="rs-field rs-field-distance">
                       <label for="<%= formId %>-distance">Distance (km)</label>
                       <input id="<%= formId %>-distance" name="distanceKm" type="number" inputmode="decimal" step="0.01" min="0.1" max="500" value="<%= item.edit.distanceKm %>">
                     </div>
-
-                    <fieldset class="rs-field rs-field-time">
-                      <legend>Elapsed time</legend>
-                      <div class="rs-time-inputs">
-                        <label for="<%= formId %>-hours"><span>Hours</span>
-                          <input id="<%= formId %>-hours" name="elapsedHours" type="number" inputmode="numeric" min="0" max="168" step="1" value="<%= item.edit.hours %>">
-                        </label>
-                        <label for="<%= formId %>-minutes"><span>Minutes</span>
-                          <input id="<%= formId %>-minutes" name="elapsedMinutes" type="number" inputmode="numeric" min="0" max="59" step="1" value="<%= item.edit.minutes %>">
-                        </label>
-                        <label for="<%= formId %>-seconds"><span>Seconds</span>
-                          <input id="<%= formId %>-seconds" name="elapsedSeconds" type="number" inputmode="numeric" min="0" max="59" step="1" value="<%= item.edit.seconds %>">
-                        </label>
-                      </div>
-                    </fieldset>
 
                     <div class="rs-field">
                       <label for="<%= formId %>-date">Run date</label>
                       <input id="<%= formId %>-date" name="runDate" type="date" max="<%= todayKey %>" value="<%= item.edit.runDate %>">
                     </div>
 
-                    <div class="rs-field">
+                    <fieldset class="rs-field rs-field-time">
+                      <legend>Elapsed time</legend>
+                      <div class="rs-time-inputs">
+                        <label class="rs-unit-field" for="<%= formId %>-hours"><span class="rs-sr-only">Hours</span>
+                          <input id="<%= formId %>-hours" name="elapsedHours" type="number" inputmode="numeric" min="0" max="168" step="1" value="<%= item.edit.hours %>">
+                          <span class="rs-unit" aria-hidden="true">h</span>
+                        </label>
+                        <label class="rs-unit-field" for="<%= formId %>-minutes"><span class="rs-sr-only">Minutes</span>
+                          <input id="<%= formId %>-minutes" name="elapsedMinutes" type="number" inputmode="numeric" min="0" max="59" step="1" value="<%= item.edit.minutes %>">
+                          <span class="rs-unit" aria-hidden="true">m</span>
+                        </label>
+                        <label class="rs-unit-field" for="<%= formId %>-seconds"><span class="rs-sr-only">Seconds</span>
+                          <input id="<%= formId %>-seconds" name="elapsedSeconds" type="number" inputmode="numeric" min="0" max="59" step="1" value="<%= item.edit.seconds %>">
+                          <span class="rs-unit" aria-hidden="true">s</span>
+                        </label>
+                      </div>
+                    </fieldset>
+
+                    <h4 class="rs-edit-caption">Activity</h4>
+
+                    <div class="rs-field rs-field-type">
                       <label for="<%= formId %>-type">Activity type</label>
                       <select id="<%= formId %>-type" name="runType">
                         <% runTypeOptions.forEach(([value, label]) => { %>
                           <option value="<%= value %>" <%= item.edit.runType === value ? 'selected' : '' %>><%= label %></option>
                         <% }) %>
                       </select>
-                    </div>
-
-                    <div class="rs-field rs-field-wide">
-                      <label for="<%= formId %>-location">Location</label>
-                      <input id="<%= formId %>-location" name="runLocation" type="text" maxlength="200" value="<%= item.edit.runLocation %>">
                     </div>
 
                     <div class="rs-field">
@@ -265,13 +267,19 @@
                       <input id="<%= formId %>-steps" name="steps" type="number" inputmode="numeric" step="1" min="1" max="200000" value="<%= item.edit.steps %>" <%= editConfig.stepsRequired ? 'required' : '' %>>
                     </div>
 
-                    <div class="rs-field rs-field-wide">
-                      <label for="<%= formId %>-device">Tracking app or device<% if (editConfig.deviceRequired) { %> <span class="rs-required">(required for this event)</span><% } %></label>
-                      <input id="<%= formId %>-device" name="trackingAppDevice" type="text" maxlength="120" value="<%= item.edit.trackingAppDevice %>" <%= editConfig.deviceRequired ? 'required' : '' %>>
-                      <small class="rs-hint">Clearing an optional detail removes it from the entry.</small>
+                    <h4 class="rs-edit-caption">Place &amp; device</h4>
+
+                    <div class="rs-field rs-col-half">
+                      <label for="<%= formId %>-location">Location</label>
+                      <input id="<%= formId %>-location" name="runLocation" type="text" maxlength="200" value="<%= item.edit.runLocation %>">
                     </div>
 
-                    <div class="rs-field rs-field-wide">
+                    <div class="rs-field rs-col-half">
+                      <label for="<%= formId %>-device">Tracking app or device<% if (editConfig.deviceRequired) { %> <span class="rs-required">(required for this event)</span><% } %></label>
+                      <input id="<%= formId %>-device" name="trackingAppDevice" type="text" maxlength="120" value="<%= item.edit.trackingAppDevice %>" <%= editConfig.deviceRequired ? 'required' : '' %>>
+                    </div>
+
+                    <div class="rs-field rs-field-wide rs-field-reason">
                       <label for="<%= formId %>-reason">Reason for the correction <span class="rs-required">(required)</span></label>
                       <textarea id="<%= formId %>-reason" name="reason" rows="2" minlength="5" maxlength="500" required placeholder="Shown to the runner and recorded in the audit log"></textarea>
                     </div>
@@ -279,7 +287,7 @@
 
                   <p class="rs-note">
                     <i data-lucide="bell" aria-hidden="true"></i>
-                    <span>The runner is notified by email and in-app.
+                    <span>Leave an optional detail blank to clear it. The runner is notified by email and in-app.
                     <% if (item.status === 'approved') { %>Because this entry is approved, its ranking<%= item.submissionKind === 'accumulated' ? ' and challenge progress' : ' and certificate' %> will be recalculated.<% } %></span>
                   </p>
 
