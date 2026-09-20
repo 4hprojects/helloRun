@@ -77,6 +77,8 @@
 .organizer-roster-badge { display: inline-flex; width: max-content; padding: .16rem .36rem; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: .6rem; font-weight: 750; }
 .organizer-roster-badge.status-confirmed, .organizer-roster-badge.status-paid { background: #ecfdf3; color: #16784a; }
 .organizer-roster-badge.status-cancelled, .organizer-roster-badge.status-refunded { background: #fef2f2; color: #b42318; }
+/* Elevation and steps of a standard result, a quiet second line under distance and time. */
+.organizer-roster-result-extras { color: #475569; font-weight: 600; overflow-wrap: anywhere; }
 .organizer-roster-progress progress { width: 100%; height: .42rem; accent-color: var(--roster-accent); }
 .organizer-roster-record-actions { display: flex !important; align-items: center; justify-content: flex-end; gap: .35rem !important; }
 .organizer-roster-icon-action { position: relative; display: inline-flex; width: 44px; min-width: 44px; height: 44px; align-items: center; justify-content: center; padding: 0; }

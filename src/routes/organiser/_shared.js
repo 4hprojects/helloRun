@@ -36,6 +36,7 @@ const { reviewSubmission } = require('../../services/submission.service');
 const { recordCriticalAuditEventInBackground } = require('../../services/critical-audit.service');
 const { getAccessibleEvent } = require('../../services/event-access.service');
 const { syncRegistrationPaymentShadow } = require('../../services/registration-payment-shadow.service');
+const { buildEntryExtras } = require('../../utils/entry-extras');
 const { recordSyncFailureInBackground } = require('../../services/sync-failure.service');
 const {
   evaluateRegistrationAchievementsInBackground,
@@ -826,6 +827,10 @@ function buildRunProofReviewRow(submission, event, filters, submissionKind, view
     reviewNotes: submission.reviewNotes || '',
     // Self-review is allowed but audited, so the reviewer is told before they act rather
     // than discovering it from a failed POST.
+    // Only the measurements the runner supplied; see utils/entry-extras.js.
+    elevationGain: submission.elevationGain != null ? submission.elevationGain : null,
+    steps: submission.steps != null ? submission.steps : null,
+    extras: buildEntryExtras(submission),
     isOwnSubmission: Boolean(viewerId) && Boolean(submission.runnerId)
       && String(submission.runnerId) === String(viewerId),
     actionHref: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/review${queueContext ? `?${queueContext}` : ''}`,

@@ -198,6 +198,12 @@
                     <dt>Submitted</dt>
                     <dd><%= item.submittedAtLabel || 'N/A' %></dd>
                   </div>
+                  <% (item.extras || []).forEach((extra) => { %>
+                    <div class="run-proof-meta-extra">
+                      <dt><%= extra.label %></dt>
+                      <dd><%= extra.value %></dd>
+                    </div>
+                  <% }) %>
                 </dl>
 
                 <details class="run-proof-details">

@@ -56,6 +56,7 @@ const LEADERBOARD_DISPLAY_OPTIONS = Object.freeze([
   { value: 'hidden', label: 'Do not show on the leaderboard' }
 ]);
 const { invalidateLeaderboardCache } = require('../../services/leaderboard.service');
+const { buildEntryExtras, formatEntryExtrasSummary } = require('../../utils/entry-extras');
 
 function formatRegistrantDateTime(value) {
   if (!value) return '';
@@ -225,6 +226,11 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
         ? `${categoryName} · ${distance}`
         : distance || categoryName || 'Unspecified category';
       if (item.submission) item.submission.submittedAtLabel = formatRegistrantDateTime(item.submission.submittedAt);
+      // A single entry's elevation or steps means little beside an accumulated running total, so
+      // only standard results get the extra line.
+      if (item.submission && !item.accumulatedProgress) {
+        item.submission.extrasLabel = formatEntryExtrasSummary(buildEntryExtras(item.submission));
+      }
       item.resultStatusLabel = item.accumulatedProgress
         ? `${item.accumulatedProgress.approvedActivityCount} approved · ${item.accumulatedProgress.pendingActivityCount} pending`
         : item.submission ? humanizeStatus(item.submission.status) : 'No result';

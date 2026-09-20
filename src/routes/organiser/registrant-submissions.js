@@ -13,6 +13,7 @@ const {
 const { getAvailableDecisions, isDecisionAllowed } = require('../../utils/entry-decision-actions');
 const { getReversalReasonOptions, resolveReversalReason } = require('../../utils/reversal-reasons');
 const { resolveChallengeConfig } = require('../../utils/challenge-metrics');
+const { formatElevation, formatSteps } = require('../../utils/entry-extras');
 const {
   logger,
   mongoose,
@@ -111,8 +112,8 @@ function buildDetailFacts(item) {
   const facts = [
     ['Location', String(item.runLocation || '').trim()],
     ['Activity type', item.runType ? (RUN_TYPE_LABELS[item.runType] || item.runType) : ''],
-    ['Elevation', item.elevationGain === null || item.elevationGain === undefined ? '' : `${Math.round(Number(item.elevationGain))} m`],
-    ['Steps', item.steps === null || item.steps === undefined ? '' : Number(item.steps).toLocaleString('en-US')],
+    ['Elevation', formatElevation(item.elevationGain)],
+    ['Steps', formatSteps(item.steps)],
     ['Tracking app or device', String(item.trackingAppDevice || '').trim()]
   ];
   return facts.filter(([, value]) => value !== '').map(([label, value]) => ({ label, value }));

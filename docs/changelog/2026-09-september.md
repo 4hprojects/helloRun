@@ -1,5 +1,25 @@
 # HelloRun Changelog — September 2026
 
+## September 20 — Elevation and steps on the run-proof queue and the registrants list
+
+- Elevation gain and steps were already recorded on every entry that has them (runner form or
+  OCR autofill; Strava supplies elevation but never steps), yet most organiser pages never printed
+  them. The run-proof review queue cards and the registrants list now show them.
+- **Queue cards:** the two values join the existing Distance / Elapsed / Run Date / Submitted grid
+  (`buildRunProofReviewRow` now carries `elevationGain`, `steps` and `extras`), wrapping onto a
+  second row on wide screens and using the grid's existing two-column layout on phones.
+- **Registrants list:** standard results get one quiet extra line under distance and time, for
+  example "128 m elevation · 8,500 steps". Accumulated registrations keep their progress bar, since a
+  single entry's figure means little beside a running total.
+- New shared formatter `utils/entry-extras.js`, also used by the per-runner submissions page so all three
+  read identically. Only values that exist are listed: 0 m elevation is real (a flat course) and shown;
+  0 or missing steps are hidden; anything that is not a number is ignored rather than printed.
+- Not changed, and still without these values: the single-entry review page's "Submitted versus
+  detected" table (no elevation row, steps only in steps competitions), the runner's own pages, the
+  registrants exports, and PostgreSQL (steps sync, elevation does not).
+- 9 new DB-free tests; dropping the fields from the row builder, showing 0-step entries, or adding the
+  line to accumulated registrations makes them fail.
+
 ## September 20 — Edit values covers elevation, steps and tracking app/device
 
 - The Edit values dialog on the per-runner submissions page now also corrects **elevation gain**

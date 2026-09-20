@@ -159,7 +159,7 @@
                     <span><%= registration.resultStatusLabel %></span>
                   <% } else { %>
                     <strong><%= registration.resultStatusLabel %></strong>
-                    <% if (registration.submission) { %><span><%= Number(registration.submission.distanceKm || 0).toFixed(2) %> km · <%= registration.submission.elapsedLabel || 'No elapsed time' %></span><% } %>
+                    <% if (registration.submission) { %><span><%= Number(registration.submission.distanceKm || 0).toFixed(2) %> km · <%= registration.submission.elapsedLabel || 'No elapsed time' %></span><% if (registration.submission.extrasLabel) { %><span class="organizer-roster-result-extras"><%= registration.submission.extrasLabel %></span><% } %><% } %>
                   <% } %>
                   <% if (registration.resultReviewHref) { %><a href="<%= registration.resultReviewHref %>">Review result</a><% } %>
                 </div>
