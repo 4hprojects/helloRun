@@ -6,6 +6,7 @@ const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubm
 const { PLATFORM_TIME_ZONE, formatPlatformDate } = require('../utils/platform-date');
 const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('./accumulated-target.service');
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
+const { getSubmissionReviewModeLabel } = require('../utils/submission-review-mode');
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
   timeZone: PLATFORM_TIME_ZONE,
@@ -542,6 +543,7 @@ async function getOrganizerEventDetailPresentation({
     },
     runnerExperience: {
       proofTypes: (event.proofTypesAllowed || []).join(', ') || 'Not configured',
+      submissionReview: getSubmissionReviewModeLabel(event.submissionReviewMode),
       digitalBadge: event.digitalBadgeEnabled ? 'Enabled' : 'Disabled',
       digitalCertificate: event.digitalCertificateEnabled === false ? 'Disabled' : (hasActiveCertificate ? 'Enabled · template active' : 'Enabled · template needed'),
       leaderboard: event.leaderboardRecognitionEnabled === false ? 'Disabled' : 'Enabled',

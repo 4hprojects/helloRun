@@ -88,6 +88,13 @@ core platform:
   the reversal revokes any issued certificate, withdraws badges earned off the entry
   (restoring them if it is approved again), deletes the published ranking row and flushes
   the leaderboard cache, under its own audit action;
+- per-event submission review mode, added September 20 — organisers choose on the event
+  create and edit forms how run submissions are reviewed: "Reviewed and validated by
+  HelloRun" (default; entries that pass the checks are auto-approved, anything flagged
+  waits) or "I review every submission" (nothing is auto-approved, Strava syncs included).
+  It applies to new submissions only, events created before it default to system
+  validation, validation still runs and its signals are shown to the reviewer, and runner
+  submit messages follow the event's mode;
 - per-runner submissions page and organizer value corrections, added September 20 —
   a "Submissions" button on each registrants row (also linked from the individual review
   page and the run-proof queue) opens every entry one runner submitted for the event,

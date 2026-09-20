@@ -6,6 +6,7 @@ const { redirectWithFlash } = require('../../utils/session-flash');
 const { normalizeSubmissionHubFilters } = require('../../services/submission-hub.service');
 const { reverseSubmissionApproval } = require('../../services/approval-reversal.service');
 const { resolveChallengeConfig } = require('../../utils/challenge-metrics');
+const { normalizeSubmissionReviewMode, getSubmissionReviewModeLabel } = require('../../utils/submission-review-mode');
 const {
   REVIEW_CHECKLIST_VERSION,
   buildRunProofVerificationCriteria,
@@ -1191,6 +1192,8 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
       user,
       isAdminViewer: user.role === 'admin',
       event,
+      submissionReviewMode: normalizeSubmissionReviewMode(event.submissionReviewMode),
+      submissionReviewModeLabel: getSubmissionReviewModeLabel(event.submissionReviewMode),
       filters,
       reviewItems,
       message: getPageMessage(req.query),

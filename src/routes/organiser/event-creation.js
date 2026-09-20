@@ -491,6 +491,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
       digitalBadgeEnabled: Boolean(formData.digitalBadgeEnabled),
       digitalCertificateEnabled: formData.digitalCertificateEnabled !== false,
       leaderboardRecognitionEnabled: formData.leaderboardRecognitionEnabled !== false,
+      submissionReviewMode: formData.submissionReviewMode === 'manual' ? 'manual' : 'system',
       physicalRewardsEnabled: Boolean(formData.physicalRewardsEnabled),
       physicalRewardMedalEnabled: formData.physicalRewardsEnabled ? Boolean(formData.physicalRewardMedalEnabled) : false,
       physicalRewardShirtEnabled: formData.physicalRewardsEnabled ? Boolean(formData.physicalRewardShirtEnabled) : false,

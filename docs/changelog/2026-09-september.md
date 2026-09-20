@@ -1,5 +1,32 @@
 # HelloRun Changelog — September 2026
 
+## September 20 — Per-event submission review mode
+
+- Events now have a review mode (`Event.submissionReviewMode`, `system` or `manual`).
+  `system` is the default and reproduces the previous behaviour: submissions that pass
+  HelloRun's checks (OCR-verified proofs and clean Strava syncs) are approved automatically,
+  and anything flagged waits for the organiser. `manual` means the organiser reviews every
+  submission: nothing is auto-approved, Strava syncs included. Missing values read as
+  `system`, so no migration or behaviour change for existing events.
+- Enforced in the only two places that approve without a person (`applyAutoApprovalIfEligible`
+  and `applyAccumulatedAutoApprovalIfEligible`), after the existing eligibility check so
+  entries that were going to wait anyway cost no extra query. Personal records have no event
+  and stay on system validation. Validation still runs and is stored, so reviewers keep every
+  OCR and integrity signal. It applies to new submissions only; nothing already submitted or
+  approved is touched when the mode changes.
+- Set with a two-option control in the Virtual Rules section of the create and edit event
+  forms (one shared partial, wording from `utils/submission-review-mode.js`). An edit that does
+  not post the field keeps the saved mode rather than resetting it to system.
+- Organiser visibility: a mode pill in the run-proof queue header, a "Submission review" row
+  in the event workspace summary, and a "Passed system checks" badge on pending entries whose
+  validation was clean, so a reviewer can pick out the ones the system would have approved.
+- Runner wording follows the event: for organiser-review events the submit confirmation, the
+  success message and the Strava success message say the organiser reviews every submission
+  instead of suggesting entries may auto-approve.
+- 23 DB-free tests, including behavioural ones that stub the event lookup and prove an
+  eligible OCR proof, a Strava sync and an accumulated activity all stay pending in manual mode
+  and still reach approval in system mode; disabling the enforcement makes four of them fail.
+
 ## September 20 — Registrants roster: Message moved into Details, action buttons recolored
 
 - Only two actions now sit beside the progress bar: Submissions and Details. Message moved

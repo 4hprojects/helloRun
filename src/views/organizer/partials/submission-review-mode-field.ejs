@@ -1,0 +1,21 @@
+<%# How run submissions for this event are reviewed. Shared by the create and edit event forms;
+    the option wording comes from utils/submission-review-mode.js via app.locals. %>
+<% const reviewModeOptions = locals.submissionReviewModeOptions || []; %>
+<% const selectedReviewMode = formData.submissionReviewMode === 'manual' ? 'manual' : 'system'; %>
+<div class="form-group form-group-full">
+  <fieldset class="review-mode-field">
+    <legend>How are run submissions reviewed?</legend>
+    <div class="review-mode-options">
+      <% reviewModeOptions.forEach((option) => { %>
+        <label class="review-mode-option">
+          <input type="radio" name="submissionReviewMode" value="<%= option.value %>" <%= selectedReviewMode === option.value ? 'checked' : '' %>>
+          <span class="review-mode-text">
+            <strong><%= option.label %><% if (option.badge) { %> <em class="review-mode-badge"><%= option.badge %></em><% } %></strong>
+            <small><%= option.description %></small>
+          </span>
+        </label>
+      <% }) %>
+    </div>
+    <small class="field-hint">Applies to new submissions only. Entries that are already approved or waiting are not changed when you switch.</small>
+  </fieldset>
+</div>

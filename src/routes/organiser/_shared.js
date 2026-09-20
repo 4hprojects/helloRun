@@ -829,6 +829,9 @@ function buildRunProofReviewRow(submission, event, filters, submissionKind, view
     isOwnSubmission: Boolean(viewerId) && Boolean(submission.runnerId)
       && String(submission.runnerId) === String(viewerId),
     actionHref: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/review${queueContext ? `?${queueContext}` : ''}`,
+    // Validation ran clean but the entry is still pending: in organizer-review mode this is how
+    // a reviewer spots the ones the system would have approved.
+    passedSystemChecks: submission.status === 'submitted' && Boolean(submission.validation?.autoApprovalEligible),
     runnerEntriesHref: registration._id
       ? `/organizer/events/${String(event._id)}/registrants/${String(registration._id)}/submissions`
       : ''

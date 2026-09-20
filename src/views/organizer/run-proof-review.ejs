@@ -26,6 +26,13 @@
           <p class="rpr-eyebrow"><%= event.title %></p>
           <h1>Run Proof Review</h1>
           <p class="rpr-subtitle">Review pending proofs, inspect approved results, and audit automatic approvals.</p>
+          <% if (locals.submissionReviewModeLabel) { %>
+            <p class="rpr-mode-pill rpr-mode-pill-<%= locals.submissionReviewMode === 'manual' ? 'manual' : 'system' %>">
+              <i data-lucide="<%= locals.submissionReviewMode === 'manual' ? 'user-check' : 'shield-check' %>" aria-hidden="true"></i>
+              <span>Submission review: <strong><%= locals.submissionReviewModeLabel %></strong></span>
+              <span class="rpr-mode-pill-note"><%= locals.submissionReviewMode === 'manual' ? 'Nothing is approved automatically.' : 'Entries that pass the checks are approved automatically.' %></span>
+            </p>
+          <% } %>
         </div>
         <div class="header-actions run-proof-header-actions" aria-label="Run proof review navigation">
           <% if (links.reviewOldest) { %>
@@ -151,6 +158,9 @@
                   <span class="mode-badge"><%= item.submissionTypeLabel %></span>
                   <% if (item.isAutoApproved) { %>
                     <span class="mode-badge mode-auto-approved">Auto validation</span>
+                  <% } %>
+                  <% if (item.passedSystemChecks) { %>
+                    <span class="mode-badge mode-passed-checks" title="Validation passed; awaiting your review">Passed system checks</span>
                   <% } %>
                 </div>
 

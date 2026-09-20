@@ -627,6 +627,10 @@
       primaryRegistrationInput.value = state.primaryRegistrationId;
     };
 
+    // Events set to organiser review never auto-approve, so the wording must not promise it.
+    const MANUAL_REVIEW_NOTE = 'The organiser reviews every submission for this event, so you will be notified once it has been reviewed.';
+    const isManualReviewOption = (item) => String((item && item.submissionReviewMode) || '') === 'manual';
+
     const getSelectedPrimaryMeta = () => {
       if (!state.primaryRegistrationId) return null;
       return state.options.find((item) => String(item.registrationId || '') === state.primaryRegistrationId) || null;
@@ -1739,6 +1743,7 @@
         setMessage('Select at least one eligible event before submitting.', 'error');
         return;
       }
+      const manualReviewSelected = getSelectedOptions().some(isManualReviewOption);
 
       try {
         const response = await fetch(action, {
@@ -1787,9 +1792,10 @@
               const names = resultMessage.submittedEntries
                 ? resultMessage.submittedEntries.map((item) => String(item.eventTitle || '')).filter(Boolean)
                 : [];
+              const manualNote = manualReviewSelected ? ' ' + MANUAL_REVIEW_NOTE : '';
               postSubmitDesc.textContent = names.length
-                ? 'Submitted to: ' + names.join(', ') + '. What would you like to do next?'
-                : 'Your activity details and evidence were received for event result review. What would you like to do next?';
+                ? 'Submitted to: ' + names.join(', ') + '.' + manualNote + ' What would you like to do next?'
+                : 'Your activity details and evidence were received for event result review.' + manualNote + ' What would you like to do next?';
             }
           }
 
@@ -2014,7 +2020,9 @@
           await window.refreshRunnerDashboard();
         }
         if (postSubmitTitle) postSubmitTitle.textContent = 'Run result submitted!';
-        if (postSubmitDesc) postSubmitDesc.textContent = 'Your Strava activity has been received. Clean synced activities may auto-approve; otherwise they remain available for review.';
+        if (postSubmitDesc) postSubmitDesc.textContent = isManualReviewOption(selected)
+          ? 'Your Strava activity has been received. ' + MANUAL_REVIEW_NOTE
+          : 'Your Strava activity has been received. Clean synced activities may auto-approve; otherwise they remain available for review.';
         if (postSubmitOverlay) {
           setFlowPhase(FLOW_PHASES.SUCCESS);
           postSubmitOverlay.hidden = false;
@@ -2803,7 +2811,8 @@
       if (submitReviewDesc) {
         submitReviewDesc.textContent = hasForcedReviewSelection
           ? 'This proof can still be submitted, but it will not be auto-approved. It will be held for organiser review.'
-          : 'Please confirm your details are correct. Once submitted, changes require admin assistance.';
+          : 'Please confirm your details are correct. Once submitted, changes require admin assistance.' +
+            (getSelectedOptions().some(isManualReviewOption) ? ' ' + MANUAL_REVIEW_NOTE : '');
       }
       if (submitReviewEdit) {
         submitReviewEdit.textContent = hasForcedReviewSelection ? 'Cancel and Upload Another Proof' : 'Edit Details';

@@ -36,6 +36,7 @@ const { getLifecycleStatus } = require('./utils/lifecycle-status');
 
 const app = express();
 app.locals.getLifecycleStatus = getLifecycleStatus;
+app.locals.submissionReviewModeOptions = require('./utils/submission-review-mode').SUBMISSION_REVIEW_MODE_OPTIONS;
 const isProduction = process.env.NODE_ENV === 'production';
 const { attachCsrfToken } = require('./middleware/csrf.middleware');
 

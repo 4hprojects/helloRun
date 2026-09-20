@@ -10,6 +10,7 @@ const {
   normalizeTargetSteps
 } = require('../utils/challenge-metrics');
 const { parseQuestionsFromBody, parseQuestions } = require('./custom-questions.service');
+const { normalizeSubmissionReviewMode } = require('../utils/submission-review-mode');
 
 const countries = getCountries();
 const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K', '42K']);
@@ -724,6 +725,7 @@ function getBlankCreateEventDefaults() {
     recognitionMode: 'completion_with_optional_ranking',
     leaderboardMode: 'finishers_and_top_metric',
     leaderboardRecognitionEnabled: '1',
+    submissionReviewMode: 'system',
     digitalBadgeEnabled: '1',
     digitalCertificateEnabled: '1',
     autoEmailPromotionEnabled: '0',
@@ -853,6 +855,11 @@ function getCreateEventFormData(body = {}, options = {}) {
   const leaderboardRecognitionEnabled = isDefaultCreateBody
     ? normalizeBoolean(body.leaderboardRecognitionEnabled)
     : normalizeBoolean(body.leaderboardRecognitionEnabled);
+  // A form that does not post the field (stale page, partial request) must not silently reset
+  // an event that is set to organizer review, so an edit falls back to the saved value.
+  const submissionReviewMode = hasOwnValue(body, 'submissionReviewMode')
+    ? normalizeSubmissionReviewMode(body.submissionReviewMode)
+    : normalizeSubmissionReviewMode(options.existingEvent?.submissionReviewMode);
   const leaderboardSettings = normalizeLeaderboardSettings(body, {
     virtualCompletionMode,
     primaryChallengeMetric,
@@ -990,6 +997,7 @@ function getCreateEventFormData(body = {}, options = {}) {
     digitalBadgeEnabled: isDefaultCreateBody ? normalizeBoolean(body.digitalBadgeEnabled) : normalizeBoolean(body.digitalBadgeEnabled),
     digitalCertificateEnabled: isDefaultCreateBody ? normalizeBoolean(body.digitalCertificateEnabled) : normalizeBoolean(body.digitalCertificateEnabled),
     leaderboardRecognitionEnabled,
+    submissionReviewMode,
     leaderboardSettings,
     ...normalizedFormData,
     waiverTemplate: sanitizeWaiverTemplate(waiverTemplateRaw),
@@ -1174,6 +1182,7 @@ function getCreateEventFormDataFromEvent(event) {
     digitalBadgeEnabled: Boolean(event.digitalBadgeEnabled),
     digitalCertificateEnabled: event.digitalCertificateEnabled !== false,
     leaderboardRecognitionEnabled: event.leaderboardRecognitionEnabled !== false,
+    submissionReviewMode: normalizeSubmissionReviewMode(event.submissionReviewMode),
     leaderboardSettings: normalizeLeaderboardSettingsFromEvent(event),
     physicalRewardsEnabled: Boolean(event.physicalRewardsEnabled),
     physicalRewardMedalEnabled: Boolean(event.physicalRewardMedalEnabled),
@@ -2073,6 +2082,7 @@ function applyEventFormData(event, formData, user) {
   event.digitalBadgeEnabled = Boolean(formData.digitalBadgeEnabled);
   event.digitalCertificateEnabled = formData.digitalCertificateEnabled !== false;
   event.leaderboardRecognitionEnabled = formData.leaderboardRecognitionEnabled !== false;
+  event.submissionReviewMode = normalizeSubmissionReviewMode(formData.submissionReviewMode);
   event.leaderboardSettings = normalizeLeaderboardSettings(formData.leaderboardSettings || {}, {
     virtualCompletionMode: event.virtualCompletionMode,
     primaryChallengeMetric: event.primaryChallengeMetric,

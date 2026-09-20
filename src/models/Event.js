@@ -428,6 +428,13 @@ const eventSchema = new mongoose.Schema(
       type: Boolean,
       default: true
     },
+    // 'system': entries that pass HelloRun's checks are auto-approved (default, and how
+    // every event behaved before this existed). 'manual': the organizer reviews everything.
+    submissionReviewMode: {
+      type: String,
+      enum: ['system', 'manual'],
+      default: 'system'
+    },
     leaderboardSettings: {
       enabled: {
         type: Boolean,

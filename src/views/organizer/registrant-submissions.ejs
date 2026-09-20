@@ -95,6 +95,7 @@
                 </div>
                 <div class="rpr-status">
                   <span class="status-badge status-badge-<%= item.statusClass %>"><%= item.statusLabel %></span>
+                  <% if (item.passedSystemChecks) { %><span class="mode-badge mode-passed-checks" title="Validation passed; awaiting your review">Passed system checks</span><% } %>
                   <% if (item.corrections.length) { %><span class="rs-corrected-badge">Corrected<% if (item.corrections.length > 1) { %> ×<%= item.corrections.length %><% } %></span><% } %>
                   <% if (item.isOwnSubmission) { %><span class="run-proof-self-badge" title="Editing your own entry is recorded in the audit log">Your own entry</span><% } %>
                 </div>

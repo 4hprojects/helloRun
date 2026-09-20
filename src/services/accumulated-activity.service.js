@@ -9,6 +9,7 @@ const { recordCriticalAuditEventInBackground } = require('./critical-audit.servi
 const { resolveRejectionReason } = require('../utils/rejection-reasons');
 const { validateReviewChecklist } = require('../utils/run-proof-review');
 const { resolveEventAccess } = require('./event-access.service');
+const { isManualSubmissionReview } = require('../utils/submission-review-mode');
 const {
   refreshAccumulatedChallengeProgress,
   refreshGlobalDistanceMilestoneProgressInBackground
@@ -33,7 +34,7 @@ async function createAccumulatedActivitySubmission(input) {
     runnerId: input.runnerId
   });
   const event = await Event.findById(registration.eventId)
-    .select('virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm minimumActivityDistanceKm acceptedRunTypes raceCategories title requireActivityScreenshot requireTrackingAppDevice')
+    .select('virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm minimumActivityDistanceKm acceptedRunTypes raceCategories title requireActivityScreenshot requireTrackingAppDevice submissionReviewMode')
     .lean();
 
   assertAccumulatedEvent(event);
@@ -404,9 +405,14 @@ async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
   }
 
   const eventDoc = event || await Event.findById(activity.eventId)
-    .select('title targetDistanceKm targetSteps challengeMetrics primaryChallengeMetric virtualCompletionMode')
+    .select('title targetDistanceKm targetSteps challengeMetrics primaryChallengeMetric virtualCompletionMode submissionReviewMode')
     .lean();
   if (!eventDoc || !isAccumulatedChallenge(eventDoc)) {
+    return activity;
+  }
+  // The organizer chose to review every submission: leave it pending. Validation results are
+  // already stored on the activity, so the reviewer still sees every signal.
+  if (isManualSubmissionReview(eventDoc)) {
     return activity;
   }
   const challengeConfig = resolveChallengeConfig(eventDoc);
@@ -637,6 +643,7 @@ function getSubmissionServiceHelpers() {
 }
 
 module.exports = {
+  applyAccumulatedAutoApprovalIfEligible,
   createAccumulatedActivitySubmission,
   reviewAccumulatedActivitySubmission,
   reconcileAccumulatedCertificateAfterReview,

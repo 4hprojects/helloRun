@@ -74,7 +74,8 @@ function get2026KCreateEventDefaults() {
     feeCurrency: 'PHP',
     digitalBadgeEnabled: '1',
     digitalCertificateEnabled: '1',
-    leaderboardRecognitionEnabled: '1'
+    leaderboardRecognitionEnabled: '1',
+    submissionReviewMode: 'system'
   };
 }
 

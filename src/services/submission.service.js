@@ -25,6 +25,7 @@ const { syncSubmissionShadow } = require('./submission-shadow.service');
 const { recordSyncFailureInBackground } = require('./sync-failure.service');
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
 const { resolveEventAccess } = require('./event-access.service');
+const { isManualSubmissionReview, normalizeSubmissionReviewMode } = require('../utils/submission-review-mode');
 
 const APPROVABLE_STATUS = new Set(['submitted', 'rejected']);
 const REJECTABLE_STATUS = new Set(['submitted']);
@@ -768,7 +769,7 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
     .sort({ registeredAt: -1 })
     .populate({
       path: 'eventId',
-      select: 'title slug status organizerId eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps raceCategories targetDistanceKm minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt'
+      select: 'title slug status organizerId eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps raceCategories targetDistanceKm minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt submissionReviewMode'
     })
     .lean();
 
@@ -813,6 +814,7 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
         eventEndAt: registration.eventId?.eventEndAt || null,
         submissionDeadlineAt: getSubmissionDeadlineAtForOption(registration, registration.eventId),
         virtualCompletionMode: registration.eventId?.virtualCompletionMode || '',
+        submissionReviewMode: normalizeSubmissionReviewMode(registration.eventId?.submissionReviewMode),
         submissionMode: challengeConfig.accumulated
           ? 'accumulated'
           : 'standard',
@@ -1527,6 +1529,16 @@ async function applyAutoApprovalIfEligible(submission) {
     return submission;
   }
 
+  // The organizer chose to review every submission (Strava syncs included). Only looked up
+  // for entries that would otherwise be approved, so ineligible entries cost nothing extra.
+  // Personal records have no event and always stay on system validation.
+  if (submission.eventId) {
+    const eventSettings = await Event.findById(submission.eventId).select('submissionReviewMode').lean();
+    if (isManualSubmissionReview(eventSettings)) {
+      return submission;
+    }
+  }
+
   const autoApprovalReviewNote = getAutoApprovalReviewNote(submission);
   submission.status = 'approved';
   submission.reviewedAt = new Date();
@@ -1887,6 +1899,7 @@ function __setDisableSubmissionSyncBackgroundTasks(value) {
 }
 
 module.exports = {
+  applyAutoApprovalIfEligible,
   applyApprovedSubmissionEffects,
   syncEventRankingsInBackground,
   syncSubmissionShadowInBackground,
