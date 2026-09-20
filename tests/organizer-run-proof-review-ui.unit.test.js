@@ -231,3 +231,30 @@ test('empty and populated queue states both render', () => {
   });
   assert.match(empty, /No pending run proofs/);
 });
+
+test('queue tabs are single rows: label left, count at the right edge, no status-colored edge', () => {
+  const tab = reviewCss.match(/\.run-proof-review-page \.rpr-tab \{[^}]*\}/)[0];
+  assert.match(tab, /flex-direction: row/);
+  assert.match(tab, /justify-content: space-between/);
+  assert.match(tab, /align-items: center/);
+  assert.doesNotMatch(tab, /border-left|--rpr-tab-accent/);
+  assert.match(reviewCss, /\.rpr-tab-count \{[^}]*flex: 0 0 auto;[^}]*text-align: right/);
+  // The active tab is marked with a neutral ink outline, not a per-status color.
+  const active = reviewCss.match(/\.rpr-tab\.is-active \{[^}]*\}/)[0];
+  assert.match(active, /var\(--rpr-ink\)/);
+  assert.doesNotMatch(reviewCss, /--rpr-tab-accent/);
+});
+
+test('queue cards carry no status-colored left edge; the status pill still names the state', () => {
+  const card = reviewCss.match(/\.run-proof-review-page \.rpr-card \{[^}]*\}/)[0];
+  assert.doesNotMatch(card, /border-left|--rpr-card-accent/);
+  assert.doesNotMatch(reviewCss, /--rpr-card-accent|\.rpr-card:hover \{[^}]*border-left-color/);
+  const html = renderQueue();
+  assert.match(html, /Pending Review/);
+});
+
+test('queue tabs still render label then count, in that order', () => {
+  const html = renderQueue();
+  const tabs = [...html.matchAll(/<span class="rpr-tab-label">([^<]+)<\/span>\s*<strong class="rpr-tab-count">(\d+)<\/strong>/g)];
+  assert.ok(tabs.length >= 4);
+});

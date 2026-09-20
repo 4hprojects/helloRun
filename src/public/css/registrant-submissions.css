@@ -24,9 +24,8 @@
   cursor: default;
 }
 
-/* One quiet row per tile: the label at the left, the count at the right edge. The shared queue
-   tabs stack the two and carry a status-colored left edge; these totals are plain read-only
-   figures, so the edge is a normal border. */
+/* One quiet row per tile: the label at the left, the count at the right edge. These totals are
+   plain read-only figures, so they also drop the pointer and hover states of the shared tabs. */
 .registrant-submissions-page .rs-summary .rpr-tab {
   flex-direction: row;
   align-items: center;

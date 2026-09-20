@@ -1,5 +1,20 @@
 # HelloRun Changelog — September 2026
 
+## September 20 — Run proof review queue: single-row tabs, no colored edges
+
+- The queue's status tabs (Pending Review, All Proofs, Approved, Auto-approved, Rejected) are now one
+  row each: the label at the left and the count at the right edge, in a shorter tile. The
+  status-colored stripe on their left edge is gone; the active tab is marked with a neutral dark
+  outline instead of an orange, green, blue or red one.
+- The proof cards in the queue no longer carry a status-colored left edge either. Each card's status
+  pill (Pending review, Approved, Auto-approved, Rejected) still names its state, and card padding is
+  now even on all sides.
+- Tablet and phone: the tabs tighten their padding and type so labels such as "Pending Review" and
+  "Auto-approved" stay on one line at 820px; the phone strip keeps swiping horizontally with wider tiles.
+- Measured in Chromium at 1280, 820, 390 and 320px: label and count share a row in every tab, the
+  count is right-aligned, all card and tab left borders are 1px neutral, and nothing overflows.
+- 3 new DB-free tests; restoring the accent variables, the left border or the stacked layout fails them.
+
 ## September 20 — Compact, organised Edit values dialog
 
 - The Edit values dialog stacked nearly every field on its own line and had grown by one field at a

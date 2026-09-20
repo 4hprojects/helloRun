@@ -155,16 +155,14 @@
 }
 
 .run-proof-review-page .rpr-tab {
-  --rpr-tab-accent: #94a3b8;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 0.15rem;
-  min-height: 4.25rem;
-  padding: 0.65rem 0.9rem 0.65rem 1rem;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.25rem;
+  padding: 0.6rem 1rem;
   border: 1px solid var(--rpr-line);
-  border-left: 4px solid var(--rpr-tab-accent);
   border-radius: 10px;
   background: var(--rpr-surface);
   color: inherit;
@@ -172,24 +170,19 @@
   transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.run-proof-review-page .rpr-tab-pending { --rpr-tab-accent: #d97706; }
-.run-proof-review-page .rpr-tab-approved { --rpr-tab-accent: #16a34a; }
-.run-proof-review-page .rpr-tab-auto-approved { --rpr-tab-accent: #2563eb; }
-.run-proof-review-page .rpr-tab-rejected { --rpr-tab-accent: #e11d48; }
-
 .run-proof-review-page .rpr-tab:hover {
   border-color: var(--rpr-line-strong);
-  border-left-color: var(--rpr-tab-accent);
   background: var(--rpr-surface-alt);
 }
 
 .run-proof-review-page .rpr-tab.is-active {
-  border-color: var(--rpr-tab-accent);
+  border-color: var(--rpr-ink);
   background: var(--rpr-surface-alt);
-  box-shadow: 0 0 0 1px var(--rpr-tab-accent), 0 6px 16px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 0 0 1px var(--rpr-ink), 0 6px 16px rgba(15, 23, 42, 0.08);
 }
 
 .run-proof-review-page .rpr-tab-label {
+  min-width: 0;
   color: var(--rpr-muted);
   font-size: 0.82rem;
   font-weight: 700;
@@ -197,8 +190,10 @@
 }
 
 .run-proof-review-page .rpr-tab-count {
+  flex: 0 0 auto;
   color: var(--rpr-ink);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
+  text-align: right;
   font-weight: 800;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
@@ -374,7 +369,6 @@
 }
 
 .run-proof-review-page .rpr-card {
-  --rpr-card-accent: #94a3b8;
   position: relative;
   display: grid;
   grid-template-columns: 7.5rem minmax(0, 1fr) 13rem;
@@ -384,24 +378,16 @@
   grid-template-rows: auto 1fr;
   column-gap: 1.1rem;
   row-gap: 0.6rem;
-  padding: 1rem 1rem 1rem 1.15rem;
+  padding: 1rem;
   border: 1px solid var(--rpr-line);
-  border-left: 4px solid var(--rpr-card-accent);
   border-radius: 12px;
   background: var(--rpr-surface);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.run-proof-review-page .rpr-card-submitted { --rpr-card-accent: #d97706; }
-.run-proof-review-page .rpr-card-needs_clarification { --rpr-card-accent: #4f46e5; }
-.run-proof-review-page .rpr-card-approved { --rpr-card-accent: #16a34a; }
-.run-proof-review-page .rpr-card-auto-approved { --rpr-card-accent: #2563eb; }
-.run-proof-review-page .rpr-card-rejected { --rpr-card-accent: #e11d48; }
-
 .run-proof-review-page .rpr-card:hover {
   border-color: var(--rpr-line-strong);
-  border-left-color: var(--rpr-card-accent);
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.09);
 }
 
@@ -937,11 +923,16 @@
   }
 
   .run-proof-review-page .rpr-tab {
-    padding: 0.6rem 0.6rem 0.6rem 0.75rem;
+    gap: 0.35rem;
+    padding: 0.6rem;
   }
 
   .run-proof-review-page .rpr-tab-label {
-    font-size: 0.78rem;
+    font-size: 0.74rem;
+  }
+
+  .run-proof-review-page .rpr-tab-count {
+    font-size: 1.1rem;
   }
 
   .run-proof-review-page .rpr-card {
@@ -1065,13 +1056,9 @@
 
   .run-proof-review-page .rpr-tab {
     flex: 0 0 auto;
-    min-width: 7.75rem;
-    min-height: 3.75rem;
+    min-width: 10rem;
+    min-height: 3.25rem;
     scroll-snap-align: start;
-  }
-
-  .run-proof-review-page .rpr-tab-count {
-    font-size: 1.3rem;
   }
 
   /* Filters: Sort full width above search so nothing is squeezed. */
@@ -1101,7 +1088,7 @@
       "side  side";
     column-gap: 0.75rem;
     row-gap: 0.7rem;
-    padding: 0.85rem 0.85rem 0.85rem 0.95rem;
+    padding: 0.85rem;
   }
 
   .run-proof-review-page .rpr-card-head {
