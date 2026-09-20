@@ -1,5 +1,26 @@
 # HelloRun Changelog — September 2026
 
+## September 20 — Run proof review queue: responsive redesign
+
+- Reworked `/organizer/events/:eventId/run-proofs/review` for desktop, tablet, and
+  phone. Desktop shows a proof thumbnail, evidence details, and an action column;
+  tablet moves the actions to a full-width row; phones stack the card with full-width
+  44px actions and a swipeable queue-tab strip.
+- Queue tabs now carry the status filter and counts with a per-status accent, and the
+  redundant Queue dropdown was removed (search keeps the active queue through a
+  hidden `status` field). Filter labels stay visible on every breakpoint; the old
+  mobile styles hid them and shrank controls to 2rem.
+- Validation signals (suspicious flag, OCR mismatch) render as visible text on the
+  card instead of hover-only tooltips, which were unreachable on touch devices.
+  Header navigation buttons carry visible labels in place of icon-only tooltips.
+- Moved the page's ~900 lines of layered rules out of `organizer-events.css` into a
+  dedicated, fully scoped `run-proof-review.css`, and deleted
+  `run-proof-review-tooltips.css` plus dead approve-modal CSS. No route, data, or
+  markup contract changed; test-relied class names and strings are preserved.
+- Updated `organizer-run-proof-review-ui.unit.test.js` to guard both stylesheets,
+  enforce page scoping and breakpoints, and cover the new visible-signal and
+  search-state markup.
+
 ## September 17 — Mobile Submit tab works from every runner page
 
 - Fixed the runner mobile navigation's **Submit** tab on pages that intentionally do

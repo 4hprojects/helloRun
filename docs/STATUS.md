@@ -88,6 +88,8 @@ core platform:
   the reversal revokes any issued certificate, withdraws badges earned off the entry
   (restoring them if it is approved again), deletes the published ranking row and flushes
   the leaderboard cache, under its own audit action;
+- run-proof review queue redesign, September 20 — responsive desktop, tablet and phone
+  layouts with visible validation signals, moved to a dedicated scoped stylesheet;
 - post-signup registration edits, added September 15 — organisers and co-organisers
   change a registrant's leaderboard choice, contact snapshot and name from the
   registrants page (reason required, audited, runner notified), and runners change

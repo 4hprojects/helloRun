@@ -1390,7 +1390,7 @@
 
 @media (max-width: 759px) {
   .submission-review-actions { position: sticky; bottom: calc(56px + env(safe-area-inset-bottom, 0px)); z-index: 20; max-height: 48dvh; overflow-y: auto; border-top: 3px solid #f97316; box-shadow: 0 -10px 24px rgba(15, 23, 42, .14); }
-  .submission-proof-image-link img, .payment-proof-image-link img, .run-proof-image-link img { width: 100%; max-height: 52dvh; object-fit: contain; touch-action: pinch-zoom; }
+  .submission-proof-image-link img, .payment-proof-image-link img { width: 100%; max-height: 52dvh; object-fit: contain; touch-action: pinch-zoom; }
   .submission-review-page, .payment-proof-review-page { overflow-x: clip; }
 }
 
@@ -1591,405 +1591,6 @@
   overflow-wrap: anywhere;
 }
 
-.run-proof-filter-bar {
-  display: grid;
-  grid-template-columns: minmax(150px, 190px) minmax(150px, 190px) minmax(240px, 1fr) auto;
-  align-items: end;
-  gap: 0.7rem;
-}
-
-.run-proof-review-page .run-proof-header-actions {
-  width: auto;
-  max-width: 100%;
-  justify-content: flex-end;
-  border-radius: 16px;
-}
-
-.run-proof-review-page .run-proof-header-btn {
-  width: auto;
-  min-width: 0;
-  height: 2.55rem;
-  flex: 0 1 auto;
-  gap: 0.4rem;
-  border-radius: 999px;
-  padding: 0 0.85rem;
-  white-space: nowrap;
-  text-align: center;
-  line-height: 1;
-}
-
-.run-proof-review-page .run-proof-header-btn i,
-.run-proof-review-page .run-proof-header-btn svg {
-  width: 1rem;
-  height: 1rem;
-  flex: 0 0 auto;
-}
-
-.run-proof-review-page .run-proof-header-btn span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.run-proof-status-dropdown-wrapper {
-  display: none;
-}
-
-.run-proof-filter-field {
-  display: grid;
-  gap: 0.25rem;
-}
-
-.run-proof-filter-field label {
-  color: #475569;
-  font-size: 0.78rem;
-  font-weight: 800;
-}
-
-.run-proof-filter-field select {
-  width: 100%;
-  min-width: 0;
-  height: 2.55rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: #fff;
-  color: #0f172a;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.9rem;
-  box-sizing: border-box;
-}
-
-.run-proof-search-control input {
-  width: 100%;
-  min-width: 0;
-  height: 2.55rem;
-  border: 1px solid #cbd5e1;
-  border-right: none;
-  border-radius: 8px 0 0 8px;
-  background: #fff;
-  color: #0f172a;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.9rem;
-  box-sizing: border-box;
-}
-
-.run-proof-search-wrapper {
-  display: flex;
-  gap: 0;
-  align-items: stretch;
-  width: auto;
-  margin-left: auto;
-}
-
-.run-proof-search-control {
-  flex: 1 1 auto;
-}
-
-.run-proof-search-btn {
-  flex: 0 0 auto;
-  width: 2.55rem;
-  height: 2.55rem;
-  min-width: 2.55rem;
-  min-height: 2.55rem;
-  padding: 0;
-  margin: 0;
-  border: 1px solid #cbd5e1;
-  border-left: none;
-  background: #fff;
-  border-radius: 0 8px 8px 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #64748b;
-  transition: all 0.2s ease;
-}
-
-.run-proof-search-btn:hover,
-.run-proof-search-btn:focus {
-  outline: none;
-  color: #0f172a;
-  border-color: #94a3b8;
-  background: #f8fafc;
-}
-
-.run-proof-search-btn:active {
-  background: #f1f5f9;
-}
-
-.run-proof-search-btn i,
-.run-proof-search-btn svg {
-  width: 18px;
-  height: 18px;
-}
-
-.run-proof-search-control input {
-  width: 100%;
-  min-width: 0;
-  min-height: 2.55rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: #fff;
-  color: #0f172a;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.9rem;
-}
-
-.run-proof-review-page .registrant-summary {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
-.run-proof-review-page .summary-card {
-  min-height: 4rem;
-}
-
-.run-proof-review-page .status-badge-submitted {
-  border: 1px solid #fde68a;
-  background: #fffbeb;
-  color: #713f12;
-}
-
-.run-proof-review-page .status-badge-approved {
-  border: 1px solid #bbf7d0;
-  background: #f0fdf4;
-  color: #14532d;
-}
-
-.run-proof-review-page .status-badge-auto-approved {
-  border: 1px solid #bfdbfe;
-  background: #eff6ff;
-  color: #1e3a8a;
-}
-
-.run-proof-review-page .status-badge-rejected {
-  border: 1px solid #fecdd3;
-  background: #fff1f2;
-  color: #9f1239;
-}
-
-.run-proof-review-page .status-badge-needs_clarification {
-  border: 1px solid #bfdbfe;
-  background: #eff6ff;
-  color: #1e3a8a;
-}
-
-.run-proof-results-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin: 0.85rem 0;
-  color: #475569;
-}
-
-.run-proof-results-note {
-  color: #1e3a8a;
-  font-size: 0.86rem;
-  font-weight: 700;
-}
-
-.run-proof-review-list {
-  display: grid;
-  gap: 1rem;
-}
-
-.run-proof-review-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 1rem;
-  padding: 0.85rem;
-  border: 1px solid #dbe4ee;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: visible;
-}
-
-.run-proof-review-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
-  transform: translateY(-2px);
-}
-
-.run-proof-card-main {
-  min-width: 0;
-  flex: 1;
-  position: relative;
-  overflow: visible;
-}
-
-.run-proof-card-side {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  min-width: 200px;
-}
-
-.run-proof-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.55rem;
-  flex-wrap: wrap;
-  width: 100%;
-  min-width: 0;
-}
-
-.run-proof-card-header > div {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.run-proof-card-header h2 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 0.95rem;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.run-proof-card-header p {
-  margin: 0.08rem 0 0;
-  color: #475569;
-  font-size: 0.8rem;
-  overflow-wrap: anywhere;
-  width: 100%;
-}
-
-.run-proof-card-labels {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.6rem;
-  align-items: center;
-  overflow: visible;
-  z-index: 5;
-  width: 100%;
-  min-width: 0;
-}
-
-.mode-auto-approved {
-  background: #dbeafe;
-  color: #1e3a8a;
-  border: 1px solid rgba(29, 78, 216, 0.1);
-}
-
-.run-proof-card-labels .mode-badge[title] {
-  cursor: help;
-  z-index: 10;
-}
-
-.run-proof-card-labels .mode-badge[title]:hover::after {
-  content: attr(title);
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%) translateY(-0.6rem);
-  background: #0f172a;
-  color: #fff;
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  width: max-content;
-  max-width: 240px;
-  z-index: 10000;
-  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.25);
-  pointer-events: none;
-  text-transform: none;
-  letter-spacing: normal;
-  white-space: normal;
-  line-height: 1.4;
-  text-align: center;
-  word-break: break-word;
-  animation: tooltip-fade-in 0.2s ease-out;
-}
-
-@keyframes tooltip-fade-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-0.3rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(-0.6rem);
-  }
-}
-
-.run-proof-meta-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.4rem 0.55rem;
-  margin: 0;
-}
-
-.run-proof-meta-grid div {
-  min-width: 0;
-}
-
-.run-proof-meta-grid dt {
-  color: #64748b;
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.run-proof-meta-grid dd {
-  margin: 0.05rem 0 0;
-  color: #0f172a;
-  font-size: 0.82rem;
-  overflow-wrap: anywhere;
-}
-
-.run-proof-details {
-  margin-top: 0.4rem;
-}
-
-.run-proof-details-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  color: #0f88d9;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  user-select: none;
-  padding: 0.25rem 0.4rem;
-  border-radius: 4px;
-  transition: background 0.15s ease;
-}
-
-.run-proof-details-toggle:hover {
-  background: #f0f8ff;
-}
-
-.run-proof-details-toggle i,
-.run-proof-details-toggle svg {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 auto;
-  transition: transform 0.2s ease;
-}
-
-.run-proof-details[open] .run-proof-details-toggle i,
-.run-proof-details[open] .run-proof-details-toggle svg {
-  transform: rotate(180deg);
-}
-
-.run-proof-meta-secondary {
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid #f0f4f8;
-}
-
 .rejection {
   margin: 0;
   padding: 0.4rem 0.5rem;
@@ -1998,130 +1599,6 @@
   color: #991b1b;
   font-size: 0.78rem;
   text-align: center;
-}
-
-.run-proof-preview {
-  margin: 0;
-  order: 1;
-}
-
-.run-proof-preview .proof-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.8rem;
-  color: #0088d9;
-  text-decoration: none;
-}
-
-.run-proof-preview .proof-link:hover {
-  text-decoration: underline;
-}
-
-.run-proof-preview .proof-link i,
-.run-proof-preview .proof-link svg {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 auto;
-}
-
-.run-proof-image-link {
-  display: block;
-  max-width: 200px;
-  margin-top: 0.4rem;
-}
-
-.run-proof-image-link img {
-  display: block;
-  width: 100%;
-  max-height: 160px;
-  object-fit: contain;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: #f8fafc;
-}
-
-.run-proof-card-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  order: 2;
-}
-
-.run-proof-card-actions .nav-signup-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  font-size: 0.78rem;
-  padding: 0.45rem 0.6rem;
-  border-radius: 6px;
-  white-space: nowrap;
-}
-
-.run-proof-card-actions .nav-signup-btn i,
-.run-proof-card-actions .nav-signup-btn svg {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 auto;
-}
-
-/* Stretch the card's one real action link across the whole card so the
-   existing hover affordance matches what's actually clickable, without
-   adding any new action (the anchor stays position:static so its ::after
-   positions against .run-proof-review-card, which is already position:relative). */
-.run-proof-card-actions .nav-signup-btn::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-}
-
-.run-proof-review-card .run-proof-preview .proof-link,
-.run-proof-review-card .run-proof-image-link,
-.run-proof-review-card .run-proof-details-toggle {
-  position: relative;
-  z-index: 2;
-}
-
-.run-proof-history {
-  margin-top: 0.55rem;
-  padding-top: 0.55rem;
-  border-top: 1px solid #f0f4f8;
-  color: #475569;
-  order: 3;
-}
-
-.run-proof-history strong {
-  color: #0f172a;
-  font-size: 0.78rem;
-  display: block;
-  margin-bottom: 0.2rem;
-}
-
-.run-proof-history p {
-  margin: 0.15rem 0;
-  font-size: 0.78rem;
-  overflow-wrap: anywhere;
-}
-
-.run-proof-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.run-proof-pagination .nav-login-btn {
-  min-width: 6rem;
-  text-align: center;
-}
-
-.run-proof-pagination .disabled {
-  cursor: default;
-  opacity: 0.5;
-  pointer-events: none;
 }
 
 @media (max-width: 920px) {
@@ -2133,154 +1610,11 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .run-proof-review-page .registrant-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  
 
   .organizer-events-page .filter-actions {
     grid-column: 1 / -1;
     justify-content: flex-start;
-  }
-}
-
-@media (max-width: 768px) {
-  .run-proof-review-page .run-proof-header-actions {
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    gap: 0.5rem;
-    justify-content: flex-end;
-  }
-
-  .run-proof-review-page .run-proof-header-btn {
-    width: auto;
-    min-width: 2.3rem;
-    height: 2.3rem;
-    padding: 0 0.4rem;
-  }
-
-  .run-proof-review-page .registrant-summary {
-    display: flex;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    gap: 0.5rem;
-    padding-bottom: 0.25rem;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .run-proof-review-page .registrant-summary .summary-card {
-    flex: 0 0 auto;
-    min-width: 8rem;
-  }
-
-  .run-proof-filter-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-  }
-
-  .run-proof-filter-field {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 0.4rem;
-    flex: 0 1 auto;
-    width: auto;
-    min-height: auto;
-    border: none;
-    background: transparent;
-  }
-
-  .run-proof-filter-field label {
-    display: none;
-  }
-
-  .run-proof-filter-field select,
-  .run-proof-search-control input {
-    min-height: 2.2rem;
-    font-size: 0.8rem;
-    padding: 0.35rem 0.5rem;
-  }
-
-  .run-proof-search-field {
-    flex: 1 1 auto;
-    min-width: 200px;
-    order: -1;
-    width: 100%;
-  }
-
-  .run-proof-search-wrapper {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .run-proof-search-control {
-    width: 100%;
-  }
-
-  .run-proof-search-wrapper {
-    gap: 0;
-  }
-
-  .run-proof-search-btn {
-    width: 2.2rem;
-    height: 2.2rem;
-    font-size: 0.75rem;
-    border-left: none;
-    border-radius: 0 8px 8px 0;
-  }
-
-  .run-proof-search-control input {
-    padding: 0.35rem 0.5rem;
-    border-right: none;
-    border-radius: 8px 0 0 8px;
-  }
-
-  .run-proof-meta-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .run-proof-review-card {
-    grid-template-columns: 1fr;
-    gap: 0.6rem;
-  }
-
-  .run-proof-card-side {
-    min-width: auto;
-    flex-direction: row;
-    gap: 0.4rem;
-  }
-
-  .run-proof-card-actions {
-    flex-direction: row;
-    gap: 0.35rem;
-    flex: 1;
-  }
-
-  .run-proof-card-actions .nav-signup-btn {
-    flex: 1;
-    padding: 0.45rem 0.5rem;
-    font-size: 0.76rem;
-  }
-
-  .run-proof-preview {
-    flex: 1;
-  }
-
-  .run-proof-image-link {
-    max-width: 180px;
-  }
-
-  .run-proof-image-link img {
-    max-height: 140px;
-  }
-
-  .run-proof-history {
-    font-size: 0.75rem;
-    margin-top: 0.45rem;
-    padding-top: 0.45rem;
   }
 }
 
@@ -2318,178 +1652,75 @@
     grid-template-columns: 1fr;
   }
 
-  .run-proof-filter-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    align-items: center;
-  }
+  
 
-  .run-proof-filter-field {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 0.35rem;
-    width: auto;
-    min-height: auto;
-    border: none;
-    background: transparent;
-  }
+  
 
-  .run-proof-filter-field label {
-    display: none;
-  }
+  
 
-  .run-proof-filter-field select,
-  .run-proof-search-control input {
-    min-height: 2rem;
-    font-size: 0.75rem;
-    padding: 0.3rem 0.4rem;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    background: #fff;
-    color: #0f172a;
-  }
+  
 
-  .run-proof-search-control input {
-    border-right: none;
-    border-radius: 8px 0 0 8px;
-  }
+  
 
-  .run-proof-search-field {
-    flex: 1 1 100%;
-    min-width: 150px;
-    order: -1;
-    width: 100%;
-  }
+  
 
-  .run-proof-search-wrapper {
-    width: 100%;
-    margin-left: 0;
-    gap: 0.35rem;
-  }
+  
 
-  .run-proof-search-control {
-    width: 100%;
-  }
+  
 
-  .run-proof-search-btn {
-    width: 2rem;
-    height: 2rem;
-    font-size: 0.7rem;
-    border-left: none;
-    border-radius: 0 8px 8px 0;
-  }
+  
 
-  .run-proof-search-control input {
-    padding: 0.3rem 0.4rem;
-  }
+  
 
-  .run-proof-review-card {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
+  
 
-  .run-proof-card-side {
-    min-width: auto;
-    flex-direction: row;
-    gap: 0.4rem;
-    align-items: flex-start;
-  }
+  
 
-  .run-proof-card-actions {
-    flex-direction: row;
-    gap: 0.35rem;
-    flex: 1;
-  }
+  
 
-  .run-proof-card-actions .nav-signup-btn {
-    flex: 1;
-    padding: 0.4rem 0.5rem;
-    font-size: 0.75rem;
-  }
+  
 
-  .run-proof-preview {
-    flex: 1;
-  }
+  
 
-  .run-proof-image-link {
-    max-width: 150px;
-  }
+  
 
-  .run-proof-image-link img {
-    max-height: 120px;
-  }
+  
 
-  .run-proof-history {
-    font-size: 0.72rem;
-    margin-top: 0.4rem;
-    padding-top: 0.4rem;
-  }
+  
 
-  .run-proof-review-page .run-proof-header-btn {
-    width: auto;
-    min-width: 2rem;
-    flex: 0 1 auto;
-    padding: 0 0.5rem;
-    height: 2.3rem;
-    justify-content: center;
-  }
+  
 
-  .run-proof-status-dropdown-wrapper {
-    display: block;
-    margin-bottom: 0.9rem;
-  }
+  
 
-  .run-proof-filter-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
+  
 
-  .run-proof-review-page .registrant-summary {
-    grid-template-columns: 1fr;
-  }
+  
 
   .payment-proof-review-card {
     grid-template-columns: 1fr;
   }
 
-  .run-proof-review-card {
-    grid-template-columns: 1fr;
-  }
+  
 
   .payment-proof-card-header {
     flex-direction: column;
   }
 
-  .run-proof-card-header {
-    flex-direction: column;
-  }
+  
 
   .payment-proof-meta-grid {
     grid-template-columns: 1fr;
   }
 
-  .run-proof-meta-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.35rem 0.45rem;
-  }
+  
 
-  .run-proof-meta-grid dt {
-    font-size: 0.6rem;
-  }
+  
 
-  .run-proof-meta-grid dd {
-    font-size: 0.75rem;
-  }
+  
 
-  .run-proof-approval-summary {
-    grid-template-columns: 1fr;
-  }
+  
 
-  .run-proof-approval-actions {
-    flex-direction: column-reverse;
-  }
+  
 
   .payment-proof-card-actions {
     border-left: 0;
@@ -2498,16 +1729,9 @@
     padding-top: 1rem;
   }
 
-  .run-proof-card-actions {
-    border-left: 0;
-    border-top: 1px solid #e2e8f0;
-    padding-left: 0;
-    padding-top: 1rem;
-  }
+  
 
-  .run-proof-pagination {
-    flex-wrap: wrap;
-  }
+  
 
   .submission-review-summary {
     grid-template-columns: 1fr;
@@ -2811,8 +2035,6 @@
 #confirmChecklistSummary ul { display: grid; gap: .3rem; margin: 0; padding-left: 1.1rem; }
 #confirmChecklistSummary li { color: #64748b; font-size: .85rem; line-height: 1.4; }
 .review-dialog-actions { justify-content: flex-end; margin-top: 1rem; }
-
-.run-proof-oldest-action { box-shadow: 0 8px 20px rgba(234, 88, 12, .18); }
 
 @media (max-width: 759px) {
   .submission-review-workspace { display: flex; flex-direction: column; }

@@ -11,6 +11,8 @@ const viewPath = path.join(ROOT, 'src/views/organizer/run-proof-review.ejs');
 const view = fs.readFileSync(viewPath, 'utf8');
 const cssPath = path.join(ROOT, 'src/public/css/organizer-events.css');
 const css = fs.readFileSync(cssPath, 'utf8');
+const reviewCssPath = path.join(ROOT, 'src/public/css/run-proof-review.css');
+const reviewCss = fs.readFileSync(reviewCssPath, 'utf8');
 const renderableView = view.replace(/<%-\s*include\([^%]+%>/g, '');
 
 // Strips comments and walks the file tracking brace depth, so this generically
@@ -73,26 +75,49 @@ function isInsideAnyRange(index, ranges) {
   return ranges.some(([start, end]) => index >= start && index <= end);
 }
 
-test('organizer-events.css has no unbalanced braces (structural regression guard)', () => {
-  const { finalDepth, minDepth } = traceBraceDepth(css);
-  assert.equal(minDepth, 0, 'a stray closing brace would drive depth negative before the file ends');
-  assert.equal(finalDepth, 0, 'every opened block must be closed by the end of the file');
+test('organizer-events.css and run-proof-review.css have no unbalanced braces (structural regression guard)', () => {
+  [['organizer-events.css', css], ['run-proof-review.css', reviewCss]].forEach(([name, source]) => {
+    const { finalDepth, minDepth } = traceBraceDepth(source);
+    assert.equal(minDepth, 0, `${name}: a stray closing brace would drive depth negative before the file ends`);
+    assert.equal(finalDepth, 0, `${name}: every opened block must be closed by the end of the file`);
+  });
 });
 
 test('the run-proof queue tab bar is only ever hidden inside a @media block, never globally', () => {
-  const stripped = stripCssComments(css);
-  const mediaRanges = getMediaRanges(css);
-  const ruleRegex = /\.run-proof-review-page\s+\.registrant-summary\s*\{[^}]*\}/g;
-  const matches = [...stripped.matchAll(ruleRegex)];
-  assert.ok(matches.length > 0, 'expected at least one .run-proof-review-page .registrant-summary rule');
-  matches.forEach((match) => {
-    if (/display:\s*none/.test(match[0])) {
-      assert.ok(
-        isInsideAnyRange(match.index, mediaRanges),
-        `display:none on .registrant-summary must be scoped inside a @media block, found unconditional at index ${match.index}`
-      );
-    }
+  [css, reviewCss].forEach((source) => {
+    const stripped = stripCssComments(source);
+    const mediaRanges = getMediaRanges(source);
+    const ruleRegex = /\.run-proof-review-page\s+\.(?:registrant-summary|rpr-tabs)\s*\{[^}]*\}/g;
+    [...stripped.matchAll(ruleRegex)].forEach((match) => {
+      if (/display:\s*none/.test(match[0])) {
+        assert.ok(
+          isInsideAnyRange(match.index, mediaRanges),
+          `display:none on the queue tab bar must be scoped inside a @media block, found unconditional at index ${match.index}`
+        );
+      }
+    });
   });
+  assert.match(reviewCss, /\.run-proof-review-page\s+\.rpr-tabs\s*\{/, 'expected the queue tab bar rule in run-proof-review.css');
+});
+
+test('page styling lives in run-proof-review.css and is fully scoped to the page', () => {
+  assert.match(view, /href="\/css\/run-proof-review\.css"/);
+  assert.doesNotMatch(css, /\.run-proof-review-(?:page|card|list)/, 'organizer-events.css must not carry run-proof review rules');
+  const stripped = stripCssComments(reviewCss);
+  const selectors = [...stripped.matchAll(/(?:^|[}\n])\s*([^@{}\n][^{}]*)\{/g)].map((m) => m[1].trim());
+  const unscoped = selectors
+    .flatMap((group) => group.split(','))
+    .map((selector) => selector.trim())
+    .filter((selector) => selector && !/^(?:\d+%|from|to)$/.test(selector))
+    .filter((selector) => !selector.startsWith('.run-proof-review-page'));
+  assert.deepEqual(unscoped, [], 'every run-proof-review.css selector must be scoped under .run-proof-review-page');
+});
+
+test('the queue is usable at phone, tablet and desktop widths', () => {
+  assert.match(reviewCss, /@media \(max-width: 1024px\)/, 'tablet breakpoint');
+  assert.match(reviewCss, /@media \(max-width: 640px\)/, 'phone breakpoint');
+  assert.match(reviewCss, /--rpr-control: 2\.75rem/, 'controls keep a 44px touch target');
+  assert.match(reviewCss, /prefers-reduced-motion: reduce/);
 });
 
 test('dead "approve directly from the queue" CSS has been removed', () => {
@@ -163,6 +188,29 @@ test('search button submits natively without relying on JavaScript', () => {
   const html = renderQueue();
   assert.match(html, /<button type="submit" class="run-proof-search-btn"/);
   assert.doesNotMatch(html, /run-proof-search-btn"[^>]*onclick=/);
+});
+
+test('validation signals render as visible text rather than hover-only tooltips', () => {
+  const html = renderQueue({
+    reviewItems: [{
+      id: 'sub-2', participantName: 'Sam Lee', participantEmail: 'sam@example.test', statusClass: 'submitted', statusLabel: 'Pending Review',
+      submissionTypeLabel: 'Run Result', isAutoApproved: false, suspiciousFlag: true, suspiciousFlagReason: 'Pace is faster than the world record.',
+      hasOcrMismatch: true, distanceLabel: '5.00 km', elapsedLabel: '00:10:00', runDateLabel: 'Sep 1, 2026', submittedAtLabel: 'Sep 2, 2026',
+      proofTypeLabel: 'GPS', sourceLabel: 'Strava', reviewSourceLabel: 'Awaiting organizer review', proofUrl: '', isImageProof: false,
+      confirmationCode: 'HR-XYZ', status: 'submitted', actionHref: '/organizer/events/event-1/submissions/sub-2/review'
+    }]
+  });
+  assert.match(html, /Pace is faster than the world record\./);
+  assert.match(html, /OCR mismatch/);
+  assert.match(html, /No run proof file is available for this submission/);
+  assert.doesNotMatch(html, /data-tooltip=/);
+});
+
+test('search preserves the active queue through a hidden status field', () => {
+  const html = renderQueue({ filters: { status: 'approved', sort: 'newest', q: 'jordan', page: 1 } });
+  assert.match(html, /<input type="hidden" name="status" value="approved">/);
+  assert.match(html, /Clear search/);
+  assert.match(html, /aria-current=page/);
 });
 
 test('queue cards keep the single review action link and never gain an inline approve control', () => {

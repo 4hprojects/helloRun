@@ -1,0 +1,1174 @@
+/* ============================================
+   Run Proof Review (organizer / admin queue)
+   Loaded after organizer-events.css; every rule is scoped to
+   .run-proof-review-page so it cannot leak into other organizer pages.
+
+   Breakpoints
+   - Desktop  >= 1025px : proof thumbnail | details | actions (3 columns)
+   - Tablet   641-1024px: thumbnail | details, actions in a full-width row
+   - Mobile   <= 640px  : compact header row, stacked details, 44px targets
+   ============================================ */
+
+.run-proof-review-page {
+  --rpr-ink: #0f172a;
+  --rpr-muted: #475569;
+  --rpr-subtle: #64748b;
+  --rpr-line: #e2e8f0;
+  --rpr-line-strong: #cbd5e1;
+  --rpr-surface: #ffffff;
+  --rpr-surface-alt: #f8fafc;
+  --rpr-brand: #c2410c;
+  --rpr-brand-hover: #9a3412;
+  --rpr-focus: 0 0 0 3px rgba(194, 65, 12, 0.28);
+  --rpr-control: 2.75rem;
+}
+
+.run-proof-review-page .events-shell {
+  max-width: 1200px;
+}
+
+/* ---------- Shared controls ---------- */
+
+.run-proof-review-page .rpr-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: var(--rpr-control);
+  padding: 0 1rem;
+  border: 1px solid var(--rpr-line-strong);
+  border-radius: 10px;
+  background: var(--rpr-surface);
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.run-proof-review-page .rpr-btn i,
+.run-proof-review-page .rpr-btn svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+}
+
+.run-proof-review-page .rpr-btn-secondary:hover {
+  border-color: #94a3b8;
+  background: var(--rpr-surface-alt);
+  color: var(--rpr-ink);
+}
+
+.run-proof-review-page .rpr-btn-primary {
+  border-color: var(--rpr-brand);
+  background: var(--rpr-brand);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(194, 65, 12, 0.22);
+}
+
+.run-proof-review-page .rpr-btn-primary:hover {
+  border-color: var(--rpr-brand-hover);
+  background: var(--rpr-brand-hover);
+  color: #fff;
+}
+
+.run-proof-review-page .rpr-btn.is-disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+
+.run-proof-review-page a:focus-visible,
+.run-proof-review-page button:focus-visible,
+.run-proof-review-page select:focus-visible,
+.run-proof-review-page input:focus-visible,
+.run-proof-review-page summary:focus-visible {
+  outline: none;
+  box-shadow: var(--rpr-focus);
+}
+
+/* ---------- Header ---------- */
+
+.run-proof-review-page .rpr-header {
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.run-proof-review-page .rpr-heading {
+  min-width: 0;
+  flex: 1 1 22rem;
+}
+
+.run-proof-review-page .rpr-eyebrow {
+  margin: 0 0 0.2rem;
+  color: var(--rpr-brand);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.run-proof-review-page .rpr-header h1 {
+  margin: 0 0 0.3rem;
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2rem);
+  line-height: 1.15;
+}
+
+.run-proof-review-page .rpr-subtitle {
+  max-width: 44rem;
+  margin: 0;
+  color: var(--rpr-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Overrides the pill-shaped container from the registrants page. */
+.run-proof-review-page .run-proof-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  width: auto;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* ---------- Queue tabs (status filter + counts) ---------- */
+
+.run-proof-review-page .rpr-tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+}
+
+.run-proof-review-page .rpr-tab {
+  --rpr-tab-accent: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-height: 4.25rem;
+  padding: 0.65rem 0.9rem 0.65rem 1rem;
+  border: 1px solid var(--rpr-line);
+  border-left: 4px solid var(--rpr-tab-accent);
+  border-radius: 10px;
+  background: var(--rpr-surface);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.run-proof-review-page .rpr-tab-pending { --rpr-tab-accent: #d97706; }
+.run-proof-review-page .rpr-tab-approved { --rpr-tab-accent: #16a34a; }
+.run-proof-review-page .rpr-tab-auto-approved { --rpr-tab-accent: #2563eb; }
+.run-proof-review-page .rpr-tab-rejected { --rpr-tab-accent: #e11d48; }
+
+.run-proof-review-page .rpr-tab:hover {
+  border-color: var(--rpr-line-strong);
+  border-left-color: var(--rpr-tab-accent);
+  background: var(--rpr-surface-alt);
+}
+
+.run-proof-review-page .rpr-tab.is-active {
+  border-color: var(--rpr-tab-accent);
+  background: var(--rpr-surface-alt);
+  box-shadow: 0 0 0 1px var(--rpr-tab-accent), 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+.run-proof-review-page .rpr-tab-label {
+  color: var(--rpr-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.run-proof-review-page .rpr-tab-count {
+  color: var(--rpr-ink);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.run-proof-review-page .rpr-tab.is-active .rpr-tab-label {
+  color: var(--rpr-ink);
+}
+
+/* ---------- Filters ---------- */
+
+.run-proof-review-page .rpr-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--rpr-line);
+  border-radius: 12px;
+  background: var(--rpr-surface-alt);
+}
+
+.run-proof-review-page .rpr-field {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.run-proof-review-page .rpr-field label {
+  margin: 0;
+  color: var(--rpr-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.run-proof-review-page .rpr-field-sort {
+  flex: 0 0 11rem;
+}
+
+.run-proof-review-page .rpr-field-search {
+  flex: 1 1 18rem;
+}
+
+.run-proof-review-page .rpr-field select,
+.run-proof-review-page .rpr-field input[type="search"] {
+  width: 100%;
+  min-width: 0;
+  height: var(--rpr-control);
+  margin: 0;
+  padding: 0 0.85rem;
+  border: 1px solid var(--rpr-line-strong);
+  border-radius: 10px;
+  background-color: var(--rpr-surface);
+  color: var(--rpr-ink);
+  font-size: 1rem; /* 16px prevents iOS zoom-on-focus */
+  box-sizing: border-box;
+}
+
+.run-proof-review-page .run-proof-search-wrapper {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.run-proof-review-page .run-proof-search-wrapper input[type="search"] {
+  flex: 1 1 auto;
+  border-right: 0;
+  border-radius: 10px 0 0 10px;
+}
+
+.run-proof-review-page .run-proof-search-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: var(--rpr-control);
+  height: var(--rpr-control);
+  padding: 0;
+  border: 1px solid var(--rpr-brand);
+  border-radius: 0 10px 10px 0;
+  background: var(--rpr-brand);
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.run-proof-review-page .run-proof-search-btn:hover {
+  background: var(--rpr-brand-hover);
+}
+
+.run-proof-review-page .run-proof-search-btn i,
+.run-proof-review-page .run-proof-search-btn svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.run-proof-review-page .rpr-clear-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: var(--rpr-control);
+  padding: 0 0.25rem;
+  color: var(--rpr-muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.run-proof-review-page .rpr-clear-link:hover {
+  color: var(--rpr-brand);
+}
+
+.run-proof-review-page .rpr-clear-link i,
+.run-proof-review-page .rpr-clear-link svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ---------- Callout + results meta ---------- */
+
+.run-proof-review-page .rpr-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0 0 0.9rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  background: #fffbeb;
+  color: #713f12;
+}
+
+.run-proof-review-page .rpr-callout p {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.run-proof-review-page .rpr-callout i,
+.run-proof-review-page .rpr-callout svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+}
+
+.run-proof-review-page .run-proof-results-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+  margin: 0 0 0.75rem;
+  color: var(--rpr-muted);
+  font-size: 0.9rem;
+}
+
+.run-proof-review-page .run-proof-results-note {
+  color: #1e3a8a;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+/* ---------- Review cards ---------- */
+
+.run-proof-review-page .run-proof-review-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.run-proof-review-page .rpr-card {
+  --rpr-card-accent: #94a3b8;
+  position: relative;
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) 13rem;
+  grid-template-areas:
+    "media head side"
+    "media body side";
+  grid-template-rows: auto 1fr;
+  column-gap: 1.1rem;
+  row-gap: 0.6rem;
+  padding: 1rem 1rem 1rem 1.15rem;
+  border: 1px solid var(--rpr-line);
+  border-left: 4px solid var(--rpr-card-accent);
+  border-radius: 12px;
+  background: var(--rpr-surface);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.run-proof-review-page .rpr-card-submitted { --rpr-card-accent: #d97706; }
+.run-proof-review-page .rpr-card-needs_clarification { --rpr-card-accent: #4f46e5; }
+.run-proof-review-page .rpr-card-approved { --rpr-card-accent: #16a34a; }
+.run-proof-review-page .rpr-card-auto-approved { --rpr-card-accent: #2563eb; }
+.run-proof-review-page .rpr-card-rejected { --rpr-card-accent: #e11d48; }
+
+.run-proof-review-page .rpr-card:hover {
+  border-color: var(--rpr-line-strong);
+  border-left-color: var(--rpr-card-accent);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.09);
+}
+
+.run-proof-review-page .rpr-card:focus-within {
+  box-shadow: 0 0 0 2px rgba(194, 65, 12, 0.35);
+}
+
+/* Media */
+
+.run-proof-review-page .rpr-media {
+  grid-area: media;
+  align-self: start;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+}
+
+.run-proof-review-page .run-proof-image-link,
+.run-proof-review-page .rpr-media-fallback {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--rpr-line-strong);
+  border-radius: 10px;
+  background: #f1f5f9;
+}
+
+.run-proof-review-page .run-proof-image-link img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
+  object-position: top center;
+  touch-action: auto;
+}
+
+.run-proof-review-page .run-proof-image-link:hover {
+  border-color: var(--rpr-brand);
+}
+
+.run-proof-review-page .rpr-media-fallback {
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.4rem;
+  color: var(--rpr-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.run-proof-review-page a.rpr-media-fallback:hover {
+  border-color: var(--rpr-brand);
+  color: var(--rpr-brand);
+}
+
+.run-proof-review-page .rpr-media-missing {
+  border-style: dashed;
+  background: var(--rpr-surface-alt);
+  color: var(--rpr-subtle);
+}
+
+.run-proof-review-page .rpr-media-fallback i,
+.run-proof-review-page .rpr-media-fallback svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* Head */
+
+.run-proof-review-page .rpr-card-head {
+  grid-area: head;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.run-proof-review-page .rpr-identity {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.run-proof-review-page .rpr-identity h2 {
+  margin: 0;
+  text-align: left;
+  color: var(--rpr-ink);
+  font-size: 1.05rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.run-proof-review-page .rpr-identity h2::after,
+.run-proof-review-page .rpr-empty h3::after,
+.run-proof-review-page .rpr-header h1::after {
+  content: none;
+  display: none;
+}
+
+.run-proof-review-page .rpr-identity p {
+  margin: 0.1rem 0 0;
+  color: var(--rpr-muted);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.run-proof-review-page .rpr-identity .rpr-code {
+  color: var(--rpr-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
+.run-proof-review-page .rpr-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.run-proof-review-page .rpr-status .status-badge,
+.run-proof-review-page .rpr-status .run-proof-self-badge {
+  margin: 0;
+  transform: none;
+  box-shadow: none;
+}
+
+.run-proof-review-page .status-badge-submitted {
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  color: #713f12;
+}
+
+.run-proof-review-page .status-badge-approved {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #14532d;
+}
+
+.run-proof-review-page .status-badge-auto-approved,
+.run-proof-review-page .status-badge-needs_clarification {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.run-proof-review-page .status-badge-rejected {
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+  color: #9f1239;
+}
+
+/* Body */
+
+.run-proof-review-page .rpr-card-body {
+  grid-area: body;
+  min-width: 0;
+}
+
+.run-proof-review-page .run-proof-card-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.6rem;
+}
+
+.run-proof-review-page .run-proof-card-labels:empty {
+  display: none;
+}
+
+.run-proof-review-page .mode-badge {
+  min-height: 0;
+  padding: 0.25rem 0.6rem;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.7rem;
+  transform: none;
+  box-shadow: none;
+}
+
+.run-proof-review-page .mode-badge.mode-auto-approved {
+  border: 1px solid rgba(29, 78, 216, 0.15);
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+.run-proof-review-page .rpr-signals {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0 0 0.7rem;
+  padding: 0;
+  list-style: none;
+}
+
+.run-proof-review-page .rpr-signals li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  background: #fffbeb;
+  color: #713f12;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.run-proof-review-page .rpr-signals li i,
+.run-proof-review-page .rpr-signals li svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  margin-top: 0.12rem;
+}
+
+.run-proof-review-page .rpr-signals li strong {
+  margin-right: 0.25rem;
+}
+
+.run-proof-review-page .run-proof-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.5fr);
+  gap: 0.6rem 1rem;
+  margin: 0;
+}
+
+.run-proof-review-page .run-proof-meta-grid > div {
+  min-width: 0;
+}
+
+.run-proof-review-page .run-proof-meta-grid dt {
+  color: var(--rpr-subtle);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.run-proof-review-page .run-proof-meta-grid dd {
+  margin: 0.1rem 0 0;
+  color: var(--rpr-ink);
+  font-size: 0.92rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.run-proof-review-page .run-proof-details {
+  margin-top: 0.55rem;
+}
+
+.run-proof-review-page .run-proof-details-toggle {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 2rem;
+  padding: 0.2rem 0.5rem 0.2rem 0.3rem;
+  border-radius: 6px;
+  color: #1d4ed8;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.run-proof-review-page .run-proof-details-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.run-proof-review-page .run-proof-details-toggle:hover {
+  background: #eff6ff;
+}
+
+.run-proof-review-page .run-proof-details-toggle i,
+.run-proof-review-page .run-proof-details-toggle svg {
+  width: 1rem;
+  height: 1rem;
+  transition: transform 0.15s ease;
+}
+
+.run-proof-review-page .run-proof-details[open] .run-proof-details-toggle i,
+.run-proof-review-page .run-proof-details[open] .run-proof-details-toggle svg {
+  transform: rotate(180deg);
+}
+
+.run-proof-review-page .run-proof-meta-secondary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 0.4rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--rpr-line);
+}
+
+/* Side: actions + history */
+
+.run-proof-review-page .rpr-card-side {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  padding-left: 1rem;
+  border-left: 1px solid var(--rpr-line);
+}
+
+.run-proof-review-page .run-proof-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.run-proof-review-page .run-proof-card-actions .registrant-row-btn-review {
+  width: auto; /* overrides the registrants table's width:100% action button */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--rpr-control);
+  padding: 0 1rem;
+  border: 1px solid var(--rpr-brand);
+  border-radius: 10px;
+  background: var(--rpr-brand);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: none;
+  transform: none;
+}
+
+.run-proof-review-page .run-proof-card-actions .registrant-row-btn-review:hover {
+  border-color: var(--rpr-brand-hover);
+  background: var(--rpr-brand-hover);
+  color: #fff;
+  transform: none;
+}
+
+/* Approved / rejected entries are read-only, so the action is quieter. */
+.run-proof-review-page .rpr-card:not(.rpr-card-submitted):not(.rpr-card-needs_clarification) .registrant-row-btn-review {
+  border-color: var(--rpr-line-strong);
+  background: var(--rpr-surface);
+  color: #334155;
+}
+
+.run-proof-review-page .rpr-card:not(.rpr-card-submitted):not(.rpr-card-needs_clarification) .registrant-row-btn-review:hover {
+  border-color: #94a3b8;
+  background: var(--rpr-surface-alt);
+  color: var(--rpr-ink);
+}
+
+.run-proof-review-page .registrant-row-btn-review i,
+.run-proof-review-page .registrant-row-btn-review svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+}
+
+/* The single review link is stretched over the whole card so the entire
+   card is a click target; inner links sit above it via z-index. */
+.run-proof-review-page .run-proof-card-actions .registrant-row-btn-review::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 12px;
+}
+
+.run-proof-review-page .rpr-proof-link {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  color: #1d4ed8;
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.run-proof-review-page .rpr-proof-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.run-proof-review-page .rpr-proof-link i,
+.run-proof-review-page .rpr-proof-link svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.run-proof-review-page .run-proof-history {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  background: var(--rpr-surface-alt);
+  color: var(--rpr-muted);
+}
+
+.run-proof-review-page .run-proof-history strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--rpr-ink);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
+.run-proof-review-page .run-proof-history p {
+  margin: 0.15rem 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.run-proof-review-page .run-proof-history p strong {
+  display: inline;
+  margin: 0;
+  font-size: inherit;
+}
+
+/* ---------- Pagination + empty state ---------- */
+
+.run-proof-review-page .run-proof-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.run-proof-review-page .run-proof-pagination .rpr-btn {
+  min-width: 7rem;
+}
+
+.run-proof-review-page .rpr-page-indicator {
+  color: var(--rpr-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.run-proof-review-page .rpr-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 2.5rem 1rem;
+  border: 1px dashed var(--rpr-line-strong);
+  border-radius: 12px;
+  background: var(--rpr-surface-alt);
+  text-align: center;
+}
+
+.run-proof-review-page .rpr-empty > i,
+.run-proof-review-page .rpr-empty > svg {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--rpr-subtle);
+}
+
+.run-proof-review-page .rpr-empty h3 {
+  margin: 0.25rem 0 0;
+  color: var(--rpr-ink);
+}
+
+.run-proof-review-page .rpr-empty p {
+  max-width: 28rem;
+  margin: 0 0 0.75rem;
+  color: var(--rpr-muted);
+}
+
+/* ============================================
+   Tablet (641px - 1024px)
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .run-proof-review-page .rpr-tabs {
+    gap: 0.5rem;
+  }
+
+  .run-proof-review-page .rpr-tab {
+    padding: 0.6rem 0.6rem 0.6rem 0.75rem;
+  }
+
+  .run-proof-review-page .rpr-tab-label {
+    font-size: 0.78rem;
+  }
+
+  .run-proof-review-page .rpr-card {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    grid-template-areas:
+      "media head"
+      "media body"
+      "side  side";
+    grid-template-rows: auto auto auto;
+  }
+
+  .run-proof-review-page .rpr-card-side {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    padding: 0.75rem 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--rpr-line);
+  }
+
+  .run-proof-review-page .run-proof-card-actions {
+    flex: 0 0 auto;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+  }
+
+  .run-proof-review-page .run-proof-card-actions .registrant-row-btn-review {
+    flex: 0 0 auto;
+    min-width: 9.5rem;
+  }
+
+  .run-proof-review-page .run-proof-card-actions .rpr-proof-link {
+    flex: 0 0 auto;
+  }
+
+  .run-proof-review-page .run-proof-history {
+    flex: 1 1 16rem;
+  }
+}
+
+/* ============================================
+   Mobile (<= 640px)
+   ============================================ */
+
+@media (max-width: 640px) {
+  .run-proof-review-page.events-page {
+    padding: 0.75rem 0.5rem 1.5rem;
+  }
+
+  .run-proof-review-page .events-shell {
+    padding: 0.85rem;
+    border-radius: 10px;
+  }
+
+  /* Header: heading first, primary action full width, secondary actions share a row. */
+  .run-proof-review-page .rpr-header {
+    align-items: stretch;
+    margin-bottom: 1rem;
+  }
+
+  .run-proof-review-page .rpr-heading {
+    flex: 0 0 auto;
+  }
+
+  .run-proof-review-page .rpr-subtitle {
+    font-size: 0.88rem;
+  }
+
+  .run-proof-review-page .run-proof-header-actions {
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .run-proof-review-page .run-proof-header-actions .rpr-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0 0.6rem;
+    font-size: 0.82rem;
+  }
+
+  .run-proof-review-page .run-proof-header-actions .rpr-btn-primary {
+    flex: 1 1 100%;
+    font-size: 0.92rem;
+  }
+
+  .run-proof-review-page .run-proof-header-actions .rpr-btn span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Labels carry the meaning here; dropping the icons keeps "Registrants" from truncating. */
+  .run-proof-review-page .run-proof-header-actions .rpr-btn-secondary i,
+  .run-proof-review-page .run-proof-header-actions .rpr-btn-secondary svg {
+    display: none;
+  }
+
+  /* Tabs become a swipeable strip with an edge fade hinting at more content. */
+  .run-proof-review-page .rpr-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-right: -0.85rem;
+    margin-left: -0.85rem;
+    padding: 0.15rem 0.85rem 0.35rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 0.85rem;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+  }
+
+  .run-proof-review-page .rpr-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .run-proof-review-page .rpr-tab {
+    flex: 0 0 auto;
+    min-width: 7.75rem;
+    min-height: 3.75rem;
+    scroll-snap-align: start;
+  }
+
+  .run-proof-review-page .rpr-tab-count {
+    font-size: 1.3rem;
+  }
+
+  /* Filters: Sort full width above search so nothing is squeezed. */
+  .run-proof-review-page .rpr-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    padding: 0.75rem;
+  }
+
+  .run-proof-review-page .rpr-field-sort,
+  .run-proof-review-page .rpr-field-search {
+    flex: 1 1 auto;
+  }
+
+  .run-proof-review-page .rpr-clear-link {
+    justify-content: center;
+    align-self: flex-start;
+  }
+
+  /* Cards: avatar-style thumbnail beside the identity, everything else stacked. */
+  .run-proof-review-page .rpr-card {
+    grid-template-columns: 4.25rem minmax(0, 1fr);
+    grid-template-areas:
+      "media head"
+      "body  body"
+      "side  side";
+    column-gap: 0.75rem;
+    row-gap: 0.7rem;
+    padding: 0.85rem 0.85rem 0.85rem 0.95rem;
+  }
+
+  .run-proof-review-page .rpr-card-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .run-proof-review-page .rpr-identity {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .run-proof-review-page .rpr-status {
+    justify-content: flex-start;
+  }
+
+  .run-proof-review-page .run-proof-meta-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem 0.75rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 8px;
+    background: var(--rpr-surface-alt);
+  }
+
+  .run-proof-review-page .run-proof-meta-secondary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .run-proof-review-page .run-proof-details-toggle {
+    min-height: var(--rpr-control);
+  }
+
+  .run-proof-review-page .rpr-card-side {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .run-proof-review-page .run-proof-card-actions {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .run-proof-review-page .run-proof-card-actions .registrant-row-btn-review {
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  .run-proof-review-page .rpr-proof-link {
+    min-height: var(--rpr-control);
+    border: 1px solid var(--rpr-line-strong);
+    border-radius: 10px;
+    background: var(--rpr-surface);
+  }
+
+  .run-proof-review-page .run-proof-history {
+    flex: 0 0 auto;
+  }
+
+  .run-proof-review-page .run-proof-pagination {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "indicator indicator"
+      "prev next";
+    gap: 0.6rem;
+  }
+
+  .run-proof-review-page .rpr-page-indicator {
+    grid-area: indicator;
+  }
+
+  .run-proof-review-page .run-proof-pagination .rpr-btn {
+    min-width: 0;
+  }
+
+  .run-proof-review-page .run-proof-pagination > :first-child {
+    grid-area: prev;
+  }
+
+  .run-proof-review-page .run-proof-pagination > :last-child {
+    grid-area: next;
+  }
+}
+
+/* Very narrow phones (<= 360px) */
+@media (max-width: 360px) {
+  .run-proof-review-page .run-proof-header-actions .rpr-btn:not(.rpr-btn-primary) {
+    padding: 0 0.45rem;
+  }
+
+  .run-proof-review-page .run-proof-header-actions .rpr-btn:not(.rpr-btn-primary) span {
+    font-size: 0.78rem;
+  }
+
+  .run-proof-review-page .rpr-card {
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-proof-review-page *,
+  .run-proof-review-page *::before,
+  .run-proof-review-page *::after {
+    transition-duration: 0.01ms !important;
+  }
+}

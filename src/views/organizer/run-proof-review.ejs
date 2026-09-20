@@ -3,109 +3,103 @@
 <head>
   <%- include('../layouts/head', { title: title }) %>
   <link rel="stylesheet" href="/css/organizer-events.css">
-  <link rel="stylesheet" href="/css/run-proof-review-tooltips.css">
+  <link rel="stylesheet" href="/css/run-proof-review.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
 
+  <%
+    const queueTabs = [
+      { key: 'pending', label: 'Pending Review', count: counts.pending, href: links.pending },
+      { key: 'all', label: 'All Proofs', count: counts.all, href: links.all },
+      { key: 'approved', label: 'Approved', count: counts.approved, href: links.approved },
+      { key: 'auto-approved', label: 'Auto-approved', count: counts.autoApproved, href: links.autoApproved },
+      { key: 'rejected', label: 'Rejected', count: counts.rejected, href: links.rejected }
+    ];
+    const clearSearchHref = `/organizer/events/${event._id}/run-proofs/review?status=${encodeURIComponent(filters.status)}&sort=${encodeURIComponent(filters.sort)}`;
+  %>
+
   <main class="events-page organizer-registrants-page run-proof-review-page">
     <section class="events-shell">
-      <header class="events-header">
-        <div>
+      <header class="events-header rpr-header">
+        <div class="rpr-heading">
+          <p class="rpr-eyebrow"><%= event.title %></p>
           <h1>Run Proof Review</h1>
-          <p><%= event.title %> - Review pending proofs, inspect approved results, and audit automatic approvals.</p>
+          <p class="rpr-subtitle">Review pending proofs, inspect approved results, and audit automatic approvals.</p>
         </div>
         <div class="header-actions run-proof-header-actions" aria-label="Run proof review navigation">
           <% if (links.reviewOldest) { %>
-            <a href="<%= links.reviewOldest %>" class="nav-signup-btn registrant-header-btn run-proof-header-btn run-proof-review-oldest-btn">
+            <a href="<%= links.reviewOldest %>" class="rpr-btn rpr-btn-primary run-proof-review-oldest-btn">
               <i data-lucide="scan-search" aria-hidden="true"></i><span>Review oldest pending</span>
             </a>
           <% } %>
           <% if (isAdminViewer) { %>
-            <a href="/admin/dashboard" class="nav-login-btn registrant-header-btn run-proof-header-btn" data-tooltip="Admin Dashboard" aria-label="Admin Dashboard">
-              <i data-lucide="shield-check" aria-hidden="true"></i>
+            <a href="/admin/dashboard" class="rpr-btn rpr-btn-secondary" aria-label="Admin Dashboard">
+              <i data-lucide="shield-check" aria-hidden="true"></i><span>Admin</span>
             </a>
           <% } else { %>
-            <a href="/organizer/events/<%= event._id %>" class="nav-login-btn registrant-header-btn run-proof-header-btn" data-tooltip="Back to Event" aria-label="Back to Event">
-              <i data-lucide="arrow-left" aria-hidden="true"></i>
+            <a href="/organizer/events/<%= event._id %>" class="rpr-btn rpr-btn-secondary" aria-label="Back to Event">
+              <i data-lucide="arrow-left" aria-hidden="true"></i><span>Event</span>
             </a>
           <% } %>
-          <a href="<%= links.registrants %>" class="nav-login-btn registrant-header-btn run-proof-header-btn" data-tooltip="Registrants" aria-label="Registrants">
-            <i data-lucide="users" aria-hidden="true"></i>
+          <a href="<%= links.registrants %>" class="rpr-btn rpr-btn-secondary" aria-label="Registrants">
+            <i data-lucide="users" aria-hidden="true"></i><span>Registrants</span>
           </a>
           <% if (!isAdminViewer) { %>
-            <a href="/organizer/events" class="nav-login-btn registrant-header-btn run-proof-header-btn" data-tooltip="My Events" aria-label="My Events">
-              <i data-lucide="calendar-days" aria-hidden="true"></i>
+            <a href="/organizer/events" class="rpr-btn rpr-btn-secondary" aria-label="My Events">
+              <i data-lucide="calendar-days" aria-hidden="true"></i><span>My events</span>
             </a>
           <% } %>
         </div>
       </header>
 
       <% if (message) { %>
-        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+        <div class="page-message page-message-<%= message.type %>" role="status"><%= message.text %></div>
       <% } %>
 
-      <section class="registrant-summary">
-        <a href="<%= links.pending %>" class="summary-card payment-proof-summary-link <%= filters.status === 'pending' ? 'is-active' : '' %>">
-          <strong>Pending Review</strong>
-          <span><%= counts.pending %></span>
-        </a>
-        <a href="<%= links.all %>" class="summary-card payment-proof-summary-link <%= filters.status === 'all' ? 'is-active' : '' %>">
-          <strong>All Proofs</strong>
-          <span><%= counts.all %></span>
-        </a>
-        <a href="<%= links.approved %>" class="summary-card payment-proof-summary-link <%= filters.status === 'approved' ? 'is-active' : '' %>">
-          <strong>Approved</strong>
-          <span><%= counts.approved %></span>
-        </a>
-        <a href="<%= links.autoApproved %>" class="summary-card payment-proof-summary-link <%= filters.status === 'auto-approved' ? 'is-active' : '' %>">
-          <strong>Auto-approved</strong>
-          <span><%= counts.autoApproved %></span>
-        </a>
-        <a href="<%= links.rejected %>" class="summary-card payment-proof-summary-link <%= filters.status === 'rejected' ? 'is-active' : '' %>">
-          <strong>Rejected</strong>
-          <span><%= counts.rejected %></span>
-        </a>
-      </section>
+      <nav class="registrant-summary rpr-tabs" aria-label="Filter run proofs by queue">
+        <% queueTabs.forEach((tab) => { %>
+          <a href="<%= tab.href %>"
+             class="summary-card payment-proof-summary-link rpr-tab rpr-tab-<%= tab.key %> <%= filters.status === tab.key ? 'is-active' : '' %>"
+             <%= filters.status === tab.key ? 'aria-current=page' : '' %>>
+            <span class="rpr-tab-label"><%= tab.label %></span>
+            <strong class="rpr-tab-count"><%= tab.count %></strong>
+          </a>
+        <% }) %>
+      </nav>
 
-      <form method="GET" action="/organizer/events/<%= event._id %>/run-proofs/review" class="filter-bar run-proof-filter-bar">
-        <div class="run-proof-filter-field">
-          <label for="status">Queue</label>
-          <select id="status" name="status" title="Filter by status" onchange="this.form.submit()">
-            <option value="" disabled>Filter by status</option>
-            <option value="pending" <%= filters.status === 'pending' ? 'selected' : '' %>>Pending</option>
-            <option value="approved" <%= filters.status === 'approved' ? 'selected' : '' %>>Approved</option>
-            <option value="auto-approved" <%= filters.status === 'auto-approved' ? 'selected' : '' %>>Auto-approved</option>
-            <option value="rejected" <%= filters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
-            <option value="all" <%= filters.status === 'all' ? 'selected' : '' %>>All</option>
-          </select>
-        </div>
+      <form method="GET" action="/organizer/events/<%= event._id %>/run-proofs/review" class="rpr-filters" role="search">
+        <input type="hidden" name="status" value="<%= filters.status %>">
 
-        <div class="run-proof-filter-field">
+        <div class="rpr-field rpr-field-sort">
           <label for="sort">Sort</label>
-          <select id="sort" name="sort" title="Sort by date" onchange="this.form.submit()">
-            <option value="" disabled>Sort by...</option>
+          <select id="sort" name="sort" onchange="this.form.submit()">
             <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest first</option>
             <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest first</option>
           </select>
         </div>
 
-        <div class="run-proof-filter-field run-proof-search-field">
+        <div class="rpr-field rpr-field-search">
           <label for="q">Search</label>
           <div class="run-proof-search-wrapper">
-            <div class="run-proof-search-control">
-              <input id="q" name="q" type="search" placeholder="Name, email, or code" value="<%= filters.q || '' %>" title="Search by participant name, email, or confirmation code">
-            </div>
+            <input id="q" name="q" type="search" placeholder="Name, email, or code" title="Search by participant name, email, or confirmation code" value="<%= filters.q || '' %>" autocomplete="off" enterkeyhint="search">
             <button type="submit" class="run-proof-search-btn" aria-label="Search">
-              <i data-lucide="search"></i>
+              <i data-lucide="search" aria-hidden="true"></i>
             </button>
           </div>
         </div>
+
+        <% if (filters.q) { %>
+          <a href="<%= clearSearchHref %>" class="rpr-clear-link">
+            <i data-lucide="x" aria-hidden="true"></i>Clear search
+          </a>
+        <% } %>
       </form>
 
       <% if (filters.status === 'pending') { %>
-        <div class="page-message page-message-warning">
-          Review the full activity evidence and validation signals before approving or rejecting a run proof.
+        <div class="rpr-callout" role="note">
+          <i data-lucide="info" aria-hidden="true"></i>
+          <p>Review the full activity evidence and validation signals before approving or rejecting a run proof.</p>
         </div>
       <% } %>
 
@@ -117,33 +111,66 @@
           <% } %>
         </div>
 
-        <section class="run-proof-review-list">
+        <section class="run-proof-review-list" aria-label="Run proofs">
           <% reviewItems.forEach((item) => { %>
-            <article class="run-proof-review-card">
-              <div class="run-proof-card-main">
-                <div class="run-proof-card-header">
-                  <div>
-                    <h2><%= item.participantName %></h2>
-                    <p><%= item.participantEmail %></p>
+            <article class="run-proof-review-card rpr-card rpr-card-<%= item.statusClass %>">
+              <div class="rpr-media">
+                <% if (item.proofUrl && item.isImageProof) { %>
+                  <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="run-proof-image-link" aria-label="Open run proof image for <%= item.participantName %>">
+                    <img src="<%= item.proofUrl %>" alt="Run proof for <%= item.confirmationCode %>" loading="lazy" decoding="async">
+                  </a>
+                <% } else if (item.proofUrl) { %>
+                  <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="rpr-media-fallback" aria-label="Open run proof file for <%= item.participantName %>">
+                    <i data-lucide="file-text" aria-hidden="true"></i>
+                    <span>Proof file</span>
+                  </a>
+                <% } else { %>
+                  <div class="rpr-media-fallback rpr-media-missing" role="img" aria-label="No run proof file is available for this submission">
+                    <i data-lucide="image-off" aria-hidden="true"></i>
+                    <span>No proof</span>
                   </div>
+                <% } %>
+              </div>
+
+              <div class="run-proof-card-header rpr-card-head">
+                <div class="rpr-identity">
+                  <h2><%= item.participantName %></h2>
+                  <p><%= item.participantEmail %></p>
+                  <% if (item.confirmationCode && item.confirmationCode !== 'N/A') { %>
+                    <p class="rpr-code"><%= item.confirmationCode %></p>
+                  <% } %>
+                </div>
+                <div class="rpr-status">
                   <span class="status-badge status-badge-<%= item.statusClass %>"><%= item.statusLabel %></span>
                   <% if (item.isOwnSubmission) { %><span class="run-proof-self-badge" title="Reviewing your own entry is recorded in the audit log">Your own entry</span><% } %>
                 </div>
+              </div>
 
+              <div class="rpr-card-body">
                 <div class="run-proof-card-labels">
                   <span class="mode-badge"><%= item.submissionTypeLabel %></span>
                   <% if (item.isAutoApproved) { %>
                     <span class="mode-badge mode-auto-approved">Auto validation</span>
                   <% } %>
-                  <% if (item.suspiciousFlag || item.reviewSignal?.label) { %>
-                    <span class="mode-badge mode-warning" data-tooltip="<%= item.reviewSignal?.description || item.suspiciousFlagReason || 'This submission was flagged for manual review.' %>"><%= item.reviewSignal?.label || 'Suspicious' %></span>
-                  <% } %>
-                  <% if (item.hasOcrMismatch) { %>
-                    <span class="mode-badge mode-warning" data-tooltip="The OCR scanner detected a value (distance, time, or name) that doesn't match what was entered. Review the proof image carefully.">OCR mismatch</span>
-                  <% } %>
                 </div>
 
-                <!-- Essential metadata - always visible -->
+                <% if (item.suspiciousFlag || item.reviewSignal?.label || item.hasOcrMismatch) { %>
+                  <ul class="rpr-signals" aria-label="Validation signals">
+                    <% if (item.suspiciousFlag || item.reviewSignal?.label) { %>
+                      <li>
+                        <i data-lucide="triangle-alert" aria-hidden="true"></i>
+                        <span><strong><%= item.reviewSignal?.label || 'Suspicious' %></strong> <%= item.reviewSignal?.description || item.suspiciousFlagReason || 'This submission was flagged for manual review.' %></span>
+                      </li>
+                    <% } %>
+                    <% if (item.hasOcrMismatch) { %>
+                      <li>
+                        <i data-lucide="scan-text" aria-hidden="true"></i>
+                        <span><strong>OCR mismatch</strong> A value read from the proof image (distance, time, or name) does not match what was entered. Check the proof carefully.</span>
+                      </li>
+                    <% } %>
+                  </ul>
+                <% } %>
+
                 <dl class="run-proof-meta-grid">
                   <div>
                     <dt>Distance</dt>
@@ -157,19 +184,18 @@
                     <dt>Run Date</dt>
                     <dd><%= item.runDateLabel || 'N/A' %></dd>
                   </div>
+                  <div>
+                    <dt>Submitted</dt>
+                    <dd><%= item.submittedAtLabel || 'N/A' %></dd>
+                  </div>
                 </dl>
 
-                <!-- Collapsible details section -->
                 <details class="run-proof-details">
                   <summary class="run-proof-details-toggle">
                     <i data-lucide="chevron-down" aria-hidden="true"></i>
                     More details
                   </summary>
                   <dl class="run-proof-meta-grid run-proof-meta-secondary">
-                    <div>
-                      <dt>Submitted</dt>
-                      <dd><%= item.submittedAtLabel || 'N/A' %></dd>
-                    </div>
                     <div>
                       <dt>Proof Type</dt>
                       <dd><%= item.proofTypeLabel %></dd>
@@ -186,28 +212,18 @@
                 </details>
               </div>
 
-              <div class="run-proof-card-side">
-                <% if (item.proofUrl) { %>
-                  <div class="run-proof-preview">
-                    <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="proof-link">
-                      <i data-lucide="external-link" aria-hidden="true"></i>
-                      Open run proof
-                    </a>
-                    <% if (item.isImageProof) { %>
-                      <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="run-proof-image-link">
-                        <img src="<%= item.proofUrl %>" alt="Run proof for <%= item.confirmationCode %>">
-                      </a>
-                    <% } %>
-                  </div>
-                <% } else { %>
-                  <p class="rejection">No run proof file is available for this submission.</p>
-                <% } %>
-
+              <div class="rpr-card-side">
                 <div class="run-proof-card-actions">
                   <a href="<%= item.actionHref %>" class="nav-signup-btn table-action-btn registrant-row-btn registrant-row-btn-review">
                     <i data-lucide="eye" aria-hidden="true"></i>
                     <%= item.status === 'submitted' ? 'Open Review' : 'View Details' %>
                   </a>
+                  <% if (item.proofUrl) { %>
+                    <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="rpr-proof-link">
+                      <i data-lucide="external-link" aria-hidden="true"></i>
+                      Open proof
+                    </a>
+                  <% } %>
                 </div>
 
                 <% if (item.status !== 'submitted') { %>
@@ -238,21 +254,21 @@
         <% if (pagination.totalPages > 1) { %>
           <nav class="run-proof-pagination" aria-label="Run proof review pagination">
             <% if (pagination.prevHref) { %>
-              <a href="<%= pagination.prevHref %>" class="nav-login-btn">Previous</a>
+              <a href="<%= pagination.prevHref %>" class="rpr-btn rpr-btn-secondary" rel="prev"><i data-lucide="chevron-left" aria-hidden="true"></i><span>Previous</span></a>
             <% } else { %>
-              <span class="nav-login-btn disabled" aria-disabled="true">Previous</span>
+              <span class="rpr-btn rpr-btn-secondary is-disabled" aria-disabled="true"><i data-lucide="chevron-left" aria-hidden="true"></i><span>Previous</span></span>
             <% } %>
-            <span>Page <%= pagination.page %> of <%= pagination.totalPages %></span>
+            <span class="rpr-page-indicator">Page <%= pagination.page %> of <%= pagination.totalPages %></span>
             <% if (pagination.nextHref) { %>
-              <a href="<%= pagination.nextHref %>" class="nav-login-btn">Next</a>
+              <a href="<%= pagination.nextHref %>" class="rpr-btn rpr-btn-secondary" rel="next"><span>Next</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
             <% } else { %>
-              <span class="nav-login-btn disabled" aria-disabled="true">Next</span>
+              <span class="rpr-btn rpr-btn-secondary is-disabled" aria-disabled="true"><span>Next</span><i data-lucide="chevron-right" aria-hidden="true"></i></span>
             <% } %>
           </nav>
         <% } %>
       <% } else { %>
-        <div class="empty-state">
-          <i data-lucide="file-check-2"></i>
+        <div class="empty-state rpr-empty">
+          <i data-lucide="file-check-2" aria-hidden="true"></i>
           <% if (filters.status === 'pending' && !filters.q) { %>
             <h3>No pending run proofs</h3>
             <p>There are no submitted run proofs waiting for review for this event.</p>
@@ -260,7 +276,7 @@
             <h3>No run proofs found</h3>
             <p>No run proof records match the current queue and search filters.</p>
           <% } %>
-          <a href="<%= links.reset %>" class="nav-login-btn">View Pending Queue</a>
+          <a href="<%= links.reset %>" class="rpr-btn rpr-btn-secondary">View Pending Queue</a>
         </div>
       <% } %>
     </section>
@@ -269,6 +285,15 @@
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+    (function () {
+      var tabs = document.querySelector('.rpr-tabs');
+      var active = tabs && tabs.querySelector('.is-active');
+      if (active && tabs.scrollWidth > tabs.clientWidth) {
+        tabs.scrollLeft = active.offsetLeft - (tabs.clientWidth - active.offsetWidth) / 2;
+      }
+    })();
+  </script>
 </body>
 </html>
