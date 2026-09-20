@@ -27,11 +27,11 @@ test('the page is authenticated and the edit is CSRF-protected and rate-limited'
   );
 });
 
-test('page and edit share one access guard: role check, event access, registration scoped to the event', () => {
+test('page, edit and decision share one access guard: role check, event access, registration scoped to the event', () => {
   assert.match(route, /canAccessRegistrantReview\(user\)/);
   assert.match(route, /getRegistrantAccessibleEventOrNull\(req\.params\.id, user\)/);
   assert.match(route, /Registration\.findOne\(\{ _id: req\.params\.registrationId, eventId: event\._id \}\)/);
-  assert.equal((route.match(/await resolveAccess\(/g) || []).length, 2);
+  assert.equal((route.match(/await resolveAccess\(/g) || []).length, 3, 'page, edit and decision');
 });
 
 test('an entry can only be edited through the registration it belongs to', () => {

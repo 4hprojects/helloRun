@@ -303,3 +303,320 @@
     flex: 0 0 auto;
   }
 }
+
+/* ============================================
+   Status decisions (approve / reject / reverse)
+   ============================================ */
+
+.registrant-submissions-page .rs-decisions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.registrant-submissions-page .rs-decisions[hidden] {
+  display: none;
+}
+
+.registrant-submissions-page .rs-decision-btn {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--rpr-control);
+  padding: 0 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.registrant-submissions-page .rs-decision-btn i,
+.registrant-submissions-page .rs-decision-btn svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+.registrant-submissions-page .rs-decision-approve,
+.registrant-submissions-page .rs-btn-approve {
+  border-color: #15803d;
+  background: #15803d;
+  color: #fff;
+}
+
+.registrant-submissions-page .rs-decision-approve:hover,
+.registrant-submissions-page .rs-btn-approve:hover {
+  border-color: #166534;
+  background: #166534;
+  color: #fff;
+}
+
+.registrant-submissions-page .rs-decision-reject {
+  border-color: #fca5a5;
+  background: #fff;
+  color: #b91c1c;
+}
+
+.registrant-submissions-page .rs-decision-reject:hover {
+  border-color: #b91c1c;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.registrant-submissions-page .rs-btn-reject {
+  border-color: #b91c1c;
+  background: #b91c1c;
+  color: #fff;
+}
+
+.registrant-submissions-page .rs-btn-reject:hover {
+  border-color: #991b1b;
+  background: #991b1b;
+  color: #fff;
+}
+
+.registrant-submissions-page .rs-dialog .rpr-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* Dialogs */
+
+.registrant-submissions-page .rs-dialog {
+  width: min(34rem, calc(100vw - 1.5rem));
+  max-height: calc(100dvh - 1.5rem);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--rpr-ink);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.35);
+  overflow: hidden;
+}
+
+.registrant-submissions-page .rs-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.62);
+}
+
+.registrant-submissions-page .rs-dialog-form {
+  display: grid;
+  gap: 0.9rem;
+  max-height: calc(100dvh - 1.5rem);
+  padding: 1.1rem 1.25rem 1.25rem;
+  overflow-y: auto;
+}
+
+.registrant-submissions-page .rs-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.registrant-submissions-page .rs-dialog-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1.3;
+}
+
+.registrant-submissions-page .rs-dialog-close {
+  flex: 0 0 auto;
+  width: var(--rpr-control);
+  height: var(--rpr-control);
+  border: 0;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.registrant-submissions-page .rs-dialog-close:hover {
+  background: #e2e8f0;
+}
+
+.registrant-submissions-page .rs-dialog-lead {
+  margin: 0;
+  color: var(--rpr-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.registrant-submissions-page .rs-checklist {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.registrant-submissions-page .rs-checklist legend {
+  padding: 0;
+  font-weight: 800;
+}
+
+.registrant-submissions-page .rs-checklist > p {
+  margin: 0;
+  color: var(--rpr-subtle);
+  font-size: 0.84rem;
+}
+
+.registrant-submissions-page .rs-check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--rpr-line);
+  border-radius: 9px;
+  background: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.registrant-submissions-page .rs-check-item:has(input:checked) {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.registrant-submissions-page .rs-check-item input {
+  flex: 0 0 auto;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0.1rem 0 0;
+  accent-color: #15803d;
+}
+
+.registrant-submissions-page .rs-dialog .rs-field textarea,
+.registrant-submissions-page .rs-dialog .rs-field select {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--rpr-line-strong);
+  border-radius: 10px;
+  background-color: #fff;
+  color: var(--rpr-ink);
+  font-family: inherit;
+  font-size: 1rem; /* 16px prevents iOS zoom-on-focus */
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+
+.registrant-submissions-page .rs-dialog .rs-field select {
+  height: var(--rpr-control);
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.registrant-submissions-page .rs-dialog .rs-field textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+}
+
+.registrant-submissions-page .rs-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.registrant-submissions-page .rs-link-btn {
+  min-height: 2rem;
+  padding: 0 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--rpr-brand);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.registrant-submissions-page .rs-link-btn:hover {
+  text-decoration: underline;
+}
+
+.registrant-submissions-page .rs-hint {
+  color: var(--rpr-subtle);
+  font-size: 0.8rem;
+}
+
+.registrant-submissions-page .rs-consequences {
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #7f1d1d;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.registrant-submissions-page .rs-consequences ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.registrant-submissions-page .rs-dialog-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding-top: 0.25rem;
+}
+
+@media (max-width: 1024px) {
+  .registrant-submissions-page .rs-decisions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .registrant-submissions-page .rs-decisions {
+    flex-direction: column;
+  }
+
+  /* Phones: the dialog becomes a sheet pinned to the bottom edge. */
+  .registrant-submissions-page .rs-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    margin: auto 0 0;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .registrant-submissions-page .rs-dialog-form {
+    padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .registrant-submissions-page .rs-dialog-footer {
+    flex-direction: column-reverse;
+  }
+
+  .registrant-submissions-page .rs-dialog-footer .rpr-btn {
+    width: 100%;
+  }
+}
+
+.registrant-submissions-page .rs-label-row > label {
+  margin: 0;
+  padding: 0;
+  color: var(--rpr-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}

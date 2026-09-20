@@ -1,5 +1,30 @@
 # HelloRun Changelog — September 2026
 
+## September 20 — Approve, reject and reverse from the per-runner submissions page
+
+- Each entry on `/organizer/events/:id/registrants/:registrationId/submissions` now has status
+  buttons that open dialogs, so an organiser or co-organiser no longer has to leave for the
+  separate review page. Pending entries (and accumulated activities awaiting clarification) offer
+  Approve and Reject; approved entries offer Reject approval; rejected entries offer Approve
+  again. The matrix lives in `utils/entry-decision-actions.js` and drives both the buttons and the
+  route's check, and a test pins it to the status sets the review services accept.
+- New `POST .../submissions/:submissionId/decision` uses the same middleware chain and shared
+  access guard as the edit route (owner, co-organiser and admin), verifies the entry belongs to
+  the registration in the URL, checks the action against the entry's current status, then calls
+  the same services as the review page: `reviewSubmission` / `reviewAccumulatedActivitySubmission`
+  for approve and reject, and `reverseSubmissionApproval` for approved entries of either kind.
+  Nothing is bypassed: approving still needs every applicable proof-checklist item and the
+  checklist version, rejecting needs a reason from the standard list, and reversing needs a reason
+  and spells out that the certificate, badges and ranking are withdrawn. Audit rows, runner
+  notifications and self-review recording are unchanged because the services own them.
+- Dialogs are native `<dialog>` elements (focus trap and Escape for free) driven by a small
+  `registrant-submissions.js`: suggested rejection wording fills in per reason without overwriting a
+  hand-edited message, and submit buttons disable after submit. On phones the dialog is a bottom
+  sheet with full-width buttons. Without JavaScript or `<dialog>` support the status buttons stay
+  hidden and each entry's Open Review link remains the way to decide.
+- A stale page (entry already decided elsewhere) fails safely with a message and returns to the
+  page. 20 new DB-free tests; removing the status check or the reversal action makes them fail.
+
 ## September 20 — Per-event submission review mode
 
 - Events now have a review mode (`Event.submissionReviewMode`, `system` or `manual`).

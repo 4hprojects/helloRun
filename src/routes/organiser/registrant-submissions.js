@@ -4,6 +4,13 @@
 const express = require('express');
 const router = express.Router();
 const { correctSubmissionValues, describeChanges } = require('../../services/submission-correction.service');
+const { reverseSubmissionApproval } = require('../../services/approval-reversal.service');
+const {
+  REVIEW_CHECKLIST_VERSION,
+  buildRunProofVerificationCriteria,
+  buildRunRejectionReasonOptions
+} = require('../../utils/run-proof-review');
+const { getAvailableDecisions, isDecisionAllowed } = require('../../utils/entry-decision-actions');
 const {
   logger,
   mongoose,
@@ -14,6 +21,8 @@ const {
   requireAuth,
   requireCsrfProtection,
   submissionReviewActionLimiter,
+  reviewSubmission,
+  reviewAccumulatedActivitySubmission,
   mergeRunProofReviewDocs,
   buildRunProofReviewRow,
   canAccessRegistrantReview,
@@ -113,12 +122,21 @@ router.get('/events/:id/registrants/:registrationId/submissions', requireAuth, a
       AccumulatedActivitySubmission.find(query).sort(sort).populate(ENTRY_POPULATE).lean()
     ]);
 
-    const entries = mergeRunProofReviewDocs(standardDocs, accumulatedDocs, 'newest').map((item) => ({
-      ...buildRunProofReviewRow(item.submission, event, QUEUE_CONTEXT, item.submissionKind, user._id),
-      edit: toEditValues(item.submission),
-      corrections: toCorrectionHistory(item.submission),
-      editAction: `/organizer/events/${event._id}/registrants/${registration._id}/submissions/${item.submission._id}/edit`
-    }));
+    const entryBase = `/organizer/events/${event._id}/registrants/${registration._id}/submissions`;
+    const entries = mergeRunProofReviewDocs(standardDocs, accumulatedDocs, 'newest').map((item) => {
+      const decision = getAvailableDecisions(item.submission.status, item.submissionKind);
+      return {
+        ...buildRunProofReviewRow(item.submission, event, QUEUE_CONTEXT, item.submissionKind, user._id),
+        edit: toEditValues(item.submission),
+        corrections: toCorrectionHistory(item.submission),
+        editAction: `${entryBase}/${item.submission._id}/edit`,
+        decisionAction: `${entryBase}/${item.submission._id}/decision`,
+        decision,
+        // Same builders the review page uses, and only when the matching dialog will render.
+        verificationCriteria: decision.canApprove ? buildRunProofVerificationCriteria(event, item.submission) : [],
+        rejectionOptions: decision.canReject ? buildRunRejectionReasonOptions(event, item.submission) : []
+      };
+    });
 
     const counts = entries.reduce((acc, entry) => {
       acc.total += 1;
@@ -147,6 +165,7 @@ router.get('/events/:id/registrants/:registrationId/submissions', requireAuth, a
       },
       entries,
       counts,
+      reviewChecklistVersion: REVIEW_CHECKLIST_VERSION,
       message: getPageMessage(req.query),
       links: {
         registrants: `/organizer/events/${event._id}/registrants`,
@@ -226,6 +245,112 @@ router.post(
       }
       // Validation failures are the organizer's to fix, so they go back to the page.
       logger.warn('Submission correction rejected:', { submissionId: req.params.submissionId, error: error.message });
+      return res.redirect(buildEntriesPath(access.event._id, access.registration._id, {
+        type: 'error',
+        text: error.message || 'The entry could not be updated.'
+      }));
+    }
+  }
+);
+
+const decisionMessages = {
+  approve: { standard: 'Run result approved.', accumulated: 'Activity approved.' },
+  reject: { standard: 'Run result rejected.', accumulated: 'Activity rejected.' }
+};
+
+router.post(
+  '/events/:id/registrants/:registrationId/submissions/:submissionId/decision',
+  requireAuth,
+  requireCsrfProtection,
+  submissionReviewActionLimiter,
+  async (req, res) => {
+    let access = null;
+    try {
+      access = await resolveAccess(req, res, {
+        failureMessage: 'Only approved organizers or admins can review submissions.'
+      });
+      if (!access) return undefined;
+      const { user, event, registration } = access;
+
+      // The entry must belong to this runner's registration, so a crafted URL cannot decide
+      // another runner's entry through a registration the viewer happens to be able to open.
+      const entryQuery = { _id: req.params.submissionId, eventId: event._id, registrationId: registration._id };
+      const idIsValid = mongoose.Types.ObjectId.isValid(String(req.params.submissionId || ''));
+      const standard = idIsValid ? await Submission.findOne(entryQuery).select('status').lean() : null;
+      const activity = idIsValid && !standard
+        ? await AccumulatedActivitySubmission.findOne(entryQuery).select('status').lean()
+        : null;
+      const record = standard || activity;
+      if (!record) {
+        return renderError(res, 404, '404 - Submission Not Found', 'Submission record not found for this runner.');
+      }
+      const kind = standard ? 'standard' : 'accumulated';
+
+      const action = String(req.body.action || '').trim();
+      // Checked against the entry's current status so a stale page fails with a clear message;
+      // the services re-check the transition themselves.
+      if (!isDecisionAllowed(action, record.status, kind)) {
+        throw new Error('That status change is not available for this entry any more. Reload the page and try again.');
+      }
+
+      const reviewer = { organizerId: user._id, reviewerRole: user.role };
+      const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
+      let message = '';
+
+      if (action === 'reverse') {
+        // An approved entry is always unwound through the reversal service, for both entry
+        // kinds, so its certificate, badges and ranking are withdrawn with it.
+        const outcome = await reverseSubmissionApproval({
+          submissionId: record._id,
+          actorUserId: user._id,
+          actorRole: user.role,
+          reason: req.body.reason
+        });
+        const extras = [
+          outcome.certificateRevoked ? 'certificate revoked' : '',
+          outcome.badgesRevoked ? `${outcome.badgesRevoked} badge${outcome.badgesRevoked === 1 ? '' : 's'} withdrawn` : ''
+        ].filter(Boolean).join(', ');
+        message = extras ? `Approval reversed (${extras}).` : 'Approval reversed.';
+      } else if (action === 'approve') {
+        const approval = {
+          ...reviewer,
+          action: 'approve',
+          reviewNotes,
+          checklistVersion: req.body.checklistVersion,
+          verifiedCriteria: req.body.verifiedCriteria,
+          requireVerification: true
+        };
+        if (kind === 'accumulated') {
+          await reviewAccumulatedActivitySubmission({ activityId: record._id, ...approval });
+        } else {
+          await reviewSubmission({ submissionId: record._id, ...approval });
+        }
+        message = decisionMessages.approve[kind];
+      } else {
+        const rejection = {
+          ...reviewer,
+          action: 'reject',
+          rejectionCode: String(req.body.rejectionCode || '').trim(),
+          rejectionReason: String(req.body.rejectionReason || '').trim().slice(0, 500),
+          reviewNotes
+        };
+        if (kind === 'accumulated') {
+          await reviewAccumulatedActivitySubmission({ activityId: record._id, ...rejection });
+        } else {
+          await reviewSubmission({ submissionId: record._id, ...rejection });
+        }
+        message = decisionMessages.reject[kind];
+      }
+
+      return res.redirect(buildEntriesPath(event._id, registration._id, { type: 'success', text: message }));
+    } catch (error) {
+      if (!access) {
+        logger.error('Error deciding submission from the runner entries page:', error);
+        return renderError(res, 500, 'Server Error', 'An error occurred while updating this entry.');
+      }
+      // Validation failures (missing checklist item, short reason, stale status) go back to the
+      // page so the organizer keeps their place.
+      logger.warn('Entry decision rejected:', { submissionId: req.params.submissionId, error: error.message });
       return res.redirect(buildEntriesPath(access.event._id, access.registration._id, {
         type: 'error',
         text: error.message || 'The entry could not be updated.'

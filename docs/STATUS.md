@@ -88,6 +88,13 @@ core platform:
   the reversal revokes any issued certificate, withdraws badges earned off the entry
   (restoring them if it is approved again), deletes the published ranking row and flushes
   the leaderboard cache, under its own audit action;
+- status decisions on the per-runner submissions page, added September 20 — organisers,
+  co-organisers and admins can approve, reject or reverse an entry without leaving the page.
+  Pending entries offer Approve and Reject, approved entries offer Reject approval (the
+  existing reversal, which also revokes the certificate, withdraws badges and ranking, and
+  notifies the runner), and rejected entries offer Approve again. Approving still requires the
+  full proof checklist and rejecting a reason, because it calls the same review services;
+  each decision is audited and the runner is notified as on the review page;
 - per-event submission review mode, added September 20 — organisers choose on the event
   create and edit forms how run submissions are reviewed: "Reviewed and validated by
   HelloRun" (default; entries that pass the checks are auto-approved, anything flagged

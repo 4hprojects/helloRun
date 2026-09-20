@@ -40,6 +40,10 @@ const baseEntry = (overrides = {}) => ({
   edit: { distanceKm: '5.02', hours: 0, minutes: 31, seconds: 12, runDate: '2026-09-18', runLocation: 'Cebu', runType: 'walk' },
   corrections: [],
   editAction: '/organizer/events/event-1/registrants/reg-1/submissions/sub-1/edit',
+  decisionAction: '/organizer/events/event-1/registrants/reg-1/submissions/sub-1/decision',
+  decision: { canApprove: false, canReject: false, canReverse: true },
+  verificationCriteria: [],
+  rejectionOptions: [],
   ...overrides
 });
 
@@ -55,6 +59,7 @@ function render(overrides = {}) {
     message: null,
     links: { registrants: '/organizer/events/event-1/registrants', queue: '/organizer/events/event-1/run-proofs/review' },
     csrfToken: 'token-123',
+    reviewChecklistVersion: 'run-proof-v1',
     ...overrides
   }, { filename: viewPath });
 }

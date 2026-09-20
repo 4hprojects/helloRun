@@ -226,6 +226,27 @@
                   <% } %>
                 </div>
 
+                <% const canDecide = item.decision.canApprove || item.decision.canReject || item.decision.canReverse; %>
+                <% if (canDecide) { %>
+                  <div class="rs-decisions" data-rs-decisions hidden>
+                    <% if (item.decision.canApprove) { %>
+                      <button type="button" class="rs-decision-btn rs-decision-approve" data-open-dialog="approve-<%= item.id %>">
+                        <i data-lucide="check-circle" aria-hidden="true"></i><span><%= item.status === 'rejected' ? 'Approve instead' : 'Approve' %></span>
+                      </button>
+                    <% } %>
+                    <% if (item.decision.canReject) { %>
+                      <button type="button" class="rs-decision-btn rs-decision-reject" data-open-dialog="reject-<%= item.id %>">
+                        <i data-lucide="x-circle" aria-hidden="true"></i><span>Reject</span>
+                      </button>
+                    <% } %>
+                    <% if (item.decision.canReverse) { %>
+                      <button type="button" class="rs-decision-btn rs-decision-reject" data-open-dialog="reverse-<%= item.id %>">
+                        <i data-lucide="undo-2" aria-hidden="true"></i><span>Reject approval</span>
+                      </button>
+                    <% } %>
+                  </div>
+                <% } %>
+
                 <% if (item.status !== 'submitted') { %>
                   <div class="run-proof-history">
                     <strong><%= item.isAutoApproved ? 'Approval History' : 'Review History' %></strong>
@@ -244,6 +265,104 @@
                   </div>
                 <% } %>
               </div>
+
+              <% if (item.decision.canApprove) { %>
+                <dialog class="rs-dialog" id="approve-<%= item.id %>" aria-labelledby="approve-<%= item.id %>-title">
+                  <form method="POST" action="<%= item.decisionAction %>" class="rs-dialog-form">
+                    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                    <input type="hidden" name="action" value="approve">
+                    <input type="hidden" name="checklistVersion" value="<%= reviewChecklistVersion %>">
+                    <header class="rs-dialog-header">
+                      <h3 id="approve-<%= item.id %>-title">Approve entry <%= entries.length - index %></h3>
+                      <button type="button" class="rs-dialog-close" data-close-dialog aria-label="Close">&times;</button>
+                    </header>
+                    <p class="rs-dialog-lead"><%= item.distanceLabel %> in <%= item.elapsedLabel %> on <%= item.runDateLabel || 'an unlisted date' %>.<% if (item.status === 'rejected') { %> This entry was rejected; approving it restores it and the runner is notified.<% } %></p>
+                    <fieldset class="rs-checklist">
+                      <legend>Required verification checklist</legend>
+                      <p>Confirm every applicable item against the proof before approving.</p>
+                      <% item.verificationCriteria.forEach((criterion) => { %>
+                        <label class="rs-check-item"><input type="checkbox" name="verifiedCriteria" value="<%= criterion.key %>" required><span><%= criterion.label %></span></label>
+                      <% }) %>
+                    </fieldset>
+                    <div class="rs-field">
+                      <label for="approve-<%= item.id %>-notes">Review note <span class="rs-required">(optional, visible to the runner)</span></label>
+                      <textarea id="approve-<%= item.id %>-notes" name="reviewNotes" rows="2" maxlength="1200"></textarea>
+                    </div>
+                    <footer class="rs-dialog-footer">
+                      <button type="button" class="rpr-btn rpr-btn-secondary" data-close-dialog>Cancel</button>
+                      <button type="submit" class="rpr-btn rs-btn-approve"><i data-lucide="check-circle" aria-hidden="true"></i><span>Approve entry</span></button>
+                    </footer>
+                  </form>
+                </dialog>
+              <% } %>
+
+              <% if (item.decision.canReject) { %>
+                <dialog class="rs-dialog" id="reject-<%= item.id %>" aria-labelledby="reject-<%= item.id %>-title">
+                  <form method="POST" action="<%= item.decisionAction %>" class="rs-dialog-form">
+                    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                    <input type="hidden" name="action" value="reject">
+                    <header class="rs-dialog-header">
+                      <h3 id="reject-<%= item.id %>-title">Reject entry <%= entries.length - index %></h3>
+                      <button type="button" class="rs-dialog-close" data-close-dialog aria-label="Close">&times;</button>
+                    </header>
+                    <p class="rs-dialog-lead">The runner is told why and can submit a corrected entry.</p>
+                    <div class="rs-field">
+                      <label for="reject-<%= item.id %>-code">Reason</label>
+                      <select id="reject-<%= item.id %>-code" name="rejectionCode" required data-reject-code>
+                        <option value="">Select the issue…</option>
+                        <% item.rejectionOptions.forEach((reason) => { %>
+                          <option value="<%= reason.code %>" data-default-message="<%= reason.defaultMessage %>"><%= reason.label %></option>
+                        <% }) %>
+                      </select>
+                    </div>
+                    <div class="rs-field">
+                      <div class="rs-label-row">
+                        <label for="reject-<%= item.id %>-message">Message to the runner</label>
+                        <button type="button" class="rs-link-btn" data-use-suggested>Use suggested message</button>
+                      </div>
+                      <textarea id="reject-<%= item.id %>-message" name="rejectionReason" rows="4" maxlength="500" required data-reject-message></textarea>
+                      <small class="rs-hint">Editable guidance. &ldquo;Other&rdquo; needs at least 10 characters of your own.</small>
+                    </div>
+                    <div class="rs-field">
+                      <label for="reject-<%= item.id %>-notes">Review note <span class="rs-required">(optional, also visible to the runner)</span></label>
+                      <textarea id="reject-<%= item.id %>-notes" name="reviewNotes" rows="2" maxlength="1200"></textarea>
+                    </div>
+                    <footer class="rs-dialog-footer">
+                      <button type="button" class="rpr-btn rpr-btn-secondary" data-close-dialog>Cancel</button>
+                      <button type="submit" class="rpr-btn rs-btn-reject"><i data-lucide="x-circle" aria-hidden="true"></i><span>Reject entry</span></button>
+                    </footer>
+                  </form>
+                </dialog>
+              <% } %>
+
+              <% if (item.decision.canReverse) { %>
+                <dialog class="rs-dialog" id="reverse-<%= item.id %>" aria-labelledby="reverse-<%= item.id %>-title">
+                  <form method="POST" action="<%= item.decisionAction %>" class="rs-dialog-form">
+                    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                    <input type="hidden" name="action" value="reverse">
+                    <header class="rs-dialog-header">
+                      <h3 id="reverse-<%= item.id %>-title">Reject approval of entry <%= entries.length - index %></h3>
+                      <button type="button" class="rs-dialog-close" data-close-dialog aria-label="Close">&times;</button>
+                    </header>
+                    <div class="rs-consequences" role="note">
+                      <strong>This entry is approved, so rejecting it also:</strong>
+                      <ul>
+                        <li>revokes any certificate issued for it</li>
+                        <li>withdraws badges earned from it and removes its ranking</li>
+                        <li>tells the runner the approved result was withdrawn</li>
+                      </ul>
+                    </div>
+                    <div class="rs-field">
+                      <label for="reverse-<%= item.id %>-reason">Reason <span class="rs-required">(required, shared with the runner and recorded in the audit log)</span></label>
+                      <textarea id="reverse-<%= item.id %>-reason" name="reason" rows="3" minlength="5" maxlength="500" required></textarea>
+                    </div>
+                    <footer class="rs-dialog-footer">
+                      <button type="button" class="rpr-btn rpr-btn-secondary" data-close-dialog>Cancel</button>
+                      <button type="submit" class="rpr-btn rs-btn-reject"><i data-lucide="undo-2" aria-hidden="true"></i><span>Reject approval</span></button>
+                    </footer>
+                  </form>
+                </dialog>
+              <% } %>
             </article>
           <% }) %>
         </section>
@@ -260,6 +379,7 @@
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
+  <script src="/js/registrant-submissions.js" defer></script>
   <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>
