@@ -613,6 +613,7 @@
       const requiresSteps = selectedOptions.some((item) => item.requiresSteps === true);
       if (distanceInput) distanceInput.required = requiresDistance;
       if (stepsInput) stepsInput.required = requiresSteps;
+      if (trackingAppDeviceInput) trackingAppDeviceInput.required = selectedOptions.some((item) => item.requiresTrackingDevice === true);
 
       if (!ids.length) {
         state.primaryRegistrationId = '';
@@ -1421,7 +1422,8 @@
 
     const validateTrackingAppDevice = () => {
       const value = String(trackingAppDeviceInput?.value || '').trim();
-      if (!value) {
+      const required = getSelectedOptions().some((item) => item.requiresTrackingDevice === true);
+      if (required && !value) {
         setFieldError('runProofTrackingAppDeviceError', 'trackingAppDevice', 'Enter the tracking app or device used.');
         return false;
       }

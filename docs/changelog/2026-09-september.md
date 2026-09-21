@@ -1,5 +1,18 @@
 # HelloRun Changelog — September 2026
 
+## September 22 — Tracking app or device is optional when submitting an entry
+
+- The runner's run-proof form no longer forces "Tracking app or device" on every event. The field was
+  hard-coded as required in the form, although the server only enforces it for events where the
+  organizer turned on "Require tracking app or device" (the CNS Move More challenge, for example).
+  It is now optional by default, and is required only when a selected registration's event has that
+  setting, the same way Steps already behaves. The placeholder now reads "Optional: ...".
+- Each submission option now carries `requiresTrackingDevice`, taken from the event's
+  `requireTrackingAppDevice` (the field is now loaded with the registration's event). The server rule
+  and the organizer Edit dialog are unchanged, so the runner form and the organizer dialog now agree.
+- 7 new DB-free tests, including the real validator run with stubbed inputs; restoring the static
+  `required`, dropping the event field from the load, or blocking blank values unconditionally fails them.
+
 ## September 20 — Run proof review queue: single-row tabs, no colored edges
 
 - The queue's status tabs (Pending Review, All Proofs, Approved, Auto-approved, Rejected) are now one

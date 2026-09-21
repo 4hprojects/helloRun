@@ -198,7 +198,7 @@ test('the queue mode pill and badge styles are scoped to the review page', () =>
 
 test('runners are shown each event\'s mode, and the submit copy no longer promises auto-approval for manual events', () => {
   const service = read('src/services/submission.service.js');
-  assert.match(service, /finalSubmissionDeadlineAt submissionReviewMode'/);
+  assert.match(service, /finalSubmissionDeadlineAt submissionReviewMode requireTrackingAppDevice'/);
   assert.match(service, /submissionReviewMode: normalizeSubmissionReviewMode\(registration\.eventId\?\.submissionReviewMode\)/);
 
   const modal = read('src/public/js/run-proof-modal.js');

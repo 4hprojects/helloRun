@@ -769,7 +769,7 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
     .sort({ registeredAt: -1 })
     .populate({
       path: 'eventId',
-      select: 'title slug status organizerId eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps raceCategories targetDistanceKm minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt submissionReviewMode'
+      select: 'title slug status organizerId eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps raceCategories targetDistanceKm minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt submissionReviewMode requireTrackingAppDevice'
     })
     .lean();
 
@@ -822,6 +822,7 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
         primaryChallengeMetric: challengeConfig.primaryMetric,
         requiresDistance: !challengeConfig.accumulated || (challengeConfig.tracksDistance && categoryTargetDistanceKm > 0),
         requiresSteps: challengeConfig.accumulated && challengeConfig.tracksSteps && categoryTargetSteps !== null,
+        requiresTrackingDevice: Boolean(registration.eventId?.requireTrackingAppDevice),
         targetSteps: categoryTargetSteps,
         minimumRequiredDistanceKm: minimumDistanceKm,
         minimumActivityDistanceKm: Number(registration.eventId?.minimumActivityDistanceKm || 0) || null,
