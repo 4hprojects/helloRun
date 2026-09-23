@@ -7,7 +7,7 @@ const SHORT_TITLE = 'CNS Move More Challenge 2026';
 const DATES = Object.freeze({
   publicAt: new Date('2026-09-09T00:00:00+08:00'),
   registrationOpenAt: new Date('2026-09-09T00:00:00+08:00'),
-  registrationCloseAt: new Date('2026-09-21T23:59:00+08:00'),
+  registrationCloseAt: new Date('2026-10-02T23:59:00+08:00'),
   activityStartAt: new Date('2026-09-14T00:00:00+08:00'),
   activityEndAt: new Date('2026-11-03T23:59:00+08:00'),
   submissionDeadlineAt: new Date('2026-11-03T23:59:00+08:00'),
@@ -16,7 +16,7 @@ const DATES = Object.freeze({
 
 const VENUE_NAME = 'Virtual — participant-selected eligible route';
 const AWARDING_VENUE = 'CAS Little Theater';
-const EVENT_DESCRIPTION = 'An exclusive event of the College of Natural Sciences. Registration is extended until September 21, 2026. CNS faculty and staff are invited to complete 50 kilometers through walking, running, or hiking during Wellness In Motion. This virtual, self-paced challenge runs from September 14 to November 3, 2026. Track your distance with a sports app or device if you have one, then upload a screenshot of each activity to HelloRun.';
+const EVENT_DESCRIPTION = 'An exclusive event of the College of Natural Sciences. Registration is extended until October 2, 2026. CNS faculty and staff are invited to complete 50 kilometers through walking, running, or hiking during Wellness In Motion. This virtual, self-paced challenge runs from September 14 to November 3, 2026. Track your distance with a sports app or device if you have one, then upload a screenshot of each activity to HelloRun.';
 const BRAND_ASSETS = Object.freeze({
   logoUrl: '/images/events/cns-move-more-challenge-2026/cns-logo.jpg',
   bannerImageUrl: '/images/events/cns-move-more-challenge-2026/cns-move-more-hero.webp',
@@ -45,7 +45,7 @@ const EVENT_DETAILS_MARKDOWN = `
 - **Who can join** — Exclusive to College of Natural Sciences faculty and staff.
 - **Your goal** — Accumulate at least **50 kilometers** of approved distance.
 - **Activity window** — **September 14 to November 3, 2026**.
-- **Registration** — Extended to **September 21, 2026**.
+- **Registration** — Extended to **October 2, 2026**.
 - **Cost** — Free.
 - **What you need** — Comfortable shoes, and a way to record each activity.
 

@@ -17,7 +17,7 @@ const { selectEventUpdate, assertExpectedCounts, comparableEventValue, isPostMig
 
 test('CNS source follows the official dates and one distance-only goal', () => {
   assert.equal(DATES.registrationOpenAt.toISOString(), '2026-09-08T16:00:00.000Z');
-  assert.equal(DATES.registrationCloseAt.toISOString(), '2026-09-21T15:59:00.000Z');
+  assert.equal(DATES.registrationCloseAt.toISOString(), '2026-10-02T15:59:00.000Z');
   assert.equal(DATES.activityStartAt.toISOString(), '2026-09-13T16:00:00.000Z');
   assert.equal(DATES.activityEndAt.toISOString(), '2026-11-03T15:59:00.000Z');
   assert.equal(DATES.submissionDeadlineAt.toISOString(), DATES.activityEndAt.toISOString());
@@ -72,9 +72,9 @@ test('CNS migration comparison ignores MongoDB-generated nested ids', () => {
 
 test('CNS copy states the extended registration deadline and CNS exclusivity', () => {
   assert.match(EVENT_DESCRIPTION, /exclusive event of the College of Natural Sciences/i);
-  assert.match(EVENT_DESCRIPTION, /extended until September 21, 2026/i);
+  assert.match(EVENT_DESCRIPTION, /extended until October 2, 2026/i);
   assert.match(EVENT_DETAILS_MARKDOWN, /Exclusive to College of Natural Sciences faculty and staff/i);
-  assert.match(EVENT_DETAILS_MARKDOWN, /Extended to \*\*September 21, 2026\*\*/i);
+  assert.match(EVENT_DETAILS_MARKDOWN, /Extended to \*\*October 2, 2026\*\*/i);
 });
 
 test('the preferred tracking app is optional for CNS registrants', () => {

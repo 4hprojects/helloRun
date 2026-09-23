@@ -1,5 +1,19 @@
 # HelloRun Changelog — September 2026
 
+## September 23 — CNS registration extended to October 2, 2026
+
+### CNS Move More Challenge 2026
+
+- **Registration extended from September 21 to October 2, 2026.**
+  `registrationCloseAt` in the event fixture moves to `2026-10-02T23:59:00+08:00`,
+  which reopens registration — the previous deadline had already passed.
+- The public description and the "At a glance" row both name the new date and keep
+  stating that registration is extended, so the copy and the stored deadline agree.
+- The activity window (September 14 to November 3, 2026), the submission deadline,
+  and the awarding date are unchanged.
+- `npm run event:sync-cns-content` pushes `description`, `eventDetailsMarkdown`, and
+  `registrationCloseAt` onto the live event; it is dry-run unless `--apply` is passed.
+
 ## September 22 — Tracking app or device is optional when submitting an entry
 
 - The runner's run-proof form no longer forces "Tracking app or device" on every event. The field was
