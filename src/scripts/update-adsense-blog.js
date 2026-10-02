@@ -25,7 +25,8 @@ const EDITORIAL_FIELDS = Object.freeze([
   'seoTitle',
   'seoDescription',
   'coverImageAlt',
-  'ogImageUrl'
+  'ogImageUrl',
+  'contentBlocks'
 ]);
 
 function parseArguments(argv = process.argv.slice(2)) {
@@ -74,6 +75,9 @@ async function updateAdsenseBlog({ slug, mode = 'dry-run', confirmEditorialRevie
 
   const articleModule = getArticleModule(slug);
   if (!articleModule) throw new Error(`Unknown AdSense article slug: ${slug}`);
+  if (articleModule.PUBLICATION_READY === false) {
+    throw new Error(`Article is not publication-ready: ${(articleModule.MISSING_PUBLICATION_EVIDENCE || []).join('; ')}`);
+  }
 
   await mongoose.connect(process.env.MONGODB_URI);
   try {

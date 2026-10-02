@@ -16,6 +16,7 @@ const BLOG_BLOCK_TYPES = Object.freeze([
   'numberedList',
   'quote',
   'image',
+  'imageGallery',
   'divider',
   'closing'
 ]);
@@ -45,6 +46,7 @@ const BLOCK_LABELS = Object.freeze({
   numberedList: 'Numbered List',
   quote: 'Quote',
   image: 'Image',
+  imageGallery: 'Image Gallery',
   divider: 'Divider',
   closing: 'Closing Section'
 });
@@ -56,6 +58,7 @@ const BLOCK_DESCRIPTIONS = Object.freeze({
   numberedList: 'A numbered list — great for steps, rankings, or ordered points.',
   quote: 'A standout pull-quote or highlighted sentence from the post.',
   image: 'Embed an image by URL with optional alt text and a caption.',
+  imageGallery: 'Group multiple contextual images with unique alt text and captions.',
   divider: 'A horizontal rule to visually separate sections.',
   closing: 'A closing remark or call-to-action displayed in bold at the end.'
 });
@@ -175,6 +178,15 @@ function validateContentBlocks(blocks) {
       }
     }
     if (block.type === 'image' && !block.content.url) innerErrors.push(`${label} image URL is required.`);
+    if (block.type === 'imageGallery') {
+      if (!Array.isArray(block.content.images) || block.content.images.length < 2) {
+        innerErrors.push(`${label} needs at least two gallery images.`);
+      }
+      block.content.images.forEach((image, imageIndex) => {
+        if (!image.url) innerErrors.push(`${label} image ${imageIndex + 1} URL is required.`);
+        if (!image.alt) innerErrors.push(`${label} image ${imageIndex + 1} alt text is required.`);
+      });
+    }
     return innerErrors;
   });
 
@@ -184,9 +196,11 @@ function validateContentBlocks(blocks) {
 function renderContentBlocksToHtml(blocks) {
   const html = (Array.isArray(blocks) ? blocks : []).map(renderBlockToHtml).join('\n');
   return sanitizeHtml(html, {
-    allowedTags: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'h2', 'h3', 'blockquote', 'a', 'img', 'hr'],
+    allowedTags: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'h2', 'h3', 'blockquote', 'a', 'section', 'figure', 'img', 'figcaption', 'hr'],
     allowedAttributes: {
       a: ['href', 'rel', 'target'],
+      section: ['class', 'aria-label'],
+      figure: ['class'],
       img: ['src', 'alt', 'loading']
     }
   });
@@ -241,9 +255,26 @@ function normalizeBlock(block = {}, index = 0) {
         content: {
           url: cleanUrl(content.url),
           alt: cleanText(content.alt, 180),
-          caption: cleanText(content.caption, 240)
+          caption: cleanText(content.caption, 240),
+          tone: normalizeImageTone(content.tone)
         }
       };
+    case 'imageGallery': {
+      const images = Array.isArray(content.images) ? content.images : [];
+      return {
+        ...base,
+        content: {
+          label: cleanText(content.label, 120),
+          tone: normalizeImageTone(content.tone),
+          images: images.slice(0, 12).map((image) => ({
+            url: cleanUrl(image?.url),
+            alt: cleanText(image?.alt, 180),
+            caption: cleanText(image?.caption, 320),
+            tone: normalizeImageTone(image?.tone)
+          }))
+        }
+      };
+    }
     case 'divider':
     default:
       return {
@@ -275,7 +306,34 @@ function renderBlockToHtml(block) {
     const alt = escapeHtml(block.content?.alt || '');
     const caption = cleanText(block.content?.caption || '', 240);
     const image = `<img src="${escapeHtml(url)}" alt="${alt}" loading="lazy">`;
-    return caption ? `${image}<p><em>${escapeHtml(caption)}</em></p>` : image;
+    const tone = normalizeImageTone(block.content?.tone);
+    const figureOpen = tone
+      ? `<figure class="blog-proof-outcome blog-proof-outcome--${tone}">`
+      : '<figure>';
+    return caption
+      ? `${figureOpen}${image}<figcaption>${escapeHtml(caption)}</figcaption></figure>`
+      : `${figureOpen}${image}</figure>`;
+  }
+  if (block.type === 'imageGallery') {
+    const label = cleanText(block.content?.label || 'Article image gallery', 120);
+    const tone = normalizeImageTone(block.content?.tone);
+    const figures = (Array.isArray(block.content?.images) ? block.content.images : [])
+      .map((item) => {
+        const url = cleanUrl(item?.url || '');
+        if (!url) return '';
+        const image = `<img src="${escapeHtml(url)}" alt="${escapeHtml(item?.alt || '')}" loading="lazy">`;
+        const caption = cleanText(item?.caption || '', 320);
+        const imageTone = normalizeImageTone(item?.tone) || tone;
+        const figureClass = imageTone ? ` class="blog-proof-outcome blog-proof-outcome--${imageTone}"` : '';
+        return caption
+          ? `<figure${figureClass}>${image}<figcaption>${escapeHtml(caption)}</figcaption></figure>`
+          : `<figure${figureClass}>${image}</figure>`;
+      })
+      .filter(Boolean)
+      .join('');
+    if (!figures) return '';
+    const galleryClass = tone ? `blog-image-gallery blog-image-gallery--${tone}` : 'blog-image-gallery';
+    return `<section class="${galleryClass}" aria-label="${escapeHtml(label)}">${figures}</section>`;
   }
   return '<hr>';
 }
@@ -298,6 +356,11 @@ function closing(text) {
 
 function normalizeHeadingLevel(value) {
   return Number(value) === 3 ? 3 : 2;
+}
+
+function normalizeImageTone(value) {
+  const tone = String(value || '').trim().toLowerCase();
+  return ['accepted', 'clarification', 'rejected'].includes(tone) ? tone : '';
 }
 
 function cleanText(value, maxLength) {
@@ -393,7 +456,29 @@ function isValidBlogImageUrl(value) {
 }
 
 function formatInlineText(value) {
-  return applyInlineFormatting(escapeHtml(value)).replace(/\n/g, '<br>');
+  const linkTokens = [];
+  const tokenized = String(value || '').replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, (match, label, href) => {
+    if (!isValidBlogLinkUrl(href)) return match;
+    const token = `BLOGINLINELINKTOKEN${linkTokens.length}ENDTOKEN`;
+    linkTokens.push(`<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`);
+    return token;
+  });
+  let formatted = applyInlineFormatting(escapeHtml(tokenized)).replace(/\n/g, '<br>');
+  linkTokens.forEach((link, index) => {
+    formatted = formatted.replace(`BLOGINLINELINKTOKEN${index}ENDTOKEN`, link);
+  });
+  return formatted;
+}
+
+function isValidBlogLinkUrl(value) {
+  const url = String(value || '').trim();
+  if (!url || /[\\\u0000-\u001f\u007f\s]/.test(url) || /%(?![0-9a-f]{2})/i.test(url)) return false;
+  if (url.startsWith('/')) return !url.startsWith('//') && !url.includes('\\');
+  try {
+    return ['http:', 'https:'].includes(new URL(url).protocol);
+  } catch (_) {
+    return false;
+  }
 }
 
 function applyInlineFormatting(value) {

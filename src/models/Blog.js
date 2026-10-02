@@ -59,7 +59,7 @@ const blogSchema = new mongoose.Schema(
           type: {
             type: String,
             required: true,
-            enum: ['heading', 'textSection', 'paragraph', 'bulletList', 'numberedList', 'quote', 'image', 'divider', 'closing']
+            enum: ['heading', 'textSection', 'paragraph', 'bulletList', 'numberedList', 'quote', 'image', 'imageGallery', 'divider', 'closing']
           },
           order: {
             type: Number,

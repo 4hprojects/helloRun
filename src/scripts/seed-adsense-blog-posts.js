@@ -6,6 +6,7 @@ const Blog = require('../models/Blog');
 const User = require('../models/User');
 const { EDITORIAL_TEAM_EMAIL, EDITORIAL_TEAM_NAME } = require('../utils/blog-author');
 const { evaluateBlogContentEligibility } = require('../utils/blog-content-eligibility');
+const { normalizeContentBlocks, renderContentBlocksToHtml } = require('../utils/blog-composer');
 const { getInitialIndexingClassification } = require('../content/adsense-content-indexing');
 const {
   ARTICLE: BEST_APPS_ARTICLE,
@@ -286,6 +287,8 @@ const { ARTICLE: JANUARY_VIRTUAL_RUNNING_CHALLENGE_ARTICLE, buildArticlePayload:
 const { ARTICLE: NEW_YEAR_VIRTUAL_RUN_THEME_IDEAS_ARTICLE, buildArticlePayload: buildNewYearVirtualRunThemeIdeasPayload } = require('../content/new-year-virtual-run-theme-ideas');
 const { ARTICLE: VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_ARTICLE, buildArticlePayload: buildVirtualRunMetricsOrganizersShouldTrackPayload } = require('../content/virtual-run-metrics-organizers-should-track');
 const { ARTICLE: HOW_TO_REVIEW_A_VIRTUAL_RUN_AFTER_IT_ENDS_ARTICLE, buildArticlePayload: buildHowToReviewAVirtualRunAfterItEndsPayload } = require('../content/how-to-review-a-virtual-run-after-it-ends');
+const { ARTICLE: VIRTUAL_RUN_PROOF_SUBMISSION_LESSONS_ARTICLE, buildArticlePayload: buildVirtualRunProofSubmissionLessonsPayload } = require('../content/virtual-run-proof-submission-lessons');
+const { ARTICLE: COMMON_GPS_SCREENSHOT_PROBLEMS_ARTICLE, buildArticlePayload: buildCommonGpsScreenshotProblemsPayload } = require('../content/common-gps-screenshot-problems-virtual-run');
 
 const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
@@ -488,6 +491,10 @@ const VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_COVER_IMAGE_URL = '/images/blo
 const VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_PAYLOAD = buildVirtualRunMetricsOrganizersShouldTrackPayload({ coverImageUrl: VIRTUAL_RUN_METRICS_ORGANIZERS_SHOULD_TRACK_COVER_IMAGE_URL });
 const HOW_TO_REVIEW_A_VIRTUAL_RUN_AFTER_IT_ENDS_COVER_IMAGE_URL = '/images/blog/covers/how-to-review-a-virtual-run-after-it-ends.webp';
 const HOW_TO_REVIEW_A_VIRTUAL_RUN_AFTER_IT_ENDS_PAYLOAD = buildHowToReviewAVirtualRunAfterItEndsPayload({ coverImageUrl: HOW_TO_REVIEW_A_VIRTUAL_RUN_AFTER_IT_ENDS_COVER_IMAGE_URL });
+const VIRTUAL_RUN_PROOF_SUBMISSION_LESSONS_COVER_IMAGE_URL = '/images/blog/covers/virtual-run-proof-submission-lessons.webp';
+const VIRTUAL_RUN_PROOF_SUBMISSION_LESSONS_PAYLOAD = buildVirtualRunProofSubmissionLessonsPayload({ coverImageUrl: VIRTUAL_RUN_PROOF_SUBMISSION_LESSONS_COVER_IMAGE_URL });
+const COMMON_GPS_SCREENSHOT_PROBLEMS_COVER_IMAGE_URL = '/images/blog/covers/common-gps-screenshot-problems-virtual-run.webp';
+const COMMON_GPS_SCREENSHOT_PROBLEMS_PAYLOAD = buildCommonGpsScreenshotProblemsPayload({ coverImageUrl: COMMON_GPS_SCREENSHOT_PROBLEMS_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -2291,6 +2298,31 @@ const POSTS = [
     featured: false,
     authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
     links: ['/blog/virtual-run-metrics-organizers-should-track','/blog/participant-communication-timeline-virtual-running-events','/blog/fair-and-consistent-run-proof-review-checklist-for-organizers','/blog/data-privacy-checklist-running-event-organizers','/blog/virtual-run-participant-engagement','/blog/virtual-run-participant-retention','/blog/how-to-create-a-virtual-run-certificate','/blog/how-to-promote-a-virtual-run','/blog/virtual-run-registration-fee-pricing']
+  },
+  {
+    ...VIRTUAL_RUN_PROOF_SUBMISSION_LESSONS_ARTICLE,
+    contentBlocks: VIRTUAL_RUN_PROOF_SUBMISSION_LESSONS_PAYLOAD.contentBlocks,
+    contentHtml: VIRTUAL_RUN_PROOF_SUBMISSION_LESSONS_PAYLOAD.contentHtml,
+    coverImageUrl: VIRTUAL_RUN_PROOF_SUBMISSION_LESSONS_COVER_IMAGE_URL,
+    coverImageAlt: VIRTUAL_RUN_PROOF_SUBMISSION_LESSONS_ARTICLE.coverImageAlt,
+    ogImageUrl: VIRTUAL_RUN_PROOF_SUBMISSION_LESSONS_COVER_IMAGE_URL,
+    status: 'scheduled',
+    publishedAt: '2026-09-25T11:00:00.000Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/how-to-submit-run-proof-correctly-hellorun','/blog/what-counts-as-valid-run-proof','/blog/fair-and-consistent-run-proof-review-checklist-for-organizers','/how-it-works']
+  },
+  {
+    ...COMMON_GPS_SCREENSHOT_PROBLEMS_ARTICLE,
+    contentBlocks: COMMON_GPS_SCREENSHOT_PROBLEMS_PAYLOAD.contentBlocks,
+    contentHtml: COMMON_GPS_SCREENSHOT_PROBLEMS_PAYLOAD.contentHtml,
+    coverImageUrl: COMMON_GPS_SCREENSHOT_PROBLEMS_COVER_IMAGE_URL,
+    coverImageAlt: COMMON_GPS_SCREENSHOT_PROBLEMS_ARTICLE.coverImageAlt,
+    ogImageUrl: COMMON_GPS_SCREENSHOT_PROBLEMS_COVER_IMAGE_URL,
+    status: 'draft',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: ['/blog/how-to-submit-run-proof-correctly-hellorun','/blog/what-counts-as-valid-run-proof','/blog/virtual-run-proof-submission-lessons','/how-it-works']
   }
 ];
 
@@ -2397,10 +2429,12 @@ function buildPostPayload(post, author, index) {
   const publishedAt = post.publishedAt
     ? new Date(post.publishedAt)
     : new Date(Date.UTC(2026, 5, 1 + index, 1, 0, 0));
-  const contentHtml = buildContentHtml(post);
+  const contentBlocks = normalizeContentBlocks(post.contentBlocks || []);
+  const contentHtml = contentBlocks.length ? renderContentBlocksToHtml(contentBlocks) : buildContentHtml(post);
   const contentText = htmlToText(contentHtml);
   const coverImageUrl = post.coverImageUrl || COVER_IMAGE_URL;
 
+  const status = post.status || 'published';
   const payload = {
     authorId: author._id,
     title: post.title,
@@ -2409,6 +2443,7 @@ function buildPostPayload(post, author, index) {
     contentHtml,
     contentText,
     contentRaw: contentText,
+    contentBlocks,
     templateKey: 'custom',
     coverImageUrl,
     coverImageAlt: post.coverImageAlt || `${post.title} - HelloRun guide`,
@@ -2416,16 +2451,16 @@ function buildPostPayload(post, author, index) {
     category: post.category,
     customCategory: '',
     tags: post.tags,
-    status: post.status || 'published',
+    status,
     featured: typeof post.featured === 'boolean' ? post.featured : index < 3,
     readingTime: Math.max(4, Math.ceil(contentText.split(/\s+/).filter(Boolean).length / 180)),
     seoTitle: post.seoTitle || `${post.title} - HelloRun Guide`,
     seoDescription: post.seoDescription || post.excerpt,
     ogImageUrl: post.ogImageUrl || coverImageUrl,
     isDeleted: false,
-    scheduledFor: post.status === 'scheduled' ? publishedAt : null,
-    publishedAt: post.status === 'scheduled' ? null : publishedAt,
-    approvedAt: post.status === 'scheduled' ? null : publishedAt,
+    scheduledFor: status === 'scheduled' ? publishedAt : null,
+    publishedAt: status === 'published' ? publishedAt : null,
+    approvedAt: status === 'published' ? publishedAt : null,
     rejectionReason: '',
     moderationNotes: '',
     moderationFlags: [],
@@ -2460,6 +2495,11 @@ function preservePublishedSeedState(payload, existing) {
 }
 
 function buildContentHtml(post) {
+  const contentBlocks = normalizeContentBlocks(post.contentBlocks || []);
+  if (contentBlocks.length) {
+    return renderContentBlocksToHtml(contentBlocks);
+  }
+
   if (post.contentHtml) {
     return String(post.contentHtml).trim();
   }

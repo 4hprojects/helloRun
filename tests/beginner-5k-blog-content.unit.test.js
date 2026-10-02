@@ -115,7 +115,8 @@ test('beginner 5K updater alias targets the shared editorial-only updater', () =
     'seoTitle',
     'seoDescription',
     'coverImageAlt',
-    'ogImageUrl'
+    'ogImageUrl',
+    'contentBlocks'
   ]);
   for (const alias of [
     'blog:update-best-apps',

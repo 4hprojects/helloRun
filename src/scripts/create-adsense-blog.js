@@ -80,6 +80,9 @@ function getCanonicalSeed(slug) {
 function buildCreatePayload({ slug, authorId, now = new Date(), publishAt = null, confirmEditorialReview = false }) {
   const articleModule = getArticleModule(slug);
   if (!articleModule) throw new Error(`Unknown AdSense article slug: ${slug}`);
+  if (articleModule.PUBLICATION_READY === false) {
+    throw new Error(`Article is not publication-ready: ${(articleModule.MISSING_PUBLICATION_EVIDENCE || []).join('; ')}`);
+  }
   if (!authorId) throw new Error('Existing guide author is required.');
 
   const seed = getCanonicalSeed(slug);

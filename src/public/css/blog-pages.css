@@ -1153,6 +1153,106 @@
   background: #eff6ff;
   color: #1e3a8a;
 }
+.blog-content figure {
+  margin: 1.25rem 0;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  background: var(--bg-primary);
+}
+.blog-content figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.blog-content figcaption {
+  padding: 0.75rem 0.9rem;
+  border-top: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.blog-content .blog-image-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.35rem 0 2rem;
+  padding: 1rem;
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+}
+.blog-content .blog-image-gallery--accepted {
+  border-color: #86efac;
+  background: rgba(22, 163, 74, 0.07);
+}
+.blog-content .blog-image-gallery--rejected {
+  border-color: #fca5a5;
+  background: rgba(220, 38, 38, 0.07);
+}
+.blog-content .blog-image-gallery figure {
+  min-width: 0;
+  margin: 0;
+  align-self: start;
+}
+.blog-content .blog-image-gallery img {
+  max-height: 34rem;
+  object-fit: contain;
+  background: #0f172a;
+}
+.blog-content .blog-proof-outcome--accepted {
+  border-color: #4ade80;
+  box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.08);
+}
+.blog-content .blog-proof-outcome--clarification {
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.08);
+}
+.blog-content .blog-proof-outcome--rejected {
+  border-color: #f87171;
+  box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.08);
+}
+.blog-content .blog-proof-outcome--accepted figcaption {
+  background: rgba(22, 163, 74, 0.09);
+}
+.blog-content .blog-proof-outcome--clarification figcaption {
+  background: rgba(217, 119, 6, 0.1);
+}
+.blog-content .blog-proof-outcome--rejected figcaption {
+  background: rgba(220, 38, 38, 0.09);
+}
+.blog-content .blog-proof-outcome figcaption::before {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0.45rem 0.25rem 0;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+.blog-content .blog-proof-outcome--accepted figcaption::before {
+  content: 'Accepted';
+  background: #15803d;
+}
+.blog-content .blog-proof-outcome--clarification figcaption::before {
+  content: 'Clarification';
+  background: #b45309;
+}
+.blog-content .blog-proof-outcome--rejected figcaption::before {
+  content: 'Rejected';
+  background: #b91c1c;
+}
+@media (max-width: 680px) {
+  .blog-content .blog-image-gallery {
+    grid-template-columns: 1fr;
+  }
+  .blog-content .blog-image-gallery img {
+    max-height: none;
+  }
+}
 .blog-content a {
   color: #1d4ed8;
   text-decoration: underline;

@@ -7,8 +7,8 @@ const {
   htmlToText
 } = require('../src/scripts/seed-adsense-blog-posts');
 
-test('AdSense blog seed contains only the 99 publication-eligible registered guides', () => {
-  assert.equal(POSTS.length, 99);
+test('AdSense blog seed contains 100 publication-ready guides and one evidence-review draft', () => {
+  assert.equal(POSTS.length, 101);
 
   const slugs = new Set();
   for (const post of POSTS) {
@@ -27,7 +27,9 @@ test('AdSense blog seed contains only the 99 publication-eligible registered gui
     const html = buildContentHtml(post);
     const text = htmlToText(html);
     assert.ok(text.split(/\s+/).filter(Boolean).length >= 500, `${post.slug} should meet the publication word floor`);
-    if (post.contentHtml) {
+    if (['virtual-run-proof-submission-lessons', 'common-gps-screenshot-problems-virtual-run'].includes(post.slug)) {
+      assert.match(html, /<figure\b/);
+    } else if (post.contentHtml) {
       assert.match(html, /Official(?: and platform)? sources/);
     } else {
       assert.match(html, /Helpful links/);

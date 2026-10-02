@@ -97,7 +97,7 @@ test('Philippine joining guide is registered and stored once as rich canonical s
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 99);
+  assert.equal(listArticleSlugs().length, 101);
   assert.equal(seededPosts.length, 1);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
   assert.equal(htmlToText(seededPost.contentHtml), buildArticlePayload({ coverImageUrl: seededPost.coverImageUrl }).contentText);
@@ -112,7 +112,7 @@ test('Philippine joining alias uses the shared editorial-only updater', () => {
   assert.match(packageJson.scripts['blog:update-join-philippines'], new RegExp(`--slug ${CANONICAL_SLUG}`));
   assert.deepEqual(EDITORIAL_FIELDS, [
     'title', 'excerpt', 'contentHtml', 'contentText', 'contentRaw', 'category', 'customCategory',
-    'tags', 'readingTime', 'seoTitle', 'seoDescription', 'coverImageAlt', 'ogImageUrl'
+    'tags', 'readingTime', 'seoTitle', 'seoDescription', 'coverImageAlt', 'ogImageUrl', 'contentBlocks'
   ]);
   for (const alias of [
     'blog:update-best-apps', 'blog:update-running-safety', 'blog:update-organizer-guide',

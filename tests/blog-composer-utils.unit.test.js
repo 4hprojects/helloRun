@@ -151,8 +151,71 @@ test('preserves safe site-relative URLs in structured image blocks', () => {
   ]);
 
   assert.equal(blocks[0].content.url, '/images/blog/inline.webp');
-  assert.match(renderContentBlocksToHtml(blocks), /src="\/images\/blog\/inline\.webp"/);
+  const html = renderContentBlocksToHtml(blocks);
+  assert.match(html, /<figure><img src="\/images\/blog\/inline\.webp" alt="Runner" loading="lazy" \/><figcaption>Finish line<\/figcaption><\/figure>/);
   assert.deepEqual(validateContentBlocks(blocks), []);
+});
+
+test('structured image figures escape alt text and captions', () => {
+  const blocks = normalizeContentBlocks([
+    {
+      type: 'image',
+      content: {
+        url: '/images/blog/evidence.webp',
+        alt: 'Proof image <accepted>',
+        caption: 'Readable distance & date <script>alert(1)</script>'
+      }
+    },
+    { type: 'textSection', content: { text: 'Enough supporting article text for block validation.' } }
+  ]);
+
+  const html = renderContentBlocksToHtml(blocks);
+  assert.match(html, /alt="Proof image &lt;accepted&gt;"/);
+  assert.match(html, /<figcaption>Readable distance &amp; date &lt;script&gt;alert\(1\)&lt;\/script&gt;<\/figcaption>/);
+  assert.doesNotMatch(html, /<script>/);
+});
+
+test('structured image galleries retain safe semantic figures and reject unsafe URLs', () => {
+  const blocks = normalizeContentBlocks([
+    {
+      type: 'imageGallery',
+      content: {
+        label: 'Accepted & rejected proof <examples>',
+        tone: 'accepted',
+        images: [
+          { url: '/images/blog/accepted.webp', alt: 'Accepted proof', caption: 'Readable metrics' },
+          { url: '/images/blog/rejected.webp', alt: 'Rejected proof', caption: 'Wrong activity', tone: 'rejected' },
+          { url: 'javascript:alert(1)', alt: 'Unsafe proof', caption: 'Do not render' }
+        ]
+      }
+    },
+    { type: 'textSection', content: { text: 'Supporting editorial context makes this structured gallery suitable for validation.' } }
+  ]);
+
+  const html = renderContentBlocksToHtml(blocks);
+  assert.match(html, /<section class="blog-image-gallery blog-image-gallery--accepted" aria-label="Accepted &amp; rejected proof &lt;examples&gt;">/);
+  assert.equal((html.match(/class="blog-proof-outcome blog-proof-outcome--accepted"/g) || []).length, 1);
+  assert.equal((html.match(/class="blog-proof-outcome blog-proof-outcome--rejected"/g) || []).length, 1);
+  assert.equal((html.match(/<figure\b/g) || []).length, 2);
+  assert.equal((html.match(/loading="lazy"/g) || []).length, 2);
+  assert.match(html, /<figcaption>Readable metrics<\/figcaption>/);
+  assert.doesNotMatch(html, /javascript:/);
+  assert.ok(validateContentBlocks(blocks).some((error) => error.includes('image 3 URL is required')));
+});
+
+test('structured text supports sanitized inline links', () => {
+  const blocks = normalizeContentBlocks([
+    {
+      type: 'textSection',
+      content: {
+        text: 'Read [How HelloRun works](/how-it-works) but not [unsafe](javascript:alert(1)).'
+      }
+    }
+  ]);
+
+  const html = renderContentBlocksToHtml(blocks);
+  assert.match(html, /<a href="\/how-it-works"[^>]*>How HelloRun works<\/a>/);
+  assert.doesNotMatch(html, /href="javascript:/);
 });
 
 test('textSection renders paragraphs and bullet lines from one block', () => {

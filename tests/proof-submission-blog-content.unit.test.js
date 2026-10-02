@@ -131,7 +131,7 @@ test('proof-submission updater alias targets the shared editorial-only updater',
   assert.match(packageJson.scripts['blog:update-proof-submission'], new RegExp(`--slug ${CANONICAL_SLUG}`));
   assert.deepEqual(EDITORIAL_FIELDS, [
     'title', 'excerpt', 'contentHtml', 'contentText', 'contentRaw', 'category', 'customCategory',
-    'tags', 'readingTime', 'seoTitle', 'seoDescription', 'coverImageAlt', 'ogImageUrl'
+    'tags', 'readingTime', 'seoTitle', 'seoDescription', 'coverImageAlt', 'ogImageUrl', 'contentBlocks'
   ]);
   for (const alias of [
     'blog:update-best-apps',
