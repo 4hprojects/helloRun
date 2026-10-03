@@ -77,6 +77,11 @@
         <i data-lucide="trophy"></i>
         <span class="nav-tooltip">Leaderboard</span>
       </a>
+      <%# Hidden by pwa.css until /js/pwa.js finds a real install path (Chromium prompt or iOS guidance). %>
+      <button type="button" class="nav-icon-link nav-install-btn" data-pwa-install-action aria-label="Install HelloRun" title="Install HelloRun">
+        <i data-lucide="download" aria-hidden="true"></i>
+        <span class="nav-tooltip">Install HelloRun</span>
+      </button>
 
       <% if (locals.isAuthenticated) { %>
         <a href="/my-registrations" class="<%= navClass('/my-registrations') %>" aria-label="My Registrations" title="My Registrations" <% if (ariaCurrent('/my-registrations')) { %>aria-current="page"<% } %>>

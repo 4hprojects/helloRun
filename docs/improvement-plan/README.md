@@ -31,6 +31,7 @@ July 31 documentation reconciliation.
 | **3** | Efficiency (request-path costs, assets) | P2–P3 | After Phase 2 | [phase-3-efficiency.md](phase-3-efficiency.md) |
 | **4** | Intuitivity & UX | P2–P3 | After deploy, uses live app | [phase-4-intuitivity-ux.md](phase-4-intuitivity-ux.md) |
 | **5** | Strategic debt (CSP nonces, CQ-3, dependency majors) | P3 | Ongoing, one item per session | [phase-5-strategic-debt.md](phase-5-strategic-debt.md) |
+| — | Navigation consolidation and responsive foundation (PWA install shipped October 3) | P2–P3 | After PWA live verification | [ui-pwa-follow-ups.md](ui-pwa-follow-ups.md) |
 
 ## Priority index (all findings)
 

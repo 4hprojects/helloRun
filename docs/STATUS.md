@@ -134,6 +134,16 @@ production services.
 
 ## Implemented, Production or Live Verification Pending
 
+- Verify the installable PWA added October 3 after deploy:
+  - `/manifest.webmanifest` and `/sw.js` load over HTTPS with `no-cache`.
+  - Chrome on Android shows **Install HelloRun** and installs the app.
+  - iPhone Safari shows Add to Home Screen guidance and no native prompt.
+  - The installed app hides the install control.
+  - A second deploy surfaces the update prompt.
+  - Registration, payment-proof and run-proof POSTs still reach the network.
+  Remaining navigation and responsive work is tracked in
+  [`improvement-plan/ui-pwa-follow-ups.md`](improvement-plan/ui-pwa-follow-ups.md).
+
 - Validate runner, organiser, and administrator workflows on deployed phone,
   tablet, and desktop layouts, including weak-connectivity onsite behavior.
 - Verify organiser onboarding with a real ID OCR upload, restricted paid-event

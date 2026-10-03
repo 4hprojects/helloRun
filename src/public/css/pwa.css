@@ -1,0 +1,130 @@
+/* Install HelloRun control, iOS guidance dialog, and update toast.
+   Visibility is driven by html[data-pwa-install], set by /js/pwa.js. Controls stay
+   hidden until the browser offers a real install path, so no dead button is shown. */
+
+[data-pwa-install-action] {
+  display: none !important;
+}
+
+html[data-pwa-install="installable"] [data-pwa-install-action],
+html[data-pwa-install="ios-manual"] [data-pwa-install-action] {
+  display: inline-flex !important;
+}
+
+.nav-install-btn {
+  appearance: none;
+  background: transparent;
+  color: #334155;
+  cursor: pointer;
+  font: inherit;
+  border-radius: var(--radius-sm, 8px);
+}
+
+.nav-install-btn:hover {
+  color: var(--hr-color-brand, #c2410c);
+  background-color: #fff7ed;
+}
+
+@media (max-width: 900px) {
+  /* Match the drawer row treatment used by the nav links. */
+  .nav-links .nav-install-btn {
+    min-width: 100%;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+}
+
+.pwa-install-guidance {
+  width: min(100% - 2rem, 26rem);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  padding: 1.5rem;
+  border: 1px solid var(--hr-color-border, #e2e8f0);
+  border-radius: var(--hr-radius-md, 8px);
+  background: var(--hr-color-surface, #fff);
+  color: var(--hr-color-ink, #111827);
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.2);
+}
+
+.pwa-install-guidance::backdrop {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.pwa-install-guidance h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.pwa-install-guidance p {
+  margin: 0 0 0.75rem;
+}
+
+.pwa-install-guidance ol {
+  margin: 0 0 1.25rem;
+  padding-left: 1.25rem;
+  line-height: 1.6;
+}
+
+.pwa-install-guidance form {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0;
+}
+
+.pwa-install-guidance-close,
+.pwa-update-toast button {
+  min-height: 44px;
+  padding: 0.5rem 1.1rem;
+  border: 0;
+  border-radius: var(--hr-radius-md, 8px);
+  background: var(--hr-color-brand, #c2410c);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pwa-install-guidance-close:focus-visible,
+.pwa-update-toast button:focus-visible {
+  outline: 3px solid var(--hr-color-ink, #111827);
+  outline-offset: 2px;
+}
+
+.pwa-update-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: max-content;
+  max-width: calc(100% - 2rem);
+  padding: 0.6rem 0.6rem 0.6rem 1rem;
+  border-radius: var(--hr-radius-md, 8px);
+  background: #0f172a;
+  color: #fff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.3);
+  transform: translateX(-50%);
+}
+
+.pwa-update-toast span {
+  min-width: 0;
+}
+
+.pwa-update-toast .pwa-update-toast-dismiss {
+  min-width: 44px;
+  padding: 0.5rem;
+  background: transparent;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+@media (max-width: 768px) {
+  /* Keep clear of the fixed mobile bottom navigation. */
+  .pwa-update-toast {
+    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+}

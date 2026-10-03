@@ -1,5 +1,40 @@
 # HelloRun Changelog — October 2026
 
+## October 3 — Installable PWA foundation and Install HelloRun
+
+- HelloRun can now be installed as a Progressive Web App. `src/public/manifest.webmanifest`
+  (`id`, `start_url` and `scope` set to `/`, standalone, theme `#c2410c`, background
+  `#f8fafc`) is linked from `layouts/head.ejs`, together with `theme-color`, application-name
+  metadata, and shortcuts to `/events` and `/my-registrations`.
+- Icons generated from `helloRun-icon.png` in `src/public/images/pwa/`: 192 and 512 standard,
+  a 512 maskable icon with the logo inside the safe zone, and a 180×180 opaque Apple touch
+  icon. This replaces the 32×32 favicon that was previously used as the touch icon.
+- Conservative service worker, `src/public/sw.js`. It does not intercept non-GET requests
+  or cross-origin requests. Page HTML is never cached: navigations always go to the network
+  and fall back to the static `/offline.html`. Only same-origin `/css/`, `/js/` and
+  `/images/` assets are cached, stale-while-revalidate, excluding `/js/vendor/`.
+- `/sw.js` is served by its own route (`src/utils/service-worker.js`) with `no-cache` and a
+  cache version stamped from the deployed commit. Each deploy therefore installs a new
+  worker, and that worker deletes the previous caches. The manifest and offline page are
+  also `no-cache`.
+- When a new worker is waiting, the page shows "A new version of HelloRun is available" with
+  a Refresh button. The page reloads only when the user clicks it.
+- `src/public/js/pwa.js` holds the install state. It publishes the state as `data-pwa-install`
+  on `<html>`:
+  - Chromium's `beforeinstallprompt` enables an **Install HelloRun** nav control that opens
+    the native prompt. The prompt only opens on a click.
+  - On iPhone and iPad browser tabs, the control opens Add to Home Screen guidance instead.
+  - The control is hidden when the app is already installed, running standalone, inside
+    in-app webviews, and on browsers that offer no install path.
+  - `pwa.css` controls visibility.
+- DB-free coverage: `tests/pwa-foundation.unit.test.js`. It checks the manifest and icon
+  dimensions, the shortcut routes, the head and nav wiring, and the install-module
+  invariants. It also runs the real worker in a VM sandbox against mocked caches and
+  fetch, confirming that writes, API and cross-origin requests are ignored, navigations
+  are not cached, the offline fallback works, and static assets are cached.
+- Not yet verified: installation on a real Android or iOS device, and the update flow
+  against a production deploy.
+
 ## October 3 — Admin promotion live send status
 
 - `/admin/promote` has a **Live Send Status** card under Recipient Preview. It shows every

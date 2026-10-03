@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#c2410c">
+  <title>You're offline | HelloRun</title>
+  <link rel="icon" type="image/png" href="/images/helloRun-icon-browser.png">
+  <!--
+    Served by the service worker when a page navigation fails. It must stay
+    self-contained (no external CSS, fonts, or scripts) and must never show
+    account or event data, because none of that is available offline.
+  -->
+  <style>
+    :root {
+      --brand: #c2410c;
+      --brand-hover: #9a3412;
+      --page: #f8fafc;
+      --surface: #ffffff;
+      --ink: #111827;
+      --muted: #475569;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+      background: var(--page);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.5;
+    }
+    main {
+      width: min(100%, 28rem);
+      padding: 2rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      text-align: center;
+    }
+    img { width: 72px; height: 72px; }
+    h1 { margin: 1rem 0 0.5rem; font-size: 1.5rem; }
+    p { margin: 0 0 1.5rem; color: var(--muted); }
+    button {
+      min-height: 44px;
+      padding: 0.6rem 1.4rem;
+      border: 0;
+      border-radius: 8px;
+      background: var(--brand);
+      color: #fff;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: var(--brand-hover); }
+    button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="/images/pwa/icon-192.png" alt="">
+    <h1>You're offline</h1>
+    <p>HelloRun can't load the latest event or account information right now. Check your connection and try again.</p>
+    <button type="button" id="offlineRetry">Try again</button>
+  </main>
+  <script>
+    document.getElementById('offlineRetry').addEventListener('click', function () {
+      window.location.reload();
+    });
+    window.addEventListener('online', function () {
+      window.location.reload();
+    });
+  </script>
+</body>
+</html>

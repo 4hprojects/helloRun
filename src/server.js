@@ -182,11 +182,20 @@ app.get('/js/threaded-comments-component.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'packages', 'threaded-comments', 'web', 'threaded-comments.js'));
 });
 
+// Service worker and manifest must not sit behind the 1-day static cache, or installed
+// users stay on an old worker after a deploy. See src/utils/service-worker.js.
+app.get('/sw.js', require('./utils/service-worker').serveServiceWorker);
+
 // Static files — 1-day cache; browsers revalidate with ETag/Last-Modified
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: isProduction ? '1d' : 0,
   etag: true,
-  lastModified: true
+  lastModified: true,
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.webmanifest') || filePath.endsWith('offline.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  }
 }));
 
 // ===== STEP 2: VIEW ENGINE =====

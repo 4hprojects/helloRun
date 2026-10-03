@@ -3,7 +3,12 @@
 <% const effectiveSeo = (typeof seo !== 'undefined' && seo) ? seo : (locals.seo || null); %>
 <title><%= title || 'HelloRun - Virtual Running Events' %></title>
 <link rel="icon" type="image/png" href="/images/helloRun-icon-browser.png">
-<link rel="apple-touch-icon" href="/images/helloRun-icon-browser.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/pwa/apple-touch-icon-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#c2410c">
+<meta name="application-name" content="HelloRun">
+<meta name="apple-mobile-web-app-title" content="HelloRun">
+<meta name="mobile-web-app-capable" content="yes">
 <% if (effectiveSeo && effectiveSeo.robots) { %>
   <meta name="robots" content="<%= effectiveSeo.robots %>">
 <% } %>
@@ -45,7 +50,9 @@
 <link rel="stylesheet" href="/css/mobile-nav.css">
 <link rel="stylesheet" href="/css/badge-display.css">
 <link rel="stylesheet" href="/css/cookie-preferences.css">
+<link rel="stylesheet" href="/css/pwa.css">
 <script src="https://unpkg.com/lucide@latest"></script>
+<script src="/js/pwa.js" defer></script>
 <%- include('../partials/privacy-head') %>
 <% if (locals.ads && locals.ads.loadConsentScript && locals.ads.publisherId) { %>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<%= locals.ads.publisherId %>" crossorigin="anonymous"></script>
