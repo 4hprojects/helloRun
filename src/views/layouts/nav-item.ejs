@@ -1,0 +1,8 @@
+<%# One header destination from src/config/navigation.js. Rendered by layouts/nav.ejs. %>
+<a href="<%= item.href %>" class="<%= itemClass %>" aria-label="<%= item.ariaLabel %>" title="<%= item.title %>"<% if (item.data) { Object.keys(item.data).forEach((key) => { %> data-<%= key %>="<%= item.data[key] %>"<% }) } %><% if (item.isCurrent) { %> aria-current="page"<% } %>>
+  <i data-lucide="<%= item.icon %>" aria-hidden="true"></i>
+  <span class="nav-tooltip"><%= item.label %></span>
+  <% if (item.badge) { %>
+    <span class="nav-notification-badge" aria-hidden="true"><%= item.badge %></span>
+  <% } %>
+</a>

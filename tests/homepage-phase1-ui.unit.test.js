@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const ejs = require('ejs');
+const { renderNav, renderNavFromOptions } = require('./helpers/render-nav');
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (relativePath) => fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
@@ -57,8 +58,9 @@ test('shared navigation keeps desktop icons a fixed size and reveals labels as a
   const css = read('src/public/css/style.css');
   const mobileCss = read('src/public/css/mobile-nav.css');
 
+  const guestNav = renderNav({ currentPath: '/about', isAuthenticated: false });
   for (const href of ['/', '/events', '/blog', '/leaderboard']) {
-    assert.ok(nav.includes(`navClass('${href}', 'nav-primary-link')`));
+    assert.match(guestNav, new RegExp(`<a href="${href}" class="nav-icon-link nav-primary-link"`));
   }
   assert.match(css, /@media \(min-width: 901px\)[\s\S]*\.nav \.nav-icon-link\s*\{[\s\S]*width: 44px;[\s\S]*min-width: 44px;[\s\S]*max-width: none;[\s\S]*height: 44px/);
   assert.match(css, /\.nav \.nav-icon-link > svg\s*\{[\s\S]*flex: 0 0 20px/);
@@ -95,7 +97,7 @@ test('shared navigation keeps desktop icons a fixed size and reveals labels as a
   assert.match(css, /@media \(min-width: 901px\) and \(max-width: 1050px\)[\s\S]*\.nav \.logo > span[\s\S]*clip-path: inset\(50%\)/);
 
   for (const currentPath of ['/', '/events', '/blog', '/leaderboard']) {
-    const html = ejs.render(nav, {
+    const html = renderNavFromOptions({
       locals: {
         currentPath,
         renderRunProofModal: false,
@@ -111,7 +113,7 @@ test('shared navigation keeps desktop icons a fixed size and reveals labels as a
 test('runner notification badge caps its visual count without losing the exact accessible count', () => {
   const nav = read('src/views/layouts/nav.ejs');
   const css = read('src/public/css/style.css');
-  const render = (count) => ejs.render(nav, {
+  const render = (count) => renderNavFromOptions({
     locals: {
       currentPath: '/',
       renderRunProofModal: false,
@@ -148,7 +150,7 @@ test('runner notification badge caps its visual count without losing the exact a
 
 test('runner, organizer, and admin mobile destinations retain accessible names and active-page semantics', () => {
   const nav = read('src/views/layouts/nav.ejs');
-  const render = (locals) => ejs.render(nav, {
+  const render = (locals) => renderNavFromOptions({
     locals: {
       currentPath: '/',
       renderRunProofModal: false,
@@ -182,9 +184,10 @@ test('login and logout controls use concise labels and distinct restrained inter
   const nav = read('src/views/layouts/nav.ejs');
   const css = read('src/public/css/style.css');
 
-  assert.match(nav, /aria-label="Log in to HelloRun" title="Log in"/);
+  const guestNav = renderNav({ currentPath: '/', isAuthenticated: false });
+  assert.match(guestNav, /aria-label="Log in to HelloRun" title="Log in"/);
   assert.match(nav, /aria-label="Log out of HelloRun" title="Log out"/);
-  assert.match(nav, /<span class="nav-tooltip">Log in<\/span>/);
+  assert.match(guestNav, /<span class="nav-tooltip">Log in<\/span>/);
   assert.match(nav, /<span class="nav-tooltip">Log out<\/span>/);
   assert.match(css, /\.nav \.nav-login-btn,[\s\S]*\.nav \.nav-user \.nav-logout-btn\s*\{[\s\S]*color: #475569;[\s\S]*border-color: #e2e8f0/);
   assert.match(css, /\.nav \.nav-user \.nav-logout-btn:hover,[\s\S]*color: #b42318;[\s\S]*background: #fff5f4;[\s\S]*border-color: #fecaca/);

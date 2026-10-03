@@ -61,7 +61,11 @@ test('authenticated recipients can respond in app without exposing an invitation
 test('organizer navigation exposes account notifications', () => {
   const nav = read('src/views/layouts/nav.ejs');
   const auth = read('src/middleware/auth.middleware.js');
-  assert.match(nav, /else if \(isOrganizerWorkspace\)[\s\S]*href="\/runner\/notifications"/);
+  const { renderNav } = require('./helpers/render-nav');
+  const organizerNav = renderNav({ isAuthenticated: true, isOrganizer: true, isOrganizerWorkspace: true, user: { firstName: 'Org' } });
+  const header = organizerNav.slice(0, organizerNav.indexOf('</nav>'));
+  assert.match(header, /href="\/runner\/notifications"/);
+  assert.ok(nav.includes('buildNavigation'));
   assert.match(auth, /\[WORKSPACES\.RUNNER, WORKSPACES\.ORGANIZER\]\.includes\(activeWorkspace\)/);
 });
 

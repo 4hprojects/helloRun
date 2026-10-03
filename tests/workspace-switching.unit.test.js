@@ -120,12 +120,18 @@ test('reviewing your own entry is recorded, not blocked', () => {
 });
 
 test('workspace switching UI uses CSRF-protected forms on desktop and mobile', () => {
-  const nav = read('src/views/layouts/nav.ejs');
-  assert.match(nav, /action="\/workspace\/runner" method="POST"/);
-  assert.match(nav, /action="\/workspace\/organizer" method="POST"/);
-  assert.match(nav, /name="_csrf"/);
-  assert.match(nav, /locals\.isRunnerWorkspace/);
-  assert.match(nav, /mobile-workspace-switch-form/);
+  const { renderNav } = require('./helpers/render-nav');
+  const base = { isAuthenticated: true, csrfToken: 'csrf-test', user: { firstName: 'Switch' } };
+  const runner = renderNav({ ...base, isRunnerWorkspace: true, canUseOrganizerWorkspace: true });
+  const organizer = renderNav({ ...base, isOrganizer: true, isOrganizerWorkspace: true, canUseRunnerWorkspace: true });
+  assert.match(runner, /<form action="\/workspace\/organizer" method="POST" class="workspace-switch-form">\s*<input type="hidden" name="_csrf" value="csrf-test">/);
+  assert.match(organizer, /<form action="\/workspace\/runner" method="POST" class="workspace-switch-form">\s*<input type="hidden" name="_csrf" value="csrf-test">/);
+  // One switch per page, in the header menu (which is also the mobile menu), not in the bottom tabs.
+  for (const html of [runner, organizer]) {
+    assert.equal((html.match(/action="\/workspace\//g) || []).length, 1);
+    assert.doesNotMatch(html.match(/<nav class="mobile-bottom-nav"[\s\S]*?<\/nav>/)[0], /workspace/);
+  }
+  assert.match(read('src/config/navigation.js'), /locals\.isRunnerWorkspace/);
 
   const authRoutes = read('src/routes/authRoutes.js');
   assert.match(authRoutes, /router\.post\('\/workspace\/:workspace', requireAuth, requireCsrfProtection/);

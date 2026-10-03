@@ -183,12 +183,12 @@ test('runner tools replace expanded dashboard discovery and archives', () => {
 });
 
 test('runner mobile navigation keeps the five task-oriented destinations', () => {
-  const nav = read('src/views/layouts/nav.ejs');
-  assert.match(nav, />Home</);
-  assert.match(nav, />Events</);
-  assert.match(nav, /data-run-proof-surface="runner-mobile-nav"/);
-  assert.match(nav, />Progress</);
-  assert.match(nav, />Profile</);
+  const { renderNav } = require('./helpers/render-nav');
+  const html = renderNav({ isAuthenticated: true, isRunnerWorkspace: true, canUseOrganizerWorkspace: true, renderRunProofModal: true, user: { firstName: 'Runner' } });
+  const bottom = html.match(/<nav class="mobile-bottom-nav"[\s\S]*?<\/nav>/)[0];
+  const labels = [...bottom.matchAll(/<span>([^<]+)<\/span>/g)].map((match) => match[1]);
+  assert.deepEqual(labels, ['Home', 'Events', 'Submit', 'Progress', 'Profile']);
+  assert.match(bottom, /data-run-proof-surface="runner-mobile-nav"/);
 });
 
 test('dashboard has visible focus, reduced motion, and 44px compact controls', () => {

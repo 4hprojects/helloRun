@@ -20,8 +20,6 @@ verification is listed in [STATUS.md](../STATUS.md).
 
 | Area | Current state | Gap |
 |---|---|---|
-| Navigation source of truth | All header, drawer and bottom-tab links are hard-coded in `src/views/layouts/nav.ejs`. Runner links are repeated across branches; `/runner/notifications` appears four times. The footer links are also hard-coded. | High |
-| Bottom navigation | Runner and organiser variants have six tabs each, including the workspace switch. The target is five or fewer. | Low–Medium |
 | Account menu | There is no profile or account menu. The user area has only an avatar, a greeting and a logout icon. | Medium |
 | Breakpoints and tokens | 59 distinct `@media` widths across 61 stylesheets. Two overlapping token sets with conflicting radii: legacy tokens in `style.css` and `--hr-*` tokens in `design-system.css`. There are no spacing, breakpoint or z-index tokens. | High (long tail) |
 | Overflow | `style.css` sets `body { overflow-x: hidden }`, which hides overflow instead of fixing it. 17 large `min-width` rules, mainly in `organizer-events.css` (up to 1840px) and `admin.css`. | High |
@@ -29,10 +27,9 @@ verification is listed in [STATUS.md](../STATUS.md).
 | Tables | 55 tables across 34 views. About 31 are inside `*-table-wrap` scrollers. The policy-page tables are not wrapped. | Medium |
 | Dialogs | 16 native `<dialog>` elements and 42 custom `role="dialog"` implementations. | Medium (defer) |
 | Skip link | Only the home page has one. | Low |
-| Organiser bell | Missing `aria-current` (`nav.ejs`). | Low |
 
 Already sound, so keep it:
-- `aria-current` and `is-active` through `isCurrent()` in `nav.ejs`.
+- `aria-current` and `is-active` on the current page, now computed in `src/config/navigation.js`.
 - Menu toggle focus trap, Escape and outside-click handling in `public/js/main.js`.
 - Workspace-based role switching via `src/utils/workspace.js` and POST `/workspace/:workspace`.
 - The `<details>`-based events filter panel.
@@ -40,16 +37,14 @@ Already sound, so keep it:
 
 ## Next phases
 
-### D — Navigation consolidation
-- Add `src/config/navigation.js`. It holds a single item list (`id`, `label`, `href`,
-  `icon`, `workspaces`, `surfaces`, `match`) and a `buildNav(locals)` function that
-  filters it using the existing workspace locals from `populateAuthLocals`. It must add
-  no new authorisation; route guards stay authoritative.
-- Render the header, drawer, bottom tabs and footer from that list. Keep the markup that
-  `tests/workflow-mobile.unit.test.js` asserts, or change those assertions deliberately.
-- Move the workspace switch out of the bottom tabs so each variant has five or fewer.
-- Add a `<details>`-based account menu containing Profile, Install HelloRun, Switch
-  workspace and Log out.
+### D — Navigation consolidation (done October 3, except the account menu)
+`src/config/navigation.js` is now the single source of truth for the nav. Each bottom
+tab bar has at most five destinations, the workspace switch is in the header menu, and
+the organiser bell has `aria-current`. See the changelog.
+
+Still open: a `<details>`-based account menu (Profile, Install HelloRun, Switch
+workspace, Log out). It changes the desktop header layout, so it needs a visual review
+before it ships.
 
 ### E — Responsive foundation
 - Add spacing and z-index tokens, plus documented reference breakpoints of 480, 768,

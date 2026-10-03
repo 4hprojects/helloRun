@@ -1,39 +1,23 @@
-<!-- filepath: c:\Users\Kayla\Desktop\PersonalProjects\HelloRun\src\views\layouts\nav.ejs -->
 <!-- Navigation Bar -->
 <%
-  const currentPath = locals.currentPath || '';
-  const isCurrent = (href) => href === '/'
-    ? currentPath === '/'
-    : currentPath === href || currentPath.startsWith(`${href}/`);
-  const navClass = (href, extra = '') => `nav-icon-link${extra ? ` ${extra}` : ''}${isCurrent(href) ? ' is-active' : ''}`;
-  const ariaCurrent = (href) => isCurrent(href) ? 'page' : undefined;
-  const rawRunnerUnreadNotifications = Number(locals.runnerUnreadNotifications || 0);
-  const runnerUnreadNotifications = Number.isFinite(rawRunnerUnreadNotifications) && rawRunnerUnreadNotifications > 0
-    ? Math.floor(rawRunnerUnreadNotifications)
-    : 0;
-  const runnerUnreadNotificationLabel = runnerUnreadNotifications > 0
-    ? `Notifications, ${runnerUnreadNotifications} unread notification${runnerUnreadNotifications === 1 ? '' : 's'}`
-    : 'Notifications';
-  const runnerUnreadNotificationDisplay = runnerUnreadNotifications > 99
-    ? '99+'
-    : String(runnerUnreadNotifications);
-  const isRunnerWorkspace = Boolean(
-    locals.isRunnerWorkspace ||
-    (locals.isAuthenticated && !locals.isAdmin && !locals.isOrganizer && !locals.isApprovedOrganizer)
-  );
-  const isOrganizerWorkspace = Boolean(
-    locals.isOrganizerWorkspace ||
-    (locals.isAuthenticated && (locals.isOrganizer || locals.isApprovedOrganizer) && !isRunnerWorkspace)
-  );
+  // Destinations, labels, visibility and the current page all come from
+  // src/config/navigation.js (exposed as app.locals.buildNavigation). This template
+  // only renders them; add or change nav links in that config, not here.
+  // Outside Express (e.g. a view rendered directly in a unit test) the builder is
+  // absent and only the logo bar is rendered; server.js always provides it.
+  const navigation = typeof locals.buildNavigation === 'function'
+    ? locals.buildNavigation(locals)
+    : { primary: [], account: [], auth: [], workspaceSwitch: null, bottom: null, isRunnerWorkspace: false };
+  const headerClass = (item) => `nav-icon-link${item.className ? ` ${item.className}` : ''}${item.isCurrent ? ' is-active' : ''}`;
 %>
-<nav class="nav" role="navigation" aria-label="Main navigation">
+<nav class="nav" aria-label="Main navigation">
   <div class="nav-container">
     <a href="/" class="logo" aria-label="HelloRun Home">
       <img src="/images/helloRun-icon.webp" alt="" class="logo-icon">
       <span>HelloRun</span>
     </a>
 
-    <% if (locals.renderRunProofModal && (!locals.isAuthenticated || isRunnerWorkspace)) { %>
+    <% if (locals.renderRunProofModal && (!locals.isAuthenticated || navigation.isRunnerWorkspace)) { %>
       <div class="nav-run-proof-action">
         <span class="nav-run-proof-callout" data-nav-run-proof-callout aria-hidden="true">
           <span class="nav-run-proof-callout-kicker">Run proof</span>
@@ -49,7 +33,7 @@
         </button>
       </div>
     <% } %>
-    
+
     <button
       class="menu-toggle"
       type="button"
@@ -59,24 +43,11 @@
       aria-haspopup="true">
       <i data-lucide="menu"></i>
     </button>
-    
+
     <div class="nav-links" id="nav-links">
-      <a href="/" class="<%= navClass('/', 'nav-primary-link') %>" aria-label="Home" title="Home" <% if (ariaCurrent('/')) { %>aria-current="page"<% } %>>
-        <i data-lucide="home"></i>
-        <span class="nav-tooltip">Home</span>
-      </a>
-      <a href="/events" class="<%= navClass('/events', 'nav-primary-link') %>" aria-label="Events" title="Events" <% if (ariaCurrent('/events')) { %>aria-current="page"<% } %>>
-        <i data-lucide="calendar-days"></i>
-        <span class="nav-tooltip">Events</span>
-      </a>
-      <a href="/blog" class="<%= navClass('/blog', 'nav-primary-link') %>" aria-label="Blog" title="Blog" <% if (ariaCurrent('/blog')) { %>aria-current="page"<% } %>>
-        <i data-lucide="newspaper"></i>
-        <span class="nav-tooltip">Blog</span>
-      </a>
-      <a href="/leaderboard" class="<%= navClass('/leaderboard', 'nav-primary-link') %>" aria-label="Leaderboard" title="Leaderboard" <% if (ariaCurrent('/leaderboard')) { %>aria-current="page"<% } %>>
-        <i data-lucide="trophy"></i>
-        <span class="nav-tooltip">Leaderboard</span>
-      </a>
+      <% navigation.primary.forEach((item) => { %>
+        <%- include('nav-item', { item, itemClass: headerClass(item) }) %>
+      <% }) %>
       <%# Hidden by pwa.css until /js/pwa.js finds a real install path (Chromium prompt or iOS guidance). %>
       <button type="button" class="nav-icon-link nav-install-btn" data-pwa-install-action aria-label="Install HelloRun" title="Install HelloRun">
         <i data-lucide="download" aria-hidden="true"></i>
@@ -84,76 +55,17 @@
       </button>
 
       <% if (locals.isAuthenticated) { %>
-        <a href="/my-registrations" class="<%= navClass('/my-registrations') %>" aria-label="My Registrations" title="My Registrations" <% if (ariaCurrent('/my-registrations')) { %>aria-current="page"<% } %>>
-          <i data-lucide="clipboard-list"></i>
-          <span class="nav-tooltip">My Registrations</span>
-        </a>
-
-        <% if (isRunnerWorkspace) { %>
-          <a href="/runner/submissions" class="<%= navClass('/runner/submissions') %>" aria-label="Submission History" title="Submission History" <% if (ariaCurrent('/runner/submissions')) { %>aria-current="page"<% } %>>
-            <i data-lucide="file-check"></i>
-            <span class="nav-tooltip">Submission History</span>
-          </a>
+        <% navigation.account.forEach((item) => { %>
+          <%- include('nav-item', { item, itemClass: headerClass(item) }) %>
+        <% }) %>
+        <% if (navigation.workspaceSwitch) { %>
+          <form action="<%= navigation.workspaceSwitch.action %>" method="POST" class="workspace-switch-form">
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+            <button type="submit" class="nav-icon-link" aria-label="<%= navigation.workspaceSwitch.label %>" title="<%= navigation.workspaceSwitch.label %>"><i data-lucide="<%= navigation.workspaceSwitch.icon %>" aria-hidden="true"></i><span class="nav-tooltip"><%= navigation.workspaceSwitch.tooltip %></span></button>
+          </form>
         <% } %>
 
-        <!-- Role-based dashboard link -->
-        <% if (locals.isAdmin) { %>
-          <a href="/admin/dashboard" class="<%= navClass('/admin/dashboard') %>" aria-label="Admin" title="Admin" data-admin-tier="<%= locals.isFullAdmin ? 'full' : 'support' %>" <% if (ariaCurrent('/admin/dashboard')) { %>aria-current="page"<% } %>>
-            <i data-lucide="shield-check"></i>
-            <span class="nav-tooltip">Admin — <%= locals.isFullAdmin ? 'Full access' : 'Support access' %></span>
-          </a>
-        <% } else if (isRunnerWorkspace) { %>
-          <a href="/runner/dashboard" class="<%= navClass('/runner/dashboard') %>" aria-label="Dashboard" title="Dashboard" <% if (ariaCurrent('/runner/dashboard')) { %>aria-current="page"<% } %>>
-            <i data-lucide="layout-dashboard"></i>
-            <span class="nav-tooltip">Dashboard</span>
-          </a>
-          <a href="/runner/notifications" class="<%= navClass('/runner/notifications', 'nav-notifications-link') %>" aria-label="<%= runnerUnreadNotificationLabel %>" title="Notifications" <% if (ariaCurrent('/runner/notifications')) { %>aria-current="page"<% } %>>
-            <i data-lucide="bell"></i>
-            <span class="nav-tooltip">Notifications</span>
-            <% if (runnerUnreadNotifications > 0) { %>
-              <span class="nav-notification-badge" aria-hidden="true"><%= runnerUnreadNotificationDisplay %></span>
-            <% } %>
-          </a>
-          <% if (locals.canUseOrganizerWorkspace) { %>
-            <form action="/workspace/organizer" method="POST" class="workspace-switch-form">
-              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-              <button type="submit" class="nav-icon-link" aria-label="Switch to Organizer mode" title="Switch to Organizer mode"><i data-lucide="calendar-cog"></i><span class="nav-tooltip">Organizer mode</span></button>
-            </form>
-          <% } %>
-        <% } else if (isOrganizerWorkspace) { %>
-          <a href="/organizer/dashboard" class="<%= navClass('/organizer/dashboard') %>" aria-label="Dashboard" title="Dashboard" <% if (ariaCurrent('/organizer/dashboard')) { %>aria-current="page"<% } %>>
-            <i data-lucide="layout-dashboard"></i>
-            <span class="nav-tooltip">Dashboard</span>
-          </a>
-          <a href="/runner/notifications" class="<%= navClass('/runner/notifications', 'nav-notifications-link') %>" aria-label="<%= runnerUnreadNotificationLabel %>" title="Notifications">
-            <i data-lucide="bell"></i>
-            <span class="nav-tooltip">Notifications</span>
-            <% if (runnerUnreadNotifications > 0) { %>
-              <span class="nav-notification-badge" aria-hidden="true"><%= runnerUnreadNotificationDisplay %></span>
-            <% } %>
-          </a>
-          <% if (locals.canUseRunnerWorkspace) { %>
-            <form action="/workspace/runner" method="POST" class="workspace-switch-form">
-              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-              <button type="submit" class="nav-icon-link" aria-label="Switch to Runner mode" title="Switch to Runner mode"><i data-lucide="person-standing"></i><span class="nav-tooltip">Runner mode</span></button>
-            </form>
-          <% } %>
-        <% } else { %>
-          <a href="/runner/dashboard" class="<%= navClass('/runner/dashboard') %>" aria-label="Dashboard" title="Dashboard" <% if (ariaCurrent('/runner/dashboard')) { %>aria-current="page"<% } %>>
-            <i data-lucide="layout-dashboard"></i>
-            <span class="nav-tooltip">Dashboard</span>
-          </a>
-          <a href="/runner/notifications" class="<%= navClass('/runner/notifications', 'nav-notifications-link') %>" aria-label="<%= runnerUnreadNotificationLabel %>" title="Notifications" <% if (ariaCurrent('/runner/notifications')) { %>aria-current="page"<% } %>>
-            <i data-lucide="bell"></i>
-            <span class="nav-tooltip">Notifications</span>
-            <% if (runnerUnreadNotifications > 0) { %>
-              <span class="nav-notification-badge" aria-hidden="true"><%= runnerUnreadNotificationDisplay %></span>
-            <% } %>
-          </a>
-        <% } %>
-
-        <!-- User menu -->
-        <div class="nav-user" aria-label="User menu">
+        <div class="nav-user">
           <% if (locals.user && locals.user.avatarUrl) { %>
             <img src="<%= locals.user.avatarUrl %>" alt="" class="nav-avatar" aria-hidden="true">
           <% } %>
@@ -167,16 +79,10 @@
           </form>
         </div>
       <% } else { %>
-        <!-- Guest buttons -->
         <div class="nav-auth-buttons">
-          <a href="/login" class="<%= navClass('/login', 'nav-login-btn') %>" aria-label="Log in to HelloRun" title="Log in" <% if (ariaCurrent('/login')) { %>aria-current="page"<% } %>>
-            <i data-lucide="log-in" aria-hidden="true"></i>
-            <span class="nav-tooltip">Log in</span>
-          </a>
-          <a href="/signup" class="<%= navClass('/signup', 'nav-signup-btn') %>" aria-label="Sign Up" title="Sign Up" <% if (ariaCurrent('/signup')) { %>aria-current="page"<% } %>>
-            <i data-lucide="user-plus"></i>
-            <span class="nav-tooltip">Sign Up</span>
-          </a>
+          <% navigation.auth.forEach((item) => { %>
+            <%- include('nav-item', { item, itemClass: headerClass(item) }) %>
+          <% }) %>
         </div>
       <% } %>
     </div>
@@ -188,54 +94,16 @@
     <button type="button" aria-label="Dismiss message" data-dismiss-global-flash><i data-lucide="x" aria-hidden="true"></i></button>
   </div>
 <% } %>
-<% if (locals.isAuthenticated && isRunnerWorkspace) { %>
-<nav class="mobile-bottom-nav" aria-label="Mobile navigation">
-  <a href="/runner/dashboard" class="mobile-nav-tab<%= isCurrent('/runner/dashboard') ? ' is-active' : '' %>" aria-label="Dashboard" <% if (isCurrent('/runner/dashboard')) { %>aria-current="page"<% } %>>
-    <i data-lucide="layout-dashboard" aria-hidden="true"></i>
-    <span>Home</span>
-  </a>
-  <a href="/events" class="mobile-nav-tab<%= isCurrent('/events') ? ' is-active' : '' %>" aria-label="Events" <% if (isCurrent('/events')) { %>aria-current="page"<% } %>>
-    <i data-lucide="calendar-days" aria-hidden="true"></i>
-    <span>Events</span>
-  </a>
-  <% if (locals.renderRunProofModal) { %>
-    <button type="button" class="mobile-nav-tab mobile-nav-tab-submit" data-open-run-proof-modal data-run-proof-surface="runner-mobile-nav" aria-label="Submit activity"><i data-lucide="circle-plus" aria-hidden="true"></i><span>Submit</span></button>
-  <% } else { %>
-    <a href="/runner/submissions?openRunProof=1" class="mobile-nav-tab mobile-nav-tab-submit" aria-label="Submit activity"><i data-lucide="circle-plus" aria-hidden="true"></i><span>Submit</span></a>
-  <% } %>
-  <a href="/runner/submissions" class="mobile-nav-tab<%= isCurrent('/runner/submissions') ? ' is-active' : '' %>" aria-label="Submission History" <% if (isCurrent('/runner/submissions')) { %>aria-current="page"<% } %>>
-    <i data-lucide="file-check" aria-hidden="true"></i>
-    <span>Progress</span>
-  </a>
-  <a href="/runner/profile" class="mobile-nav-tab<%= isCurrent('/runner/profile') ? ' is-active' : '' %>" aria-label="Profile" <% if (isCurrent('/runner/profile')) { %>aria-current="page"<% } %>><i data-lucide="user" aria-hidden="true"></i><span>Profile</span></a>
-  <% if (locals.canUseOrganizerWorkspace) { %>
-    <form action="/workspace/organizer" method="POST" class="workspace-switch-form mobile-workspace-switch-form">
-      <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-      <button type="submit" class="mobile-nav-tab" aria-label="Switch to Organizer mode"><i data-lucide="calendar-cog" aria-hidden="true"></i><span>Organizer</span></button>
-    </form>
-  <% } %>
-</nav>
-<% } else if (locals.isAuthenticated && isOrganizerWorkspace) { %>
-<nav class="mobile-bottom-nav" aria-label="Organizer mobile navigation">
-  <a href="/organizer/dashboard" class="mobile-nav-tab<%= isCurrent('/organizer/dashboard') ? ' is-active' : '' %>" aria-label="Organizer Dashboard" <% if (isCurrent('/organizer/dashboard')) { %>aria-current="page"<% } %>><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></a>
-  <% if (locals.isApprovedOrganizer || locals.canUseOrganizerWorkspace) { %>
-    <a href="/organizer/events" class="mobile-nav-tab<%= isCurrent('/organizer/events') ? ' is-active' : '' %>" aria-label="Organizer Events" <% if (isCurrent('/organizer/events')) { %>aria-current="page"<% } %>><i data-lucide="calendar-days" aria-hidden="true"></i><span>Events</span></a>
-    <a href="/organizer/dashboard#queue-breakdown-heading" class="mobile-nav-tab" aria-label="Organizer Work Queue"><i data-lucide="inbox" aria-hidden="true"></i><span>Work</span></a>
-    <a href="/runner/notifications" class="mobile-nav-tab" aria-label="<%= runnerUnreadNotificationLabel %>"><i data-lucide="bell" aria-hidden="true"></i><span>Notifications</span></a>
-    <a href="/organizer/promote" class="mobile-nav-tab<%= isCurrent('/organizer/promote') ? ' is-active' : '' %>" aria-label="Organizer Promotion Tools" <% if (isCurrent('/organizer/promote')) { %>aria-current="page"<% } %>><i data-lucide="more-horizontal" aria-hidden="true"></i><span>More</span></a>
-  <% } %>
-  <% if (locals.canUseRunnerWorkspace) { %>
-    <form action="/workspace/runner" method="POST" class="workspace-switch-form mobile-workspace-switch-form">
-      <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-      <button type="submit" class="mobile-nav-tab" aria-label="Switch to Runner mode"><i data-lucide="person-standing" aria-hidden="true"></i><span>Runner</span></button>
-    </form>
-  <% } %>
-</nav>
-<% } else if (locals.isAuthenticated && locals.isAdmin) { %>
-<nav class="mobile-bottom-nav" aria-label="Admin mobile navigation">
-  <a href="/admin/dashboard" class="mobile-nav-tab<%= isCurrent('/admin/dashboard') ? ' is-active' : '' %>" aria-label="Admin Dashboard" <% if (isCurrent('/admin/dashboard')) { %>aria-current="page"<% } %>><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></a>
-  <a href="/admin/reviews" class="mobile-nav-tab<%= isCurrent('/admin/reviews') ? ' is-active' : '' %>" aria-label="Admin Reviews" <% if (isCurrent('/admin/reviews')) { %>aria-current="page"<% } %>><i data-lucide="list-checks" aria-hidden="true"></i><span>Reviews</span></a>
-  <a href="/admin/search" class="mobile-nav-tab<%= isCurrent('/admin/search') ? ' is-active' : '' %>" aria-label="Admin Search" <% if (isCurrent('/admin/search')) { %>aria-current="page"<% } %>><i data-lucide="search" aria-hidden="true"></i><span>Search</span></a>
-  <a href="/admin/communications" class="mobile-nav-tab<%= isCurrent('/admin/communications') ? ' is-active' : '' %>" aria-label="Admin Communications" <% if (isCurrent('/admin/communications')) { %>aria-current="page"<% } %>><i data-lucide="more-horizontal" aria-hidden="true"></i><span>More</span></a>
+<% if (navigation.bottom) { %>
+<nav class="mobile-bottom-nav" aria-label="<%= navigation.bottom.label %>">
+  <% navigation.bottom.items.forEach((item) => { %>
+    <% if (item.kind === 'submit' && item.opensModal) { %>
+      <button type="button" class="mobile-nav-tab mobile-nav-tab-submit" data-open-run-proof-modal data-run-proof-surface="runner-mobile-nav" aria-label="<%= item.ariaLabel %>"><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><span><%= item.shortLabel %></span></button>
+    <% } else if (item.kind === 'submit') { %>
+      <a href="<%= item.href %>" class="mobile-nav-tab mobile-nav-tab-submit" aria-label="<%= item.ariaLabel %>"><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><span><%= item.shortLabel %></span></a>
+    <% } else { %>
+      <a href="<%= item.href %>" class="mobile-nav-tab<%= item.isCurrent ? ' is-active' : '' %>" aria-label="<%= item.ariaLabel %>"<% if (item.isCurrent) { %> aria-current="page"<% } %>><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><span><%= item.shortLabel %></span></a>
+    <% } %>
+  <% }) %>
 </nav>
 <% } %>

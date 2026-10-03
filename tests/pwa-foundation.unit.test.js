@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const ejs = require('ejs');
+const { renderNav } = require('./helpers/render-nav');
 const root = path.join(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const {
@@ -64,9 +64,7 @@ test('shared head links the manifest, theme colour, touch icon, and install modu
 });
 
 test('install control renders once in the nav and is hidden until a real install path exists', () => {
-  const html = ejs.render(read('src/views/layouts/nav.ejs'), {
-    locals: { currentPath: '/', isAuthenticated: false, flash: null }
-  });
+  const html = renderNav({ currentPath: '/', isAuthenticated: false });
   assert.equal((html.match(/data-pwa-install-action/g) || []).length, 1);
   assert.match(html, /<button type="button" class="nav-icon-link nav-install-btn" data-pwa-install-action aria-label="Install HelloRun"/);
 

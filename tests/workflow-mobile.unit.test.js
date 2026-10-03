@@ -3,28 +3,25 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const ejs = require('ejs');
+const { renderNav: renderSharedNav } = require('./helpers/render-nav');
 const root = path.join(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 function renderNav(overrides = {}) {
-  return ejs.render(read('src/views/layouts/nav.ejs'), {
-    locals: {
-      currentPath: '/',
-      renderRunProofModal: false,
-      flash: null,
-      csrfToken: 'test-csrf',
-      runnerUnreadNotifications: 0,
-      isAuthenticated: true,
-      isAdmin: false,
-      isOrganizer: false,
-      isApprovedOrganizer: false,
-      isFullAdmin: false,
-      canUseOrganizerWorkspace: false,
-      canUseRunnerWorkspace: false,
-      user: { firstName: 'Mobile', avatarUrl: '' },
-      ...overrides
-    }
+  return renderSharedNav({
+    currentPath: '/',
+    renderRunProofModal: false,
+    csrfToken: 'test-csrf',
+    runnerUnreadNotifications: 0,
+    isAuthenticated: true,
+    isAdmin: false,
+    isOrganizer: false,
+    isApprovedOrganizer: false,
+    isFullAdmin: false,
+    canUseOrganizerWorkspace: false,
+    canUseRunnerWorkspace: false,
+    user: { firstName: 'Mobile', avatarUrl: '' },
+    ...overrides
   });
 }
 
@@ -39,17 +36,22 @@ test('run proof is full-screen on phones and restores only non-file draft data',
 });
 
 test('each authenticated role has a bounded mobile task navigation', () => {
-  const nav = read('src/views/layouts/nav.ejs');
-  assert.match(nav, /Organizer mobile navigation/);
-  assert.match(nav, /Admin mobile navigation/);
-  assert.match(nav, /mobile-nav-tab/);
+  const bottomNav = (html) => (html.match(/<nav class="mobile-bottom-nav"[\s\S]*?<\/nav>/) || [''])[0];
+  const runner = bottomNav(renderNav({ canUseOrganizerWorkspace: true }));
+  const organizer = bottomNav(renderNav({ isOrganizer: true, isApprovedOrganizer: true, canUseOrganizerWorkspace: true, canUseRunnerWorkspace: true }));
+  const admin = bottomNav(renderNav({ isAdmin: true, isFullAdmin: true }));
+  assert.match(runner, /aria-label="Mobile navigation"/);
+  assert.match(organizer, /aria-label="Organizer mobile navigation"/);
+  assert.match(admin, /aria-label="Admin mobile navigation"/);
+  for (const html of [runner, organizer, admin]) {
+    const tabs = html.match(/class="mobile-nav-tab[ "]/g) || [];
+    assert.ok(tabs.length > 0 && tabs.length <= 5, `expected 1-5 bottom tabs, found ${tabs.length}`);
+  }
 });
 
 test('runner mobile submit works on pages that do not load the proof modal', () => {
-  const nav = read('src/views/layouts/nav.ejs');
-  assert.match(nav, /if \(locals\.renderRunProofModal\)/);
-  assert.match(nav, /data-run-proof-surface="runner-mobile-nav"/);
-  assert.match(nav, /href="\/runner\/submissions\?openRunProof=1" class="mobile-nav-tab mobile-nav-tab-submit"/);
+  const navigationConfig = read('src/config/navigation.js');
+  assert.match(navigationConfig, /opensModal: Boolean\(locals\.renderRunProofModal\)/);
 
   const server = read('src/server.js');
   assert.match(server, /pathname\.startsWith\('\/runner\/'\)/);

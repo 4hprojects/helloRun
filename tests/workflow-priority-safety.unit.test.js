@@ -46,10 +46,13 @@ test('user deletion and submission correction require reasons and write them to 
 
 test('support admins see full-admin restrictions before server enforcement', () => {
   const auth = read('src/middleware/auth.middleware.js');
-  const nav = read('src/views/layouts/nav.ejs');
   const main = read('src/public/js/main.js');
   assert.match(auth, /res\.locals\.isFullAdmin/);
-  assert.match(nav, /data-admin-tier/);
+  assert.match(read('src/config/navigation.js'), /'admin-tier': locals\.isFullAdmin \? 'full' : 'support'/);
+  const { renderNav } = require('./helpers/render-nav');
+  const adminNav = (isFullAdmin) => renderNav({ isAuthenticated: true, isAdmin: true, isFullAdmin, user: { firstName: 'Admin' } });
+  assert.match(adminNav(false), /href="\/admin\/dashboard"[^>]*data-admin-tier="support"/);
+  assert.match(adminNav(true), /href="\/admin\/dashboard"[^>]*data-admin-tier="full"/);
   assert.match(main, /Requires full admin access/);
   assert.match(main, /fullAdminPatterns/);
 });

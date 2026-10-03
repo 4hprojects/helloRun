@@ -25,7 +25,7 @@ test('shared policy editor retains version, preview, publish, and archive lifecy
 });
 
 test('organizers can switch mode and retain event hierarchy labels', () => {
-  assert.match(read('src/views/layouts/nav.ejs'), /Switch to Runner mode/);
+  assert.match(read('src/config/navigation.js'), /Switch to Runner mode/);
   const main = read('src/public/js/main.js');
   assert.match(main, /organizer-workspace-breadcrumbs/);
   assert.match(main, /Event workspace breadcrumb/);

@@ -1,5 +1,31 @@
 # HelloRun Changelog — October 2026
 
+## October 3 — Navigation consolidated into one configuration
+
+- `src/config/navigation.js` is now the single source of truth for the global
+  navigation. Each destination is defined once. `buildNavigation(locals)`, exposed as
+  `app.locals.buildNavigation`, returns the header row, the guest sign-in actions, the
+  workspace switch and the mobile bottom tabs for the current visitor and workspace, and
+  marks the current page.
+- `layouts/nav.ejs` only renders that result. Header links share the new
+  `layouts/nav-item.ejs` partial. The hard-coded duplicates are gone; for example,
+  `/runner/notifications` was previously written out in three branches.
+- Behaviour changes, deliberately limited:
+  - Every bottom-tab bar now has at most five destinations. The runner and organiser
+    workspace switch was a sixth tab; it now lives only in the header menu, which is
+    also the mobile menu.
+  - The organiser notification bell now gets `aria-current` when it is the current page.
+  - Redundant or ineffective attributes were removed: `role="navigation"` on `<nav>` and
+    `aria-label` on the plain `.nav-user` div. All nav icons are now `aria-hidden`.
+  - Rendered markup is otherwise unchanged. This was checked by diffing the old and new
+    templates for the guest, runner, organiser, pending-organiser and admin cases.
+- Visibility remains presentation only. Route guards are unchanged.
+- The footer stays separate, because it holds content and policy pages.
+- DB-free coverage: the new `tests/navigation-config.unit.test.js` covers role and
+  workspace visibility, the five-tab limit, active-page matching, the notification
+  summary, and checks that each destination has a GET route. The nav tests that matched
+  template source text now assert on rendered output through `tests/helpers/render-nav.js`.
+
 ## October 3 — Installable PWA foundation and Install HelloRun
 
 - HelloRun can now be installed as a Progressive Web App. `src/public/manifest.webmanifest`
