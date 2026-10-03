@@ -22,7 +22,8 @@ const {
 const {
   dispatchEventPromotionCampaignInBackground,
   hydrateSelectedPromotionRecipients,
-  resolveAdminPromotionRecipients
+  resolveAdminPromotionRecipients,
+  isCampaignStalled
 } = require('../../services/event-promotion.service');
 const {
   normalizeAdminEventsReturnTo,
@@ -1016,13 +1017,43 @@ exports.userCaseView = async (req, res) => {
 // SECTION: Event Promotion (Admin)
 // ═══════════════════════════════════════════════════════════
 
+const LIVE_PROMOTION_MAX_IDS = 20;
+
+function serializeLivePromotionCampaign(campaign, now = new Date()) {
+  const organiser = campaign.organizerId && typeof campaign.organizerId === 'object' ? campaign.organizerId : null;
+  return {
+    id: String(campaign._id),
+    eventTitle: campaign.eventId?.title || 'Event',
+    organiserName: organiser ? `${organiser.firstName || ''} ${organiser.lastName || ''}`.trim() : '',
+    audience: campaign.audience,
+    source: campaign.source || 'manual',
+    adminTriggered: Boolean(campaign.adminTriggered),
+    status: campaign.status,
+    stalled: isCampaignStalled(campaign, now),
+    selectedCount: Number(campaign.selectedCount || campaign.recipientCount || 0),
+    processedCount: Number(campaign.processedCount || 0),
+    sentCount: Number(campaign.sentCount || 0),
+    failedCount: Number(campaign.failedCount || 0),
+    skippedCount: Number(campaign.skippedCount || 0) + Number(campaign.suppressedCount || 0),
+    queuedCount: Number(campaign.queuedCount || 0),
+    lastProgressAt: campaign.lastProgressAt || null,
+    completedAt: campaign.completedAt || null,
+    deliveryListTruncated: Boolean(campaign.deliveryListTruncated),
+    deliveries: (campaign.deliveries || []).map((d) => ({
+      email: d.email,
+      status: d.status,
+      reason: d.reason || ''
+    }))
+  };
+}
+
 exports.promotePage = async (req, res) => {
   try {
     const EventPromotion = require('../../models/EventPromotion');
     const DailyEmailUsage = require('../../models/DailyEmailUsage');
     const dateKey = new Date().toISOString().slice(0, 10);
 
-    const [events, recentCampaigns, dailyUsage] = await Promise.all([
+    const [events, recentCampaigns, dailyUsage, liveCampaigns, viewer] = await Promise.all([
       Event.find({ isDeleted: { $ne: true }, status: { $ne: 'archived' } })
         .select('_id title slug status organizerId organizerDisplayName')
         .sort({ updatedAt: -1 })
@@ -1034,8 +1065,14 @@ exports.promotePage = async (req, res) => {
         .populate('eventId', 'title')
         .populate('organizerId', 'firstName lastName')
         .lean(),
-      DailyEmailUsage.findOne({ dateKey }).lean()
+      DailyEmailUsage.findOne({ dateKey }).lean(),
+      EventPromotion.find({ status: 'sending' }).select('_id').sort({ createdAt: -1 }).limit(LIVE_PROMOTION_MAX_IDS).lean(),
+      User.findById(req.session.userId).select('adminTier').lean()
     ]);
+
+    const liveCampaignIds = new Set(liveCampaigns.map((c) => String(c._id)));
+    const requestedCampaignId = String(req.query.campaign || '');
+    if (mongoose.Types.ObjectId.isValid(requestedCampaignId)) liveCampaignIds.add(requestedCampaignId);
 
     const platformSent = Number(dailyUsage?.sentCount || 0);
     const platformLimit = Number(dailyUsage?.totalLimit || 100);
@@ -1047,6 +1084,8 @@ exports.promotePage = async (req, res) => {
       platformSent,
       platformRemaining: Math.max(0, platformLimit - platformSent),
       platformLimit,
+      liveCampaignIds: Array.from(liveCampaignIds).slice(0, LIVE_PROMOTION_MAX_IDS),
+      canViewDeliveries: isFullAdminTier(viewer),
       message: getAdminPageMessage(req.query)
     });
   } catch (error) {
@@ -1080,6 +1119,34 @@ exports.promotePreview = async (req, res) => {
   } catch (error) {
     logger.error('Admin promote preview error:', error);
     return res.status(500).json({ error: 'Preview failed.' });
+  }
+};
+
+exports.promoteLive = async (req, res) => {
+  try {
+    const EventPromotion = require('../../models/EventPromotion');
+    const requestedIds = String(req.query.ids || '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .slice(0, LIVE_PROMOTION_MAX_IDS);
+
+    const filter = requestedIds.length
+      ? { $or: [{ status: 'sending' }, { _id: { $in: requestedIds } }] }
+      : { status: 'sending' };
+    const campaigns = await EventPromotion.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(LIVE_PROMOTION_MAX_IDS)
+      .populate('eventId', 'title')
+      .populate('organizerId', 'firstName lastName')
+      .lean();
+
+    const now = new Date();
+    res.set('Cache-Control', 'no-store');
+    return res.json({ campaigns: campaigns.map((c) => serializeLivePromotionCampaign(c, now)) });
+  } catch (error) {
+    logger.error('Admin promote live status error:', error);
+    return res.status(500).json({ error: 'Live status unavailable.' });
   }
 };
 
@@ -1143,8 +1210,8 @@ exports.promoteSend = async (req, res) => {
       adminTriggered: true
     });
 
-    const resultText = `Promotion started for ${recipients.length} runner${recipients.length !== 1 ? 's' : ''}. Progress appears under Recent Campaigns.`;
-    const q = new URLSearchParams({ type: 'success', msg: resultText });
+    const resultText = `Promotion started for ${recipients.length} runner${recipients.length !== 1 ? 's' : ''}. Live progress appears under Live Send Status.`;
+    const q = new URLSearchParams({ type: 'success', msg: resultText, campaign: String(campaign._id) });
     return res.redirect(`${redirectBase}?${q}`);
   } catch (error) {
     logger.error('Admin promote send error:', error);

@@ -12,6 +12,9 @@ const ORGANIZER_PROMO_NON_PARTICIPANT_CAP = 200;
 const ADMIN_PROMO_NON_PARTICIPANT_CAP = 200;
 const ADMIN_PROMO_ALL_RUNNERS_CAP = 500;
 const ADMIN_SELECTED_EMAILS_CAP = 500;
+// Counters stay exact beyond this cap; only the per-recipient tracking list is truncated.
+const PROMOTION_DELIVERY_TRACKING_CAP = 1000;
+const PROMOTION_STALL_THRESHOLD_MS = 2 * 60 * 1000;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function toObjectId(value) {
@@ -198,6 +201,94 @@ function sleep(ms) {
   return ms > 0 ? new Promise((resolve) => setTimeout(resolve, ms)) : Promise.resolve();
 }
 
+function buildDeliveryEntries(recipients, cap = PROMOTION_DELIVERY_TRACKING_CAP) {
+  const list = Array.isArray(recipients) ? recipients : [];
+  const limit = Math.max(0, Number(cap) || 0);
+  return {
+    deliveries: list.slice(0, limit).map((recipient) => ({
+      email: String(recipient?.email || '').trim().toLowerCase(),
+      status: 'pending',
+      reason: '',
+      updatedAt: null
+    })),
+    truncated: list.length > limit
+  };
+}
+
+function resolveDeliveryOutcome(value, error = null) {
+  if (error) {
+    return { status: 'failed', reason: String(error?.message || error).slice(0, 200) };
+  }
+  const result = value || {};
+  if (result.queued) return { status: 'queued', reason: 'Queued for retry' };
+
+  const status = result.email?.status;
+  const reason = String(result.email?.reason || result.email?.error?.message || '').slice(0, 200);
+  if (['sent', 'suppressed', 'skipped', 'failed'].includes(status)) return { status, reason };
+  return { status: 'skipped', reason: reason || 'No delivery status returned' };
+}
+
+function isCampaignStalled(campaign, now = new Date()) {
+  if (!campaign || campaign.status !== 'sending') return false;
+  const lastProgress = campaign.lastProgressAt || campaign.updatedAt || campaign.createdAt;
+  if (!lastProgress) return false;
+  return now.getTime() - new Date(lastProgress).getTime() > PROMOTION_STALL_THRESHOLD_MS;
+}
+
+const SUMMARY_COUNTER_FIELDS = ['sentCount', 'skippedCount', 'suppressedCount', 'failedCount', 'queuedCount'];
+
+// Progress writes are best-effort: a tracking failure must never interrupt the send loop.
+function createCampaignProgressTracker(campaign) {
+  const campaignId = campaign?._id;
+  let trackedCount = 0;
+
+  async function write(update) {
+    if (!campaignId) return;
+    try {
+      const EventPromotion = require('../models/EventPromotion');
+      await EventPromotion.updateOne({ _id: campaignId }, update);
+    } catch (error) {
+      logger.warn('[event-promotion] Progress tracking write failed:', {
+        campaignId: String(campaignId),
+        error: error?.message || String(error)
+      });
+    }
+  }
+
+  return {
+    async start(recipients) {
+      const { deliveries, truncated } = buildDeliveryEntries(recipients);
+      trackedCount = deliveries.length;
+      if (deliveries.length) deliveries[0].status = 'sending';
+      await write({
+        $set: {
+          deliveries,
+          deliveryListTruncated: truncated,
+          processedCount: 0,
+          lastProgressAt: new Date()
+        }
+      });
+    },
+    async record(index, outcome, summary) {
+      const now = new Date();
+      const set = {
+        processedCount: index + 1,
+        lastProgressAt: now
+      };
+      SUMMARY_COUNTER_FIELDS.forEach((field) => { set[field] = Number(summary[field] || 0); });
+      if (index < trackedCount) {
+        set[`deliveries.${index}.status`] = outcome.status;
+        set[`deliveries.${index}.reason`] = outcome.reason || '';
+        set[`deliveries.${index}.updatedAt`] = now;
+      }
+      if (index + 1 < trackedCount) {
+        set[`deliveries.${index + 1}.status`] = 'sending';
+      }
+      await write({ $set: set });
+    }
+  };
+}
+
 async function dispatchEventPromotionCampaign({
   campaign,
   recipients,
@@ -205,19 +296,30 @@ async function dispatchEventPromotionCampaign({
   organiserName,
   source = 'event.promotion',
   adminTriggered = false,
-  sendIntervalMs = SEND_INTERVAL_MS
+  sendIntervalMs = SEND_INTERVAL_MS,
+  progressTracker = createCampaignProgressTracker(campaign)
 } = {}) {
   const recipientList = Array.isArray(recipients) ? recipients.filter((runner) => runner && runner.email) : [];
   const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
   const eventUrl = `${appUrl}/events/${event.slug}`;
   const posterUrl = event.posterImageUrl || event.bannerImageUrl || null;
   const summary = buildEmptyCampaignSummary(recipientList.length);
+  const counterByStatus = {
+    sent: 'sentCount',
+    suppressed: 'suppressedCount',
+    skipped: 'skippedCount',
+    failed: 'failedCount',
+    queued: 'queuedCount'
+  };
+
+  await progressTracker.start(recipientList);
 
   for (let index = 0; index < recipientList.length; index += 1) {
     const runner = recipientList[index];
     if (index > 0) await sleep(sendIntervalMs);
 
     let value = null;
+    let sendError = null;
     try {
       value = await notifyWithRetry(EVENT_PROMOTION_KEY, {
         email: {
@@ -236,28 +338,12 @@ async function dispatchEventPromotionCampaign({
         }
       }, { source });
     } catch (error) {
-      summary.failedCount += 1;
-      continue;
+      sendError = error || new Error('Send failed');
     }
 
-    value = value || {};
-    if (value.queued) {
-      summary.queuedCount += 1;
-      continue;
-    }
-
-    const status = value.email?.status;
-    if (status === 'sent') {
-      summary.sentCount += 1;
-    } else if (status === 'suppressed') {
-      summary.suppressedCount += 1;
-    } else if (status === 'skipped') {
-      summary.skippedCount += 1;
-    } else if (status === 'failed') {
-      summary.failedCount += 1;
-    } else {
-      summary.skippedCount += 1;
-    }
+    const outcome = resolveDeliveryOutcome(value, sendError);
+    summary[counterByStatus[outcome.status]] += 1;
+    await progressTracker.record(index, outcome, summary);
   }
 
   return {
@@ -277,11 +363,14 @@ async function dispatchAndFinalizeEventPromotionCampaign(options = {}) {
     campaign.suppressedCount = summary.suppressedCount;
     campaign.failedCount = summary.failedCount;
     campaign.queuedCount = summary.queuedCount;
+    campaign.processedCount = summary.selectedCount;
     campaign.status = summary.status;
+    campaign.completedAt = new Date();
     await campaign.save();
     return summary;
   } catch (error) {
     campaign.status = 'failed';
+    campaign.completedAt = new Date();
     await campaign.save().catch(() => {});
     throw error;
   }
@@ -298,6 +387,8 @@ function dispatchEventPromotionCampaignInBackground(options = {}) {
 
 module.exports = {
   EVENT_PROMOTION_KEY,
+  PROMOTION_DELIVERY_TRACKING_CAP,
+  PROMOTION_STALL_THRESHOLD_MS,
   toObjectId,
   getParticipantIds,
   getOrganizerEventIds,
@@ -307,6 +398,10 @@ module.exports = {
   resolveOrganizerPromotionRecipients,
   resolveAdminPromotionRecipients,
   resolveAutomaticPublishPromotionRecipients,
+  buildDeliveryEntries,
+  resolveDeliveryOutcome,
+  isCampaignStalled,
+  createCampaignProgressTracker,
   dispatchEventPromotionCampaign,
   dispatchAndFinalizeEventPromotionCampaign,
   dispatchEventPromotionCampaignInBackground

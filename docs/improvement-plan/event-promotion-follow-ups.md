@@ -203,6 +203,8 @@ Tracked fields:
 
 Remaining risk: medium-low. Counts represent communication-service outcomes at send time. Provider-level bounces or delayed delivery events are still not reconciled back into campaign history.
 
+Since October 3, 2026, the dispatcher also writes progress per recipient (`processedCount`, live counters, `lastProgressAt` and a `deliveries` list capped at 1,000 entries), and `/admin/promote` shows it in the Live Send Status card through `GET /admin/promote/live`. Sends still run inside the web process. If the process restarts mid-campaign, the campaign stays `sending` and is shown as **stalled** after two minutes without progress; nothing resumes or finalises it automatically.
+
 ### 5. Admin Platform Quota Display Is Advisory Only
 
 The admin page displays `DailyEmailUsage`, and shared communication budget gating can skip emails when limits are reached. However, admin send does not pre-slice the recipient list by remaining platform quota.

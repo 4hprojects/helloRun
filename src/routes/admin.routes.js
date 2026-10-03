@@ -225,6 +225,7 @@ for (const policyDocument of listPolicyDocuments().filter((item) => !['privacy',
 // Event promotion
 router.get('/promote', requireAdmin, adminController.promotePage);
 router.get('/promote/preview', requireAdmin, adminController.promotePreview);
+router.get('/promote/live', requireAdmin, requireFullAdmin, adminController.promoteLive);
 router.post('/promote', requireAdmin, requireFullAdmin, adminPromotionLimiter, adminController.promoteSend);
 
 // Blog moderation queue

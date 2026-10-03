@@ -1,5 +1,23 @@
 # HelloRun Changelog — October 2026
 
+## October 3 — Admin promotion live send status
+
+- `/admin/promote` has a **Live Send Status** card under Recipient Preview. It shows every
+  campaign that is currently sending (admin, organiser and automatic-publish), with a progress
+  bar, sent/failed/skipped/queued counters and a per-recipient list
+  (pending → sending → sent/failed/skipped/suppressed/queued). It polls
+  `GET /admin/promote/live` every 3 seconds while a campaign is sending, pauses while the tab is
+  hidden, and updates the Recent Campaigns row when a campaign finishes. Recipient emails are
+  shown to full administrators only; the endpoint requires `requireFullAdmin`.
+- `dispatchEventPromotionCampaign` now records progress after each recipient through a
+  best-effort tracker. `EventPromotion` gains `deliveries` (capped at 1,000; counters stay
+  exact beyond the cap), `deliveryListTruncated`, `processedCount`, `lastProgressAt` and
+  `completedAt`, plus a `{ status, createdAt }` index. A campaign with no progress for two
+  minutes is shown as stalled.
+- After a send, the redirect includes the new `campaign` id so the page tracks it immediately.
+- DB-free coverage: `tests/admin-promote-live-status.unit.test.js`. No live-database
+  verification was run.
+
 ## October 3 — October Active Run 2026 published
 
 ### October Active Run 2026

@@ -44,6 +44,34 @@
     .status-badge.failed { background: #fee2e2; color: #991b1b; }
     .admin-badge { background: #ede9fe; color: #5b21b6; border-radius: 3px; padding: 1px 5px; font-size: 0.7rem; font-weight: 600; margin-left: 4px; }
     .empty-state { text-align: center; padding: 28px; color: #94a3b8; font-size: 0.85rem; }
+    .promote-side { display: flex; flex-direction: column; gap: 24px; }
+    .live-empty { text-align: center; padding: 18px; color: #94a3b8; font-size: 0.85rem; }
+    .live-note { font-size: 0.78rem; color: #94a3b8; margin: 0; line-height: 1.5; }
+    .live-campaign { border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
+    .live-campaign + .live-campaign { margin-top: 14px; }
+    .live-campaign-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .live-campaign-title { font-size: 0.9rem; font-weight: 600; color: #1e293b; }
+    .live-campaign-meta { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+    .live-progress { height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden; margin: 12px 0 6px; }
+    .live-progress-fill { height: 100%; width: 0; background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%); transition: width 0.4s ease; }
+    .live-progress-text { font-size: 0.78rem; color: #475569; }
+    .live-counters { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+    .live-chip { font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #f1f5f9; color: #475569; }
+    .live-chip.sent { background: #dcfce7; color: #166534; }
+    .live-chip.failed { background: #fee2e2; color: #991b1b; }
+    .live-chip.queued { background: #e0e7ff; color: #3730a3; }
+    .live-list { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; border-top: 1px solid #f1f5f9; }
+    .live-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 4px; border-bottom: 1px solid #f8fafc; font-size: 0.8rem; }
+    .live-row.is-sending { background: #fffbeb; }
+    .live-row-email { color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .live-pill { flex-shrink: 0; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 1px 7px; border-radius: 4px; background: #f1f5f9; color: #64748b; }
+    .live-pill.sending { background: #fef3c7; color: #92400e; }
+    .live-pill.sent { background: #dcfce7; color: #166534; }
+    .live-pill.failed { background: #fee2e2; color: #991b1b; }
+    .live-pill.skipped, .live-pill.suppressed { background: #e2e8f0; color: #475569; }
+    .live-pill.queued { background: #e0e7ff; color: #3730a3; }
+    .live-truncated { font-size: 0.72rem; color: #94a3b8; margin-top: 6px; }
+    .status-badge.stalled { background: #fee2e2; color: #991b1b; }
   </style>
 </head>
 <body>
@@ -147,7 +175,8 @@
           </form>
         </div>
 
-        <!-- Right: Preview -->
+        <!-- Right: Preview + live status -->
+        <div class="promote-side">
         <div class="promote-card">
           <h2>Recipient Preview</h2>
           <div class="recipient-preview">
@@ -158,6 +187,19 @@
           <p style="font-size:0.78rem;color:#94a3b8;margin:12px 0 0;line-height:1.5;">
             Runners who opted out of event.promotion emails are excluded. All sends count against the platform daily quota.
           </p>
+        </div>
+
+        <div class="promote-card" id="live-status-card"
+          data-can-view="<%= canViewDeliveries ? 'true' : 'false' %>"
+          data-campaign-ids="<%= (liveCampaignIds || []).join(',') %>">
+          <h2>Live Send Status</h2>
+          <% if (canViewDeliveries) { %>
+            <div id="live-status-summary" aria-live="polite" class="live-note"></div>
+            <div id="live-status-list"><div class="live-empty">No campaigns sending right now.</div></div>
+          <% } else { %>
+            <p class="live-note">Per-recipient send status is available to full administrators.</p>
+          <% } %>
+        </div>
         </div>
       </div>
 
@@ -180,7 +222,7 @@
             </thead>
             <tbody>
               <% recentCampaigns.forEach(function(c) { %>
-                <tr>
+                <tr data-campaign-id="<%= c._id %>">
                   <td><%= c.eventId && c.eventId.title ? c.eventId.title : '—' %></td>
                   <td><%= c.organizerId ? ((c.organizerId.firstName || '') + ' ' + (c.organizerId.lastName || '')).trim() || '—' : '—' %>
                     <% if (c.adminTriggered) { %><span class="admin-badge">ADMIN</span><% } %>
@@ -192,7 +234,7 @@
                     <% } else if (c.audience === 'selected_emails') { %>Selected Emails
                     <% } else { %><%= c.audience %><% } %>
                   </td>
-                  <td>
+                  <td data-role="sent-cell">
                     <% const sentDisplay = c.sentCount != null ? c.sentCount : (c.recipientCount || 0); %>
                     <strong><%= sentDisplay %></strong> sent
                     <div style="font-size:0.72rem;color:#94a3b8;">
@@ -203,7 +245,7 @@
                     </div>
                   </td>
                   <td><%= c.sentAt ? new Date(c.sentAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—' %></td>
-                  <td><span class="status-badge <%= c.status %>"><%= c.status %></span></td>
+                  <td><span class="status-badge <%= c.status %>" data-role="status-badge"><%= c.status %></span></td>
                 </tr>
               <% }); %>
             </tbody>
@@ -283,6 +325,187 @@
       if (eventSelect) eventSelect.addEventListener('change', updatePreview);
       if (selectedEmails) selectedEmails.addEventListener('input', updatePreview);
       audienceRadios.forEach(function (r) { r.addEventListener('change', updatePreview); });
+    })();
+
+    (function () {
+      const card = document.getElementById('live-status-card');
+      if (!card || card.dataset.canView !== 'true') return;
+      const listEl = document.getElementById('live-status-list');
+      const summaryEl = document.getElementById('live-status-summary');
+      const POLL_MS = 3000;
+      const ERROR_POLL_MS = 10000;
+      const AUDIENCE_LABELS = {
+        previous_participants: 'Prev. Participants',
+        non_participants: 'Non-Participants',
+        all_runners: 'All Runners',
+        selected_emails: 'Selected Emails'
+      };
+      const trackedIds = new Set((card.dataset.campaignIds || '').split(',').filter(Boolean));
+      const blocks = new Map();
+      let timer = null;
+
+      function el(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text != null) node.textContent = text;
+        return node;
+      }
+
+      function buildBlock(c) {
+        const root = el('div', 'live-campaign');
+        const head = el('div', 'live-campaign-head');
+        const info = el('div');
+        info.appendChild(el('div', 'live-campaign-title', c.eventTitle));
+        const metaParts = [AUDIENCE_LABELS[c.audience] || c.audience];
+        if (c.source === 'automatic_publish') metaParts.push('Automatic');
+        else if (c.adminTriggered) metaParts.push('Admin');
+        if (c.organiserName) metaParts.push(c.organiserName);
+        info.appendChild(el('div', 'live-campaign-meta', metaParts.join(' \u2022 ')));
+        const badge = el('span', 'status-badge');
+        head.appendChild(info);
+        head.appendChild(badge);
+        const progress = el('div', 'live-progress');
+        const fill = el('div', 'live-progress-fill');
+        progress.appendChild(fill);
+        const progressText = el('div', 'live-progress-text');
+        const counters = el('div', 'live-counters');
+        const list = el('ul', 'live-list');
+        const truncated = el('div', 'live-truncated');
+        root.append(head, progress, progressText, counters, list, truncated);
+        return { root, badge, fill, progressText, counters, list, truncated, rows: [], lastSendingIndex: -1 };
+      }
+
+      function renderCounters(container, c) {
+        container.replaceChildren();
+        [['sent', c.sentCount, 'sent'], ['failed', c.failedCount, 'failed'],
+          ['', c.skippedCount, 'skipped'], ['queued', c.queuedCount, 'queued']]
+          .forEach(function (item) {
+            if (item[2] !== 'sent' && !item[1]) return;
+            container.appendChild(el('span', 'live-chip ' + item[0], item[1] + ' ' + item[2]));
+          });
+      }
+
+      function renderRows(block, deliveries) {
+        let sendingIndex = -1;
+        deliveries.forEach(function (d, index) {
+          let row = block.rows[index];
+          if (!row) {
+            const li = el('li', 'live-row');
+            const email = el('span', 'live-row-email', d.email);
+            const pill = el('span', 'live-pill');
+            li.append(email, pill);
+            block.list.appendChild(li);
+            row = { li: li, pill: pill, status: null };
+            block.rows[index] = row;
+          }
+          if (row.status !== d.status) {
+            row.status = d.status;
+            row.pill.className = 'live-pill ' + d.status;
+            row.pill.textContent = d.status;
+            row.li.classList.toggle('is-sending', d.status === 'sending');
+          }
+          row.li.title = d.reason || '';
+          if (d.status === 'sending') sendingIndex = index;
+        });
+        if (sendingIndex !== -1 && sendingIndex !== block.lastSendingIndex) {
+          const li = block.rows[sendingIndex].li;
+          block.list.scrollTop = li.offsetTop - block.list.offsetTop - block.list.clientHeight / 2;
+        }
+        block.lastSendingIndex = sendingIndex;
+      }
+
+      function updateRecentRow(c) {
+        const tr = document.querySelector('tr[data-campaign-id="' + c.id + '"]');
+        if (!tr) return;
+        const badge = tr.querySelector('[data-role="status-badge"]');
+        if (badge) {
+          badge.className = 'status-badge ' + c.status;
+          badge.textContent = c.status;
+        }
+        const sentCell = tr.querySelector('[data-role="sent-cell"] strong');
+        if (sentCell) sentCell.textContent = c.sentCount;
+      }
+
+      function render(campaigns) {
+        const seen = new Set();
+        campaigns.forEach(function (c) {
+          seen.add(c.id);
+          let block = blocks.get(c.id);
+          if (!block) {
+            block = buildBlock(c);
+            blocks.set(c.id, block);
+          }
+          const statusLabel = c.stalled ? 'stalled' : c.status;
+          block.badge.className = 'status-badge ' + statusLabel;
+          block.badge.textContent = statusLabel;
+          block.badge.title = c.stalled ? 'No progress for over 2 minutes; the sending process may have restarted.' : '';
+          const pct = c.selectedCount ? Math.min(100, Math.round((c.processedCount / c.selectedCount) * 100)) : 0;
+          block.fill.style.width = pct + '%';
+          block.progressText.textContent = c.processedCount + ' / ' + c.selectedCount + ' processed (' + pct + '%)';
+          renderCounters(block.counters, c);
+          renderRows(block, c.deliveries || []);
+          block.truncated.textContent = c.deliveryListTruncated
+            ? 'Showing the first ' + (c.deliveries || []).length + ' recipients; counters include everyone.'
+            : '';
+          if (c.status !== 'sending') updateRecentRow(c);
+        });
+        blocks.forEach(function (block, id) {
+          if (!seen.has(id)) {
+            block.root.remove();
+            blocks.delete(id);
+          }
+        });
+
+        listEl.replaceChildren();
+        if (!blocks.size) {
+          listEl.appendChild(el('div', 'live-empty', 'No campaigns sending right now.'));
+        } else {
+          blocks.forEach(function (block) { listEl.appendChild(block.root); });
+        }
+        const active = campaigns.filter(function (c) { return c.status === 'sending' && !c.stalled; }).length;
+        summaryEl.textContent = active
+          ? active + ' campaign' + (active === 1 ? '' : 's') + ' sending. Updates every few seconds.'
+          : (campaigns.length ? 'All tracked campaigns have finished.' : '');
+        return active;
+      }
+
+      function schedule(ms) {
+        clearTimeout(timer);
+        timer = setTimeout(poll, ms);
+      }
+
+      async function poll() {
+        if (document.hidden) return;
+        try {
+          const params = new URLSearchParams();
+          if (trackedIds.size) params.set('ids', Array.from(trackedIds).join(','));
+          const resp = await fetch('/admin/promote/live?' + params.toString(), {
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin'
+          });
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          const data = await resp.json();
+          const campaigns = Array.isArray(data.campaigns) ? data.campaigns : [];
+          campaigns.forEach(function (c) { trackedIds.add(c.id); });
+          const active = render(campaigns);
+          if (active) {
+            schedule(POLL_MS);
+          } else if (campaigns.some(function (c) { return c.status === 'sending'; })) {
+            // Only stalled campaigns remain; keep checking slowly in case sending resumes.
+            schedule(ERROR_POLL_MS);
+          } else {
+            clearTimeout(timer);
+          }
+        } catch (_) {
+          summaryEl.textContent = 'Live status temporarily unavailable. Retrying…';
+          schedule(ERROR_POLL_MS);
+        }
+      }
+
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) poll();
+      });
+      poll();
     })();
   </script>
 </body>
