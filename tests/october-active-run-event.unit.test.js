@@ -149,3 +149,15 @@ test('October creator is dry-run by default and requires explicit apply for publ
   assert.match(script, /ENOTFOUND\|ENETUNREACH/);
   assert.equal(pkg.scripts['event:create-october-active-run-2026'], 'node src/scripts/create-october-active-run-2026.js');
 });
+
+test('October artwork updater is dry-run by default and re-synchronizes badges on apply', () => {
+  const script = fs.readFileSync(path.resolve(__dirname, '../src/scripts/update-october-active-run-2026-artwork.js'), 'utf8');
+  const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf8'));
+
+  assert.match(script, /process\.argv\.includes\('--apply'\)/);
+  assert.match(script, /mutation: false/);
+  assert.match(script, /logoFile: filePayload\(LOGO_PATH\)/);
+  assert.match(script, /synchronizeEventBadgeImages\(event\._id/);
+  assert.match(script, /template\.assets\.eventArtworkUrl = uploads\.banner\.url/);
+  assert.equal(pkg.scripts['event:update-october-active-run-2026-artwork'], 'node src/scripts/update-october-active-run-2026-artwork.js');
+});

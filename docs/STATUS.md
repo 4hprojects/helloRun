@@ -193,10 +193,9 @@ production services.
   Render hosting — production runs via PM2 + nginx + a Cloudflare Tunnel on a
   single host, not Render.
 - **October Active Run 2026 artwork swap.** The event went live on October 3 with a
-  banner and poster that are text edits of the September artwork. Generate distinct
-  images from `assets/events/october-active-run-2026/prompts.md`, upload them on the
-  organizer event edit page (the badge goes in as the logo; issued badges are
-  synchronised), and commit the new PNGs.
+  banner and poster derived from the September artwork. Replacement artwork is
+  committed; run `npm run event:update-october-active-run-2026-artwork -- --apply` to
+  publish it to the live event and its badges.
 - Deploy the current revision and complete the AdSense crawl/review procedure.
 - Configure and verify production Redis plus Cloudflare Tunnel/nginx client-IP
   handling.

@@ -15,6 +15,18 @@
   The apply run uploaded the banner, poster and badge to R2, published the certificate
   template, and created 19 finisher badges (none deferred). Automatic email promotion
   is disabled.
-- The banner and poster are text edits of the September Active Run artwork. Prompts
-  for distinct October artwork are in `assets/events/october-active-run-2026/prompts.md`;
-  replacement is pending (see [STATUS.md](../STATUS.md)).
+- The banner and poster published on October 3 are text edits of the September Active
+  Run artwork.
+
+### October Active Run artwork replacement
+
+- New illustrated banner (1920×1080), poster (1080×1620) and transparent badge
+  (1254×1254) replace the September-derived artwork in
+  `assets/events/october-active-run-2026/`: rice terraces at sunset with palms, a runner
+  and a walker on a winding road, in HelloRun green, orange and gold. The badge drops the
+  maple-leaf motif.
+- `npm run event:update-october-active-run-2026-artwork` uploads the committed artwork
+  to R2, updates the event's banner, poster, logo and badge URLs and the active
+  certificate template's logo and artwork, and re-synchronises the badge image on the
+  event's PostgreSQL badges. It is dry-run unless `--apply` is passed and keeps the
+  previous R2 objects so already-shared links still resolve.

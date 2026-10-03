@@ -23,6 +23,7 @@
     "event:reconcile-date-copy": "node src/scripts/reconcile-event-date-copy.js",
     "event:create-bayani-run-2026": "node src/scripts/create-bayani-run-2026.js",
     "event:create-october-active-run-2026": "node src/scripts/create-october-active-run-2026.js",
+    "event:update-october-active-run-2026-artwork": "node src/scripts/update-october-active-run-2026-artwork.js",
     "event:create-september-active-run-2026": "node src/scripts/create-september-active-run-2026.js",
     "event:enable-cns-elevation-card": "node src/scripts/enable-cns-elevation-card.js",
     "event:enable-cns-recognition-cards": "node src/scripts/enable-cns-elevation-card.js",
