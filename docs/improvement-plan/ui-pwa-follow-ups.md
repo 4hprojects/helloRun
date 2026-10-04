@@ -20,7 +20,6 @@ verification is listed in [STATUS.md](../STATUS.md).
 
 | Area | Current state | Gap |
 |---|---|---|
-| Account menu | There is no profile or account menu. The user area has only an avatar, a greeting and a logout icon. | Medium |
 | Breakpoints and tokens | 59 distinct `@media` widths across 61 stylesheets, and two overlapping token sets with conflicting radii. Shared spacing, z-index and reference breakpoints now exist in `design-system.css` (October 4); existing rules have not been migrated to them. | Medium (long tail) |
 | Tables | 55 tables across 34 views. About 31 are inside `*-table-wrap` scrollers. The policy-page tables are not wrapped. | Medium |
 | Dialogs | 16 native `<dialog>` elements and 42 custom `role="dialog"` implementations. | Medium (defer) |
@@ -34,14 +33,10 @@ Already sound, so keep it:
 
 ## Next phases
 
-### D — Navigation consolidation (done October 3, except the account menu)
+### D — Navigation consolidation (done October 3–4)
 `src/config/navigation.js` is now the single source of truth for the nav. Each bottom
-tab bar has at most five destinations, the workspace switch is in the header menu, and
-the organiser bell has `aria-current`. See the changelog.
-
-Still open: a `<details>`-based account menu (Profile, Install HelloRun, Switch
-workspace, Log out). It changes the desktop header layout, so it needs a visual review
-before it ships.
+tab bar has at most five destinations. The account menu (October 4) holds My profile,
+Install HelloRun, the workspace switch and Log out. See the changelog.
 
 ### E — Responsive foundation (done October 4)
 - Tokens, `.hr-container`, `.hr-grid`, `.hr-table-wrap`, a site-wide reduced-motion rule

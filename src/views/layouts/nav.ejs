@@ -7,7 +7,7 @@
   // absent and only the logo bar is rendered; server.js always provides it.
   const navigation = typeof locals.buildNavigation === 'function'
     ? locals.buildNavigation(locals)
-    : { primary: [], account: [], auth: [], workspaceSwitch: null, bottom: null, isRunnerWorkspace: false };
+    : { primary: [], account: [], accountMenu: [], auth: [], workspaceSwitch: null, bottom: null, isRunnerWorkspace: false };
   const headerClass = (item) => `nav-icon-link${item.className ? ` ${item.className}` : ''}${item.isCurrent ? ' is-active' : ''}`;
 %>
 <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -49,35 +49,55 @@
       <% navigation.primary.forEach((item) => { %>
         <%- include('nav-item', { item, itemClass: headerClass(item) }) %>
       <% }) %>
-      <%# Hidden by pwa.css until /js/pwa.js finds a real install path (Chromium prompt or iOS guidance). %>
-      <button type="button" class="nav-icon-link nav-install-btn" data-pwa-install-action aria-label="Install HelloRun" title="Install HelloRun">
-        <i data-lucide="download" aria-hidden="true"></i>
-        <span class="nav-tooltip">Install HelloRun</span>
-      </button>
+      <% if (!locals.isAuthenticated) { %>
+        <%# Hidden by pwa.css until /js/pwa.js finds a real install path (Chromium prompt or iOS guidance).
+            Signed-in users get the same control inside the account menu instead. %>
+        <button type="button" class="nav-icon-link nav-install-btn" data-pwa-install-action aria-label="Install HelloRun" title="Install HelloRun">
+          <i data-lucide="download" aria-hidden="true"></i>
+          <span class="nav-tooltip">Install HelloRun</span>
+        </button>
+      <% } %>
 
       <% if (locals.isAuthenticated) { %>
         <% navigation.account.forEach((item) => { %>
           <%- include('nav-item', { item, itemClass: headerClass(item) }) %>
         <% }) %>
-        <% if (navigation.workspaceSwitch) { %>
-          <form action="<%= navigation.workspaceSwitch.action %>" method="POST" class="workspace-switch-form">
-            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-            <button type="submit" class="nav-icon-link" aria-label="<%= navigation.workspaceSwitch.label %>" title="<%= navigation.workspaceSwitch.label %>"><i data-lucide="<%= navigation.workspaceSwitch.icon %>" aria-hidden="true"></i><span class="nav-tooltip"><%= navigation.workspaceSwitch.tooltip %></span></button>
-          </form>
-        <% } %>
-
-        <div class="nav-user">
-          <% if (locals.user && locals.user.avatarUrl) { %>
-            <img src="<%= locals.user.avatarUrl %>" alt="" class="nav-avatar" aria-hidden="true">
-          <% } %>
-          <span class="nav-username">Hi, <%= locals.user ? locals.user.firstName : 'User' %></span>
-          <form action="/logout" method="POST" class="logout-form">
-            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-            <button type="submit" class="nav-logout-btn nav-icon-link" aria-label="Log out of HelloRun" title="Log out">
-              <i data-lucide="log-out" aria-hidden="true"></i>
-              <span class="nav-tooltip">Log out</span>
+        <%# Account menu: a disclosure button on desktop; on phones the panel shows inline in
+            the menu. Without JavaScript the panel stays visible, so Log out is always reachable. %>
+        <div class="nav-user nav-account" data-account-menu>
+          <button type="button" class="nav-account-toggle" aria-expanded="false" aria-controls="nav-account-panel" data-account-toggle>
+            <% if (locals.user && locals.user.avatarUrl) { %>
+              <img src="<%= locals.user.avatarUrl %>" alt="" class="nav-avatar">
+            <% } else { %>
+              <span class="nav-account-icon" aria-hidden="true"><i data-lucide="user-round"></i></span>
+            <% } %>
+            <span class="nav-username">Hi, <%= locals.user ? locals.user.firstName : 'User' %></span>
+            <span class="nav-account-label">Account menu</span>
+            <i data-lucide="chevron-down" class="nav-account-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="nav-account-panel" id="nav-account-panel" data-account-panel>
+            <p class="nav-account-signed-in">Signed in as <strong><%= locals.user ? locals.user.firstName : 'User' %></strong></p>
+            <% navigation.accountMenu.forEach((item) => { %>
+              <a href="<%= item.href %>" class="nav-account-item<%= item.isCurrent ? ' is-active' : '' %>"<% if (item.isCurrent) { %> aria-current="page"<% } %>>
+                <i data-lucide="<%= item.icon %>" aria-hidden="true"></i><span><%= item.label %></span>
+              </a>
+            <% }) %>
+            <button type="button" class="nav-account-item" data-pwa-install-action>
+              <i data-lucide="download" aria-hidden="true"></i><span>Install HelloRun</span>
             </button>
-          </form>
+            <% if (navigation.workspaceSwitch) { %>
+              <form action="<%= navigation.workspaceSwitch.action %>" method="POST" class="workspace-switch-form">
+                <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                <button type="submit" class="nav-account-item"><i data-lucide="<%= navigation.workspaceSwitch.icon %>" aria-hidden="true"></i><span><%= navigation.workspaceSwitch.label %></span></button>
+              </form>
+            <% } %>
+            <form action="/logout" method="POST" class="logout-form">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <button type="submit" class="nav-account-item nav-account-logout">
+                <i data-lucide="log-out" aria-hidden="true"></i><span>Log out</span>
+              </button>
+            </form>
+          </div>
         </div>
       <% } else { %>
         <div class="nav-auth-buttons">

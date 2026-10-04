@@ -182,20 +182,33 @@ test('runner, organizer, and admin mobile destinations retain accessible names a
   assert.match(admin, /aria-label="Admin Communications"/);
 });
 
-test('login and logout controls use concise labels and distinct restrained interaction states', () => {
-  const nav = read('src/views/layouts/nav.ejs');
+test('login and account controls use concise labels and distinct restrained interaction states', () => {
   const css = read('src/public/css/style.css');
+  const main = read('src/public/js/main.js');
 
   const guestNav = renderNav({ currentPath: '/', isAuthenticated: false });
   assert.match(guestNav, /aria-label="Log in to HelloRun" title="Log in"/);
-  assert.match(nav, /aria-label="Log out of HelloRun" title="Log out"/);
   assert.match(guestNav, /<span class="nav-tooltip">Log in<\/span>/);
-  assert.match(nav, /<span class="nav-tooltip">Log out<\/span>/);
-  assert.match(css, /\.nav \.nav-login-btn,[\s\S]*\.nav \.nav-user \.nav-logout-btn\s*\{[\s\S]*color: #475569;[\s\S]*border-color: #e2e8f0/);
-  assert.match(css, /\.nav \.nav-user \.nav-logout-btn:hover,[\s\S]*color: #b42318;[\s\S]*background: #fff5f4;[\s\S]*border-color: #fecaca/);
   assert.match(css, /\.nav \.nav-login-btn\[aria-current="page"\][\s\S]*font-weight: 750/);
   assert.match(css, /\.nav \.nav-auth-buttons\s*\{[\s\S]*padding-left: 0\.6rem;[\s\S]*border-left-color: #edf1f5/);
-  assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.nav \.nav-auth-buttons \.nav-login-btn,[\s\S]*min-height: 44px/);
+  assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.nav \.nav-auth-buttons \.nav-login-btn \{[\s\S]*min-height: 44px/);
+
+  // Signed in: one account disclosure holding profile, install, workspace switch and log out.
+  const memberNav = renderNav({
+    currentPath: '/', isAuthenticated: true, isRunnerWorkspace: true, canUseOrganizerWorkspace: true,
+    csrfToken: 'tok', user: { firstName: 'Runner' }
+  });
+  assert.match(memberNav, /<button type="button" class="nav-account-toggle" aria-expanded="false" aria-controls="nav-account-panel" data-account-toggle>/);
+  const panel = memberNav.slice(memberNav.indexOf('id="nav-account-panel"'));
+  assert.match(panel, /href="\/runner\/profile" class="nav-account-item"/);
+  assert.match(panel, /data-pwa-install-action/);
+  assert.match(panel, /action="\/workspace\/organizer"/);
+  assert.match(panel, /<form action="\/logout" method="POST" class="logout-form">\s*<input type="hidden" name="_csrf" value="tok">\s*<button type="submit" class="nav-account-item nav-account-logout">/);
+  assert.equal((memberNav.match(/data-pwa-install-action/g) || []).length, 1, 'one install control per screen');
+
+  assert.match(css, /\.nav \.nav-account-logout:hover,[\s\S]*color: #b42318/);
+  assert.match(css, /\.nav \.nav-account\[data-account-ready\] \.nav-account-panel:not\(\.is-open\) \{\s*display: none;/);
+  assert.match(main, /function initAccountMenu\(\)[\s\S]*event\.key === 'Escape' && isOpen\(\)\) setOpen\(false, \{ returnFocus: true \}\)/);
 });
 
 test('signup role intent is allowlisted, preselected, and reflected in organizer messaging', () => {

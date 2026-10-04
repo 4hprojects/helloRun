@@ -11,6 +11,8 @@
 // Visibility here is presentation only. Route guards in auth.middleware.js remain the
 // authority on access; hiding a link never grants or removes permission.
 //
+// Signed-in users get an account menu (see `accountMenu`); guests get Log in / Sign Up.
+//
 // The footer is intentionally separate: it holds content and policy pages, not app
 // destinations, and is rendered from layouts/footer.ejs.
 
@@ -128,6 +130,9 @@ function buildNavigation(locals = {}) {
     isRunnerWorkspace: context.isRunnerWorkspace,
     primary,
     account: [],
+    // Personal destinations shown in the account menu (avatar button on desktop,
+    // inline section of the mobile menu). Log out and the workspace switch sit beside them.
+    accountMenu: [],
     workspaceSwitch: null,
     auth: [],
     bottom: null,
@@ -139,6 +144,7 @@ function buildNavigation(locals = {}) {
     return navigation;
   }
 
+  navigation.accountMenu.push(headerItem('runnerProfile', { label: 'My profile', icon: 'user-round' }));
   navigation.account.push(headerItem('myRegistrations'));
   if (context.isRunnerWorkspace) navigation.account.push(headerItem('submissions'));
 

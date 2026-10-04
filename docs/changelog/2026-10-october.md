@@ -1,5 +1,38 @@
 # HelloRun Changelog — October 2026
 
+## October 4 — Account menu
+
+- **What signed-in users now get.** The header user area is an account menu. It
+  replaces the bare "Hi, name" greeting and the separate logout icon.
+  - **Desktop:** an avatar button opens a panel with **My profile**, **Install HelloRun**
+    (only when the browser can install), the **runner/organiser switch**, and **Log
+    out**.
+  - **Phones:** the same items appear inline in the menu under "Signed in as …".
+  - **Without JavaScript:** the items stay visible inline, so Log out is always
+    reachable.
+- **Accessibility.** The button is a disclosure (`aria-expanded` and `aria-controls`).
+  Opening it focuses the first item. Escape closes it and returns focus to the button.
+  Clicking outside, tabbing away, or choosing an item also closes it. The logic is
+  `initAccountMenu` in `main.js`.
+- **Install and workspace controls moved.** Signed-in users see Install HelloRun in this
+  menu, keeping one install control per screen; guests keep it in the header. The
+  workspace switch moved here from the header icon row. The profile entry comes from
+  `accountMenu` in `src/config/navigation.js`.
+- **Mobile menu fixes:**
+  - The menu is capped to the viewport and scrolls internally. Previously, because the
+    header is sticky, a long menu on a short phone (320×568) had no way to reach Log
+    out.
+  - An unscoped desktop `.nav .nav-user` rule was adding a stray left border and indent
+    to the mobile user section; that is fixed.
+- **Removed dead CSS.** The old icon-style logout button (`.nav-logout-btn`) is gone from
+  `style.css` and `project-buttons.css`.
+- **Verified in headless Chromium** against the local seeded stack:
+  - **Viewports:** desktop at 1024, 1280 and 1440px, and phones at 320×568 and 390px.
+  - **Roles:** runner and organiser.
+  - **States:** menu open and closed, plus with JavaScript disabled.
+  - **Keyboard:** dismissal and focus return.
+  - **Overflow:** none, for any role, with the menus open or closed.
+
 ## October 4 — Responsive foundation and measured overflow fixes
 
 - **Measured, not assumed.** Overflow was checked in headless Chromium against the real

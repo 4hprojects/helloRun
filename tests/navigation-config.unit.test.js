@@ -146,4 +146,28 @@ test('server exposes the builder to every view, and the nav degrades to the logo
   const html = ejs.render(fs.readFileSync(navPath, 'utf8'), { isAuthenticated: false }, { filename: navPath });
   assert.match(html, /class="logo" aria-label="HelloRun Home"/);
   assert.doesNotMatch(html, /href="\/events"/);
+
+  // Signed in, the fallback still renders (with Log out) instead of throwing.
+  const memberHtml = ejs.render(fs.readFileSync(navPath, 'utf8'), { isAuthenticated: true, user: { firstName: 'X' } }, { filename: navPath });
+  assert.match(memberHtml, /action="\/logout"/);
+
+  // The fallback must carry every collection the template iterates.
+  const navSource = fs.readFileSync(navPath, 'utf8');
+  const fallback = navSource.match(/: \{ primary: \[\][^}]*\}/)[0];
+  for (const key of new Set([...navSource.matchAll(/navigation\.([a-zA-Z]+)\.forEach/g)].map((m) => m[1]))) {
+    assert.match(fallback, new RegExp(`${key}: \\[\\]`), `fallback is missing ${key}`);
+  }
+});
+
+test('signed-in users get a profile entry in the account menu; guests get none', () => {
+  assert.deepEqual(buildNavigation({ isAuthenticated: false }).accountMenu, []);
+  for (const locals of [
+    { ...member, isRunnerWorkspace: true },
+    { ...member, isOrganizer: true, isApprovedOrganizer: true },
+    { ...member, isAdmin: true, isFullAdmin: true }
+  ]) {
+    const menu = buildNavigation({ ...locals, currentPath: '/runner/profile' }).accountMenu;
+    assert.deepEqual(hrefs(menu), ['/runner/profile']);
+    assert.equal(menu[0].isCurrent, true);
+  }
 });

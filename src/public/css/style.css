@@ -949,8 +949,7 @@ p {
     }
 
     .nav .nav-login-btn,
-    .nav .nav-signup-btn,
-    .nav .nav-logout-btn {
+    .nav .nav-signup-btn {
         width: auto;
         min-width: 100%;
         height: 40px;
@@ -1032,40 +1031,6 @@ p {
         margin: 0;
         display: flex;
         justify-content: flex-end;
-    }
-
-    .nav-user .nav-logout-btn,
-    .nav .nav-user .nav-logout-btn {
-        width: 100%;
-        min-width: 100%;
-        height: 40px;
-        align-self: auto;
-        justify-content: space-between;
-        gap: 0.75rem;
-        flex-direction: row-reverse;
-        padding: 0.55rem 0.7rem;
-        border: 1px solid transparent;
-        background: transparent;
-        color: #334155;
-        text-align: right;
-        box-shadow: none;
-        transform: none;
-    }
-
-    .nav-user .nav-logout-btn:hover,
-    .nav-user .nav-logout-btn:focus-visible,
-    .nav .nav-user .nav-logout-btn:hover,
-    .nav .nav-user .nav-logout-btn:focus-visible {
-        background: #fff7ed;
-        border-color: #fed7aa;
-        color: #c2410c;
-        box-shadow: none;
-        transform: none;
-    }
-
-    .nav-user .nav-logout-btn .nav-tooltip,
-    .nav .nav-user .nav-logout-btn .nav-tooltip {
-        color: inherit;
     }
 
     .nav-tooltip {
@@ -1751,8 +1716,7 @@ label .required {
 }
 
 .nav .nav-login-btn,
-.nav .nav-signup-btn,
-.nav .nav-logout-btn {
+.nav .nav-signup-btn {
   width: 44px;
   height: 44px;
   padding: 0;
@@ -1765,17 +1729,14 @@ label .required {
   transform: none;
 }
 
-.nav .nav-login-btn,
-.nav .nav-logout-btn {
+.nav .nav-login-btn {
   background: #ffffff;
   color: #334155;
   border: 1px solid #e2e8f0;
 }
 
 .nav .nav-login-btn:hover,
-.nav .nav-login-btn:focus-visible,
-.nav .nav-logout-btn:hover,
-.nav .nav-logout-btn:focus-visible {
+.nav .nav-login-btn:focus-visible {
   background: #fff7ed;
   border-color: #fed7aa;
   color: #c2410c;
@@ -2096,8 +2057,7 @@ label .required {
     border-left-color: #edf1f5;
   }
 
-  .nav .nav-login-btn,
-  .nav .nav-user .nav-logout-btn {
+  .nav .nav-login-btn {
     background: #ffffff;
     color: #475569;
     border-color: #e2e8f0;
@@ -2109,14 +2069,6 @@ label .required {
     color: #9a3412;
     background: #fffaf5;
     border-color: #fed7aa;
-  }
-
-  .nav .nav-user .nav-logout-btn:hover,
-  .nav .nav-user .nav-logout-btn:focus-visible {
-    color: #b42318;
-    background: #fff5f4;
-    border-color: #fecaca;
-    box-shadow: none;
   }
 
   .nav .nav-user .logout-form {
@@ -2140,16 +2092,225 @@ label .required {
     margin-block: 0.35rem 0.25rem;
   }
 
-  .nav .nav-auth-buttons .nav-login-btn,
-  .nav .nav-user .nav-logout-btn {
+  .nav .nav-auth-buttons .nav-login-btn {
     min-height: 44px;
     border-radius: 10px;
   }
+}
 
-  .nav .nav-user .nav-logout-btn:hover,
-  .nav .nav-user .nav-logout-btn:focus-visible {
-    color: #b42318;
-    background: #fff5f4;
-    border-color: #fecaca;
+/* ===== Account menu (layouts/nav.ejs) =====
+   Desktop: avatar button that discloses a small panel. Phones (≤900px): the panel is
+   shown inline inside the menu and the button is hidden. Until main.js marks the
+   menu ready (`data-account-ready`), the panel stays visible so nothing is
+   unreachable without JavaScript. */
+.nav .nav-account {
+  position: relative;
+}
+
+.nav .nav-account-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.25rem 0.55rem 0.25rem 0.3rem;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  color: #334155;
+  font: inherit;
+  cursor: pointer;
+}
+
+.nav .nav-account-toggle:hover,
+.nav .nav-account-toggle[aria-expanded="true"] {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+
+.nav .nav-account-toggle:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 2px;
+}
+
+.nav .nav-account-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.nav .nav-account-icon svg,
+.nav .nav-account-chevron {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.nav .nav-account-toggle[aria-expanded="true"] .nav-account-chevron {
+  transform: rotate(180deg);
+}
+
+.nav .nav-account-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.nav .nav-account-panel {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.nav .nav-account-signed-in {
+  margin: 0;
+  padding: 0.45rem 0.75rem 0.35rem;
+  color: #64748b;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.nav .nav-account-signed-in strong {
+  color: #0f172a;
+}
+
+.nav .nav-account-panel form {
+  display: block;
+  margin: 0;
+}
+
+.nav .nav-account-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #334155;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.nav .nav-account-item svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.nav .nav-account-item:hover,
+.nav .nav-account-item:focus-visible,
+.nav .nav-account-item[aria-current="page"] {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #c2410c;
+}
+
+.nav .nav-account-item:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 1px;
+}
+
+.nav .nav-account-logout:hover,
+.nav .nav-account-logout:focus-visible {
+  background: #fff5f4;
+  border-color: #fecaca;
+  color: #b42318;
+}
+
+@media (min-width: 901px) {
+  .nav .nav-account-panel {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    z-index: var(--hr-z-header-menu, 1001);
+    width: max-content;
+    min-width: 14rem;
+    max-width: min(20rem, calc(100vw - 2rem));
+    padding: 0.4rem;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--radius-md);
+    background: #ffffff;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
+  }
+
+  .nav .nav-account[data-account-ready] .nav-account-panel:not(.is-open) {
+    display: none;
+  }
+
+  /* Before main.js runs the panel would sit open under the header; keep it in the
+     flow of the user area instead. */
+  .nav .nav-account:not([data-account-ready]) .nav-account-panel {
+    position: relative;
+    top: auto;
+    display: flex;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .nav .nav-account:not([data-account-ready]) .nav-account-item {
+    white-space: nowrap;
+  }
+
+  .nav .nav-account:not([data-account-ready]) .nav-account-toggle,
+  .nav .nav-account:not([data-account-ready]) .nav-account-signed-in {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  /* The header is sticky, so a menu taller than the screen could never be scrolled
+     to its end (Log out). Keep it within the viewport and scroll inside it. */
+  .nav .nav-links {
+    max-height: calc(100vh - 5rem);
+    max-height: calc(100dvh - 5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* The unscoped desktop `.nav .nav-user` separator otherwise wins here too. */
+  .nav .nav-account {
+    gap: 0.15rem;
+    margin-left: 0;
+    padding-top: 0.35rem;
+    padding-left: 0;
+    border-top: 1px solid #e2e8f0;
+    border-left: 0;
+  }
+
+  .nav .nav-account-toggle {
+    display: none;
+  }
+
+  /* Match the drawer rows above: label right-aligned with the icon at the far right. */
+  .nav .nav-links .nav-account-item {
+    min-width: 100%;
+    flex-direction: row-reverse;
+    text-align: right;
+  }
+
+  .nav .nav-links .nav-account-item > span {
+    flex: 1;
+  }
+
+  .nav .nav-account-signed-in {
+    text-align: right;
   }
 }

@@ -10,6 +10,52 @@ function initSkipLinkTarget() {
   if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
 }
 
+// Account menu (layouts/nav.ejs): a disclosure button on desktop. Marking it ready
+// lets CSS hide the panel until it is opened; without JS the panel stays visible.
+function initAccountMenu() {
+  const root = document.querySelector('[data-account-menu]');
+  if (!root || root.dataset.accountReady === '1') return;
+  const toggle = root.querySelector('[data-account-toggle]');
+  const panel = root.querySelector('[data-account-panel]');
+  if (!toggle || !panel) return;
+  root.dataset.accountReady = '1';
+
+  const isOpen = () => toggle.getAttribute('aria-expanded') === 'true';
+  const setOpen = (open, { returnFocus = false } = {}) => {
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    panel.classList.toggle('is-open', open);
+    if (!open && returnFocus) toggle.focus();
+  };
+  const firstItem = () => Array.from(panel.querySelectorAll('a, button'))
+    .find((el) => !el.disabled && el.offsetParent !== null) || null;
+
+  toggle.addEventListener('click', () => {
+    const open = !isOpen();
+    setOpen(open);
+    if (open) {
+      const item = firstItem();
+      if (item) item.focus();
+    }
+  });
+
+  document.addEventListener('click', (event) => {
+    if (isOpen() && !root.contains(event.target)) setOpen(false);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && isOpen()) setOpen(false, { returnFocus: true });
+  });
+
+  root.addEventListener('focusout', (event) => {
+    if (isOpen() && event.relatedTarget && !root.contains(event.relatedTarget)) setOpen(false);
+  });
+
+  // Choosing an item (install, link, or a form button) closes the panel.
+  panel.addEventListener('click', (event) => {
+    if (event.target.closest('a, button')) setOpen(false);
+  });
+}
+
 // Mobile menu toggle
 function initMainUi() {
   const menuToggle = document.querySelector('.menu-toggle');
@@ -20,6 +66,7 @@ function initMainUi() {
   const globalFlash = document.querySelector('[data-global-flash]');
 
   initSkipLinkTarget();
+  initAccountMenu();
   initHighRiskConfirmations();
   initAdminPrivilegeAffordances();
   initOperationalFilterTools();
