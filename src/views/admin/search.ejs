@@ -3,7 +3,7 @@
 <head><%- include('../layouts/head', { title }) %><link rel="stylesheet" href="/css/admin.css"></head>
 <body><%- include('../layouts/nav') %>
 <main class="admin-page"><section class="section admin-shell">
-  <div class="admin-header-row"><div><p class="dashboard-kicker">Cross-domain lookup</p><h2>Admin Search</h2><p>Find authorized users, events, running groups, organizer applications, and run submissions from one query.</p></div><a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a></div>
+  <div class="admin-header-row"><div><p class="dashboard-kicker">Cross-domain lookup</p><h1>Admin Search</h1><p>Find authorized users, events, running groups, organizer applications, and run submissions from one query.</p></div><a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a></div>
   <form class="admin-filters" method="GET" action="/admin/search"><div class="filter-field filter-grow"><label for="adminSearch">Name, email, title, slug, application ID, status, or object ID</label><input id="adminSearch" type="search" name="q" value="<%= q %>" minlength="2" required autofocus></div><div class="filter-actions"><button class="btn" type="submit">Search</button></div></form>
   <% const sections = [
     ['Users', results.users, (x) => `${x.firstName || ''} ${x.lastName || ''}`.trim() || x.email, (x) => `${x.role} · ${x.accountStatus || 'active'} · ${x.email}`, (x) => `/admin/cases/user/${x._id}`],

@@ -22,11 +22,11 @@
     <section class="section admin-shell">
       <div class="admin-header-row">
         <div>
-          <h2>
+          <h1>
             <% if (mode === 'create') { %>New <%= documentName %> Draft<% } %>
             <% if (mode === 'edit') { %>Edit <%= documentName %> Draft<% } %>
             <% if (mode === 'view') { %><%= documentName %> Version<% } %>
-          </h2>
+          </h1>
           <p>
             <% if (mode === 'view') { %>Read-only version details and preview.<% } %>
             <% if (mode !== 'view') { %>Patterned after admin content workflows: save draft, then publish.<% } %>

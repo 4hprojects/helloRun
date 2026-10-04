@@ -1,5 +1,35 @@
 # HelloRun Changelog — October 2026
 
+## October 4 — Accessibility and interaction pass (phase F)
+
+- **Audit.** 26 priority pages from the pack's migration order were checked in headless
+  Chromium at 390px, as guest, runner, organiser and admin, against the local seeded
+  stack. The checks:
+  - targets under 24×24px (WCAG 2.2, 2.5.8; inline sentence links exempt, stretched
+    links measured by their real hit area);
+  - form controls, buttons and links without an accessible name;
+  - images without `alt`;
+  - duplicate IDs;
+  - exactly one visible `<h1>`;
+  - overlapping fixed bottom bars.
+  Runner and guest journeys were already clean. After the fixes below, **all 26 pages
+  pass every check**.
+- **28 admin pages had no `<h1>`.** The title was an `<h2>`, so screen-reader heading
+  navigation had no page title. Each title is now the page `<h1>`. A computed-style
+  comparison before and after confirms identical size, weight, line height and box at
+  390px and 1280px.
+- **Small targets raised to 24px** at component level, without changing text size:
+  - organiser breadcrumbs, dashboard section links, utility links, Top Events rows and
+    event-list titles;
+  - admin metric links, section links, sortable table headers and digest links;
+  - the event detail "Browse all events" link.
+- **Stretched links.** The 9px "Registrations" label on organiser event tiles and the
+  related-event title links now take taps across their whole tile or card. Focus is
+  shown on the container. Hit-testing confirmed every point in the area reaches the
+  link.
+- No overflow regressions at 320–1440px on the touched pages.
+- DB-free coverage: `tests/interaction-targets.unit.test.js`.
+
 ## October 4 — Account menu
 
 - **What signed-in users now get.** The header user area is an account menu. It

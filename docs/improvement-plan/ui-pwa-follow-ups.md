@@ -50,14 +50,16 @@ Install HelloRun, the workspace switch and Log out. See the changelog.
 - Not measured: PostgreSQL-backed pages (organiser event shop and audit) and blog
   posts. Re-run the measurement against staging once one exists.
 
-### F — Page migration
-Migrate one pull request per area, in this order:
-1. Event detail and registration.
-2. Runner submissions and the run-proof modal.
-3. Leaderboards.
-4. Organiser and admin tables.
+### F — Page migration (first pass done October 4)
+An audit-driven pass replaced the planned page-by-page rewrite. Overflow (phase E) and
+accessibility/interaction checks now pass on the 26 priority pages: targets, names,
+`alt`, IDs, `<h1>` and fixed-bar overlap. See the changelog.
 
-Desktop rendering must stay unchanged.
+Still open, needing product or design input rather than mechanical fixes:
+- Event detail content order on phones (the pack's decision-first order).
+- Leaderboard card layout on phones instead of tables.
+- Unifying the 42 custom `role="dialog"` implementations on native `<dialog>`.
+- Real-device checks: iOS Safari and Android Chrome, including install.
 
 ## Constraints
 - New partials must pass `tests/blog-template-escaping.unit.test.js`, which means using

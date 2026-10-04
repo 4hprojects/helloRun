@@ -2,6 +2,7 @@
 .admin-running-groups-page .sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
 .admin-running-groups-page .admin-header-row { align-items: center; margin-bottom: .8rem; }
 .admin-running-groups-page .dashboard-kicker { margin-bottom: .2rem; }
+.admin-running-groups-page .admin-header-row h1,
 .admin-running-groups-page .admin-header-row h2 { margin-bottom: .2rem; }
 .admin-group-dashboard-action, .admin-group-header-actions .btn { min-height: 44px; }
 .admin-group-header-actions, .admin-group-confirm-actions { display: flex; gap: .55rem; flex-wrap: wrap; }
@@ -65,6 +66,7 @@ a.admin-group-status-item:hover { background: #f8fafc; }
 .admin-group-manage-action { min-width: 90px; justify-content: center; }
 
 .admin-group-title-row { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
+.admin-group-title-row h1,
 .admin-group-title-row h2 { min-width: 0; overflow-wrap: anywhere; }
 .admin-group-stable-slug { display: flex; align-items: center; gap: .45rem; margin: .15rem 0 0; color: #64748b; font-size: .84rem; }
 .admin-group-stable-slug code { overflow-wrap: anywhere; }

@@ -1930,7 +1930,7 @@ label .required {
 .onsite-field-mode button, .onsite-field-mode .btn, .onsite-field-mode a.btn { min-height: 48px; }
 .workspace-autosave-status { position: sticky; top: .5rem; z-index: 25; margin: 0 0 .75rem; padding: .55rem .75rem; border: 1px solid #bfdbfe; border-radius: .5rem; background: #eff6ff; color: #1e3a8a; font-size: .78rem; }
 .organizer-workspace-breadcrumbs { display: flex; flex-wrap: wrap; gap: .4rem; max-width: 1200px; margin: .75rem auto 0; padding: 0 1rem; color: #64748b; font-size: .8rem; text-transform: capitalize; }
-.organizer-workspace-breadcrumbs a { color: #475569; }
+.organizer-workspace-breadcrumbs a { display: inline-flex; align-items: center; min-height: 24px; color: #475569; }
 
 /* Compact responsive destination navigation */
 @media (min-width: 901px) {

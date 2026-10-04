@@ -56,7 +56,7 @@
 .organizer-event-list-identity { min-width: 0; }
 .organizer-event-list-title-row { display: flex; align-items: center; gap: .4rem; min-width: 0; }
 .organizer-event-list-title-row h2 { min-width: 0; margin: 0; font-size: .9rem; }
-.organizer-event-list-title-row h2 a { display: block; overflow: hidden; color: var(--oel-ink); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+.organizer-event-list-title-row h2 a { display: block; min-height: 24px; overflow: hidden; color: var(--oel-ink); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
 .organizer-event-list-title-row .status-badge { flex: 0 0 auto; margin: 0; padding: .16rem .45rem; font-size: .62rem; }
 .organizer-event-list-reference { overflow: hidden; margin: .18rem 0; color: var(--oel-muted); font: .65rem/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; text-overflow: ellipsis; white-space: nowrap; }
 .organizer-event-list-context { display: flex; flex-wrap: wrap; gap: .2rem .55rem; margin: 0; color: var(--oel-muted); font-size: .68rem; }
@@ -75,6 +75,12 @@
 .organizer-event-list-workload .has-work { border-color: #fed7aa; background: #fff7ed; color: #9a3e0a; }
 .organizer-event-list-workload dt { min-width: 0; max-width: 100%; color: var(--oel-muted); font-size: .59rem; line-height: 1.15; text-align: center; overflow-wrap: anywhere; }
 .organizer-event-list-workload dt a { color: var(--oel-blue); overflow-wrap: anywhere; }
+/* The label link is tiny text; stretch its hit area over the whole tile (WCAG 2.5.8). */
+.organizer-event-list-workload > div:has(> dt > a) { position: relative; }
+.organizer-event-list-workload dt a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.organizer-event-list-workload > div:has(> dt > a):hover { border-color: #bfdbfe; background: #eff6ff; }
+.organizer-event-list-workload dt a:focus-visible { outline: none; }
+.organizer-event-list-workload > div:has(> dt > a:focus-visible) { outline: 2px solid #111827; outline-offset: 2px; }
 .organizer-event-list-workload dd { margin: 0; font-size: .9rem; font-weight: 800; }
 .organizer-event-list-actions { display: grid; gap: .35rem; min-width: 0; }
 .organizer-event-list-actions a { position: relative; min-width: 0; min-height: 44px !important; padding: .45rem .6rem !important; border-radius: 9px !important; gap: .35rem !important; font-size: .7rem !important; }

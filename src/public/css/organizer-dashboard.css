@@ -58,14 +58,14 @@
 .organizer-ranked-card h4 { margin: 0 0 .5rem; font-size: .8rem; }
 .organizer-ranked-card ol { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; counter-reset: rank; }
 .organizer-ranked-card li { min-width: 0; counter-increment: rank; }
-.organizer-ranked-card li a { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; color: var(--od-ink); font-size: .78rem; text-decoration: none; }
+.organizer-ranked-card li a { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; min-height: 24px; gap: .5rem; color: var(--od-ink); font-size: .78rem; text-decoration: none; }
 .organizer-ranked-card li a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .organizer-ranked-card li a span::before { content: counter(rank) '. '; color: var(--od-muted); }
 .organizer-ranked-card li a strong { min-width: 1.6rem; text-align: center; color: var(--od-accent-dark); }
 .organizer-ranked-card p { margin: 0; color: var(--od-muted); font-size: .78rem; }
 
 .organizer-operations { min-width: 0; }
-.organizer-text-link, .organizer-card-heading a, .organizer-events-heading a { display: inline-flex; align-items: center; gap: .3rem; color: var(--od-blue); font-size: .8rem; font-weight: 750; text-decoration: none; }
+.organizer-text-link, .organizer-card-heading a, .organizer-events-heading a { display: inline-flex; align-items: center; min-height: 24px; gap: .3rem; color: var(--od-blue); font-size: .8rem; font-weight: 750; text-decoration: none; }
 .organizer-text-link svg, .organizer-events-heading a svg { width: .9rem; height: .9rem; }
 .organizer-operations-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); align-items: start; gap: 1rem; }
 .organizer-queue-card, .organizer-drafts-card { padding: 1rem; }
@@ -155,6 +155,7 @@
 .organizer-utilities-grid > section { min-width: 0; padding-top: .85rem; }
 .organizer-utilities-grid h2 { margin: 0 0 .55rem; font-size: .8rem; }
 .organizer-utilities-grid p, .organizer-utilities-grid a { color: var(--od-muted); font-size: .72rem; overflow-wrap: anywhere; }
+.organizer-utilities-grid a { display: inline-flex; align-items: center; min-height: 24px; }
 .organizer-profile-summary { display: flex; align-items: center; gap: .55rem; }
 .organizer-profile-summary .organizer-dashboard-avatar { flex-basis: 2rem; width: 2rem; height: 2rem; font-size: .7rem; }
 .organizer-profile-summary > div { display: grid; min-width: 0; }

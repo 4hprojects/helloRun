@@ -11,7 +11,7 @@
     <section class="section admin-shell">
       <% const countsMatch = Number(group.memberCount || 0) === actualMemberCount; const creatorName = [group.createdBy?.firstName, group.createdBy?.lastName].filter(Boolean).join(' ').trim() || group.createdBy?.email || 'Unavailable'; %>
       <div class="admin-header-row admin-group-detail-header">
-        <div><p class="dashboard-kicker">Running group</p><div class="admin-group-title-row"><h2><%= group.name %></h2><span class="status-badge <%= group.isActive ? 'status-badge-approved' : 'status-badge-archived' %>"><%= group.isActive ? 'Active' : 'Archived' %></span></div><p class="admin-group-stable-slug"><span>Stable URL</span><code><%= group.slug %></code></p></div>
+        <div><p class="dashboard-kicker">Running group</p><div class="admin-group-title-row"><h1><%= group.name %></h1><span class="status-badge <%= group.isActive ? 'status-badge-approved' : 'status-badge-archived' %>"><%= group.isActive ? 'Active' : 'Archived' %></span></div><p class="admin-group-stable-slug"><span>Stable URL</span><code><%= group.slug %></code></p></div>
         <div class="admin-group-header-actions"><a href="/admin/running-groups" class="btn btn-secondary"><i data-lucide="arrow-left" aria-hidden="true"></i>All groups</a><% if (group.isActive) { %><a href="/runner/groups/<%= group.slug %>" class="btn btn-secondary"><i data-lucide="external-link" aria-hidden="true"></i>Runner view</a><% } %></div>
       </div>
       <% if (message) { %><div class="admin-alert admin-alert-<%= message.type %>" role="<%= message.type === 'error' ? 'alert' : 'status' %>"><%= message.text %></div><% } %>

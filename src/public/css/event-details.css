@@ -2553,6 +2553,7 @@ textarea.contact-organiser-input {
 }
 
 .event-related-card {
+  position: relative;
   background: #fff;
   border-radius: 10px;
   overflow: hidden;
@@ -2599,6 +2600,20 @@ textarea.contact-organiser-input {
   color: #0f172a;
   text-decoration: none;
 }
+/* The whole card is the target for the title link (WCAG 2.5.8); the image link is
+   already aria-hidden and out of the tab order. */
+.event-related-title a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.event-related-title a:focus-visible {
+  outline: none;
+}
+.event-related-card:has(.event-related-title a:focus-visible) {
+  outline: 2px solid #111827;
+  outline-offset: 2px;
+}
 .event-related-title a:hover {
   color: var(--orange, #f97316);
 }
@@ -2610,7 +2625,9 @@ textarea.contact-organiser-input {
 }
 
 .event-related-browse {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
   color: var(--orange, #f97316);
   font-size: 0.875rem;
   font-weight: 500;
