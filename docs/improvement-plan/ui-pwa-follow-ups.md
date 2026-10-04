@@ -55,10 +55,19 @@ An audit-driven pass replaced the planned page-by-page rewrite. Overflow (phase 
 accessibility/interaction checks now pass on the 26 priority pages: targets, names,
 `alt`, IDs, `<h1>` and fixed-bar overlap. See the changelog.
 
-Still open, needing product or design input rather than mechanical fixes:
-- Event detail content order on phones (the pack's decision-first order).
-- Leaderboard card layout on phones instead of tables.
-- Unifying the 42 custom `role="dialog"` implementations on native `<dialog>`.
+Already met before this work, verified October 4 at 390px:
+- **Event detail order on phones.** Rendered order: status and mode, organiser, title,
+  summary, fee, then **Register Now inside the first screen** (y≈742 of 800px). Then key
+  facts, how it works, submission rules (proof requirements), categories and rewards.
+  This matches the pack's decision-first order.
+- **Leaderboard on phones.** `event-leaderboard.ejs` renders `leaderboard-mobile-card`
+  entries (rank, runner, main metric, progress), and `leaderboard.css` hides the table
+  at 900px and below.
+
+Still open:
+- Unifying the 42 custom `role="dialog"` implementations on native `<dialog>`. This is
+  large and touches review, registrant and admin workflows, so it belongs on its own
+  branch.
 - Real-device checks: iOS Safari and Android Chrome, including install.
 
 ## Constraints
