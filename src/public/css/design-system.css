@@ -32,6 +32,88 @@
   --hr-focus-ring: 0 0 0 3px rgba(194, 65, 12, 0.18);
   --hr-control-height: 44px;
   --hr-container: 1200px;
+
+  /* Spacing scale for new and refactored components. */
+  --hr-space-1: 0.25rem;
+  --hr-space-2: 0.5rem;
+  --hr-space-3: 0.75rem;
+  --hr-space-4: 1rem;
+  --hr-space-5: 1.5rem;
+  --hr-space-6: 2rem;
+  --hr-space-7: 3rem;
+  --hr-gutter: clamp(1rem, 3vw, 2rem);
+
+  /* Layering, matching the values the shell already uses. */
+  --hr-z-raised: 10;
+  --hr-z-bottom-nav: 200;
+  --hr-z-header-menu: 1001;
+  --hr-z-toast: 1100;
+  --hr-z-skip-link: 2000;
+
+  /* Reference breakpoints (custom properties cannot be used inside @media):
+     480px small phone · 768px tablet · 900px header collapses to the menu ·
+     1024px small desktop · 1280px desktop. Prefer these values for new rules. */
+}
+
+/* ---- Layout primitives ---- */
+
+.hr-container {
+  width: min(100% - 2 * var(--hr-gutter), var(--hr-container));
+  margin-inline: auto;
+}
+
+/* Cards that reflow from one column on phones to as many as fit. */
+.hr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--hr-grid-min, 18rem)), 1fr));
+  gap: var(--hr-grid-gap, var(--hr-space-4));
+}
+
+/* Wide tables scroll inside this wrapper, never the page. */
+.hr-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* ---- Skip link (rendered once by layouts/nav.ejs) ---- */
+
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: var(--hr-z-skip-link);
+  padding: 0.7rem 1rem;
+  border-radius: var(--hr-radius-md);
+  background: var(--hr-color-ink);
+  color: #ffffff;
+  font-weight: 800;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 1rem));
+  transition: transform 160ms ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+  outline: 3px solid #ffffff;
+  outline-offset: 2px;
+}
+
+#main-content:focus {
+  outline: none;
+}
+
+/* ---- Reduced motion, site-wide ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 :where(.ui-card, .metric-card, .dashboard-card, .admin-badge-analytics-card, .communication-toolkit-card) {

@@ -101,6 +101,13 @@
   flex: 0 0 auto;
 }
 
+/* Header actions keep their natural width; the global ≤768px `.btn { width: 100% }`
+   made this row overflow between 761px and 768px. */
+.events-intro-actions .btn {
+  width: auto;
+  max-width: none;
+}
+
 .event-share-menu {
   position: relative;
   flex: 0 0 auto;

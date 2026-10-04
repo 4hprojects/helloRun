@@ -13,7 +13,7 @@
   color: var(--roster-ink);
 }
 .organizer-roster-shell { display: grid; width: min(1380px, 100%); margin: 0 auto; gap: .9rem; }
-.organizer-roster-header { display: flex; align-items: center; justify-content: space-between; gap: 1.2rem; }
+.organizer-roster-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.2rem; }
 .organizer-roster-kicker { margin: 0 0 .15rem; color: #a9450d; font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .organizer-roster-heading h1 { margin: 0; font: 750 clamp(1.35rem, 2.4vw, 1.85rem)/1.2 var(--font-heading, Poppins, sans-serif); }
 .organizer-roster-heading > p:last-child { max-width: 680px; margin: .25rem 0 0; color: var(--roster-muted); font-size: .8rem; }
@@ -139,7 +139,7 @@ body.organizer-roster-dialog-open { overflow: hidden; }
   .organizer-roster-filter-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .organizer-roster-column-labels, .organizer-roster-record-summary,
   .organizer-roster-page.is-paid-event .organizer-roster-column-labels,
-  .organizer-roster-page.is-paid-event .organizer-roster-record-summary { grid-template-columns: minmax(170px, 1.25fr) minmax(105px, .75fr) minmax(135px, .85fr) minmax(170px, 1fr) var(--roster-actions-width); }
+  .organizer-roster-page.is-paid-event .organizer-roster-record-summary { grid-template-columns: minmax(150px, 1.25fr) minmax(95px, .75fr) minmax(120px, .85fr) minmax(150px, 1fr) var(--roster-actions-width); }
   .organizer-roster-page.is-paid-event .organizer-roster-column-labels > :nth-child(4),
   .organizer-roster-page.is-paid-event .organizer-roster-record-summary > :nth-child(4) { display: none; }
 }

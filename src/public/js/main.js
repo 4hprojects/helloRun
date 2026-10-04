@@ -1,3 +1,15 @@
+// The shared skip link (layouts/nav.ejs) targets #main-content. Most pages have a <main>
+// without that id, so give the first one the id and make it focusable.
+function initSkipLinkTarget() {
+  let target = document.getElementById('main-content');
+  if (!target) {
+    target = document.querySelector('main');
+    if (!target) return;
+    target.id = 'main-content';
+  }
+  if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+}
+
 // Mobile menu toggle
 function initMainUi() {
   const menuToggle = document.querySelector('.menu-toggle');
@@ -7,6 +19,7 @@ function initMainUi() {
   const eventCarousels = Array.from(document.querySelectorAll('[data-event-carousel]'));
   const globalFlash = document.querySelector('[data-global-flash]');
 
+  initSkipLinkTarget();
   initHighRiskConfirmations();
   initAdminPrivilegeAffordances();
   initOperationalFilterTools();

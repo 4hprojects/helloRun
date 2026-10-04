@@ -1249,7 +1249,7 @@
 
 .communication-toolkit-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   gap: 0.85rem;
   margin: 0.9rem 0 1.35rem;
 }
@@ -1287,7 +1287,7 @@
 
 .communication-digest-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 0.9rem;
   margin: 0.9rem 0 1.35rem;
 }
@@ -1437,13 +1437,13 @@
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   gap: 0.85rem;
   margin: 1rem 0 1.25rem;
 }
 
 .action-center-grid {
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
 }
 
 .dashboard-section-title {
@@ -1501,7 +1501,7 @@
 
 .quick-link-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
   gap: 0.75rem;
   margin: 1rem 0 1.25rem;
 }
@@ -3723,7 +3723,7 @@
 /* ── Admin user detail: earned badge grid ── */
 .admin-badge-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
   gap: 0.75rem;
 }
 
@@ -3802,10 +3802,17 @@
 /* ── Platform analytics page ── */
 .admin-page-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1.5rem;
+}
+
+/* The title block takes the row; actions drop below it when they no longer fit. */
+.admin-page-header > div:first-child {
+  flex: 1 1 16rem;
+  min-width: 0;
 }
 
 .admin-page-eyebrow {

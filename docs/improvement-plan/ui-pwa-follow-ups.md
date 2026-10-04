@@ -21,12 +21,9 @@ verification is listed in [STATUS.md](../STATUS.md).
 | Area | Current state | Gap |
 |---|---|---|
 | Account menu | There is no profile or account menu. The user area has only an avatar, a greeting and a logout icon. | Medium |
-| Breakpoints and tokens | 59 distinct `@media` widths across 61 stylesheets. Two overlapping token sets with conflicting radii: legacy tokens in `style.css` and `--hr-*` tokens in `design-system.css`. There are no spacing, breakpoint or z-index tokens. | High (long tail) |
-| Overflow | `style.css` sets `body { overflow-x: hidden }`, which hides overflow instead of fixing it. 17 large `min-width` rules, mainly in `organizer-events.css` (up to 1840px) and `admin.css`. | High |
-| Event card | There is no shared partial. `article.event-card` is duplicated in `pages/events.ejs`, `home.ejs`, `about.ejs` and `organizer/dashboard.ejs`. | Medium |
+| Breakpoints and tokens | 59 distinct `@media` widths across 61 stylesheets, and two overlapping token sets with conflicting radii. Shared spacing, z-index and reference breakpoints now exist in `design-system.css` (October 4); existing rules have not been migrated to them. | Medium (long tail) |
 | Tables | 55 tables across 34 views. About 31 are inside `*-table-wrap` scrollers. The policy-page tables are not wrapped. | Medium |
 | Dialogs | 16 native `<dialog>` elements and 42 custom `role="dialog"` implementations. | Medium (defer) |
-| Skip link | Only the home page has one. | Low |
 
 Already sound, so keep it:
 - `aria-current` and `is-active` on the current page, now computed in `src/config/navigation.js`.
@@ -46,13 +43,17 @@ Still open: a `<details>`-based account menu (Profile, Install HelloRun, Switch
 workspace, Log out). It changes the desktop header layout, so it needs a visual review
 before it ships.
 
-### E — Responsive foundation
-- Add spacing and z-index tokens, plus documented reference breakpoints of 480, 768,
-  1024 and 1280, to `design-system.css`.
-- Add shared `.hr-container`, `.hr-grid` and `.hr-table-wrap` utilities, a global
-  reduced-motion rule and a site-wide skip link.
-- Extract `partials/event-card.ejs`.
-- Fix the 320px offenders, then remove `body { overflow-x: hidden }`.
+### E — Responsive foundation (done October 4)
+- Tokens, `.hr-container`, `.hr-grid`, `.hr-table-wrap`, a site-wide reduced-motion rule
+  and the site-wide skip link are all in place.
+- Overflow was measured at 12 widths across about 80 pages. The offenders were fixed
+  and `body { overflow-x: hidden }` was removed. See the changelog.
+- Not done: a shared event card. The audit's "duplicated event card" was inaccurate.
+  `event-card`, `featured-event-card`, `about-event-card` and `organizer-event-card` are
+  four different designs with their own CSS, and the listing card is used in one place.
+  Merging them would be a redesign, not a refactor.
+- Not measured: PostgreSQL-backed pages (organiser event shop and audit) and blog
+  posts. Re-run the measurement against staging once one exists.
 
 ### F — Page migration
 Migrate one pull request per area, in this order:

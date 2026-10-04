@@ -27,7 +27,9 @@ test('homepage provides skip navigation and an addressable main landmark', () =>
   const view = read('src/views/pages/home.ejs');
   const css = read('src/public/css/helloRun.css');
 
-  assert.match(view, /href="#main-content">Skip to main content/);
+  // The skip link is rendered once for every page by layouts/nav.ejs.
+  assert.match(read('src/views/layouts/nav.ejs'), /<a class="skip-link" href="#main-content">Skip to main content<\/a>/);
+  assert.doesNotMatch(view, /Skip to main content/);
   assert.match(view, /<main class="home" id="main-content" tabindex="-1">/);
   assert.match(css, /\.home-skip-link:focus[\s\S]*transform: translateY\(0\)/);
 });

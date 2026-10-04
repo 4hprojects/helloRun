@@ -1,5 +1,50 @@
 # HelloRun Changelog — October 2026
 
+## October 4 — Responsive foundation and measured overflow fixes
+
+- **Measured, not assumed.** Overflow was checked in headless Chromium against the real
+  app.
+  - **Setup:** the app ran against an ephemeral local MongoDB seeded with long-content
+    fixtures. Every external service was blanked or pointed at a dead port.
+  - **Coverage:** about 80 guest, runner, organiser and admin pages, at 12 widths from
+    320 to 1440px.
+  - **Method:** the old `body` clip was lifted during measurement so hidden overflow
+    would show.
+  - **Not covered:** pages backed by PostgreSQL (organiser event shop and audit) returned
+    500 locally and were not measured.
+- **Guest mobile menu bug fixed.** Below 900px, Log in and Sign Up were laid out side by
+  side, which pushed **Sign Up outside the menu**. `body { overflow-x: hidden }` then
+  clipped it, so guests on phones could not reach Sign Up from the menu. An unscoped
+  `.nav .nav-auth-buttons { display: flex }` was overriding the mobile `display:
+  contents`; the mobile rule is now re-asserted after it.
+- **Mobile menu missing on six pages.** These pages never loaded `main.js`, which drives
+  the menu button: organiser certificate setup, organiser complete-profile, admin
+  promote, reset password, and both certificate verification pages. Every page with the
+  shared nav now loads it.
+- **Other overflows fixed:**
+  - Cookie Policy choice buttons at 320–360px.
+  - Admin page headers on analytics and promote, which now wrap their actions.
+  - The organiser registrant roster at 761–800px: the header now wraps and the column
+    minimums are lower.
+  - Signed-in `/events` at 761–768px, where the global `.btn { width: 100% }` widened a
+    header action.
+  - 18 `repeat(auto-fit|auto-fill, minmax(≥200px, …))` grids now use
+    `minmax(min(100%, N), …)`. This is identical wherever the container is at least N
+    wide.
+- **`body { overflow-x: hidden }` removed.** It hid the bugs above and broke
+  `position: sticky`. With it gone, no measured page overflows at any width.
+- **Shared foundation in `design-system.css`:**
+  - spacing, gutter and z-index tokens, plus documented reference breakpoints;
+  - `.hr-container`, `.hr-grid` and `.hr-table-wrap`;
+  - a site-wide reduced-motion rule.
+- **Skip link on every page.** It is rendered once by `layouts/nav.ejs` and replaces the
+  home-only link. `main.js` gives the first `<main>` the `#main-content` target when a
+  page lacks it.
+- **DB-free coverage:** `tests/responsive-foundation.unit.test.js`. It guards against a
+  returning body clip, fixed grid minimums of 200px or more, a missing or duplicate skip
+  link, pages without the menu script, the mobile auth-button ordering, and each
+  overflow fix.
+
 ## October 3 — Navigation consolidated into one configuration
 
 - `src/config/navigation.js` is now the single source of truth for the global
