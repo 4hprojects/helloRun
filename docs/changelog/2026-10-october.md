@@ -1,5 +1,41 @@
 # HelloRun Changelog — October 2026
 
+## October 8 — Injection hardening
+
+- **Review.** Postgres is parameterised throughout (`postgres.js` tagged templates; the
+  three `sql.unsafe` sites take values as `$n` and identifiers from code-defined lists).
+  MongoDB inputs were coerced on every traced path (auth, public filters, search, IDs),
+  and every user-supplied regex is escaped.
+- **Global operator-key guard.** Requests whose query string or body carries a
+  `$`-prefixed key (`?email[$ne]=x`, `{"id": {"$ne": null}}`) are refused with 400 before
+  any handler runs (`src/middleware/operator-key-guard.middleware.js`). Multipart bodies,
+  which multer parses later and nests from names such as `email[$ne]`, get the same check
+  through the nine `upload*` middlewares in `upload.service.js`.
+- **Comment adapters.** Blog and running-group comment lookups passed an invalid ID through
+  unchanged, so `{"replyToCommentId": {"$ne": null}}` matched the first active comment on
+  the same post. Invalid IDs now map to `null` and match nothing.
+- DB-free coverage: `tests/operator-key-guard.unit.test.js`.
+
+## October 7 — Ownership audit, shop variant IDOR, Data API lockdown
+
+- **Route ownership audit.** All 486 routes were traced to where each checks that the
+  caller may touch the resource ID. No route takes the acting user's ID from the request.
+  Evidence: `docs/analysis/2026-10-07/route-ownership-audit.md`.
+- **Shop variant IDOR fixed.** `PATCH`/`DELETE …/shop/products/:productId/variants/:variantId`
+  (organiser and admin) updated variants by ID alone and compared the product only after
+  the write had committed. Variant IDs are public on product pages, so any organiser could
+  change another organiser's (or HelloRun's) variant price, stock or active state.
+  `updateVariant`/`deactivateVariant` now take the product ID and scope the UPDATE to it.
+  DB-free coverage: `tests/shop-variant-ownership.unit.test.js`.
+- **Migration 027 — public schema closed to the Supabase Data API (not yet applied).**
+  RLS enabled on every public table with no policies, `anon`/`authenticated` privileges
+  revoked now and by default, and public views set to `security_invoker`. The application
+  role bypasses RLS and is unaffected; the migration refuses to run as a role that does not.
+  `auth.uid()` policies were not used because HelloRun does not use Supabase Auth.
+  Proved on a local PGlite database; production application and verification are pending.
+  DB-free coverage: `tests/public-schema-rls.unit.test.js`. Evidence:
+  `docs/analysis/2026-10-07/supabase-rls-lockdown.md`.
+
 ## October 4 — Accessibility and interaction pass (phase F)
 
 - **Audit.** 26 priority pages from the pack's migration order were checked in headless
