@@ -2291,9 +2291,14 @@
         ? activeOverlay.querySelector('[role="dialog"]')
         : dialog;
       if (event.key === 'Tab' && focusRoot) {
+        // Only controls that are actually rendered: collapsed steps and hidden panels
+        // stay in the DOM, and counting them let Tab leave the modal from the last
+        // visible control.
         const focusable = Array.from(focusRoot.querySelectorAll(
           'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        )).filter((node) => !node.hidden && node.getAttribute('aria-hidden') !== 'true');
+        )).filter((node) => !node.hidden
+          && node.getAttribute('aria-hidden') !== 'true'
+          && node.getClientRects().length > 0);
         if (focusable.length) {
           const first = focusable[0];
           const last = focusable[focusable.length - 1];
