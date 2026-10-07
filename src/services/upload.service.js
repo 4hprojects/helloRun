@@ -871,3 +871,31 @@ function assertR2Configured() {
     );
   }
 }
+
+// Multer parses multipart bodies after the global operator-key guard has run, and it builds
+// nested objects from field names such as `email[$ne]`. Re-check the parsed body here so
+// every multipart route gets the same protection as JSON and form posts.
+const { findOperatorKey, rejectOperatorKey } = require('../middleware/operator-key-guard.middleware');
+
+const MULTIPART_UPLOAD_MIDDLEWARE = [
+  'uploadOrganizerDocs',
+  'uploadEventBranding',
+  'uploadCertificateAssets',
+  'uploadBlogAssets',
+  'uploadAvatarImage',
+  'uploadBadgeImage',
+  'uploadPaymentProof',
+  'uploadResultProof',
+  'uploadResultSheet'
+];
+
+for (const name of MULTIPART_UPLOAD_MIDDLEWARE) {
+  const parseMultipart = exports[name];
+  exports[name] = (req, res, next) => parseMultipart(req, res, (err) => {
+    if (err) return next(err);
+    if (findOperatorKey(req.body)) return rejectOperatorKey(req, res);
+    return next();
+  });
+}
+
+exports.MULTIPART_UPLOAD_MIDDLEWARE = MULTIPART_UPLOAD_MIDDLEWARE;

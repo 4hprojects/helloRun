@@ -125,6 +125,9 @@ app.use((req, res, next) => {
 // Body parser BEFORE routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: false, limit: '256kb', parameterLimit: 1000 }));
+// Refuse MongoDB operator keys (`$ne`, `$gt`, …) in query strings and parsed bodies.
+// Multipart bodies are parsed later by multer; upload.service applies the same check.
+app.use(require('./middleware/operator-key-guard.middleware').rejectOperatorKeys);
 
 // Reports the running commit, so "did the deploy land?" is a question with an answer
 // rather than something inferred from a route that 302s whatever is deployed.

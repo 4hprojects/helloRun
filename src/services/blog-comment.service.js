@@ -42,7 +42,8 @@ const compatibilityRepositories = createMongooseRepositories({
     contributionCount: 'commentsCount'
   },
   createId: () => new mongoose.Types.ObjectId(),
-  toObjectId: (value) => normalizeObjectId(value) || value,
+  // An invalid id must match nothing. Passing it through would let `{ "$ne": null }` match a comment.
+  toObjectId: (value) => normalizeObjectId(value) || null,
   populate: populateComments
 });
 

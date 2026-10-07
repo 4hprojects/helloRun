@@ -290,7 +290,8 @@ const repositories = createMongooseRepositories({
     contributionCount: 'commentsCount'
   },
   createId: () => new mongoose.Types.ObjectId(),
-  toObjectId: (value) => objectId(value) || value,
+  // An invalid id must match nothing. Passing it through would let `{ "$ne": null }` match a comment.
+  toObjectId: (value) => objectId(value) || null,
   populate: populateComments
 });
 repositories.reports = {
