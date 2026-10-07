@@ -182,8 +182,8 @@ exports.postPlatformProductVariant = async (req, res, next) => {
 
 exports.patchPlatformProductVariant = async (req, res, next) => {
   try {
-    const variant = await variantService.updateVariant(req.params.variantId, req.body);
-    if (!variant || String(variant.product_id) !== String(req.params.productId)) {
+    const variant = await variantService.updateVariant(req.params.productId, req.params.variantId, req.body);
+    if (!variant) {
       return res.status(404).json({ success: false, message: 'Variant not found.' });
     }
     return res.json({ success: true, variant });
@@ -194,8 +194,8 @@ exports.patchPlatformProductVariant = async (req, res, next) => {
 
 exports.deletePlatformProductVariant = async (req, res, next) => {
   try {
-    const variant = await variantService.deactivateVariant(req.params.variantId);
-    if (!variant || String(variant.product_id) !== String(req.params.productId)) {
+    const variant = await variantService.deactivateVariant(req.params.productId, req.params.variantId);
+    if (!variant) {
       return res.status(404).json({ success: false, message: 'Variant not found.' });
     }
     return res.json({ success: true, variant });

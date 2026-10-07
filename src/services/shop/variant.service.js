@@ -44,9 +44,16 @@ async function createVariant(productId, payload = {}) {
   return rows[0] || null;
 }
 
-async function updateVariant(variantId, payload = {}) {
-  const existing = await getVariantById(variantId);
-  if (!existing) return null;
+// Writes are scoped to the product in the WHERE clause. The caller has already proved it
+// may manage `productId`; without the scope, any variant UUID (they are public on product
+// pages) could be rewritten through someone else's product route.
+async function updateVariant(productId, variantId, payload = {}) {
+  const scopedProductId = String(productId || '').trim();
+  const scopedVariantId = String(variantId || '').trim();
+  if (!scopedProductId || !scopedVariantId) return null;
+
+  const existing = await getVariantById(scopedVariantId);
+  if (!existing || String(existing.product_id) !== scopedProductId) return null;
 
   const rows = await getPostgresClient()`
     update product_variants
@@ -59,7 +66,8 @@ async function updateVariant(variantId, payload = {}) {
         low_stock_threshold = ${normalizeInteger(payload.lowStockThreshold ?? payload.low_stock_threshold ?? existing.low_stock_threshold, 5)},
         is_active = ${toBoolean(payload.isActive ?? payload.is_active, existing.is_active)},
         updated_at = now()
-    where id::text = ${String(variantId || '').trim()}
+    where id::text = ${scopedVariantId}
+      and product_id::text = ${scopedProductId}
     returning id, product_id, variant_name, sku, size, colour, price_override,
               stock_quantity, reserved_quantity, sold_quantity, low_stock_threshold,
               is_active, created_at, updated_at
@@ -67,12 +75,17 @@ async function updateVariant(variantId, payload = {}) {
   return rows[0] || null;
 }
 
-async function deactivateVariant(variantId) {
+async function deactivateVariant(productId, variantId) {
+  const scopedProductId = String(productId || '').trim();
+  const scopedVariantId = String(variantId || '').trim();
+  if (!scopedProductId || !scopedVariantId) return null;
+
   const rows = await getPostgresClient()`
     update product_variants
     set is_active = false,
         updated_at = now()
-    where id::text = ${String(variantId || '').trim()}
+    where id::text = ${scopedVariantId}
+      and product_id::text = ${scopedProductId}
     returning id, product_id, variant_name, sku, size, colour, price_override,
               stock_quantity, reserved_quantity, sold_quantity, low_stock_threshold,
               is_active, created_at, updated_at

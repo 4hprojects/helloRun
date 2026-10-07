@@ -191,8 +191,8 @@ exports.postProductVariant = async (req, res, next) => {
 
 exports.patchProductVariant = async (req, res, next) => {
   try {
-    const variant = await variantService.updateVariant(req.params.variantId, req.body);
-    if (!variant || String(variant.product_id) !== String(req.params.productId)) {
+    const variant = await variantService.updateVariant(req.params.productId, req.params.variantId, req.body);
+    if (!variant) {
       return res.status(404).json({ success: false, message: 'Variant not found.' });
     }
     return res.json({ success: true, variant });
@@ -203,8 +203,8 @@ exports.patchProductVariant = async (req, res, next) => {
 
 exports.deleteProductVariant = async (req, res, next) => {
   try {
-    const variant = await variantService.deactivateVariant(req.params.variantId);
-    if (!variant || String(variant.product_id) !== String(req.params.productId)) {
+    const variant = await variantService.deactivateVariant(req.params.productId, req.params.variantId);
+    if (!variant) {
       return res.status(404).json({ success: false, message: 'Variant not found.' });
     }
     return res.json({ success: true, variant });
