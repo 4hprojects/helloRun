@@ -139,8 +139,19 @@ production services.
   production readiness checks, explicit consent copy, official connection branding,
   durable deletion confirmation, crash-recoverable webhook/revocation queues, and
   webhook subscription tooling. Official event submission remains hard-blocked.
-  Production remediation, policy publishing, webhook registration, enablement, and
-  supervised OAuth/deauthorization smoke tests are still required; see
+  Commit `6e76cec34cfea872ea691d1d860741d241adb7da` was deployed disabled through
+  HelloDeploy release 11 on October 9. Public `/readyz` reports Mongo ready, Redis not
+  configured, and the Strava viewer disabled; the event-submission endpoint remains
+  HTTP 403. Privacy Policy v1.8 and Data Usage Policy v1.3 are live and their Strava
+  deletion-confirmation language was verified. The production remediation dry run
+  recorded target fingerprint `6c5d9cb2d01a8b1e`, 10 accumulated records, 3
+  connections, 1 affected user, 1 event, and 1 duplicate-athlete group. Remediation
+  apply remains blocked pending explicit maintenance/backup approval, and Strava's
+  subscription API returns HTTP 403 for the configured application credentials, so
+  webhook registration, enablement, and supervised OAuth/deauthorization smoke tests
+  are still required. HelloDeploy release 10 built but failed activation after a local
+  development worker consumed the production job without Docker permission; pausing
+  that worker allowed release 11 to complete, and it was then resumed. See
   [`implementation/private-strava-viewer-launch.md`](implementation/private-strava-viewer-launch.md).
 
 - Verify the installable PWA added October 3 after deploy:
