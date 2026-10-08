@@ -15,6 +15,7 @@ const TYPE_PRESENTATION = [
   { match: /organiser_terms_updated/, category: 'Account and policy', icon: 'clipboard-check', tone: 'account', actionLabel: 'Review organiser terms' },
   { match: /acceptable_use_policy_updated/, category: 'Account and policy', icon: 'shield-check', tone: 'account', actionLabel: 'Review acceptable use' },
   { match: /data_usage_policy_updated/, category: 'Account and policy', icon: 'database-zap', tone: 'account', actionLabel: 'Review data use' },
+  { match: /strava_disconnected/, category: 'Account and policy', icon: 'unlink', tone: 'account', actionLabel: 'Review connections' },
   { match: /terms_policy_updated/, category: 'Account and policy', icon: 'file-check-2', tone: 'account', actionLabel: 'Review terms' },
   { match: /blog_comment_reply/, category: 'Community', icon: 'message-circle-reply', tone: 'community', actionLabel: 'View reply' },
   { match: /running_group_reply/, category: 'Community', icon: 'message-circle-reply', tone: 'community', actionLabel: 'View reply' },

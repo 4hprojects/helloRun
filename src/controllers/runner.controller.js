@@ -76,6 +76,7 @@ const {
   normalizeRunningGroupMemberships
 } = require('../utils/running-group-memberships');
 const { canUseRunnerWorkspace } = require('../utils/workspace');
+const { isStravaPrivateViewerEnabled } = require('../utils/strava-private-viewer');
 
 const countries = getCountries();
 const timezones = getTimeZoneOptions();
@@ -1076,6 +1077,7 @@ async function buildRunnerProfileViewData(user, req, overrides = {}) {
   const profileCompleteness = getProfileCompleteness(profileData);
   const selectedCountry = (countries || []).find((item) => item.code === profileData.country);
   const suggestedCountry = getCloudflareCountrySuggestion(req.headers);
+  const stravaPrivateViewerEnabled = isStravaPrivateViewerEnabled();
   const [stravaConnection, corosStravaBridge, badges, badgeProgress, badgePointsSummary] = await Promise.all([
     stravaService.getConnectionSummary(user._id).catch(() => ({ connected: false })),
     corosStravaBridgeService.getStatus(user._id).catch(() => ({
@@ -1108,6 +1110,7 @@ async function buildRunnerProfileViewData(user, req, overrides = {}) {
     profileData,
     profileCompleteness,
     selectedCountryName: selectedCountry?.name || 'Not set',
+    stravaPrivateViewerEnabled,
     stravaConnection,
     corosStravaBridge,
     badges,
@@ -1128,6 +1131,7 @@ async function buildRunnerProfileViewData(user, req, overrides = {}) {
     timezones,
     selectedCountryName: selectedCountry?.name || 'Not set',
     suggestedCountry,
+    stravaPrivateViewerEnabled,
     stravaConnection,
     corosStravaBridge,
     badges,

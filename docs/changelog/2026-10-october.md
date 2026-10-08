@@ -1,5 +1,25 @@
 # HelloRun Changelog — October 2026
 
+## October 9 — Private Strava viewer launch controls
+
+- Added an off-by-default `STRAVA_PRIVATE_VIEWER_ENABLED` gate and readiness failure
+  when an enabled deployment lacks any required Strava configuration.
+- Kept connected activities owner-only and request-scoped; official event submission
+  remains hard-blocked. Existing connections retain a disconnect path while viewing is
+  disabled.
+- Expanded pre-connect consent disclosures and replaced generic OAuth controls with the
+  official Strava connection asset.
+- Disconnect now creates a durable in-app and email deletion confirmation containing
+  only the receipt ID, completion time, and remote-revocation status.
+- Webhook and revocation work now uses atomic claims, processing leases, stale-job
+  recovery, bounded retries, and expiry handling.
+- Added idempotent operator commands to list, create, verify, and delete the single
+  Strava webhook subscription without printing credentials.
+- Superseded the historical event-submission MVP documentation with
+  `docs/implementation/private-strava-viewer-launch.md`; production remediation,
+  policy publishing, provider configuration, deployment, and live smoke verification
+  remain operator work.
+
 ## October 8 — Injection hardening
 
 - **Review.** Postgres is parameterised throughout (`postgres.js` tagged templates; the

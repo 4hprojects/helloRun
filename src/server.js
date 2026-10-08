@@ -138,6 +138,8 @@ app.get('/healthz', (req, res) => {
 
 app.get('/readyz', async (req, res) => {
   const mongoReady = mongoose.connection.readyState === 1;
+  const { getStravaPrivateViewerReadiness } = require('./utils/strava-private-viewer');
+  const stravaReadiness = getStravaPrivateViewerReadiness();
   const { getRedisClient } = require('./config/redis');
   const redisClient = getRedisClient();
   let redisStatus = 'not_configured';
@@ -150,12 +152,16 @@ app.get('/readyz', async (req, res) => {
     }
   }
 
-  const ok = mongoReady && redisStatus !== 'not_ready';
+  const ok = mongoReady && redisStatus !== 'not_ready' && stravaReadiness.ready;
   return res.status(ok ? 200 : 503).json({
     ok,
     dependencies: {
       mongo: mongoReady ? 'ready' : 'not_ready',
-      redis: redisStatus
+      redis: redisStatus,
+      stravaPrivateViewer: stravaReadiness.status
+    },
+    configuration: {
+      stravaPrivateViewerMissing: stravaReadiness.missing
     }
   });
 });

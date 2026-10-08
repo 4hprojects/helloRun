@@ -2247,3 +2247,17 @@ exports.sendStravaRemediationEmail = async (email, payload = {}) => {
   if (error) throw error;
   return data;
 };
+
+exports.sendStravaDeletionConfirmationEmail = async (email, payload = {}) => {
+  const completedAt = payload.completedAt
+    ? new Date(payload.completedAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'long', timeStyle: 'short' })
+    : 'the time shown in HelloRun';
+  const { data, error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM,
+    to: email,
+    subject: 'Your Strava connection data was deleted',
+    html: `<!doctype html><html><body style="margin:0;background:#f8fafc;color:#1e293b;font-family:Arial,sans-serif;">${buildBrandedEmailHeader()}<main style="max-width:600px;margin:0 auto;background:#fff;padding:32px;"><h1 style="font-size:22px;">Strava connection deleted</h1><p>Hi ${escapeHtml(payload.firstName || 'Runner')},</p><p>HelloRun deleted your locally held Strava connection credentials and COROS setup confirmation on <strong>${escapeHtml(completedAt)}</strong>.</p><p><strong>Deletion receipt:</strong> ${escapeHtml(payload.receiptId || 'Unavailable')}<br><strong>Remote revocation status:</strong> ${escapeHtml(payload.remoteRevocationStatus || 'not_needed')}</p><p>Your Strava account and any native COROS–Strava connection were not deleted. Connected activities were never retained as HelloRun event evidence.</p><p style="color:#64748b;font-size:13px;">Keep this email as your written deletion confirmation.</p></main></body></html>`
+  });
+  if (error) throw error;
+  return data;
+};

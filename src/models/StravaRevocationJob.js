@@ -10,6 +10,7 @@ const schema = new mongoose.Schema({
   status: { type: String, enum: ['pending', 'processing', 'failed', 'exhausted'], default: 'pending', index: true },
   attempts: { type: Number, default: 0 },
   retryAt: { type: Date, default: Date.now, index: true },
+  lockedAt: { type: Date, default: null, index: true },
   lastErrorCode: { type: String, default: '', maxlength: 80 },
   expiresAt: { type: Date, required: true, index: { expires: 0 } }
 }, { timestamps: true });

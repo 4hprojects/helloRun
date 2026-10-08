@@ -1,5 +1,7 @@
 # HelloRun Strava Integration Instructions for Codex
 
+> **Historical or superseded — October 9, 2026.** Do not implement the event-submission, organizer-review, leaderboard, certificate, or durable activity-storage instructions below. The current implementation and launch gate are documented in [private-strava-viewer-launch.md](private-strava-viewer-launch.md). Connected Strava data is private to the authenticated runner and cannot be used as event evidence without a future written policy authorization and separate review.
+
 ## Goal
 
 Implement a Strava integration for HelloRun that lets a logged-in HelloRun user connect their Strava account, fetch recent Strava activities, manually select one activity, and submit it as run proof for a HelloRun event.

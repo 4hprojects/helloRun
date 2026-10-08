@@ -351,6 +351,19 @@ const COMMUNICATION_EVENTS = Object.freeze([
     displayOrder: 413
   },
   {
+    eventKey: 'integration.strava_disconnected',
+    name: 'Strava Connection Deleted',
+    description: 'Provides durable confirmation that HelloRun deleted a runner’s local Strava connection data.',
+    category: 'account',
+    priority: 'critical',
+    required: true,
+    emailEnabled: true,
+    inAppEnabled: true,
+    locked: true,
+    recipientRoles: ['runner'],
+    displayOrder: 414
+  },
+  {
     eventKey: 'registration.waitlist_offer',
     name: 'Waitlist Slot Offer',
     description: 'Tells someone on the waitlist that a slot has opened and is being held for them.',

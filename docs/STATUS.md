@@ -2,9 +2,9 @@
 
 **Source of truth for delivery status**
 
-**Last reconciled:** September 16, 2026
+**Last reconciled:** October 9, 2026
 
-**Evidence window:** repository history through September 16, 2026
+**Evidence window:** repository history through October 9, 2026
 
 **Forward priorities and the tracked checklist:** [ROADMAP.md](ROADMAP.md)
 
@@ -133,6 +133,15 @@ tests exist. It does not imply that every workflow has been exercised against
 production services.
 
 ## Implemented, Production or Live Verification Pending
+
+- The private Strava viewer launch implementation is repository-complete behind
+  `STRAVA_PRIVATE_VIEWER_ENABLED=false`: owner-only on-demand activity viewing,
+  production readiness checks, explicit consent copy, official connection branding,
+  durable deletion confirmation, crash-recoverable webhook/revocation queues, and
+  webhook subscription tooling. Official event submission remains hard-blocked.
+  Production remediation, policy publishing, webhook registration, enablement, and
+  supervised OAuth/deauthorization smoke tests are still required; see
+  [`implementation/private-strava-viewer-launch.md`](implementation/private-strava-viewer-launch.md).
 
 - Verify the installable PWA added October 3 after deploy:
   - `/manifest.webmanifest` and `/sw.js` load over HTTPS with `no-cache`.

@@ -2,7 +2,10 @@ const StravaConnection = require('../models/StravaConnection');
 const StravaRevocationJob = require('../models/StravaRevocationJob');
 const StravaDeletionReceipt = require('../models/StravaDeletionReceipt');
 const CorosStravaBridge = require('../models/CorosStravaBridge');
+const User = require('../models/User');
 const { encryptToken, decryptToken } = require('./token-encryption.service');
+const communicationService = require('./communication.service');
+const logger = require('../utils/logger');
 
 const STRAVA_AUTHORIZE_URL = 'https://www.strava.com/oauth/authorize';
 const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token';
@@ -11,6 +14,8 @@ const DEFAULT_SCOPE = 'read,activity:read';
 const REFRESH_SKEW_SECONDS = 300;
 const MAX_ACTIVITY_PAGE_SIZE = 30;
 const REVOCATION_JOB_TTL_MS = 24 * 60 * 60 * 1000;
+const REVOCATION_JOB_LEASE_MS = 5 * 60 * 1000;
+const REVOCATION_JOB_MAX_ATTEMPTS = 8;
 let providerBackoffUntil = 0;
 let lastQuota = null;
 
@@ -131,7 +136,9 @@ async function disconnect(userId, { reason = 'user_disconnect' } = {}) {
   const connection = await StravaConnection.findOne({ userId });
   if (!connection) {
     await CorosStravaBridge.deleteOne({ userId });
-    return createDeletionReceipt(userId, reason, 'not_needed');
+    const receipt = await createDeletionReceipt(userId, reason, 'not_needed');
+    await sendDeletionConfirmation(userId, receipt);
+    return receipt;
   }
 
   let remoteRevocationStatus = 'completed';
@@ -167,6 +174,7 @@ async function disconnect(userId, { reason = 'user_disconnect' } = {}) {
       await receipt.save();
     }
   }
+  await sendDeletionConfirmation(userId, receipt);
   return receipt;
 }
 
@@ -178,7 +186,9 @@ async function disconnectByAthleteId(stravaAthleteId) {
     StravaConnection.deleteOne({ _id: connection._id }),
     CorosStravaBridge.deleteOne({ userId })
   ]);
-  return createDeletionReceipt(userId, 'provider_deauthorization', 'not_needed');
+  const receipt = await createDeletionReceipt(userId, 'provider_deauthorization', 'not_needed');
+  await sendDeletionConfirmation(userId, receipt);
+  return receipt;
 }
 
 async function getConnectedAccount(userId) {
@@ -321,48 +331,87 @@ async function revokeToken(token, tokenType = 'refresh_token') {
   return true;
 }
 
-async function processRevocationJobs({ limit = 20, now = new Date() } = {}) {
-  const expiredJobs = await StravaRevocationJob.find({
+async function processRevocationJobs({
+  limit = 20,
+  now = new Date(),
+  JobModel = StravaRevocationJob,
+  ReceiptModel = StravaDeletionReceipt,
+  revoke = revokeToken
+} = {}) {
+  const staleBefore = new Date(now.getTime() - REVOCATION_JOB_LEASE_MS);
+  const recovery = await JobModel.updateMany(
+    {
+      status: 'processing',
+      $or: [{ lockedAt: { $lte: staleBefore } }, { lockedAt: null }, { lockedAt: { $exists: false } }],
+      expiresAt: { $gt: now }
+    },
+    { $set: { status: 'failed', retryAt: now, lockedAt: null, lastErrorCode: 'processing_lease_expired' } }
+  );
+
+  const expiredJobs = await JobModel.find({
     status: { $in: ['pending', 'processing', 'failed'] },
     expiresAt: { $lte: now }
   }).limit(100);
   for (const job of expiredJobs) {
     if (job.deletionReceiptId) {
-      await StravaDeletionReceipt.updateOne(
+      await ReceiptModel.updateOne(
         { _id: job.deletionReceiptId },
         { $set: { remoteRevocationStatus: 'exhausted', remoteRevocationLastErrorCode: job.lastErrorCode || 'retry_window_expired' } }
       );
     }
     await job.deleteOne();
   }
-  const jobs = await StravaRevocationJob.find({
-    status: { $in: ['pending', 'failed'] },
-    retryAt: { $lte: now },
-    expiresAt: { $gt: now }
-  }).sort({ retryAt: 1 }).limit(Math.min(Math.max(Number(limit) || 20, 1), 100));
 
-  const result = { processed: 0, completed: 0, failed: 0 };
-  for (const job of jobs) {
+  const result = {
+    processed: 0,
+    completed: 0,
+    failed: 0,
+    exhausted: 0,
+    recovered: Number(recovery.modifiedCount || 0)
+  };
+  const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
+  for (let index = 0; index < safeLimit; index += 1) {
+    const job = await JobModel.findOneAndUpdate(
+      {
+        status: { $in: ['pending', 'failed'] },
+        attempts: { $lt: REVOCATION_JOB_MAX_ATTEMPTS },
+        retryAt: { $lte: now },
+        expiresAt: { $gt: now }
+      },
+      { $set: { status: 'processing', lockedAt: now } },
+      { sort: { retryAt: 1, _id: 1 }, new: true }
+    );
+    if (!job) break;
     result.processed += 1;
-    job.status = 'processing';
-    await job.save();
     try {
-      await revokeToken(decryptToken(job.encryptedToken), job.tokenType);
+      await revoke(decryptToken(job.encryptedToken), job.tokenType);
       if (job.deletionReceiptId) {
-        await StravaDeletionReceipt.updateOne(
+        await ReceiptModel.updateOne(
           { _id: job.deletionReceiptId },
-          { $set: { remoteRevocationStatus: 'completed', remoteRevocationCompletedAt: new Date(), remoteRevocationLastErrorCode: '' } }
+          { $set: { remoteRevocationStatus: 'completed', remoteRevocationCompletedAt: now, remoteRevocationLastErrorCode: '' } }
         );
       }
       await job.deleteOne();
       result.completed += 1;
     } catch (error) {
       job.attempts += 1;
-      job.status = 'failed';
       job.lastErrorCode = String(error.code || error.status || 'revocation_failed').slice(0, 80);
-      job.retryAt = new Date(Date.now() + Math.min(60 * 60 * 1000, 30_000 * (2 ** job.attempts)));
+      job.lockedAt = null;
+      if (job.attempts >= REVOCATION_JOB_MAX_ATTEMPTS) {
+        job.status = 'exhausted';
+        if (job.deletionReceiptId) {
+          await ReceiptModel.updateOne(
+            { _id: job.deletionReceiptId },
+            { $set: { remoteRevocationStatus: 'exhausted', remoteRevocationLastErrorCode: job.lastErrorCode } }
+          );
+        }
+        result.exhausted += 1;
+      } else {
+        job.status = 'failed';
+        job.retryAt = new Date(now.getTime() + Math.min(60 * 60 * 1000, 30_000 * (2 ** job.attempts)));
+        result.failed += 1;
+      }
       await job.save();
-      result.failed += 1;
     }
   }
   return result;
@@ -406,6 +455,37 @@ function createDeletionReceipt(userId, reason, remoteRevocationStatus) {
     localDeletionCompletedAt: new Date(),
     remoteRevocationStatus
   });
+}
+
+async function sendDeletionConfirmation(userId, receipt) {
+  try {
+    const user = await User.findById(userId).select('email firstName').lean();
+    if (!user) return null;
+    const receiptId = String(receipt._id);
+    const completedAt = receipt.localDeletionCompletedAt || receipt.createdAt || new Date();
+    const remoteRevocationStatus = String(receipt.remoteRevocationStatus || 'not_needed');
+    return communicationService.notify('integration.strava_disconnected', {
+      notification: {
+        userId,
+        type: 'strava_disconnected',
+        title: 'Strava connection deleted',
+        message: `HelloRun deleted your local Strava connection data. Receipt ${receiptId}. Remote revocation status: ${remoteRevocationStatus}.`,
+        href: '/runner/profile#integrations',
+        dedupeKey: `strava-deletion:${receiptId}`,
+        metadata: { receiptId, completedAt, remoteRevocationStatus }
+      },
+      email: {
+        to: user.email,
+        firstName: user.firstName,
+        receiptId,
+        completedAt,
+        remoteRevocationStatus
+      }
+    });
+  } catch (error) {
+    logger.error('[strava] Failed to send deletion confirmation:', error.message);
+    return null;
+  }
 }
 
 function normalizeActivitySummary(activity = {}) {
@@ -461,8 +541,11 @@ module.exports = {
   normalizeActivityDetail,
   revokeToken,
   processRevocationJobs,
+  sendDeletionConfirmation,
   StravaApiError,
   _private: {
+    REVOCATION_JOB_LEASE_MS,
+    REVOCATION_JOB_MAX_ATTEMPTS,
     getValidAccessToken,
     refreshAccessToken,
     normalizeAcceptedScopes,

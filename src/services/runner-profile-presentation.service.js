@@ -93,7 +93,9 @@ function buildRunnerProfilePresentation(options = {}) {
     navigation: [
       { href: '#identity', label: 'Personal details', icon: 'contact' },
       { href: '#notifications', label: 'Preferences', icon: 'bell' },
-      { href: '#integrations', label: 'Connections', icon: 'plug' },
+      ...(options.stravaPrivateViewerEnabled || options.stravaConnection?.connected
+        ? [{ href: '#integrations', label: 'Connections', icon: 'plug' }]
+        : []),
       { href: '#account', label: 'Security', icon: 'shield-check' },
       { href: '#badges', label: 'Achievements', icon: 'award' }
     ],
@@ -109,6 +111,7 @@ function buildRunnerProfilePresentation(options = {}) {
       }))
     },
     connection: {
+      viewerEnabled: Boolean(options.stravaPrivateViewerEnabled),
       connected: Boolean(options.stravaConnection?.connected),
       athleteName: String(options.stravaConnection?.athleteName || '').trim(),
       athleteId: String(options.stravaConnection?.stravaAthleteId || '').trim(),

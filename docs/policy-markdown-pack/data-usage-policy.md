@@ -104,7 +104,7 @@ Runners remain responsible for reviewing auto-filled information and submitting 
 
 ## 8. Connected fitness services and guided account setup
 
-A runner may authorize HelloRun to fetch a private, on-demand list of that runner's recent Strava activities. HelloRun does not persist the returned activity list or use it for event submissions, organizer review, results, leaderboards, certificates, achievements, or analytics. Connection credentials are encrypted and lifecycle records are limited to the access, security, revocation, and deletion purposes described in the Privacy Policy.
+A runner may authorize HelloRun to fetch a private, on-demand list of that runner's recent Strava activities. HelloRun does not persist the returned activity list or use it for event submissions, organizer review, results, leaderboards, certificates, achievements, or analytics. Connection credentials are encrypted and lifecycle records are limited to the access, security, revocation, and deletion purposes described in the Privacy Policy. After disconnect, HelloRun sends a durable confirmation containing the deletion receipt identifier, local completion time, and remote-revocation status.
 
 HelloRun may also guide the runner through COROS's native connection to Strava. HelloRun does not receive COROS credentials, broker the provider authorization, call a COROS activity API, verify the native link, or infer activity origin. It stores only the runner's setup state, guide version, and start or confirmation timestamps. This HelloRun-owned record may be reset and is deleted when the HelloRun Strava connection is removed; neither action changes the provider-to-provider connection.
 

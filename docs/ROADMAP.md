@@ -2,7 +2,7 @@
 
 **Forward-looking priorities only**
 
-**Last reconciled:** August 8, 2026
+**Last reconciled:** October 9, 2026
 
 **Delivery state:** [STATUS.md](STATUS.md)
 
@@ -14,6 +14,13 @@ evidence. Anything requiring a production migration or a hands-on session says s
 and stops for a decision.
 
 ## 1. Verify what is live
+
+- [~] **Launch the private Strava viewer.** Repository work is complete behind a
+      disabled feature flag. Remaining work is operational: verify the Strava app and
+      capacity, complete historical-data remediation, publish the current policies,
+      deploy disabled, register/verify the webhook, enable the flag, and record the
+      supervised connect/view/disconnect/deauthorization smoke test. Official event
+      submissions remain intentionally blocked.
 
 Everything below the line has been verified by DB-free tests and by live probes
 against throwaway data. **None of it has been used by a human in a browser.**

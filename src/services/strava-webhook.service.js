@@ -5,6 +5,8 @@ const StravaWebhookEvent = require('../models/StravaWebhookEvent');
 const stravaService = require('./strava.service');
 
 const WEBHOOK_TTL_MS = 24 * 60 * 60 * 1000;
+const WEBHOOK_JOB_LEASE_MS = 5 * 60 * 1000;
+const WEBHOOK_JOB_MAX_ATTEMPTS = 8;
 
 function verifyChallenge(query = {}) {
   const mode = boundedString(query['hub.mode'], 32);
@@ -17,7 +19,7 @@ function verifyChallenge(query = {}) {
   return challenge;
 }
 
-async function enqueueWebhookEvent(payload = {}) {
+async function enqueueWebhookEvent(payload = {}, { JobModel = StravaWebhookEvent } = {}) {
   const normalized = normalizeWebhookPayload(payload);
   const eventKey = crypto.createHash('sha256').update([
     normalized.objectType,
@@ -27,7 +29,7 @@ async function enqueueWebhookEvent(payload = {}) {
     normalized.eventTime
   ].join(':')).digest('hex');
 
-  await StravaWebhookEvent.updateOne(
+  await JobModel.updateOne(
     { eventKey },
     {
       $setOnInsert: {
@@ -43,20 +45,47 @@ async function enqueueWebhookEvent(payload = {}) {
   return { eventKey };
 }
 
-async function processWebhookEvents({ limit = 50, now = new Date() } = {}) {
-  const jobs = await StravaWebhookEvent.find({
-    status: { $in: ['pending', 'failed'] },
-    retryAt: { $lte: now },
-    expiresAt: { $gt: now }
-  }).sort({ createdAt: 1 }).limit(Math.min(Math.max(Number(limit) || 50, 1), 100));
-  const result = { processed: 0, completed: 0, failed: 0 };
-  for (const job of jobs) {
+async function processWebhookEvents({
+  limit = 50,
+  now = new Date(),
+  JobModel = StravaWebhookEvent,
+  disconnectByAthleteId = stravaService.disconnectByAthleteId
+} = {}) {
+  const staleBefore = new Date(now.getTime() - WEBHOOK_JOB_LEASE_MS);
+  const recovery = await JobModel.updateMany(
+    {
+      status: 'processing',
+      $or: [{ lockedAt: { $lte: staleBefore } }, { lockedAt: null }, { lockedAt: { $exists: false } }],
+      expiresAt: { $gt: now }
+    },
+    { $set: { status: 'failed', retryAt: now, lockedAt: null, lastErrorCode: 'processing_lease_expired' } }
+  );
+  await JobModel.deleteMany({ expiresAt: { $lte: now } });
+
+  const result = {
+    processed: 0,
+    completed: 0,
+    failed: 0,
+    exhausted: 0,
+    recovered: Number(recovery.modifiedCount || 0)
+  };
+  const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
+  for (let index = 0; index < safeLimit; index += 1) {
+    const job = await JobModel.findOneAndUpdate(
+      {
+        status: { $in: ['pending', 'failed'] },
+        attempts: { $lt: WEBHOOK_JOB_MAX_ATTEMPTS },
+        retryAt: { $lte: now },
+        expiresAt: { $gt: now }
+      },
+      { $set: { status: 'processing', lockedAt: now } },
+      { sort: { createdAt: 1, _id: 1 }, new: true }
+    );
+    if (!job) break;
     result.processed += 1;
-    job.status = 'processing';
-    await job.save();
     try {
       if (job.objectType === 'athlete' && job.aspectType === 'update' && job.authorized === false) {
-        await stravaService.disconnectByAthleteId(job.ownerId || job.objectId);
+        await disconnectByAthleteId(job.ownerId || job.objectId);
       }
       // Activities are deliberately not cached. Create/update/delete therefore require no
       // fetch or local mutation, which also prevents a webhook from entering official flows.
@@ -64,10 +93,17 @@ async function processWebhookEvents({ limit = 50, now = new Date() } = {}) {
       result.completed += 1;
     } catch (error) {
       job.attempts += 1;
-      job.status = 'failed';
-      job.retryAt = new Date(Date.now() + Math.min(60 * 60 * 1000, 30_000 * (2 ** job.attempts)));
+      job.lastErrorCode = String(error.code || error.status || 'webhook_processing_failed').slice(0, 80);
+      job.lockedAt = null;
+      if (job.attempts >= WEBHOOK_JOB_MAX_ATTEMPTS) {
+        job.status = 'exhausted';
+        result.exhausted += 1;
+      } else {
+        job.status = 'failed';
+        job.retryAt = new Date(now.getTime() + Math.min(60 * 60 * 1000, 30_000 * (2 ** job.attempts)));
+        result.failed += 1;
+      }
       await job.save();
-      result.failed += 1;
     }
   }
   return result;
@@ -106,5 +142,11 @@ module.exports = {
   verifyChallenge,
   enqueueWebhookEvent,
   processWebhookEvents,
-  _private: { normalizeWebhookPayload, safeEqual, boundedString }
+  _private: {
+    WEBHOOK_JOB_LEASE_MS,
+    WEBHOOK_JOB_MAX_ATTEMPTS,
+    normalizeWebhookPayload,
+    safeEqual,
+    boundedString
+  }
 };

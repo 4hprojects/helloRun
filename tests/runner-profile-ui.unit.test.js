@@ -67,7 +67,8 @@ test('Strava connect and disconnect retain fallback routes behind accessible con
   assert.match(main, /name="_csrf" value="<%= _csrfToken %>"/);
   assert.match(shell, /id="stravaConnectConfirmModal"[^>]*hidden aria-hidden="true"/);
   assert.match(shell, /id="stravaDisconnectConfirmModal"[^>]*hidden aria-hidden="true"/);
-  assert.match(shell, /Continue to Strava/);
+  assert.match(shell, /btn_strava_connect_with_orange\.svg/);
+  assert.match(shell, /aria-label="Connect with Strava"/);
   assert.match(shell, /revoke access and delete locally held connection data/);
   assert.match(shell, /confirmation when local deletion completes/);
   assert.match(script, /setupStravaConfirmations\(\)/);

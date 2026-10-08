@@ -11,6 +11,7 @@ const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const stravaService = require('../services/strava.service');
 const stravaWebhookService = require('../services/strava-webhook.service');
 const corosStravaBridgeService = require('../services/coros-strava-bridge.service');
+const { isStravaPrivateViewerEnabled } = require('../utils/strava-private-viewer');
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
@@ -41,7 +42,7 @@ const corosStravaBridgeLimiter = createRateLimiter({
   keyFn: (req) => `coros-strava:${String(req.session?.userId || req.ip || 'unknown')}`
 });
 
-router.get('/integrations/strava/connect', requireAuth, requireRunnerWorkspace, (req, res) => {
+router.get('/integrations/strava/connect', requireAuth, requireRunnerWorkspace, requireStravaViewerPage, (req, res) => {
   try {
     const state = crypto.randomBytes(24).toString('hex');
     req.session.stravaOAuth = {
@@ -56,7 +57,7 @@ router.get('/integrations/strava/connect', requireAuth, requireRunnerWorkspace, 
   }
 });
 
-router.get('/integrations/strava/callback', requireAuth, requireRunnerWorkspace, async (req, res) => {
+router.get('/integrations/strava/callback', requireAuth, requireRunnerWorkspace, requireStravaViewerPage, async (req, res) => {
   const oauth = req.session?.stravaOAuth || {};
   const returnTo = getSafeReturnTo(oauth.returnTo || '/runner/profile');
   try {
@@ -137,8 +138,8 @@ async function activitiesHandler(req, res) {
   }
 }
 
-router.get('/api/integrations/strava/status', requireAuthJson, requireRunnerWorkspaceJson, statusHandler);
-router.get('/api/integrations/strava/activities', requireAuthJson, requireRunnerWorkspaceJson, stravaActivityFetchLimiter, stravaProviderLimiter, activitiesHandler);
+router.get('/api/integrations/strava/status', requireAuthJson, requireRunnerWorkspaceJson, requireStravaViewerJson, statusHandler);
+router.get('/api/integrations/strava/activities', requireAuthJson, requireRunnerWorkspaceJson, requireStravaViewerJson, stravaActivityFetchLimiter, stravaProviderLimiter, activitiesHandler);
 
 router.delete('/api/integrations/strava/connection', requireAuthJson, requireRunnerWorkspaceJson, requireCsrfProtection, async (req, res) => {
   try {
@@ -157,10 +158,10 @@ router.delete('/api/integrations/strava/connection', requireAuthJson, requireRun
   }
 });
 
-router.get('/api/strava/connection', requireAuthJson, requireRunnerWorkspaceJson, deprecate('/api/integrations/strava/status'), statusHandler);
-router.get('/api/strava/activities', requireAuthJson, requireRunnerWorkspaceJson, deprecate('/api/integrations/strava/activities'), stravaActivityFetchLimiter, stravaProviderLimiter, activitiesHandler);
+router.get('/api/strava/connection', requireAuthJson, requireRunnerWorkspaceJson, requireStravaViewerJson, deprecate('/api/integrations/strava/status'), statusHandler);
+router.get('/api/strava/activities', requireAuthJson, requireRunnerWorkspaceJson, requireStravaViewerJson, deprecate('/api/integrations/strava/activities'), stravaActivityFetchLimiter, stravaProviderLimiter, activitiesHandler);
 
-router.get('/api/integrations/coros-strava/status', requireAuthJson, requireRunnerWorkspaceJson, async (req, res) => {
+router.get('/api/integrations/coros-strava/status', requireAuthJson, requireRunnerWorkspaceJson, requireStravaViewerJson, async (req, res) => {
   try {
     const bridge = await corosStravaBridgeService.getStatus(req.session.userId);
     return res.json({ success: true, bridge });
@@ -169,7 +170,7 @@ router.get('/api/integrations/coros-strava/status', requireAuthJson, requireRunn
   }
 });
 
-router.post('/api/integrations/coros-strava/setup/start', requireAuthJson, requireRunnerWorkspaceJson, corosStravaBridgeLimiter, requireCsrfProtection, async (req, res) => {
+router.post('/api/integrations/coros-strava/setup/start', requireAuthJson, requireRunnerWorkspaceJson, requireStravaViewerJson, corosStravaBridgeLimiter, requireCsrfProtection, async (req, res) => {
   try {
     const bridge = await corosStravaBridgeService.startSetup(req.session.userId);
     return res.json({ success: true, bridge });
@@ -178,7 +179,7 @@ router.post('/api/integrations/coros-strava/setup/start', requireAuthJson, requi
   }
 });
 
-router.post('/api/integrations/coros-strava/setup/confirm', requireAuthJson, requireRunnerWorkspaceJson, corosStravaBridgeLimiter, requireCsrfProtection, async (req, res) => {
+router.post('/api/integrations/coros-strava/setup/confirm', requireAuthJson, requireRunnerWorkspaceJson, requireStravaViewerJson, corosStravaBridgeLimiter, requireCsrfProtection, async (req, res) => {
   if (req.body?.confirmed !== true) {
     return res.status(400).json({ success: false, code: 'explicit_confirmation_required', message: 'Confirm that you saw your COROS activity in the private Strava view.' });
   }
@@ -195,7 +196,7 @@ router.post('/api/integrations/coros-strava/setup/confirm', requireAuthJson, req
   }
 });
 
-router.delete('/api/integrations/coros-strava/setup', requireAuthJson, requireRunnerWorkspaceJson, corosStravaBridgeLimiter, requireCsrfProtection, async (req, res) => {
+router.delete('/api/integrations/coros-strava/setup', requireAuthJson, requireRunnerWorkspaceJson, requireStravaViewerJson, corosStravaBridgeLimiter, requireCsrfProtection, async (req, res) => {
   try {
     const bridge = await corosStravaBridgeService.resetSetup(req.session.userId);
     return res.json({
@@ -239,6 +240,20 @@ function requireAuthJson(req, res, next) {
     });
   }
   return next();
+}
+
+function requireStravaViewerPage(req, res, next) {
+  if (isStravaPrivateViewerEnabled()) return next();
+  return res.redirect('/runner/profile?type=error&msg=Private%20Strava%20viewing%20is%20currently%20unavailable.');
+}
+
+function requireStravaViewerJson(req, res, next) {
+  if (isStravaPrivateViewerEnabled()) return next();
+  return res.status(503).json({
+    success: false,
+    code: 'integration_disabled',
+    message: 'Private Strava viewing is currently unavailable.'
+  });
 }
 
 function getSafeReturnTo(value) {
@@ -285,4 +300,12 @@ function getStatusForError(error) {
 }
 
 module.exports = router;
-module.exports._private = { safeEqual, boundedString, getSafeReturnTo, getStatusForError, OAUTH_STATE_TTL_MS };
+module.exports._private = {
+  safeEqual,
+  boundedString,
+  getSafeReturnTo,
+  getStatusForError,
+  requireStravaViewerPage,
+  requireStravaViewerJson,
+  OAUTH_STATE_TTL_MS
+};
