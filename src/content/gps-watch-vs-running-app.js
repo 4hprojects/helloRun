@@ -91,9 +91,9 @@ const RAW_CONTENT_HTML = `
 <p>Ignore premium metrics you cannot explain or will not use. Check warranty, return policy, repairability, charging method, replacement straps, app support, export and sync behavior, privacy controls, accessibility, phone compatibility, and likely useful life. A discounted old model can be poor value if its battery or software support no longer fits the task.</p>
 
 <h2>Virtual-run proof and screenshots</h2>
-<p>HelloRun supports event-dependent screenshot evidence and a supported connected-Strava path. An event can accept a narrower set of activity types or proof than the platform can technically display. A phone recording, watch sync, or Strava connection does not guarantee eligibility or approval.</p>
+<p>HelloRun supports event-dependent screenshot evidence. Connected Strava activities are an owner-only view and cannot be submitted. An event can accept a narrower set of activity types or proof than the platform can technically display. A phone recording, watch sync, or Strava connection does not guarantee eligibility or approval.</p>
 <p>For screenshot evidence, use the completed activity summary rather than a live screen or daily total. Confirm date, distance, duration, unit, activity type, source, and required identity context while protecting unrelated private information.</p>
-<p>For a watch, let the activity save and sync before capturing proof. The companion app is usually clearer than a photograph of a small watch face. For a supported connected Strava activity, HelloRun imports eligible source information from the connected account; it does not repair GPS or turn an excluded activity type into an eligible one.</p>
+<p>For a watch, let the activity save and sync before capturing proof. The companion app is usually clearer than a photograph of a small watch face. HelloRun does not import a connected Strava activity into event proof; use the separate screenshot upload when the event permits it.</p>
 <p>The <a href="/blog/how-to-submit-run-proof-correctly-hellorun">proof-submission guide</a> covers the current workflow. Submitted and pending are not approved progress. Do not edit distance, splice files, redraw a route, or select the most favorable duplicate record merely to satisfy a minimum.</p>
 
 <h2>Should you record on both phone and watch?</h2>

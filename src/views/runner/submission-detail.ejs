@@ -37,7 +37,7 @@
         <div class="sub-correction-heading"><span><i data-lucide="wrench" aria-hidden="true"></i></span><div><h2 id="correctionTitle">What to fix</h2><p><%= correction.guidance %></p></div></div>
         <% if (submission.rejectionReason) { %><div class="sub-organizer-feedback"><strong>Organizer feedback</strong><p><%= submission.rejectionReason %></p><% if (submission.reviewNotes) { %><blockquote><%= submission.reviewNotes %></blockquote><% } %></div><% } %>
 
-        <% if (correction.strategy === 'strava') { %><div class="sub-strava-locked-note"><i data-lucide="lock" aria-hidden="true"></i><p>Activity details are locked to Strava. Sync the corrected activity, then upload it through the submission flow.</p></div><% } %>
+        <% if (correction.strategy === 'strava') { %><div class="sub-strava-locked-note"><i data-lucide="lock" aria-hidden="true"></i><p>Connected-provider submissions are disabled. Use an available manual screenshot recovery action instead.</p></div><% } %>
 
         <% if (correction.canEditMetadata) { %>
           <details class="sub-correction-disclosure"<%= correction.strategy === 'metadata' ? ' open' : '' %>>

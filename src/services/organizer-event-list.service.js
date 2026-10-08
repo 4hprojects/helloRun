@@ -103,7 +103,7 @@ function buildEventRowsPipeline({ organizerId, accessibleEventIds = [], filters,
         from: submissionCollection,
         let: { eventId: '$_id' },
         pipeline: [
-          { $match: { $expr: { $and: [{ $eq: ['$eventId', '$$eventId'] }, { $eq: ['$status', 'submitted'] }] } } },
+          { $match: { source: { $ne: 'strava' }, $expr: { $and: [{ $eq: ['$eventId', '$$eventId'] }, { $eq: ['$status', 'submitted'] }] } } },
           { $count: 'total' }
         ],
         as: 'standardPendingMetrics'
@@ -114,7 +114,7 @@ function buildEventRowsPipeline({ organizerId, accessibleEventIds = [], filters,
         from: accumulatedCollection,
         let: { eventId: '$_id' },
         pipeline: [
-          { $match: { $expr: { $and: [{ $eq: ['$eventId', '$$eventId'] }, { $eq: ['$status', 'submitted'] }] } } },
+          { $match: { source: { $ne: 'strava' }, $expr: { $and: [{ $eq: ['$eventId', '$$eventId'] }, { $eq: ['$status', 'submitted'] }] } } },
           { $count: 'total' }
         ],
         as: 'accumulatedPendingMetrics'

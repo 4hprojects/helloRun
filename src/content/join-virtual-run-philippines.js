@@ -38,7 +38,7 @@ const RAW_CONTENT_HTML = `
   <li>For a free event, confirm the registration. For a paid event, follow the organiser's external payment instructions and upload the receipt from My Registrations.</li>
   <li>Wait for the payment status to become paid before relying on the registration as ready for result submission.</li>
   <li>Complete the permitted activity within the event window, using safe conditions and the required tracking method.</li>
-  <li>Upload a supported activity screenshot or select an eligible connected Strava activity.</li>
+  <li>Upload a supported activity screenshot.</li>
   <li>Wait for approval; pending payment or run proof is not a final result.</li>
   <li>Check configured results, leaderboard, certificate, pickup, delivery, or support updates after review.</li>
 </ol>
@@ -152,7 +152,7 @@ const RAW_CONTENT_HTML = `
 <p>Use <a href="/blog/running-safety-tips-early-morning-night-runs">Running Safety Tips for Early Morning and Night Runs</a> for route, visibility, weather, check-in, and warning-sign guidance. That article and this one are general information, not individual medical advice.</p>
 
 <h2>Choose and test your tracking method</h2>
-<p>The event page determines the accepted evidence. A phone app, GPS watch, companion app, or treadmill display may be useful, but no device is universally required or accurate. Check whether the event accepts screenshot proof, connected Strava, treadmill activities, hidden maps, and the intended activity type.</p>
+<p>The event page determines the accepted evidence. A phone app, GPS watch, companion app, or treadmill display may be useful, but no device is universally required or accurate. Check whether the event accepts screenshot proof, treadmill activities, hidden maps, and the intended activity type. Connected Strava activities cannot be event evidence.</p>
 <p>Before the real activity:</p>
 <ul>
   <li>Charge the phone or watch and check location permissions.</li>
@@ -170,9 +170,9 @@ const RAW_CONTENT_HTML = `
 <p>Choose a route that is suitable for your ability and conditions, not merely one that produces a fast GPS trace. A virtual event can reduce travel, but it does not provide marshals, traffic control, aid stations, or medical support unless explicitly arranged.</p>
 
 <h2>Submit activity proof on HelloRun</h2>
-<p>The current public result flow offers a supported activity screenshot or a connected Strava import. For a screenshot, choose the actual run date, upload JPEG, PNG, or WebP evidence within the current form limit, analyse the screenshot, select an eligible event, and confirm activity type, distance, duration, and location.</p>
+<p>The current public result flow offers supported activity screenshot upload. Choose the actual run date, upload JPEG, PNG, or WebP evidence within the current form limit, analyse the screenshot, select an eligible event, and confirm activity type, distance, duration, and location.</p>
 <p>OCR-assisted analysis can propose values, but the runner must compare them with the original record. It can misread decimals, units, time, names, or layouts. A mismatch can send the entry to review; OCR does not independently prove accuracy.</p>
-<p>A connected Strava activity must belong to the linked account, have supported data, fit the event window and activity rules, and avoid repeat use for the same event. Read <a href="/blog/how-to-submit-run-proof-correctly-hellorun">How to Submit Run Proof Correctly on HelloRun</a> for the complete interface walkthrough and <a href="/blog/what-counts-as-valid-run-proof">What Counts as Valid Run Proof?</a> for evidence examples.</p>
+<p>A connected Strava activity is visible only to its owner and cannot be submitted or sent to an organiser. Read <a href="/blog/how-to-submit-run-proof-correctly-hellorun">How to Submit Run Proof Correctly on HelloRun</a> for the complete screenshot walkthrough and <a href="/blog/what-counts-as-valid-run-proof">What Counts as Valid Run Proof?</a> for evidence examples.</p>
 
 <h2>Understand result review and recognition</h2>
 <h3>Submitted or pending</h3>

@@ -80,9 +80,9 @@ const RAW_CONTENT_HTML = `
 
 <h2>Does walking change proof requirements?</h2>
 <p>Usually, the evidence still needs the fields required by the event: participant identity where applicable, activity date, distance or steps, duration when relevant, activity type, units, and recognizable source. Walking does not make unclear or altered proof acceptable.</p>
-<p>Label the activity honestly. HelloRun supports separate run, walk, hike, and trail run activity labels in its submission workflow and supported Strava mapping. Platform support for a label is not a statement that every event accepts it. The event configuration and published rules still govern.</p>
+<p>Label the activity honestly. HelloRun supports separate run, walk, hike, and trail run activity labels in its screenshot submission workflow. Platform support for a label is not a statement that every event accepts it. The event configuration and published rules still govern.</p>
 <p>If screenshot analysis proposes an activity type, review it against the original record. Correct an extraction error to match the evidence; do not change the source image or select “run” merely to bypass a walk restriction. A mismatch may require review.</p>
-<p>For a supported connected-Strava submission, the source activity type is normalized into a HelloRun activity label and checked where the event defines accepted types. Importing an activity does not transform an ineligible walk into a run or guarantee approval.</p>
+<p>Connected Strava activities are private and cannot be submitted. A manually uploaded screenshot still must use an honest activity label; uploading it does not transform an ineligible walk into a run or guarantee approval.</p>
 <p>Read <a href="/blog/how-to-submit-run-proof-correctly-hellorun">the proof-submission guide</a> before the event, not only after a problem. Keep the original activity, protect unnecessary route privacy, and remember that submitted or pending is not approved.</p>
 
 <h2>Walking a virtual 5K</h2>
@@ -183,7 +183,7 @@ const RAW_CONTENT_HTML = `
 <p>No. It records an activity label. The selected event's rules and review determine whether that walk is eligible.</p>
 
 <h2>Method and limitations</h2>
-<p>This guide was reviewed in September 2026 against current HelloRun event configuration, runner submission, supported Strava-type mapping, accumulated-activity validation, FAQ, approval, and progress behavior. Health context was checked against current WHO, CDC, and NHS public guidance.</p>
+<p>This guide was reviewed in October 2026 against current HelloRun event configuration, screenshot submission, private connected-app behavior, accumulated-activity validation, FAQ, approval, and progress behavior. Health context was checked against current WHO, CDC, and NHS public guidance.</p>
 <p>It does not describe a promise that every current or future HelloRun event accepts walking. Event organizers choose their formats and rules. Interfaces and settings can change, so the live event page and submission flow remain authoritative.</p>
 <p>The health sources describe populations and general activity principles, not personal training prescriptions, diagnosis, treatment, or event clearance. Examples involving 5K and 10K distances are planning considerations rather than universal schedules or finish-time predictions.</p>
 
@@ -281,7 +281,7 @@ function validateArticlePayload(payload) {
   if (/pending (?:evidence|activity|distance) (?:counts|is counted) (?:as )?(?:official|approved)/i.test(text)) errors.push('article must not count pending evidence officially');
   if (!/Yes, you can walk some virtual runs—but not all of them/i.test(text)) errors.push('article must answer intent immediately');
   if (!/Check the activity types and rules published on the specific event page/i.test(text)) errors.push('article must state the platform direction');
-  if (!/reviewed in September 2026/i.test(text)) errors.push('article must disclose methodology and date');
+  if (!/reviewed in October 2026/i.test(text)) errors.push('article must disclose methodology and date');
 
   for (const heading of REQUIRED_HEADINGS) {
     if (!payload.contentHtml.includes(`<h2>${heading}</h2>`)) errors.push(`missing required heading: ${heading}`);

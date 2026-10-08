@@ -118,6 +118,7 @@ async function listSubmissionHub(options = {}) {
 function buildSubmissionHubPipeline({ filters, eventFilterIds }) {
   const eventObjectIds = eventFilterIds.map((id) => new mongoose.Types.ObjectId(id));
   const match = {
+    source: { $ne: 'strava' },
     status: { $in: ['submitted', 'approved', 'rejected', 'needs_clarification'] },
     ...(eventObjectIds.length ? { eventId: { $in: eventObjectIds } } : {})
   };

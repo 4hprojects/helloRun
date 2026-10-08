@@ -157,11 +157,11 @@ const RAW_CONTENT_HTML = `
 
 <h2>Keep tracking and proof manageable</h2>
 <p>Test the selected phone, watch, treadmill, or app before the event. Confirm battery, permissions, units, activity type, offline behavior, screen lock, and final summary. Preserve the original activity instead of editing values to fit a target.</p>
-<p>HelloRun currently supports activity screenshots and supported connected Strava evidence according to the live form and event rules. OCR can assist field entry but is fallible. The runner remains responsible for confirming the date, distance, duration, activity type, and other required details.</p>
+<p>HelloRun currently supports activity screenshot evidence according to the live form and event rules. Connected Strava activities are private and cannot be submitted. OCR can assist field entry but is fallible. The runner remains responsible for confirming the date, distance, duration, activity type, and other required details.</p>
 <p>Submit individual activities for accumulated events rather than a weekly dashboard total. Exact screenshot and connected-activity duplicate controls can block reuse. Use <a href="/blog/what-counts-as-valid-run-proof">the valid-proof guide</a> and <a href="/blog/how-to-submit-run-proof-correctly-hellorun">the submission walkthrough</a>.</p>
 
 <h2>Understand review, standings, and recognition</h2>
-<p>A submitted activity can remain pending, become approved, or be rejected. Pending evidence does not count as official progress or rank. Conditional automatic approval may apply to eligible clean OCR or supported Strava evidence; it is not universal. Other cases remain available for organiser or administrator review.</p>
+<p>A submitted activity can remain pending, become approved, or be rejected. Pending evidence does not count as official progress or rank. Conditional automatic approval may apply to eligible clean OCR-assisted screenshot evidence; it is not universal. Other cases remain available for organiser or administrator review.</p>
 <p>A configured race-result leaderboard and an accumulated leaderboard use different ranking bases. Accumulated standings rank approved distance, not speed. Read <a href="/blog/how-leaderboards-work-virtual-running-events">the leaderboard guide</a> before comparing results recorded on different routes, devices, or conditions.</p>
 <p>Badges and certificates are configured features, not automatic entitlements. Accumulated certificates wait until the submission boundary and clearance of the event-wide pending queue. HelloRun does not directly process an external payment transfer, and payment-receipt review remains separate from activity-proof review.</p>
 

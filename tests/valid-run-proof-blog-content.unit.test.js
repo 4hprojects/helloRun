@@ -45,9 +45,9 @@ test('valid-run-proof guide builds a substantive evidence-focused payload', () =
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.doesNotThrow(() => validateArticlePayload(payload));
 
-  assert.match(payload.contentText, /documents the HelloRun proof-submission implementation available in July 2026/i);
+  assert.match(payload.contentText, /documents the HelloRun proof-submission implementation updated in October 2026/i);
   assert.match(payload.contentText, /current HelloRun result form accepts JPEG, PNG, and WebP/i);
-  assert.match(payload.contentText, /automatically approve an eligible clean OCR or validated Strava submission/i);
+  assert.match(payload.contentText, /automatically approve an eligible clean OCR-assisted screenshot submission/i);
   assert.match(payload.contentText, /same runner's matching proof across standard and accumulated submissions/i);
   assert.match(payload.contentText, /pending evidence is not yet approved progress or an official ranked result/i);
   assert.match(payload.contentText, /Public leaderboard rows do not return proof files, raw OCR text, email addresses, suspicious flags, or private review notes/i);
@@ -71,10 +71,8 @@ test('documented proof behavior remains grounded in current implementation sourc
   assert.match(SUBMISSION_CONTROLLER_SOURCE, /This screenshot has already been submitted\./);
   assert.match(SUBMISSION_CONTROLLER_SOURCE, /Only rejected submissions can be resubmitted\./);
   assert.match(VALIDATION_SOURCE, /function isAutoApprovableOcrPayload/);
-  assert.match(VALIDATION_SOURCE, /function isAutoApprovableSyncedPayload/);
-  assert.match(STRAVA_SOURCE, /This Strava activity does not belong to your connected account\./);
-  assert.match(STRAVA_SOURCE, /This Strava activity has already been submitted for this event\./);
-  assert.match(STRAVA_SOURCE, /STRAVA_TYPE_TO_RUN_TYPE/);
+  assert.match(STRAVA_SOURCE, /external_use_blocked/);
+  assert.ok(STRAVA_SOURCE.indexOf('throw blocked') < STRAVA_SOURCE.indexOf('fetchActivityById'));
   assert.match(LEADERBOARD_SOURCE, /const \{ searchableText, \.\.\.publicEntry \} = entry/);
 });
 

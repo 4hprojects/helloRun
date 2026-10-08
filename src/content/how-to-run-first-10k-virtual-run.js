@@ -155,7 +155,7 @@ const RAW_CONTENT_HTML = `
 
 <h2>Submit your proof correctly</h2>
 <p>Select the correct registration and activity. Compare every OCR-assisted or imported field with the original. Confirm the actual date, distance, duration, activity type, unit, source, and any required identity information. Protect irrelevant private information without hiding fields the event needs.</p>
-<p>The <a href="/blog/how-to-submit-run-proof-correctly-hellorun">HelloRun proof guide</a> documents the screenshot and supported connected-Strava workflows. Connected import does not repair GPS, override activity eligibility, or guarantee approval.</p>
+<p>The <a href="/blog/how-to-submit-run-proof-correctly-hellorun">HelloRun proof guide</a> documents the screenshot workflow. Connected Strava activities are private and cannot be submitted, repair GPS, override activity eligibility, or guarantee approval.</p>
 <p>Submit before the deadline and avoid repeated clicks or duplicate uploads when the response is uncertain. Submitted or pending means the evidence exists for applicable checks; it is not yet approved completion, official progress, rank, certificate, or reward.</p>
 <p>If rejected, use the documented correction route when available. Do not alter distance, splice files, borrow another person's activity, or create a cleaner-looking record that no device captured.</p>
 
@@ -202,7 +202,7 @@ const RAW_CONTENT_HTML = `
 <p>No. The result may remain pending until it passes applicable checks. Approval determines official event status under the rules.</p>
 
 <h2>Method and limitations</h2>
-<p>This guide was reviewed in September 2026 using current WHO, CDC, NHS, and World Athletics public guidance together with HelloRun registration, event-window, one-time-result, screenshot, supported connected-Strava, review, correction, and runner-progress behavior.</p>
+<p>This guide was reviewed in October 2026 using WHO, CDC, NHS, and World Athletics guidance together with HelloRun registration, event-window, one-time-result, screenshot, private connected-app, review, correction, and runner-progress behavior.</p>
 <p>The public-health sources provide population guidance and examples of gradual activity. World Athletics provides general virtual-race logistics. None of those sources validates this exact sequence, certifies a route, predicts a finish, or gives personal medical clearance.</p>
 <p>HelloRun behavior and event rules can change. The live event listing, source-device instructions, submission interface, and organizer decision remain authoritative. This article is general education, not individualized training, nutrition, hydration, medical, emergency, or legal advice.</p>
 
@@ -304,7 +304,7 @@ function validateArticlePayload(payload) {
   if (/first 10K means you are ready for (?:a )?(?:21K|half marathon)|21K is the automatic next step/i.test(text)) errors.push('article must not claim automatic 21K readiness');
   if (!/To complete your first 10K virtual run, choose an event/i.test(text)) errors.push('article must answer intent immediately');
   if (!/This guide focuses on executing one first 10K opportunity after preparation; it is not another week-by-week training programme/i.test(text)) errors.push('article must distinguish the training plan');
-  if (!/reviewed in September 2026/i.test(text)) errors.push('article must disclose methodology and date');
+  if (!/reviewed in October 2026/i.test(text)) errors.push('article must disclose methodology and date');
 
   for (const heading of REQUIRED_HEADINGS) {
     if (!payload.contentHtml.includes(`<h2>${heading}</h2>`)) errors.push(`missing required heading: ${heading}`);

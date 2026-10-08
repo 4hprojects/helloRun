@@ -17,7 +17,7 @@ test('runner profile templates compile and expose the compact account hierarchy'
   ejs.compile(main, { filename: path.join(root, 'src/views/runner/partials/profile-main.ejs') });
   assert.match(main, /<h1>My Profile<\/h1>/);
   assert.match(main, /Profile completion/);
-  for (const label of ['Personal details', 'Preferences', 'Connections', 'Security', 'Achievements']) {
+  for (const label of ['Personal details', 'Preferences', 'Connected Apps', 'Security', 'Achievements']) {
     assert.match(main, new RegExp(label));
   }
   assert.equal((main.match(/<h1\b/g) || []).length, 1);
@@ -68,7 +68,8 @@ test('Strava connect and disconnect retain fallback routes behind accessible con
   assert.match(shell, /id="stravaConnectConfirmModal"[^>]*hidden aria-hidden="true"/);
   assert.match(shell, /id="stravaDisconnectConfirmModal"[^>]*hidden aria-hidden="true"/);
   assert.match(shell, /Continue to Strava/);
-  assert.match(shell, /Existing submitted activity records remain available/);
+  assert.match(shell, /revoke access and delete locally held connection data/);
+  assert.match(shell, /confirmation when local deletion completes/);
   assert.match(script, /setupStravaConfirmations\(\)/);
   assert.match(script, /event\.preventDefault\(\)/);
   assert.match(script, /form\.submit\(\)/);

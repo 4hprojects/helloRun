@@ -123,7 +123,7 @@ const RAW_CONTENT_HTML = `
   <li><strong>Contact the organizer before the deadline.</strong> Explain the anomaly honestly and ask which correction or replacement path applies.</li>
 </ol>
 <p>Do not add points, draw a cleaner route, splice files, type the intended distance as recorded distance, or extend a later run automatically to “catch up.” Strava may offer cropping or other platform tools for ordinary activity presentation, but editing can alter evidence. Preserve the source and confirm the event's rule first.</p>
-<p>The <a href="/blog/what-counts-as-valid-run-proof">valid-proof guide</a> explains reviewable fields, and the <a href="/blog/how-to-submit-run-proof-correctly-hellorun">HelloRun proof-submission guide</a> covers the current screenshot and supported connected-Strava paths. Submission or pending status is not the same as approved progress.</p>
+<p>The <a href="/blog/what-counts-as-valid-run-proof">valid-proof guide</a> explains reviewable fields, and the <a href="/blog/how-to-submit-run-proof-correctly-hellorun">HelloRun proof-submission guide</a> covers the current screenshot path. Submission or pending status is not the same as approved progress.</p>
 
 <h2>Phone GPS versus a GPS watch</h2>
 <p>A running watch may offer wrist controls, long recording battery, and multiple GNSS modes. A phone may offer a larger screen, familiar apps, connectivity, emergency communication, and no additional purchase.</p>
@@ -131,7 +131,7 @@ const RAW_CONTENT_HTML = `
 <p>Choose based on current evidence requirements, route, battery, comfort, accessibility, privacy, and budget. You do not need a watch merely to be a legitimate runner. If using two devices, identify the original source and do not submit whichever total is most favorable without regard to the event rules.</p>
 
 <h2>Phone GPS and HelloRun proof</h2>
-<p>HelloRun does not turn a phone into a certified measuring instrument and does not reconstruct missing satellite points. A supported connected-Strava submission imports eligible information available through the authorized account. Screenshot submission uses the evidence and confirmed fields supplied through the current flow. Both remain subject to the event configuration and applicable review.</p>
+<p>HelloRun does not turn a phone into a certified measuring instrument and does not reconstruct missing satellite points. Screenshot submission uses the evidence and confirmed fields supplied through the current flow and remains subject to the event configuration and applicable review. Connected Strava activities are private and cannot be submitted.</p>
 <p>A map that looks neat does not guarantee approval, and a visible anomaly does not automatically prove dishonesty. Review can consider date, activity type, distance, duration, units, source, duplicates, event window, and other published requirements. Pending evidence awaits those checks and does not count as official progress or rank.</p>
 <p>Before your next activity, visit <a href="/events">current HelloRun events</a>, open the event details, and test your tracking setup on a familiar route. Do not rely on this article in place of the live rules.</p>
 

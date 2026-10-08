@@ -68,7 +68,7 @@ test('virtual-run walking guide distinguishes formats, activity types, and proof
   assert.match(contentText, /Two 2\.5K walks do not automatically equal one qualifying 5K/i);
   assert.match(contentText, /An accumulated challenge allows multiple approved activities/i);
   assert.match(contentText, /supports separate run, walk, hike, and trail run activity labels/i);
-  assert.match(contentText, /Importing an activity does not transform an ineligible walk into a run/i);
+  assert.match(contentText, /Connected Strava activities are private and cannot be submitted/i);
   assert.match(contentText, /A person who can comfortably walk 5K is not automatically prepared to double the distance/i);
   assert.match(contentText, /ordinary daily steps do not universally qualify/i);
 });

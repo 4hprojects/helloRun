@@ -88,8 +88,8 @@ const RAW_CONTENT_HTML = `
 <p>Charge the device, select the correct activity profile, wait for any needed GPS readiness signal, and confirm how the completed record syncs to the app used for proof. A watch total and phone total may differ because of sampling, autopause, smoothing, calibration, or time definitions. Decide which original record the event accepts rather than combining the most favorable fields from different devices.</p>
 <h3>Treadmill recording</h3>
 <p>First verify that the event permits treadmill activity and specifies acceptable evidence. A treadmill display, watch estimate, and footpod can report different distances. Note whether the rules want the machine summary, a wearable record, or another view. Avoid changing a recorded value merely to make two devices agree unless the accepted workflow explicitly permits a documented correction.</p>
-<h3>Connected Strava activity</h3>
-<p>When a supported Strava import is available, connect the account you own, review third-party permissions, and make a short test activity if appropriate. Strava distinguishes moving time from elapsed time, so know which field an event displays or ranks. Privacy controls can restrict activity visibility, but the event's authorized import and review path may still require selected activity data.</p>
+<h3>Private Strava connection</h3>
+<p>If you connect Strava, review the permissions and use Connected Apps only as a private recent-activity view. Connected activities cannot be selected as event evidence. If an event permits it, capture a suitable screenshot and use the separate manual proof flow.</p>
 
 <h2>Know the proof fields before activity day</h2>
 <p>Read <a href="/blog/what-counts-as-valid-run-proof">What Counts as Valid Run Proof?</a> for evidence quality and <a href="/blog/how-to-submit-run-proof-correctly-hellorun">How to Submit Run Proof Correctly on HelloRun</a> for the procedural walkthrough. The common preparation fields are:</p>
@@ -102,7 +102,7 @@ const RAW_CONTENT_HTML = `
   <li><strong>Source:</strong> keep enough context to identify the app, watch, treadmill, or connected activity without exposing unnecessary data.</li>
   <li><strong>Readable original evidence:</strong> avoid blur, excessive cropping, altered copies, dashboards without individual activity details, and screenshots that hide required fields.</li>
 </ul>
-<p>A visible total does not by itself establish eligibility. OCR may help extract screenshot fields, but extraction is fallible and is not proof that a reading is accurate. Confirm every populated value against the original before submitting. Depending on current eligibility rules, a clean OCR or validated Strava submission may qualify for conditional approval; other submissions can require organizer or admin review.</p>
+<p>A visible total does not by itself establish eligibility. OCR may help extract screenshot fields, but extraction is fallible and is not proof that a reading is accurate. Confirm every populated value against the original before submitting. Depending on current eligibility rules, a clean OCR-assisted screenshot may qualify for conditional approval; other submissions can require organizer or admin review.</p>
 
 <h2>Plan the route or indoor setting</h2>
 <h3>Outdoor route</h3>

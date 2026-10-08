@@ -27,8 +27,12 @@ const CLARIFIABLE_STATUS = new Set(['submitted', 'rejected']);
 async function createAccumulatedActivitySubmission(input) {
   const {
     buildSubmissionPayload,
-    getEligibleRunnerRegistration
+    getEligibleRunnerRegistration,
+    assertPermittedSubmissionSource,
+    claimRemediationGrant,
+    releaseRemediationGrant
   } = getSubmissionServiceHelpers();
+  assertPermittedSubmissionSource(input.source);
   const registration = await getEligibleRunnerRegistration({
     registrationId: input.registrationId,
     runnerId: input.runnerId
@@ -51,8 +55,16 @@ async function createAccumulatedActivitySubmission(input) {
     submissionMode: 'accumulated'
   };
 
-  const activity = await AccumulatedActivitySubmission.create(payload);
-  return applyAccumulatedAutoApprovalIfEligible(activity, event);
+  const claimedGrant = await claimRemediationGrant(registration._remediationGrantId);
+  let activity;
+  try {
+    activity = await AccumulatedActivitySubmission.create(payload);
+  } catch (error) {
+    await releaseRemediationGrant(claimedGrant?._id);
+    throw error;
+  }
+  const saved = await applyAccumulatedAutoApprovalIfEligible(activity, event);
+  return saved;
 }
 
 async function reviewAccumulatedActivitySubmission({

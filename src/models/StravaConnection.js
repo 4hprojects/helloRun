@@ -44,6 +44,10 @@ const stravaConnectionSchema = new mongoose.Schema(
       type: Date,
       default: Date.now
     },
+    lastSyncAt: {
+      type: Date,
+      default: null
+    },
     disconnectedAt: {
       type: Date,
       default: null
@@ -62,6 +66,10 @@ const stravaConnectionSchema = new mongoose.Schema(
 
 stravaConnectionSchema.index({ userId: 1, status: 1 });
 stravaConnectionSchema.index({ userId: 1 }, { unique: true });
+stravaConnectionSchema.index(
+  { stravaAthleteId: 1 },
+  { unique: true, name: 'uniq_strava_athlete' }
+);
 applySmokeTestSchema(stravaConnectionSchema);
 
 module.exports = mongoose.models.StravaConnection ||

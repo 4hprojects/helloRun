@@ -402,6 +402,7 @@ const { startPolicyNoticeWorker } = require('./workers/policy-notice-worker');
 const { startEventPromotionWorker } = require('./workers/event-promotion-worker');
 const { startWaitlistOfferWorker } = require('./workers/waitlist-offer-worker');
 const { startEventActivationReminderWorker } = require('./workers/event-activation-reminder-worker');
+const { startStravaLifecycleWorker } = require('./workers/strava-lifecycle-worker');
 
 async function startServer() {
   await connectToDatabase();
@@ -413,6 +414,7 @@ async function startServer() {
   startEventPromotionWorker();
   startWaitlistOfferWorker();
   startEventActivationReminderWorker();
+  startStravaLifecycleWorker();
 
   const server = app.listen(PORT, () => {
     logger.info(`Server running on http://localhost:${PORT}`);

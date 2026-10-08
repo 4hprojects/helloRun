@@ -24,7 +24,7 @@ const SUBMISSION_REVIEW_MODE_OPTIONS = Object.freeze([
     value: 'manual',
     label: 'I review every submission',
     badge: '',
-    description: 'Nothing is approved automatically, including Strava syncs. Every submission waits for you in the review queue.'
+    description: 'Nothing is approved automatically. Every permitted screenshot submission waits for you in the review queue.'
   }
 ]);
 

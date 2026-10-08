@@ -124,7 +124,6 @@
             </dl>
           </details>
 
-          <% if (submission.stravaActivity?.id) { %><section class="submission-review-section"><h3><i data-lucide="route"></i> Strava snapshot</h3><p><strong><%= submission.stravaActivity.name || 'Strava activity' %></strong> · <%= submission.stravaActivity.sportType || submission.stravaActivity.type || 'Activity' %></p><% if (submission.stravaActivity.url) { %><a href="<%= submission.stravaActivity.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">Open Strava activity</a><% } %></section><% } %>
           <% if (accumulatedProgress) { %><section class="submission-review-section"><h3><i data-lucide="target"></i> Accumulated progress</h3><p><strong><%= accumulatedProgress.progressLabel %></strong></p><p class="submission-review-muted"><%= accumulatedProgress.approvedActivityCount %> approved, <%= accumulatedProgress.pendingActivityCount %> pending, <%= accumulatedProgress.rejectedActivityCount %> rejected</p></section><% } %>
 
           <% if (isFullAdmin) { %>

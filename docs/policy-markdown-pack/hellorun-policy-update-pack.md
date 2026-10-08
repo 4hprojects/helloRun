@@ -1892,6 +1892,6 @@ Publish in this order:
 7. Add Community Guidelines
 8. Add Acceptable Use Policy
 
-The strongest update is the Data Usage Policy. It directly addresses HelloRun’s unique workflow: screenshots, OCR, Strava imports, payment proof, organiser review, flagged submissions, and public results.
+The strongest update is the Data Usage Policy. It directly addresses HelloRun’s unique workflow: screenshots, OCR, the owner-only Strava activity viewer, payment proof, organiser review, flagged submissions, and public results. Connected Strava activities are not event evidence and are excluded from organiser review and public or derived outputs.
 
 ---

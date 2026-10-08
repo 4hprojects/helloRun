@@ -455,7 +455,7 @@ function buildRunnerSubmissionDetailPresentation(submission = {}) {
 function resolveCorrectionPresentation(submission = {}) {
   if (submission.status !== 'rejected') return { strategy: 'none', guidance: '', canEditMetadata: false, canUploadProof: false };
   if (submission.source === 'strava') {
-    return { strategy: 'strava', guidance: 'This entry came from Strava. Sync a corrected eligible activity, then submit it again.', canEditMetadata: false, canUploadProof: true };
+    return { strategy: 'strava', guidance: 'Connected-provider submissions are disabled. Use an available manual screenshot recovery slot instead.', canEditMetadata: false, canUploadProof: true };
   }
   const code = String(submission.rejectionCode || '').trim();
   const metadataCodes = new Set(['distance_mismatch', 'incomplete_metrics']);

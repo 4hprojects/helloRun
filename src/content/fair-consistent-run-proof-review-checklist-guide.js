@@ -42,7 +42,7 @@ const RAW_CONTENT_HTML = `
 </ol>
 
 <h2>How this guide was prepared</h2>
-<p>This guide was reviewed in August 2026 against current HelloRun standard submissions, accumulated activities, screenshot and Strava evidence, OCR and integrity signals, organizer review queues, quick and bulk approval eligibility, structured rejection reasons, correction paths, audit events, leaderboards, certificates, Privacy Policy, and <a href="/organiser-terms">Organiser Terms</a>.</p>
+<p>This guide was reviewed in October 2026 against current HelloRun standard submissions, accumulated activities, screenshot evidence, OCR and integrity signals, organizer review queues, quick and bulk approval eligibility, structured rejection reasons, correction paths, audit events, leaderboards, certificates, Privacy Policy, and <a href="/organiser-terms">Organiser Terms</a>. Connected Strava activities are private and never enter these review queues.</p>
 <p>It also uses the Philippine National Privacy Commission's rules on <a href="https://privacy.gov.ph/implementing-rules-regulations-data-privacy-act-2012/">transparency, legitimate purpose, and proportionality</a>; the Road Runners Club of America's <a href="https://www.rrca.org/programs/race-director-certification/race-director-code-of-ethics/">race director ethics guidance</a> on honesty, good faith, respect, and non-discrimination; and W3C WAI guidance on <a href="https://www.w3.org/WAI/tutorials/forms/notifications/">clear, understandable outcome and error messages</a>. These sources provide operational context. They do not decide a particular HelloRun submission or replace applicable law and event-specific obligations.</p>
 <p>This is a platform workflow and editorial guide, not legal advice, forensic verification, identity certification, or an assurance that a device measured an activity perfectly. The organizer remains responsible for the event rules and authorized review decisions. Where a dispute raises legal, safeguarding, fraud, accessibility, or data-protection concerns beyond an ordinary result review, use the appropriate qualified escalation route.</p>
 
@@ -112,7 +112,7 @@ const RAW_CONTENT_HTML = `
 <p>If an identity discrepancy cannot be resolved through the established process, use the structured identity-mismatch outcome and private support route. Avoid public accusations. The review decision concerns eligibility of the record, not a broad judgment about the participant.</p>
 
 <h2>Treat OCR and integrity signals as review prompts</h2>
-<p>HelloRun can extract candidate fields from screenshots and record confidence, mismatch, quality, or integrity signals. It can also detect exact uploaded-image reuse for the same runner and prevent repeated use of the same connected Strava activity for an event. These controls help organize attention; they do not establish why a difference exists.</p>
+<p>HelloRun can extract candidate fields from screenshots and record confidence, mismatch, quality, or integrity signals. It can also detect exact uploaded-image reuse for the same runner. These controls help organize attention; they do not establish why a difference exists.</p>
 <p>OCR can misread decimals, units, stylized fonts, small dates, profile names, or unusual layouts. GPS can drift. Devices and apps can calculate time differently. A crop can hide a field accidentally or intentionally, but the image alone does not reveal intent. Compare the original evidence, runner-confirmed values, event mechanics, and any permitted explanation.</p>
 <p>Describe a signal neutrally in private notes. “Visible distance differs from entered distance” is more useful than “runner cheated.” If the evidence still cannot meet the rule, decide the result using the applicable rejection reason. If it does meet the rule after inspection, document why the signal did not control the outcome.</p>
 
@@ -297,7 +297,7 @@ function validateArticlePayload(payload) {
   if (/proof (?:files?|images?) (?:and|or)? private review notes (?:are|should be) public|publish private review notes/i.test(text)) errors.push('article must not expose private review material');
   if (/collecting (?:more|additional) personal data automatically improves verification/i.test(text)) errors.push('article must not encourage excessive data collection');
   if (/(?:this|one|the) checklist guarantees? (?:equal outcomes|fairness|error-free decisions)/i.test(text)) errors.push('article must not guarantee review fairness');
-  if (!/reviewed in August 2026 against current HelloRun/i.test(text)) errors.push('article must disclose platform methodology and date');
+  if (!/reviewed in October 2026 against current HelloRun/i.test(text)) errors.push('article must disclose platform methodology and date');
   if (!/Approval means the evidence met the applicable platform and event review requirements/i.test(text)) errors.push('article must define platform approval');
   if (!/eight structured rejection reasons/i.test(text)) errors.push('article must document the current rejection catalog');
 

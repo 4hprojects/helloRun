@@ -10,6 +10,7 @@ const { buildVerificationUrl } = require('./certificateNumber.service');
 const communicationService = require('./communication.service');
 const { notifyWithRetry } = require('./reliable-communication.service');
 const { isSubmissionWindowOpen } = require('../utils/submission-window');
+const SubmissionRemediationGrant = require('../models/SubmissionRemediationGrant');
 const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('./accumulated-target.service');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 const { detectSuspiciousActivity } = require('../utils/submission-integrity');
@@ -65,6 +66,7 @@ async function createSubmission({
   stravaActivity,
   submissionAttemptId
 }) {
+  assertPermittedSubmissionSource(source);
   if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
     return createPersonalRecordSubmission({
       runnerId,
@@ -95,25 +97,33 @@ async function createSubmission({
     throw new Error('Submission already exists for this registration.');
   }
 
-  const submission = await Submission.create(buildSubmissionPayload(registration, {
-    distanceKm,
-    elapsedMs,
-    runDate,
-    runLocation,
-    proofType,
-    proof,
-    proofNotes,
-    submissionCount: 1,
-    runType,
-    trackingAppDevice,
-    elevationGain,
-    steps,
-    ocrData,
-    source,
-    stravaActivity,
-    submissionAttemptId
-  }));
-  return applyAutoApprovalIfEligible(submission);
+  const claimedGrant = await claimRemediationGrant(registration._remediationGrantId);
+  let submission;
+  try {
+    submission = await Submission.create(buildSubmissionPayload(registration, {
+      distanceKm,
+      elapsedMs,
+      runDate,
+      runLocation,
+      proofType,
+      proof,
+      proofNotes,
+      submissionCount: 1,
+      runType,
+      trackingAppDevice,
+      elevationGain,
+      steps,
+      ocrData,
+      source,
+      stravaActivity,
+      submissionAttemptId
+    }));
+  } catch (error) {
+    await releaseRemediationGrant(claimedGrant?._id);
+    throw error;
+  }
+  const saved = await applyAutoApprovalIfEligible(submission);
+  return saved;
 }
 
 async function editRejectedSubmissionMetadata({ submissionId, runnerId, distanceKm, elapsedMs, runDate, runLocation, runType }) {
@@ -272,6 +282,7 @@ async function resubmitSubmission({
   stravaActivity,
   submissionAttemptId
 }) {
+  assertPermittedSubmissionSource(source);
   if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
     throw new Error('Personal record submissions create a new entry each time.');
   }
@@ -761,7 +772,7 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
   const limit = clampInt(options.limit, 1, 100, 30);
   const now = options.now instanceof Date ? options.now : new Date();
 
-  const registrations = await Registration.find({
+  const [registrations, recoveryGrants] = await Promise.all([Registration.find({
     userId: runnerId,
     paymentStatus: 'paid',
     status: 'confirmed'
@@ -771,7 +782,13 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
       path: 'eventId',
       select: 'title slug status organizerId eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps raceCategories targetDistanceKm minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt submissionReviewMode requireTrackingAppDevice'
     })
-    .lean();
+    .lean(), SubmissionRemediationGrant.find({
+      userId: runnerId,
+      slotsRemaining: 1,
+      expiresAt: { $gt: now },
+      consumedAt: null
+    }).select('_id registrationId expiresAt').lean()]);
+  const recoveryByRegistrationId = new Map(recoveryGrants.map((grant) => [String(grant.registrationId), grant]));
 
   const registrationIds = registrations.map((item) => item?._id).filter(Boolean);
   const submissions = registrationIds.length
@@ -786,7 +803,8 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
   const eligibleRegistrations = registrations
     .filter((registration) => {
       if (!registration?.eventId) return false;
-      if (!isSubmissionWindowOpen({ registration, event: registration.eventId, now })) return false;
+      const recoveryGrant = recoveryByRegistrationId.get(String(registration._id));
+      if (!isSubmissionWindowOpen({ registration, event: registration.eventId, now }) && !recoveryGrant) return false;
 
       const submission = submissionByRegistrationId.get(String(registration._id));
       if (!submission) return true;
@@ -812,7 +830,8 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
         raceDistance: registration.raceDistance || '',
         eventStartAt: registration.eventId?.eventStartAt || null,
         eventEndAt: registration.eventId?.eventEndAt || null,
-        submissionDeadlineAt: getSubmissionDeadlineAtForOption(registration, registration.eventId),
+        submissionDeadlineAt: recoveryByRegistrationId.get(String(registration._id))?.expiresAt || getSubmissionDeadlineAtForOption(registration, registration.eventId),
+        remediationRecovery: Boolean(recoveryByRegistrationId.get(String(registration._id))),
         virtualCompletionMode: registration.eventId?.virtualCompletionMode || '',
         submissionReviewMode: normalizeSubmissionReviewMode(registration.eventId?.submissionReviewMode),
         submissionMode: challengeConfig.accumulated
@@ -876,17 +895,59 @@ async function getEligibleRunnerRegistration({ registrationId, runnerId }) {
   const event = await Event.findById(registration.eventId)
     .select('status isDeleted organizerId eventStartAt eventEndAt virtualWindow onsiteCheckinWindows virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps finalSubmissionDeadlineAt raceCategories targetDistanceKm')
     .lean();
-  if (!event || event.isDeleted || event.status !== 'published') {
+  const recoveryGrant = await SubmissionRemediationGrant.findOne({
+    userId: runnerId,
+    registrationId: registration._id,
+    slotsRemaining: 1,
+    expiresAt: { $gt: new Date() },
+    consumedAt: null
+  }).select('_id expiresAt').lean();
+  if (!event || event.isDeleted || (event.status !== 'published' && !recoveryGrant)) {
     throw new Error('Event not found for this registration.');
   }
-  if (!isSubmissionWindowOpen({ registration, event })) {
+  if (!isSubmissionWindowOpen({ registration, event }) && !recoveryGrant) {
     throw new Error('Event is not currently accepting result submissions.');
   }
 
   return {
     ...registration,
+    _remediationGrantId: recoveryGrant?._id || null,
     resultProofMinimumDistanceKm: getStandardSubmissionMinimumDistanceKm(registration, event)
   };
+}
+
+function assertPermittedSubmissionSource(source) {
+  if (String(source || '').trim().toLowerCase() === 'strava') {
+    const error = new Error('Connected Strava activities cannot be used as HelloRun event submissions.');
+    error.code = 'external_use_blocked';
+    error.status = 403;
+    throw error;
+  }
+}
+
+async function claimRemediationGrant(grantId) {
+  if (!grantId) return null;
+  const grant = await SubmissionRemediationGrant.findOneAndUpdate(
+    { _id: grantId, slotsRemaining: 1, consumedAt: null, expiresAt: { $gt: new Date() } },
+    { $set: { slotsRemaining: 0, consumedAt: new Date() } },
+    { new: true }
+  );
+  if (!grant) {
+    const error = new Error('This manual-proof recovery slot has expired or was already used.');
+    error.code = 'recovery_slot_unavailable';
+    error.status = 409;
+    throw error;
+  }
+  return grant;
+}
+
+async function releaseRemediationGrant(grantId) {
+  if (!grantId) return null;
+  return SubmissionRemediationGrant.findOneAndUpdate(
+    { _id: grantId, slotsRemaining: 0, consumedAt: { $ne: null } },
+    { $set: { slotsRemaining: 1, consumedAt: null } },
+    { new: true }
+  );
 }
 
 async function createPersonalRecordSubmission({
@@ -1792,8 +1853,9 @@ function refreshGlobalDistanceMilestonesSafe(mongoUserId, options = {}) {
 }
 
 // Resolves once the re-rank and the ranking-achievement evaluation have finished. Existing
-// callers fire and forget; the returned promise never rejects.
-function syncEventRankingsInBackground(submission, eventSlug) {
+// callers fire and forget by default; migrations can request rejection propagation so a
+// partially recomputed cleanup is not reported as successful.
+function syncEventRankingsInBackground(submission, eventSlug, options = {}) {
   if (disableSubmissionSyncBackgroundTasks) return Promise.resolve();
   if (!process.env.DATABASE_URL || !eventSlug || submission.isPersonalRecord) return Promise.resolve();
   return (async () => {
@@ -1852,6 +1914,7 @@ function syncEventRankingsInBackground(submission, eventSlug) {
         eventId: String(submission.eventId || ''),
         error: error.message
       });
+      if (options.throwOnError) throw error;
     }
   })();
 }
@@ -1922,6 +1985,9 @@ module.exports = {
   getAutoApprovalReviewNote,
   buildSubmissionPayload,
   getEligibleRunnerRegistration,
+  assertPermittedSubmissionSource,
+  claimRemediationGrant,
+  releaseRemediationGrant,
   __setRunSubmissionBackgroundTasksInline,
   __setDisableSubmissionSyncBackgroundTasks
 };

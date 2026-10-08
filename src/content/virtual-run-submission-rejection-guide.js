@@ -35,19 +35,19 @@ const RAW_CONTENT_HTML = `
   <li><strong>Open the actual result.</strong> Use Submitted Entries or the registration card rather than relying only on an email preview.</li>
   <li><strong>Read the reason and event rules together.</strong> A rejection label identifies the issue; the event mechanics determine what qualifies.</li>
   <li><strong>Keep the source unchanged.</strong> Do not edit activity values, manufacture missing fields, or alter an image to evade review.</li>
-  <li><strong>Use the offered correction path.</strong> Replace unclear proof, correct eligible metadata, or select a different eligible Strava activity as directed.</li>
+  <li><strong>Use the offered correction path.</strong> Replace unclear screenshot proof or correct eligible metadata as directed.</li>
   <li><strong>Act before the applicable deadline.</strong> A correction action does not extend the event or submission window.</li>
   <li><strong>Ask privately when needed.</strong> Contact the organiser or <a href="/contact">HelloRun support</a> with the event and submission reference, without posting private proof publicly.</li>
 </ol>
 
 <h2>How this guide was prepared</h2>
-<p>This guide documents the HelloRun run-submission implementation available in July 2026. It was checked against the current rejection-reason catalog, screenshot and Strava submission services, event-window validation, duplicate controls, OCR and integrity signals, organiser review pages, runner correction presentation, accumulated-activity workflow, notifications, and public-result rules.</p>
+<p>This guide documents the HelloRun run-submission implementation updated in October 2026. It was checked against the current rejection-reason catalog, screenshot submission service, private connected-app restrictions, event-window validation, duplicate controls, OCR and integrity signals, organiser review pages, runner correction presentation, accumulated-activity workflow, notifications, and public-result rules.</p>
 <p>It is not a universal rule for every virtual event, an independent audit of a phone, watch, treadmill, GPS track, OCR model, or Strava record, or a finding about any runner's intent. The live event page, applicable policies, original activity, and final review record remain decisive for a particular entry.</p>
 <p>Official material from Strava explains why moving and elapsed time or GPS-derived values can differ. The Road Runners Club of America provides general fairness and good-faith context for race directors. Information Commissioner's Office guidance supports collecting evidence that is adequate, relevant, and limited to what is necessary. Those sources provide context; they do not approve or reject HelloRun results.</p>
 
 <h2>Four outcomes that are easy to confuse</h2>
 <h3>1. Blocked before submission</h3>
-<p>The form or service can refuse an attempt before a reviewable result is created. Examples include an unsupported file, an invalid or out-of-window run date, an ineligible registration, a closed submission window, a duplicate proof hash, an already-used Strava activity for the same event, an unsupported activity type, or a result that already exists in a state that is not open for ordinary resubmission.</p>
+<p>The form or service can refuse an attempt before a reviewable result is created. Examples include an unsupported file, an invalid or out-of-window run date, an ineligible registration, a closed submission window, a duplicate proof hash, an unsupported activity type, a blocked external-provider submission, or a result that already exists in a state that is not open for ordinary resubmission.</p>
 <p>Read the displayed validation message and check Submitted Entries before retrying. Repeatedly pressing Submit can create confusion when a network response is delayed. A blocked attempt is not a reviewer rejecting a stored result.</p>
 <h3>2. Submitted and awaiting review</h3>
 <p>A submitted result exists, but it has not been approved or rejected. Some clean evidence can satisfy a conditional automatic-approval path; other evidence remains pending for an organiser or administrator. Pending distance is not approved completion, official accumulated progress, or an official leaderboard result.</p>
@@ -71,13 +71,13 @@ const RAW_CONTENT_HTML = `
 <p>A standard one-time result may be below the selected category distance. An accumulated activity may be below the event's minimum per activity. The visible source distance may also disagree with the typed value. Rounding a 4.96K record to 5K is not automatically permitted merely because an app displays fewer decimals elsewhere.</p>
 <p>Check the event's distance source, unit, conversion, rounding, and tolerance rules. Correct a transcription or unit mistake only when the original evidence supports the correction. If the actual activity is too short, clearer proof cannot make it qualify; complete another eligible activity if time and rules allow.</p>
 <h3>Activity date is outside the event window</h3>
-<p>The activity must occur within the applicable dates and timezone. Uploading before the final deadline does not make an earlier or later activity eligible. A screenshot that says only “Today” can become ambiguous, and a Strava activity can carry recorded local and UTC timing that needs to be interpreted under the event rule.</p>
+<p>The activity must occur within the applicable dates and timezone. Uploading before the final deadline does not make an earlier or later activity eligible. A screenshot that says only “Today” can become ambiguous, so use a view with a calendar date where possible.</p>
 <p>Use the original activity date and check the event's opening, closing, and final submission times. Correct an entry mistake when the source proves the eligible date. Do not change the recorded date to move a genuinely out-of-window run into the event.</p>
 <h3>Required activity details are missing</h3>
 <p>Distance, duration, and date are common required fields. Depending on the event, the reviewer may also need the activity type, unit, source, category, location, participant identifier, or another published metric. A screenshot can be readable yet incomplete.</p>
 <p>Return to the original activity detail view and capture the required fields using an accepted method. More personal information is not always better. Include what the decision needs without exposing unrelated notifications, messages, contacts, health information, or precise home locations.</p>
 <h3>Activity was already submitted</h3>
-<p>One original activity should not receive unintended duplicate credit. HelloRun can compare exact uploaded-image hashes for the same runner across standard and accumulated records, and it prevents the same Strava activity ID from being used repeatedly for the same event. These controls reduce simple reuse; they do not prove that every distinct file represents a distinct activity.</p>
+<p>One original activity should not receive unintended duplicate credit. HelloRun can compare exact uploaded-image hashes for the same runner across standard and accumulated records. This control reduces simple reuse; it does not prove that every distinct file represents a distinct activity.</p>
 <p>Inspect existing entries before trying again. When one genuine activity is eligible for multiple events, use the multi-event option offered by the screenshot flow rather than editing or re-exporting copies. If the event expects a new activity, complete and submit a new eligible record.</p>
 <h3>Another activity issue needs correction</h3>
 <p>Some legitimate problems do not fit the seven specific categories. The organiser must add meaningful detail for this option so the runner knows what to address. “Invalid” or “Rejected” alone is not useful correction guidance.</p>
@@ -88,14 +88,14 @@ const RAW_CONTENT_HTML = `
 <p>Typed fields do not replace the source. If the runner enters 10.00K but the screenshot visibly shows 1.00K, a reviewer needs to resolve the discrepancy. The same applies to hours, minutes, seconds, date, elevation, steps, location, and run type. Ordinary mistakes are possible, so reviewers should request correction instead of assuming intent from one mismatch.</p>
 <p>Before uploading, read <a href="/blog/what-counts-as-valid-run-proof">What Counts as Valid Run Proof?</a> and follow <a href="/blog/how-to-submit-run-proof-correctly-hellorun">the HelloRun proof-submission walkthrough</a>. Preserve the original file and completed activity until review is final.</p>
 
-<h2>Why a Strava submission may need review or rejection</h2>
-<p>A connected Strava activity must belong to the connected athlete, contain a positive distance and duration, map to a supported run type, fall within the event window, satisfy any applicable minimum distance, and not already be used for that event. A successful sync proves that data was imported; it does not override the event's eligibility rules.</p>
+<h2>Why connected Strava activities cannot be reviewed</h2>
+<p>Connected Strava activities are private, owner-only views and cannot create submissions, enter organiser queues, or affect results and derived artifacts. A direct Strava submission attempt is blocked before any provider activity fetch. Use the separate manual screenshot path when the event permits it.</p>
 <p>Strava documents that elapsed time covers start to finish while moving time represents active movement, and it can calculate or prioritize fields differently depending on sport, pauses, and device data. An event must state which timing basis it uses. A difference between the watch, uploaded activity, and displayed feed value is a reason to inspect definitions, not automatically a reason to accuse the runner.</p>
-<p>A rejected Strava-source result does not offer ordinary free editing of imported fields. The correction guidance directs the runner to sync or select an appropriate eligible activity and submit it again. Keep the original activity unchanged and explain a genuine timing or type discrepancy if the event provides that route.</p>
+<p>An older Strava-derived result removed during remediation cannot be restored from provider data. When a manual recovery slot is available, upload permitted screenshot proof before its deadline. The replacement follows the event's normal validation rules.</p>
 
 <h2>OCR and validation signals are not verdicts</h2>
 <p>Screenshot analysis can propose distance, time, date, elevation, steps, location, run type, source, and name fields. It can also record missing values, low confidence, mismatches, and quality signals. This helps route evidence efficiently, but OCR is fallible. Stylised fonts, glare, small decimals, low contrast, unusual layouts, and crops can change what is detected.</p>
-<p>Current conditional approval criteria are intentionally separate from the final rejection decision. A screenshot that does not meet automatic criteria can remain submitted for human review. Similarly, a below-minimum or name-mismatch signal can prompt attention without proving manipulation. OCR or Strava does not guarantee approval.</p>
+<p>Current conditional approval criteria are intentionally separate from the final rejection decision. A screenshot that does not meet automatic criteria can remain submitted for human review. Similarly, a below-minimum or name-mismatch signal can prompt attention without proving manipulation. OCR does not guarantee approval.</p>
 <p>Runners should correct proposed values to match the genuine visible source when the form allows it. Reviewers should compare the original evidence, runner-confirmed fields, event mechanics, and any explanation. An algorithmic signal should never be described publicly as a misconduct finding.</p>
 
 <h2>GPS interruptions, treadmills, and device disagreements</h2>
@@ -144,7 +144,7 @@ const RAW_CONTENT_HTML = `
   <li>Check distance, unit, duration, date, activity type, and source are readable.</li>
   <li>Confirm typed or OCR-proposed values match the original.</li>
   <li>Inspect the entire image for unrelated private information.</li>
-  <li>Use an accepted file or the correct connected Strava account.</li>
+  <li>Use an accepted screenshot file.</li>
   <li>Check existing entries before retrying a duplicate or delayed request.</li>
   <li>Keep the original evidence until approval or final resolution.</li>
 </ul>
@@ -166,7 +166,7 @@ const RAW_CONTENT_HTML = `
 <h3>Can I edit an approved result?</h3>
 <p>Not through ordinary rejected-result resubmission. Contact the organiser or support privately about a genuine approved-record error.</p>
 <h3>Can I use the same activity for two events?</h3>
-<p>Only when both events permit it and the offered workflow supports the selection. The screenshot flow can offer multiple eligible events for one genuine activity; a Strava submission currently targets one event or Personal Record at a time.</p>
+<p>Only when both events permit it and the offered workflow supports the selection. The screenshot flow can offer multiple eligible events for one genuine activity. Connected Strava activities cannot target an event or Personal Record.</p>
 <h3>Will a clearer screenshot always be approved?</h3>
 <p>No. It can solve readability or missing-context problems, but the activity must still satisfy date, distance, type, identity, duplicate, and event-specific requirements.</p>
 <h3>Does rejected proof affect the leaderboard?</h3>
@@ -192,7 +192,7 @@ const REQUIRED_HEADINGS = Object.freeze([
   'Four outcomes that are easy to confuse',
   'The eight HelloRun run-rejection reasons',
   'Why screenshot evidence may need correction',
-  'Why a Strava submission may need review or rejection',
+  'Why connected Strava activities cannot be reviewed',
   'OCR and validation signals are not verdicts',
   'GPS interruptions, treadmills, and device disagreements',
   'Standard results and accumulated activities',
@@ -271,7 +271,7 @@ function validateArticlePayload(payload) {
   if (/(?:every|all) (?:virtual )?events?.{0,40}(?:use|apply|accept|allow).{0,25}(?:the same|identical|screenshots?|treadmills?)/i.test(text)) errors.push('article must not claim universal event rules');
   if (/rejected distance (?:always )?(?:counts?|contributes?|qualifies?) (?:as|toward)? ?(?:official|approved|completion|progress)/i.test(text)) errors.push('article must not count rejected evidence officially');
   if (/(?:every|all) rejected (?:results?|entries|submissions?).{0,40}(?:can|may) (?:always )?(?:be )?(?:fixed|corrected|resubmitted).{0,30}(?:after|past) the deadline/i.test(text)) errors.push('article must not promise post-deadline correction');
-  if (!/documents the HelloRun run-submission implementation available in July 2026/i.test(text)) errors.push('article must disclose implementation-based methodology');
+  if (!/documents the HelloRun run-submission implementation updated in October 2026/i.test(text)) errors.push('article must disclose implementation-based methodology');
   if (!/A review flag does not prove fraud or misconduct/i.test(text)) errors.push('article must distinguish review signals from verdicts');
   if (!/Pending distance is not approved completion/i.test(text)) errors.push('article must distinguish pending evidence');
   if (!/Rejected distance does not count toward official completion/i.test(text)) errors.push('article must distinguish rejected evidence');

@@ -11,6 +11,7 @@
     setupAvatarUpload();
     setupSectionNavigation();
     setupStravaConfirmations();
+    setupPrivateStravaActivities();
     setupUnlinkConfirmation();
   }
 
@@ -236,6 +237,52 @@
         }
       });
     }
+  }
+
+  function setupPrivateStravaActivities() {
+    const trigger = document.querySelector('[data-load-private-strava]');
+    const panel = document.querySelector('[data-private-strava-panel]');
+    const status = panel?.querySelector('[data-private-strava-status]');
+    const list = panel?.querySelector('[data-private-strava-list]');
+    if (!trigger || !panel || !status || !list) return;
+
+    trigger.addEventListener('click', async () => {
+      trigger.disabled = true;
+      panel.hidden = false;
+      list.replaceChildren();
+      status.textContent = 'Loading your recent Strava activities…';
+      try {
+        const response = await fetch('/api/integrations/strava/activities?per_page=20', {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin'
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.success !== true) throw new Error(payload.message || 'Unable to load activities.');
+        const activities = Array.isArray(payload.activities) ? payload.activities : [];
+        status.textContent = activities.length
+          ? 'Private view only. These activities are not saved by HelloRun and cannot be submitted to an event.'
+          : 'No recent activities were found.';
+        for (const activity of activities) {
+          const item = document.createElement('article');
+          item.className = 'profile-private-activity';
+          const title = document.createElement('strong');
+          title.textContent = activity.name || 'Strava activity';
+          const meta = document.createElement('p');
+          const date = activity.startDateLocal || activity.startDate;
+          meta.textContent = [
+            activity.sportType || activity.type || 'Activity',
+            `${Number(activity.distanceKm || 0).toFixed(2)} km`,
+            date ? new Date(date).toLocaleDateString() : ''
+          ].filter(Boolean).join(' · ');
+          item.append(title, meta);
+          list.append(item);
+        }
+      } catch (error) {
+        status.textContent = error.message || 'Unable to load activities.';
+      } finally {
+        trigger.disabled = false;
+      }
+    });
   }
 
   function bindStravaConfirmation({ modal, triggers, cancel, confirm, onConfirm }) {

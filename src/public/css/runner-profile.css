@@ -588,6 +588,15 @@
 .strava-confirm-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
 .strava-confirm-actions .btn { min-width: 0; min-height: 2.75rem; width: 100%; padding-inline: .6rem; text-align: center; white-space: normal; }
 
+.profile-private-activities { margin-top: 1rem; padding: .9rem; border: 1px solid var(--border-color, #dbe3ec); border-radius: .8rem; background: #f8fafc; }
+.profile-private-activities > p { margin: 0 0 .7rem; color: #475569; font-size: .86rem; }
+.profile-private-activity { padding: .7rem 0; border-top: 1px solid #e2e8f0; }
+.profile-private-activity:first-child { border-top: 0; }
+.profile-private-activity p { margin: .2rem 0 0; color: #64748b; font-size: .82rem; }
+.profile-integration-help { margin-top: 1rem; font-size: .86rem; }
+.profile-integration-help summary { cursor: pointer; font-weight: 700; }
+.profile-integration-help p { margin: .55rem 0 0; color: #475569; line-height: 1.55; }
+
 .profile-featured-badge {
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr);

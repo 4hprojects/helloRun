@@ -77,7 +77,7 @@ HelloRun uses Asia/Manila for current day-level event checks. The structured dat
 
 ## Proof and review
 
-Submit a readable JPEG, PNG, or WebP activity screenshot, or select a supported activity from your connected Strava account when available. Confirm the activity date, type, distance in kilometres, duration, and location before submitting. OCR may assist with field entry, but runners remain responsible for checking the values. Submissions may be approved automatically when eligible or reviewed by an organiser or administrator.
+Submit a readable JPEG, PNG, or WebP activity screenshot. Connected Strava activities are private and cannot be submitted to this event. Confirm the activity date, type, distance in kilometres, duration, and location before submitting. OCR may assist with field entry, but runners remain responsible for checking the values. Submissions may be approved automatically when eligible or reviewed by an organiser or administrator.
 
 ## Recognition
 

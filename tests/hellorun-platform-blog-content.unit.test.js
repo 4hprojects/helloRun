@@ -56,7 +56,7 @@ test('HelloRun platform guide builds a substantive organiser-first payload', () 
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.doesNotThrow(() => validateArticlePayload(payload));
 
-  assert.match(payload.contentText, /documents the HelloRun implementation available in July 2026/i);
+  assert.match(payload.contentText, /documents the HelloRun implementation updated in October 2026/i);
   assert.match(payload.contentText, /does not directly process event registration funds/i);
   assert.match(payload.contentText, /Dashboard summaries and registrant exports are not complete accounting statements/i);
   assert.match(payload.contentText, /does not guarantee event legitimacy, registrations, participant numbers, revenue/i);
@@ -84,7 +84,7 @@ test('platform capability claims remain grounded in current organiser workflows'
   assert.match(PRICE_SOURCE, /distance_based_period/);
   assert.match(PRICE_SOURCE, /package_period/);
   assert.match(PAYMENT_SOURCE, /Payment receipts and activity proof are reviewed separately/);
-  assert.match(PROOF_SOURCE, /Strava submissions target one event or Personal Record/);
+  assert.doesNotMatch(PROOF_SOURCE, /Sync Strava Data|Strava Activity/);
   assert.match(PROOF_SOURCE, /OCR-assisted reading/);
 
   assert.match(DASHBOARD_SOURCE, /registrationsInRange/);

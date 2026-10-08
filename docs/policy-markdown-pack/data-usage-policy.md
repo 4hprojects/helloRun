@@ -72,7 +72,7 @@ Payment approval confirms the registration payment workflow only. It does not ap
 
 For single-result and accumulated-distance events, HelloRun may process:
 
-- proof images or authorized imported activity data
+- runner-uploaded proof images; connected Strava activity lists are private, on-demand views and are not event evidence
 - activity date, type, distance, duration, pace, elevation, steps, and location text
 - selected event, category, distance, goal, and participation mode
 - submitted, approved, rejected, and pending activity states

@@ -122,7 +122,7 @@ const RAW_CONTENT_HTML = `
 <p>Read the structured event page rather than assuming “virtual” means any time, any place, or any activity. Some events permit treadmills, walking, split activities, or accumulated distance; others require a particular activity type, date window, minimum distance, or evidence source. Browse <a href="/events">Events</a>, review <a href="/how-it-works">How It Works</a>, and use the <a href="/faq">FAQ</a> when learning the platform.</p>
 <p>If the event permits an indoor treadmill, prepare the required final summary and follow its distance and duration rules. If it uses accumulated distance, a shorter approved activity on a safer day may contribute without forcing one long wet outing. The <a href="/blog/how-accumulated-distance-challenges-work">accumulated-distance guide</a> explains why approved distance counts officially while pending distance remains potential progress.</p>
 <p>If neither option is accepted, postpone within the activity window or contact the organiser through the published support route before the deadline. Do not assume an extension will be granted. If conditions remain unsafe and no compliant alternative exists, missing the event result is safer than improvising through a warning.</p>
-<p>HelloRun can support event-specific registration, external payment-receipt review where applicable, screenshot or supported Strava activity evidence, OCR-assisted field entry, and organiser or admin review. HelloRun does not directly process the external payment transfer, and correct evidence does not guarantee approval. Pending is not approved progress or an official ranked result. Leaderboards and certificates appear only when configured and after the applicable review rules are satisfied.</p>
+<p>HelloRun can support event-specific registration, external payment-receipt review where applicable, screenshot evidence, OCR-assisted field entry, and organiser or admin review. Connected Strava activities are private and cannot be submitted. HelloRun does not directly process the external payment transfer, and correct evidence does not guarantee approval. Pending is not approved progress or an official ranked result. Leaderboards and certificates appear only when configured and after the applicable review rules are satisfied.</p>
 
 <h2>Four practical rainy-season scenarios</h2>
 <h3>Scenario 1: light rain before an outdoor 5K</h3>
@@ -179,7 +179,7 @@ const RAW_CONTENT_HTML = `
   <li>Check whether the event uses moving time, elapsed time, or another field.</li>
   <li>Do not create altered copies to hide a route or distance problem; use the supported privacy and correction process.</li>
   <li>Protect private home locations, profile details, notifications, and health information.</li>
-  <li>Use <a href="/blog/how-to-submit-run-proof-correctly-hellorun">the HelloRun proof-submission walkthrough</a> for the current screenshot or Strava flow.</li>
+  <li>Use <a href="/blog/how-to-submit-run-proof-correctly-hellorun">the HelloRun proof-submission walkthrough</a> for the current screenshot flow.</li>
   <li>Remember that OCR assists field entry but is fallible; confirm every extracted value.</li>
   <li>Wait for the review result. A submitted or pending activity is not yet approved.</li>
 </ul>

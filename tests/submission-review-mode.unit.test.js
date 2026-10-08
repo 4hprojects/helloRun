@@ -41,7 +41,7 @@ test('only an explicit manual setting counts as organizer review; legacy events 
 test('the two options are defined once, with the system option recommended', () => {
   assert.deepEqual(mode.SUBMISSION_REVIEW_MODE_OPTIONS.map((o) => o.value), ['system', 'manual']);
   assert.equal(mode.SUBMISSION_REVIEW_MODE_OPTIONS[0].badge, 'Recommended');
-  assert.match(mode.SUBMISSION_REVIEW_MODE_OPTIONS[1].description, /including Strava syncs/i);
+  assert.match(mode.SUBMISSION_REVIEW_MODE_OPTIONS[1].description, /Every permitted screenshot submission waits/i);
   assert.equal(mode.getSubmissionReviewModeLabel('manual'), 'Organizer reviews all');
   assert.equal(mode.getSubmissionReviewModeLabel(undefined), 'System validation');
 });
@@ -116,7 +116,7 @@ test('validation still runs in manual mode, so reviewers keep every signal', () 
   // integrity results happens before applyAutoApprovalIfEligible is called.
   const source = read('src/services/submission.service.js');
   const calls = source.match(/return applyAutoApprovalIfEligible\(/g) || [];
-  assert.equal(calls.length, 3);
+  assert.equal(calls.length, 2);
   assert.doesNotMatch(source, /isManualSubmissionReview[\s\S]{0,200}detectSuspiciousActivity/);
 });
 
@@ -204,12 +204,11 @@ test('runners are shown each event\'s mode, and the submit copy no longer promis
   const modal = read('src/public/js/run-proof-modal.js');
   assert.match(modal, /const isManualReviewOption = \(item\) => String\(\(item && item\.submissionReviewMode\) \|\| ''\) === 'manual'/);
   assert.match(modal, /The organiser reviews every submission for this event, so you will be notified once it has been reviewed\./);
-  // Strava success, standard success and the confirm dialog all follow the mode.
-  assert.match(modal, /isManualReviewOption\(selected\)\s*\?\s*'Your Strava activity has been received\. ' \+ MANUAL_REVIEW_NOTE/);
+  // Standard success and the confirm dialog follow the mode; Strava submission is absent.
+  assert.doesNotMatch(modal, /submissions\/strava|Your Strava activity has been received/);
   assert.match(modal, /const manualReviewSelected = getSelectedOptions\(\)\.some\(isManualReviewOption\)/);
   assert.match(modal, /getSelectedOptions\(\)\.some\(isManualReviewOption\) \? ' ' \+ MANUAL_REVIEW_NOTE : ''/);
-  // Events on system validation keep the original wording.
-  assert.match(modal, /Clean synced activities may auto-approve; otherwise they remain available for review\./);
+  assert.match(modal, /This proof can still be submitted, but it will not be auto-approved/);
 });
 
 // ---- Behaviour of the two enforcement points -------------------------------------------

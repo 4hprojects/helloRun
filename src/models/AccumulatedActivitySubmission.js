@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const { organizerCorrectionSchema } = require('./organizer-correction.schema');
 const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
+const { applyRestrictedProviderScope } = require('../utils/restricted-provider-scope');
 
 const manualReviewChecklistSchema = new mongoose.Schema({
   version: { type: String, trim: true, maxlength: 40, required: true },
@@ -339,6 +340,7 @@ accumulatedActivitySubmissionSchema.index(
 accumulatedActivitySubmissionSchema.index({ runnerId: 1, 'proof.hash': 1 }, { sparse: true });
 accumulatedActivitySubmissionSchema.index({ registrationId: 1, 'certificate.url': 1 });
 applySmokeTestSchema(accumulatedActivitySubmissionSchema);
+applyRestrictedProviderScope(accumulatedActivitySubmissionSchema);
 
 module.exports = mongoose.models.AccumulatedActivitySubmission ||
   mongoose.model('AccumulatedActivitySubmission', accumulatedActivitySubmissionSchema);

@@ -69,7 +69,7 @@ Cycling, swimming, motorcycle or vehicle-assisted distance, activities shorter t
 
 ## Activity proof requirements
 
-Submit proof through verified running-app synchronization or a clear screenshot from a fitness or running app. Examples include Strava, Garmin Connect, COROS, Nike Run Club, Adidas Running, Apple Fitness, Samsung Health, Google Fit, Fitbit, Suunto, and comparable apps.
+Submit a clear screenshot from a fitness or running app. Examples include Strava, Garmin Connect, COROS, Nike Run Club, Adidas Running, Apple Fitness, Samsung Health, Google Fit, Fitbit, Suunto, and comparable apps. Connected Strava activities cannot be submitted directly.
 
 Each proof must clearly show the activity date, distance, duration or moving time, activity type, and app or tracker source. Keep the participant or profile identity and route summary visible when available. Do not crop out the date or distance, alter recorded figures, or submit the same activity more than once.
 

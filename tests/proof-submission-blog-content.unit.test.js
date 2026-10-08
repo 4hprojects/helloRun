@@ -37,7 +37,7 @@ test('proof-submission guide builds a substantive procedural payload', () => {
     'run proof',
     'proof submission',
     'activity screenshot',
-    'strava import',
+    'manual proof',
     'ocr review',
     'result review',
     'virtual run',
@@ -56,10 +56,10 @@ test('proof-submission guide builds a substantive procedural payload', () => {
   assert.equal(payload.ogImageUrl, COVER_IMAGE_URL);
   assert.doesNotThrow(() => validateArticlePayload(payload));
 
-  assert.match(payload.contentText, /documents the HelloRun proof-submission implementation available in July 2026/i);
+  assert.match(payload.contentText, /documents the HelloRun proof-submission implementation updated in October 2026/i);
   assert.match(payload.contentText, /current run-result form accepts JPEG, PNG, and WebP images/i);
   assert.match(payload.contentText, /maximum of 5 MB/i);
-  assert.match(payload.contentText, /Strava submission currently targets one HelloRun event or Personal Record at a time/i);
+  assert.match(payload.contentText, /Connected Strava activities cannot be targeted to any event or Personal Record/i);
   assert.match(payload.contentText, /uploaded proof image is deliberately not restored from that draft/i);
   assert.match(payload.contentText, /ordinary correction path applies to rejected results/i);
   assert.match(payload.contentText, /Pending distance is not approved completion/i);
@@ -80,8 +80,8 @@ test('documented three-stage workflow remains grounded in the current form and s
   assert.match(MODAL_SOURCE, /Step 1 of 3.*Choose run date/);
   assert.match(MODAL_SOURCE, /accept="image\/jpeg,image\/png,image\/webp"/);
   assert.match(MODAL_SOURCE, /JPG, PNG, or WebP up to 5MB/);
-  assert.match(MODAL_SOURCE, /For screenshots, select each eligible event this activity should count toward/);
-  assert.match(MODAL_SOURCE, /Strava submissions target one event or Personal Record/);
+  assert.match(MODAL_SOURCE, /Select each eligible event this screenshot should count toward/);
+  assert.doesNotMatch(MODAL_SOURCE, /Sync Strava Data|Strava Activity/);
   assert.match(MODAL_SOURCE, /data-run-type="run"/);
   assert.match(MODAL_SOURCE, /data-run-type="walk"/);
   assert.match(MODAL_SOURCE, /data-run-type="hike"/);
@@ -100,8 +100,8 @@ test('documented three-stage workflow remains grounded in the current form and s
   assert.match(CONTROLLER_SOURCE, /Submission already exists\. Use resubmit flow if rejected/);
   assert.match(CONTROLLER_SOURCE, /Only rejected submissions can be resubmitted/);
   assert.match(SUBMISSION_SOURCE, /Only rejected submissions can be resubmitted/);
-  assert.match(STRAVA_SOURCE, /does not belong to your connected account/);
-  assert.match(STRAVA_SOURCE, /already been submitted for this event/);
+  assert.match(STRAVA_SOURCE, /external_use_blocked/);
+  assert.match(STRAVA_SOURCE, /cannot be submitted to HelloRun events/);
   assert.match(PRESENTATION_SOURCE, /label: 'Fix entry'/);
   assert.match(PRESENTATION_SOURCE, /strategy: 'strava'/);
 });

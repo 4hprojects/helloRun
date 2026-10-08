@@ -68,7 +68,7 @@ test('fair run-proof review checklist builds a substantive organizer payload', (
 
   assert.doesNotMatch(payload.contentHtml, /<h1\b/i);
   assert.doesNotMatch(payload.contentHtml, /<h[12]>A Fair and Consistent Run-Proof Review Checklist/i);
-  assert.match(payload.contentText, /reviewed in August 2026 against current HelloRun/i);
+  assert.match(payload.contentText, /reviewed in October 2026 against current HelloRun/i);
   assert.match(payload.contentText, /Approval means the evidence met the applicable platform and event review requirements/i);
   assert.match(payload.contentText, /eight structured rejection reasons/i);
   assert.match(payload.contentText, /Before the next review session, choose five comparable pending entries/i);

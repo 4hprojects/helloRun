@@ -24,6 +24,11 @@ const STRAVA_TYPE_TO_RUN_TYPE = {
 };
 
 async function submitStravaActivity({ runnerId, eventId, stravaActivityId }) {
+  const blocked = new Error('Connected Strava activities are private and cannot be submitted to HelloRun events.');
+  blocked.code = 'external_use_blocked';
+  blocked.status = 403;
+  throw blocked;
+  /* istanbul ignore next -- historical implementation retained only for remediation references */
   const safeActivityId = Number(stravaActivityId || 0);
   if (!safeActivityId) {
     throw new Error('Select a Strava activity to submit.');

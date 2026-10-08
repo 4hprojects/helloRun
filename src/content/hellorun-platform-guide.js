@@ -36,7 +36,7 @@ const RAW_CONTENT_HTML = `
   <li>The organiser previews the runner-facing page and addresses readiness or consistency issues before publication.</li>
   <li>Runners find the published event, review its organiser and mechanics, and register for an available mode and category.</li>
   <li>Free registrations proceed without a payment receipt. Paid registrations follow the organiser's external payment instructions and enter a receipt-review workflow.</li>
-  <li>Virtual runners submit an eligible screenshot or connected Strava activity. Onsite organisers can maintain registration, bib, check-in, and result records.</li>
+  <li>Virtual runners submit an eligible activity screenshot. Onsite organisers can maintain registration, bib, check-in, and result records.</li>
   <li>Eligible result submissions are approved conditionally or reviewed by an authorised organiser or administrator.</li>
   <li>Approved results can feed an event's configured standings, progress, badges, or certificates.</li>
   <li>Organisers use queues, summaries, exports, and audit history to close out the event and answer participant questions.</li>
@@ -44,7 +44,7 @@ const RAW_CONTENT_HTML = `
 <p>Every feature is subject to the event's setup and the runner's eligibility. A platform account or public event page does not itself guarantee entry, approval, ranking, a reward, or delivery.</p>
 
 <h2>How this platform guide was prepared</h2>
-<p>This guide documents the HelloRun implementation available in July 2026. It was checked against the organiser application, event creation and preview, publication, registration pricing, payment-receipt review, activity submission, OCR and Strava validation, leaderboard, certificate, dashboard, registrant export, event audit, and onsite-operation code. It is not based on personal testing and is not an independent usability, security, timing-accuracy, or competitor audit.</p>
+<p>This guide documents the HelloRun implementation updated in October 2026. It was checked against the organiser application, event creation and preview, publication, registration pricing, payment-receipt review, screenshot submission, OCR validation, private connected apps, leaderboard, certificate, dashboard, registrant export, event audit, and onsite-operation code. It is not based on personal testing and is not an independent usability, security, timing-accuracy, or competitor audit.</p>
 <p>The evaluation also uses official event-safety, race-director ethics, accessibility, data-minimisation, course-certification, and people-first publishing guidance. Those sources give context; they do not certify HelloRun or an event listed on it. Product behavior, policies, and event configurations can change, so the live interface and published event record remain authoritative.</p>
 
 <h2>The operational problem HelloRun addresses</h2>
@@ -61,7 +61,7 @@ const RAW_CONTENT_HTML = `
   <li>Virtual, onsite, and hybrid participation configuration.</li>
   <li>Structured dates, modes, categories, registration options, packages, pricing snapshots, waivers, and profile snapshots.</li>
   <li>External payment instructions with uploaded receipt and organiser review states.</li>
-  <li>Screenshot and connected-Strava virtual result paths with OCR-assisted entry and validation.</li>
+  <li>Screenshot virtual-result paths with OCR-assisted entry and validation, plus a separate owner-only Strava activity viewer.</li>
   <li>Organiser or administrator result review, corrections, queues, and critical audit history.</li>
   <li>Race-result and accumulated-distance standings based on approved records.</li>
   <li>Organiser dashboard summaries and registrant CSV or XLSX export.</li>
@@ -122,8 +122,8 @@ const RAW_CONTENT_HTML = `
 <p>For refunds, cancellations, failed transfers, charge disputes, and delivery questions, the event's terms, payment provider, organiser responsibilities, and applicable law remain relevant. Review the <a href="/refund-and-cancellation-policy">Refund and Cancellation Policy</a> before opening paid registration.</p>
 
 <h2>Step 5: collect and review virtual activity evidence</h2>
-<p>The current runner flow supports a screenshot path and a connected Strava path. Screenshot evidence is analysed with OCR-assisted extraction, after which the runner confirms the event, activity type, distance, duration, location, and other fields. Strava imports use activity data from the connected account and currently target one event or Personal Record at a time.</p>
-<p>OCR is an input aid, not proof that the image is accurate. It can misread a decimal, unit, date, name, or duration. Strava data can also differ according to moving time, elapsed time, device, privacy, and sync behavior. The event mechanics decide what is eligible, and the runner remains responsible for confirming the submitted record.</p>
+<p>The current runner flow supports screenshot proof. Screenshot evidence is analysed with OCR-assisted extraction, after which the runner confirms the event, activity type, distance, duration, location, and other fields. The separate Strava connection is an owner-only, on-demand recent-activity view and cannot target an event or Personal Record.</p>
+<p>OCR is an input aid, not proof that the image is accurate. It can misread a decimal, unit, date, name, or duration. A screenshot captured from Strava can also reflect moving time, elapsed time, device, privacy, and sync behavior. The event mechanics decide what is eligible, and the runner remains responsible for confirming the submitted screenshot record.</p>
 <p>Eligible clean submissions may follow a current conditional approval path. Other records can remain pending for organiser or administrator review, including mismatches and flagged cases. A reviewer can approve or reject according to the event rule, while rejected results can use the supported correction flow.</p>
 <p>Use <a href="/blog/what-counts-as-valid-run-proof">What Counts as Valid Run Proof?</a> for evidence quality and <a href="/blog/how-to-submit-run-proof-correctly-hellorun">the proof-submission walkthrough</a> for the runner interface. The <a href="/blog/best-apps-to-track-your-virtual-run">app comparison</a> explains documented tracking features without claiming a universal accuracy winner.</p>
 
@@ -160,7 +160,7 @@ const RAW_CONTENT_HTML = `
 
 <h2>Four practical HelloRun examples</h2>
 <h3>Free virtual 5K</h3>
-<p>A club publishes one virtual 5K with a clear activity window and screenshot or Strava evidence. Registration is free, so no payment receipt is required. A runner submits an eligible activity; an approved result appears only in configured event outputs. The club still owns participant support and safety messaging.</p>
+<p>A club publishes one virtual 5K with a clear activity window and screenshot evidence. Registration is free, so no payment receipt is required. A runner submits an eligible activity; an approved result appears only in configured event outputs. The club still owns participant support and safety messaging.</p>
 <h3>Paid event with manual receipt review</h3>
 <p>An organiser offers several distances and a finisher package. The runner selects a package, follows the stated external payment method, and uploads the transaction receipt. The organiser confirms the actual account record before marking the registration paid. Result approval and delivery remain later, separate decisions.</p>
 <h3>Accumulated company challenge</h3>
@@ -188,7 +188,7 @@ const RAW_CONTENT_HTML = `
   <li>Create the event, then preview every public section and registration choice.</li>
   <li>Name one timezone and separate registration, activity, submission, review, results, and fulfilment dates.</li>
   <li>Test free or paid totals, receipt instructions, packages, and delivery fees with realistic examples.</li>
-  <li>Test screenshot and Strava paths only if the event will accept them.</li>
+  <li>Test the screenshot path with the event's configured evidence rules.</li>
   <li>Document reviewer standards, correction policy, escalation owner, and response target.</li>
   <li>Verify leaderboard, badge, and certificate wording does not promise unsupported recognition.</li>
   <li>Rehearse onsite bib, check-in, result, safety, and contingency workflows where applicable.</li>
@@ -358,7 +358,7 @@ function validateArticlePayload(payload) {
   if (/complete (?:accounting|tax|sponsor|charity|custom) report/i.test(text)) errors.push('article must not promise complete reporting');
   if (/(?:HelloRun guarantees? (?:event legitimacy|registrations|revenue|safety|refunds?|delivery|legal compliance)|(?:event legitimacy|registrations|revenue|safety|refunds?|delivery|legal compliance) (?:is|are) guaranteed)/i.test(text)) errors.push('article must not guarantee event outcomes');
   if (/waiver (?:removes?|eliminates?|waives?) (?:all )?(?:organiser|organizer) (?:responsibility|duties|liability)/i.test(text)) errors.push('article must not absolve organisers through waivers');
-  if (!/documents the HelloRun implementation available in July 2026/i.test(text)) errors.push('article must disclose implementation-based methodology');
+  if (!/documents the HelloRun implementation updated in October 2026/i.test(text)) errors.push('article must disclose implementation-based methodology');
   if (!/does not directly process event registration funds/i.test(text)) errors.push('article must disclose external payment handling');
   if (!/Dashboard summaries and registrant exports are not complete accounting statements/i.test(text)) errors.push('article must bound reporting claims');
   if (!/does not guarantee event legitimacy, registrations, participant numbers, revenue/i.test(text)) errors.push('article must include responsibility limitations');

@@ -116,7 +116,7 @@ const RAW_CONTENT_HTML = `
 <h3>Proof and correction checklist</h3>
 <ul>
   <li>Select at least one supported proof type for virtual participation.</li>
-  <li>State whether the runner should use an activity screenshot, connected Strava activity, treadmill summary, or another expressly supported route.</li>
+  <li>State whether the runner should use an activity screenshot, treadmill summary, or another expressly supported manual route. Connected Strava activities cannot be event evidence.</li>
   <li>Name required fields: normally date, distance and unit, duration, activity type, and recognisable source, plus identity or route only when necessary.</li>
   <li>Define duplicate, wrong-activity, identity, distance, date, incomplete-metric, and unclear-proof treatment.</li>
   <li>Explain whether and when a rejected result can be corrected before the deadline.</li>

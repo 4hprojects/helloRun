@@ -120,7 +120,7 @@ const RAW_CONTENT_HTML = `
   <li><strong>Rejected distance</strong> does not count. The rejection and available correction path should be reviewed before another submission.</li>
 </ul>
 <p>Remaining distance is calculated as the target minus approved distance, with a floor of zero. If 53K is approved against a 50K goal, remaining distance is zero and the verified total remains 53K; it is not capped at 50K.</p>
-<p>Conditional automatic approval may apply to eligible clean OCR or supported Strava evidence under current rules. It is not guaranteed for every activity. Other cases remain available for organiser or administrator review.</p>
+<p>Conditional automatic approval may apply to eligible clean OCR-assisted screenshot evidence under current rules. It is not guaranteed for every activity. Other cases remain available for organiser or administrator review.</p>
 
 <h2>Five practical progress examples</h2>
 <h3>Example 1: steady approved progress</h3>
@@ -137,7 +137,7 @@ const RAW_CONTENT_HTML = `
 <h2>Record and submit every eligible activity</h2>
 <p>Use one separate activity record for each eligible session. A weekly or monthly dashboard total can hide dates, activity types, component distances, and duplicates, making it difficult to establish which activity belongs inside the event window.</p>
 <p>For a screenshot path, preserve a readable final activity summary with the fields requested by the live form. HelloRun currently supports JPEG, PNG, or WebP activity screenshots subject to the submission form's current size limit. OCR can assist with field entry, but it is fallible and does not prove accuracy. Confirm every extracted value before submission.</p>
-<p>For a supported connected Strava path, use an activity from the connected account and confirm date, type, distance, and time. Strava explains that moving time and elapsed time can differ and that GPS processing can produce differences between services or devices. Do not edit fields merely to force agreement.</p>
+<p>A connected Strava account provides a private recent-activity view only; it cannot supply challenge evidence. If the event accepts it, capture a suitable screenshot and confirm its date, type, distance, and time in the manual flow. Do not edit fields merely to force agreement.</p>
 <p>Exact screenshot and connected-activity duplicate controls can block reuse. Preserve original evidence and use <a href="/blog/how-to-submit-run-proof-correctly-hellorun">the proof-submission walkthrough</a> for the procedural flow. Use <a href="/blog/what-counts-as-valid-run-proof">the valid-proof guide</a> for evidence quality and privacy.</p>
 
 <h2>Prepare the tracker and protect private information</h2>

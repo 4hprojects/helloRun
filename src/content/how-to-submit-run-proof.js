@@ -13,20 +13,20 @@ const ARTICLE = Object.freeze({
     'run proof',
     'proof submission',
     'activity screenshot',
-    'strava import',
+    'manual proof',
     'ocr review',
     'result review',
     'virtual run',
     'runner guide'
   ]),
   seoTitle: 'How to Submit Run Proof Correctly | HelloRun',
-  seoDescription: 'Follow HelloRun’s run-proof submission flow for screenshots and Strava imports, confirm activity details, avoid common errors, and handle pending or rejected results.',
+  seoDescription: 'Follow HelloRun’s screenshot proof submission flow, confirm activity details, avoid common errors, and handle pending or rejected results.',
   coverImageAlt: 'Runner using HelloRun’s three-step proof form to choose a run date, upload an activity screenshot, confirm distance and duration, and submit for review'
 });
 
 const RAW_CONTENT_HTML = `
-<p>Submitting run proof on HelloRun is a short workflow with an important purpose: it connects one completed activity to the correct registration and gives the event reviewer enough information to make a decision. A clear screenshot or connected activity is only the evidence source. You still need the correct run date, event, activity type, distance, duration, and location.</p>
-<p>The current form separates those decisions into three stages: choose the run date, provide an activity screenshot or connected Strava activity, then confirm the event and activity details. A final review screen lets you check the complete entry before sending it.</p>
+<p>Submitting run proof on HelloRun is a short workflow with an important purpose: it connects one completed activity to the correct registration and gives the event reviewer enough information to make a decision. A clear screenshot is the evidence source. You still need the correct run date, event, activity type, distance, duration, and location.</p>
+<p>The current form separates those decisions into three stages: choose the run date, provide an activity screenshot, then confirm the event and activity details. A final review screen lets you check the complete entry before sending it.</p>
 <blockquote><strong>Important:</strong> completing the form correctly makes an activity reviewable; it does not guarantee approval. The event rules, registration eligibility, evidence, validation checks, and final review status determine whether it counts.</blockquote>
 
 <h2>Run-proof submission in one minute</h2>
@@ -35,7 +35,7 @@ const RAW_CONTENT_HTML = `
   <li>Finish the activity inside the event window and save the original record.</li>
   <li>Open Submit from the event page, runner dashboard, registration progress, or mobile navigation.</li>
   <li>Choose the date on which the activity was completed.</li>
-  <li>Upload a supported screenshot and analyse it, or select a recent activity from your connected Strava account.</li>
+  <li>Upload a supported screenshot and analyse it.</li>
   <li>Select the eligible event registration or Personal Record destination.</li>
   <li>Confirm activity type, distance, duration, location, and any optional fields.</li>
   <li>Review every value against the original activity and submit once.</li>
@@ -44,7 +44,7 @@ const RAW_CONTENT_HTML = `
 </ol>
 
 <h2>How this guide was prepared</h2>
-<p>This guide documents the HelloRun proof-submission implementation available in July 2026. It was checked against the runner proof modal, browser-side workflow, image-upload rules, page controller, submission and accumulated-activity services, Strava validation, duplicate controls, and runner-facing result presentation. It is not an independent audit of OCR, GPS, treadmill, or device accuracy.</p>
+<p>This guide documents the HelloRun proof-submission implementation updated in October 2026. It was checked against the runner proof modal, browser-side workflow, image-upload rules, page controller, submission and accumulated-activity services, duplicate controls, and runner-facing result presentation. It is not an independent audit of OCR, GPS, treadmill, or device accuracy.</p>
 <p>World Athletics provides virtual-race preparation context. Strava documents moving and elapsed time and third-party privacy behavior. RRCA ethics and ICO data-minimisation guidance provide fairness and privacy context. Those sources do not decide a HelloRun result: the live event mechanics, form, and applicable platform policies remain authoritative.</p>
 
 <h2>Before opening the form</h2>
@@ -81,24 +81,23 @@ const RAW_CONTENT_HTML = `
 <p>A typical screenshot should visibly identify the completed activity and show the date, distance and unit, duration, activity type, and recognizable source. Location, route, pace, elevation, steps, or participant name may be needed depending on the event. Do not edit performance values or combine unrelated screens into one misleading activity.</p>
 <p>After selecting the image, choose Analyse Activity Screenshot. Analysis attempts to extract candidate values for the next stage. It is an assistance step, not a certification step. If analysis cannot read the image, replace it with a clearer original or enter the values carefully when the form permits continuation.</p>
 
-<h2>Step 2B: select a connected Strava activity</h2>
-<p>A runner who has authorised a Strava connection can choose Sync Strava Data and select one recent supported activity. HelloRun checks that the activity belongs to the connected athlete account and reads its source values rather than asking the runner to recreate the record from memory.</p>
-<p>Current supported mappings include Run, Virtual Run, Trail Run, Walk, and Hike. The selected event can accept a narrower set. The activity also needs a positive distance and duration, an eligible date, and any event-specific minimum distance. A technically successful Strava sync does not make an excluded Walk eligible for a run-only event.</p>
-<p>A Strava submission currently targets one HelloRun event or Personal Record at a time. This differs from the screenshot path, which can offer several eligible event registrations for one genuine activity. Do not create altered screenshots to imitate multi-event Strava targeting.</p>
-<p>The same Strava activity ID cannot repeatedly count for the same event. If an activity has already been submitted, select the correct distinct activity or inspect the existing entry. Disconnecting and reconnecting the account does not turn one activity into a new run.</p>
-<p>Strava distinguishes moving time from elapsed time. Elapsed time covers the period from start to finish, including stops, while moving time measures detected active movement. Its interface may emphasize different fields in different views. Confirm the event's timing basis instead of assuming every displayed pace or duration is equivalent.</p>
+<h2>Connected Strava activities are private</h2>
+<p>A runner may connect Strava from Connected Apps to view up to 30 recent activities privately. HelloRun fetches that list on demand for the connected runner and does not save the activity payload as event evidence.</p>
+<p>Connected activities cannot be selected in the run-proof form, sent to an organiser, used for automatic approval, or counted toward results, leaderboards, badges, achievements, analytics, or certificates. Official event use remains disabled unless HelloRun documents separate written authorization.</p>
+<p>If an event permits screenshot evidence, capture a suitable activity summary yourself and use the manual upload path. The event's normal evidence, date, activity-type, minimum-distance, and review rules still apply. Connecting or disconnecting Strava does not change those rules.</p>
+<p>Disconnecting deletes the local connection credentials and initiates provider token revocation. The private recent-activity list is not a synchronization feed and is not retained as a submission.</p>
 
-<h2>How screenshot and Strava targeting differ</h2>
+<h2>How screenshot submission and private connections differ</h2>
 <h3>Screenshot submission</h3>
 <p>After the date and image are processed, the form can show every currently eligible registration that the same activity may target. Select only events whose mechanics allow that activity. HelloRun validates each selected target before writing results so an ordinary eligibility error does not intentionally create a partial multi-event submission.</p>
-<h3>Strava submission</h3>
-<p>The imported activity targets one event registration or one Personal Record destination. Its activity identity and imported fields stay associated with that source. If you select the wrong event, correct the selection before final confirmation.</p>
+<h3>Private connected activity view</h3>
+<p>The connected activity view has no event target. It is visible only to its owner and cannot create an event result or Personal Record. Return to the screenshot form when you have separate evidence permitted by the event.</p>
 <h3>Personal Record</h3>
 <p>Personal Record is a personal-log destination rather than an event registration. It does not silently count toward an event, leaderboard, reward, or certificate. A new personal record entry is created for each submission rather than using the standard rejected-result replacement rule.</p>
 
 <h2>Step 3: select the event and classify the activity</h2>
 <p>The Event Selection area lists destinations available for the chosen date and current account state. Confirm the event title, distance/category, and registration. A correct 10K screenshot attached to the wrong registration is still an incorrect submission.</p>
-<p>For screenshots, select each eligible event the activity should count toward only when its rules permit that use. For Strava, select one target. If an event disappears after the form was opened, eligibility may have changed; refresh rather than trying to bypass the current state.</p>
+<p>For screenshots, select each eligible event the activity should count toward only when its rules permit that use. If an event disappears after the form was opened, eligibility may have changed; refresh rather than trying to bypass the current state.</p>
 <p>Next choose one run classification:</p>
 <ul>
   <li><strong>Run:</strong> an activity recorded and represented as running.</li>
@@ -123,7 +122,7 @@ const RAW_CONTENT_HTML = `
 <p>OCR can confuse decimal separators, small fonts, stylized digits, low contrast, cropped labels, or miles and kilometres. A visible 5.01 can be read as 501; a duration can be mistaken for pace; an account nickname can look like another person. Correct an ordinary reading error to match the original evidence rather than changing the evidence to match the extraction.</p>
 <p>If the source route or distance itself looks unusual, preserve it and review <a href="/blog/how-accurate-is-phone-gps-for-running">the phone-GPS accuracy guide</a> before deciding whether to contact the organizer. OCR can read a displayed total; it does not validate the satellite track behind it.</p>
 <p>If the detected name differs from the HelloRun account, the form warns the runner and offers a chance to replace the screenshot. Continuing with a genuine mismatch places the result into manual review rather than guaranteeing rejection or approval. A name warning is an integrity signal, not a public accusation.</p>
-<p>Eligible clean OCR or validated Strava submissions can meet current conditional automatic-approval rules. Missing fields, mismatches, below-minimum values, or other integrity signals can keep an entry submitted for organiser or admin review. OCR is fallible and does not independently prove accuracy.</p>
+<p>Eligible clean OCR-assisted screenshot submissions can meet current conditional automatic-approval rules. Missing fields, mismatches, below-minimum values, or other integrity signals can keep an entry submitted for organiser or admin review. OCR is fallible and does not independently prove accuracy.</p>
 
 <h2>Saved drafts and proof privacy</h2>
 <p>The form can save entered details locally in the browser so an interrupted runner can resume on the same device. When a saved entry is found, the runner can resume it or start over.</p>
@@ -139,7 +138,7 @@ const RAW_CONTENT_HTML = `
   <li>Compare distance, unit conversion, and duration with the source.</li>
   <li>Check the location is useful but not unnecessarily precise.</li>
   <li>Review any optional elevation or step values.</li>
-  <li>Make sure the preview is the intended activity image or Strava record.</li>
+  <li>Make sure the preview is the intended activity image.</li>
 </ul>
 <p>Select Submit Now once. The interface disables or marks an in-progress action, and the server uses submission-attempt and proof/activity idempotency controls to reduce duplicate writes during retries. If a network response is uncertain, inspect Submitted Entries before repeating the action.</p>
 
@@ -167,7 +166,7 @@ const RAW_CONTENT_HTML = `
   <li>Open Submitted Entries and select the result labelled Needs correction.</li>
   <li>Read the rejection reason and compare it with the event mechanics.</li>
   <li>Follow the displayed correction strategy: correct eligible metadata, replace unclear proof, or address both when offered.</li>
-  <li>For a Strava-source result, reselect the appropriate imported activity rather than editing locked imported fields.</li>
+  <li>If an older Strava-derived result was removed during remediation, use its one-time manual screenshot recovery slot before the displayed deadline.</li>
   <li>Review the replacement against the original record and resubmit before the applicable deadline.</li>
   <li>Monitor the new status; resubmission returns the result to review unless it meets a conditional approval path.</li>
 </ol>
@@ -185,8 +184,8 @@ const RAW_CONTENT_HTML = `
 <p>Confirm the screenshot belongs to you and is the correct file. Replace it if not. If an app nickname or OCR error explains the difference, preserve the original and continue only when the activity is genuinely yours, understanding that manual review follows.</p>
 <h3>The screenshot was already submitted</h3>
 <p>HelloRun can identify exact image reuse by the same runner across standard and accumulated records. Inspect existing entries and use offered multi-event selection for one genuine activity. Complete and submit a distinct activity when the event expects another result.</p>
-<h3>The Strava activity is missing or duplicated</h3>
-<p>Confirm the correct Strava account is connected, the activity has finished syncing, and its type is supported. If already used for the same event, inspect the existing submission instead of selecting it again.</p>
+<h3>A connected Strava activity does not appear in the proof form</h3>
+<p>This is expected. Connected activities are a private, on-demand view in Connected Apps and cannot be selected as event proof. Use a permitted screenshot in the manual form.</p>
 <h3>The form says a result already exists</h3>
 <p>A standard registration cannot receive another ordinary result while its result is submitted or approved. If rejected, open that existing entry's correction action.</p>
 <h3>The network stopped after Submit</h3>
@@ -194,7 +193,7 @@ const RAW_CONTENT_HTML = `
 
 <h2>Privacy before sending proof</h2>
 <p>Inspect the entire image, not only the distance. Screenshots can expose map start and end points, home or work locations, start times, full names, profile images, health metrics, photos, notifications, and device identifiers. Submit only what the event needs and review the <a href="/privacy">HelloRun Privacy Policy</a>.</p>
-<p>Strava offers activity and map privacy controls, but its documentation explains that information shared with authorised third-party services can behave differently from the public Strava view. In particular, map visibility applied within Strava may not be transmitted in the same way to a connected service. Review both services before authorising access.</p>
+<p>Strava offers activity and map privacy controls. HelloRun's connection is limited to an owner-only recent-activity view, does not persist the activity list as event evidence, and does not disclose it to organisers. Review both services before authorising access.</p>
 <p>The ICO's data-minimisation principle recommends information that is adequate, relevant, and limited to the stated purpose. A reviewer may need distance and date; that does not automatically justify unrelated messages, contacts, or health details. Organisers should request only what is necessary and explain who can review it.</p>
 
 <h2>Four practical submission examples</h2>
@@ -202,8 +201,8 @@ const RAW_CONTENT_HTML = `
 <p>Lena completes one 10K during the overlapping windows of two events whose mechanics permit the same activity. She chooses the actual date, uploads the unchanged final summary, and selects both eligible registrations in the screenshot flow. She does not upload two edited copies.</p>
 <h3>Accumulated 25K challenge</h3>
 <p>Marco submits a distinct 6K activity to his 25K accumulated registration. The entry is pending, so it is not official progress yet. He keeps the original and waits for approval before treating the verified total as six kilometres higher.</p>
-<h3>Strava walk for a run-only event</h3>
-<p>A connected Walk syncs successfully, but the event accepts Run and Trail Run only. The imported record is real but not eligible for that event. Technical availability does not override the activity rule.</p>
+<h3>Strava screenshot for a run-only event</h3>
+<p>A runner captures a Strava Walk summary, but the event accepts Run and Trail Run only. The screenshot can be readable while remaining ineligible. Technical availability does not override the activity rule.</p>
 <h3>Rejected blurry screenshot</h3>
 <p>Imani's screenshot hides the decimal and date. The result is rejected with an unclear-proof reason. She opens Fix entry, selects the original full activity summary, confirms the same genuine values, and resubmits before the deadline.</p>
 
@@ -217,7 +216,7 @@ const RAW_CONTENT_HTML = `
   <li>Choose a final activity summary rather than a live or weekly-total screen.</li>
   <li>Check date, distance, unit, duration, activity type, and source are readable.</li>
   <li>Remove unnecessary private information without hiding required evidence.</li>
-  <li>Use a supported file within the live limit or the correct connected Strava account.</li>
+  <li>Use a supported screenshot file within the live limit.</li>
 </ul>
 
 <h2>Final-confirmation checklist</h2>
@@ -251,7 +250,7 @@ const RAW_CONTENT_HTML = `
 <h3>Can I submit without an event registration?</h3>
 <p>You need an eligible registration for an event result. Personal Record is a separate personal-log destination and does not create event eligibility.</p>
 <h3>Can a screenshot count for more than one event?</h3>
-<p>The current screenshot flow can offer multiple eligible registrations for the same genuine activity. Every selected event must permit it. Strava currently targets one event or Personal Record at a time.</p>
+<p>The current screenshot flow can offer multiple eligible registrations for the same genuine activity. Every selected event must permit it. Connected Strava activities cannot be targeted to any event or Personal Record.</p>
 <h3>Does HelloRun accept PDF proof?</h3>
 <p>Not in the current run-result image input. It accepts JPEG, PNG, and WebP, currently up to the limit displayed by the form.</p>
 <h3>Must I use OCR?</h3>
@@ -294,8 +293,8 @@ const REQUIRED_HEADINGS = Object.freeze([
   'Where to start a submission',
   'Step 1: choose the actual run date',
   'Step 2A: upload an activity screenshot',
-  'Step 2B: select a connected Strava activity',
-  'How screenshot and Strava targeting differ',
+  'Connected Strava activities are private',
+  'How screenshot submission and private connections differ',
   'Step 3: select the event and classify the activity',
   'Step 3: confirm distance, duration, and location',
   'Review OCR-assisted values carefully',
@@ -389,10 +388,10 @@ function validateArticlePayload(payload) {
   if (/(?:submitted|approved) (?:results?|entries).{0,35}(?:can|may) (?:always|freely) (?:be )?(?:edited|resubmitted)/i.test(text)) errors.push('article must not claim unrestricted editing');
   if (/public leaderboard.{0,40}(?:shows?|contains?|exposes?).{0,30}(?:proof files?|raw OCR|review notes?)/i.test(text)) errors.push('article must not claim public review data exposure');
   if (/(?:approved proof|HelloRun approval).{0,35}(?:is|creates?|guarantees?) (?:certified|qualifying|official timing)/i.test(text)) errors.push('article must not claim certified timing');
-  if (!/documents the HelloRun proof-submission implementation available in July 2026/i.test(text)) errors.push('article must disclose implementation-based methodology');
+  if (!/documents the HelloRun proof-submission implementation updated in October 2026/i.test(text)) errors.push('article must disclose implementation-based methodology');
   if (!/current run-result form accepts JPEG, PNG, and WebP images/i.test(text)) errors.push('article must state current screenshot formats');
   if (!/maximum of 5 MB/i.test(text)) errors.push('article must state the current interface limit');
-  if (!/Strava submission currently targets one HelloRun event or Personal Record at a time/i.test(text)) errors.push('article must state Strava single-target behavior');
+  if (!/Connected Strava activities cannot be targeted to any event or Personal Record/i.test(text)) errors.push('article must state that connected activities cannot be submitted');
   if (!/uploaded proof image is deliberately not restored from that draft/i.test(text)) errors.push('article must explain draft proof privacy');
   if (!/ordinary correction path applies to rejected results/i.test(text)) errors.push('article must explain rejected-only correction');
   if (!/Pending distance is not approved completion/i.test(text)) errors.push('article must distinguish pending results');

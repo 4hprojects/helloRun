@@ -25,6 +25,27 @@ The application requires environment configuration. Do not assume a local
 `.env` is safe for testing: this repository has historically used credentials
 that point at production services.
 
+Copy `.env.example` to a local untracked `.env` and fill only the services you
+intend to exercise. The Strava connection is an athlete-only private viewer;
+connected activities cannot be used as event proof, organizer evidence,
+leaderboard data, certificates, or analytics.
+
+Historical Strava cleanup is deliberately operator-controlled:
+
+```bash
+npm run strava:remediate:dry
+# After reviewing the report and verifying non-production/production targets:
+npm run strava:remediate:apply
+```
+
+The apply command requires MongoDB, PostgreSQL, and R2 configuration and must
+run in a maintenance window. It also requires `STRAVA_REMEDIATION_APPROVED=yes`,
+the reviewed record count, and the target fingerprint printed by the dry run.
+It is restartable and must never be tested against production by accident.
+Before applying it, inventory logs, exports, and backups that may contain
+provider data. Purge supported copies and record the expiry schedule for any
+immutable backup that cannot be changed in place.
+
 ## Safe Validation
 
 Use DB-free tests for routine development:

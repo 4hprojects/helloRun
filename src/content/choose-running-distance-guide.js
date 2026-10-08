@@ -246,7 +246,7 @@ const RAW_CONTENT_HTML = `
 <h3>Can I use a treadmill?</h3>
 <p>Only when the event permits it and you can provide the requested evidence. Treadmill, watch, and app readings can differ; follow the event's correction and proof rules rather than editing values to force agreement.</p>
 <h3>Will HelloRun approve my result automatically?</h3>
-<p>Correct submission does not guarantee approval. Screenshot evidence may use OCR-assisted field entry, and supported Strava activities may be validated through the connected path. Depending on eligibility rules, some clean submissions may qualify for conditional approval; others require organizer or admin review. Pending is not approved.</p>
+<p>Correct submission does not guarantee approval. Screenshot evidence may use OCR-assisted field entry. Connected Strava activities remain private and cannot be submitted. Depending on eligibility rules, some clean screenshot submissions may qualify for conditional approval; others require organizer or admin review. Pending is not approved.</p>
 <h3>Will my result appear on a leaderboard?</h3>
 <p>Only when the event has a configured leaderboard and the result meets its approved-result rules. Standard distance groups can rank approved time, while accumulated standings can rank approved distance. Event-specific standings are not certified timing or universal comparisons.</p>
 <h3>Does every finisher receive a certificate or reward?</h3>

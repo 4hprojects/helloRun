@@ -804,6 +804,9 @@ async function sendEventEmail(eventKey, payload = {}) {
       email.reviewNotes
     );
   }
+  if (eventKey === 'result.strava_remediation') {
+    return emailService.sendStravaRemediationEmail(email.to, email);
+  }
   if (eventKey === 'certificate.issued') {
     return emailService.sendCertificateIssuedEmailToRunner(
       email.to,
@@ -867,6 +870,7 @@ function getSubjectForEvent(eventKey, payload = {}) {
     'result.rejected': `Result Rejected: ${eventTitle}`,
     'result.approval_reversed': `Approved Result Withdrawn: ${eventTitle}`,
     'result.corrected': `Result Corrected: ${eventTitle}`,
+    'result.strava_remediation': `Action needed: replace connected activity proof for ${eventTitle}`,
     'certificate.issued': `Certificate Available: ${eventTitle}`,
     'badge.earned': `Badge Earned: ${email.badgeName || 'Achievement Badge'}`,
     'event.promotion': `Don't miss it: ${eventTitle} — Register Now`

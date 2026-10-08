@@ -2228,3 +2228,22 @@ function buildEventRegistrationConfirmationEmailHtml({
 
 exports.buildEventRegistrationConfirmationEmailHtml = buildEventRegistrationConfirmationEmailHtml;
 exports.buildEventActivationReminderEmailHtml = buildEventActivationReminderEmailHtml;
+
+exports.sendStravaRemediationEmail = async (email, payload = {}) => {
+  const appUrl = String(process.env.APP_URL || 'https://hellorun.online').replace(/\/$/, '');
+  const actionPath = typeof payload.actionPath === 'string' && /^\/[A-Za-z0-9/_-]+$/.test(payload.actionPath)
+    ? payload.actionPath
+    : '/runner/submissions';
+  const actionUrl = `${appUrl}${actionPath}`;
+  const deadline = payload.recoveryExpiresAt
+    ? new Date(payload.recoveryExpiresAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'long', timeStyle: 'short' })
+    : 'the deadline shown in HelloRun';
+  const { data, error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM,
+    to: email,
+    subject: `Action needed: replace connected activity proof for ${payload.eventTitle || 'your event'}`,
+    html: `<!doctype html><html><body style="margin:0;background:#f8fafc;color:#1e293b;font-family:Arial,sans-serif;">${buildBrandedEmailHeader()}<main style="max-width:600px;margin:0 auto;background:#fff;padding:32px;"><h1 style="font-size:22px;">Connected activity record removed</h1><p>Hi ${escapeHtml(payload.firstName || 'Runner')},</p><p>HelloRun deleted a result that was created from connected Strava data so that this data is not disclosed or used outside your private connected-app view.</p><p>If you want the activity reconsidered for <strong>${escapeHtml(payload.eventTitle || 'your event')}</strong>, upload permitted screenshot proof by <strong>${escapeHtml(deadline)}</strong>. The replacement follows the event’s normal evidence and validation rules.</p><p><a href="${escapeHtml(actionUrl)}" style="display:inline-block;background:#f97316;color:#fff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:700;">Upload manual proof</a></p><p style="color:#64748b;font-size:13px;">This confirms that the connected-provider payload was removed from HelloRun’s active submission records.</p></main></body></html>`
+  });
+  if (error) throw error;
+  return data;
+};

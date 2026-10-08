@@ -46,9 +46,9 @@ Raw OCR text, confidence information, suspicious signals, private proof, and int
 
 ### 2.6 Third-party fitness and account integrations
 
-When a runner connects Strava or another supported provider, HelloRun receives only the information authorized for the requested feature, such as connection identity, activity identifier, activity metrics, date, type, elevation, or route information made available by that provider.
+When a runner connects Strava, HelloRun uses the authorization only to show a private, on-demand recent-activity view to that same runner. The activity list is fetched directly when requested and is not saved as event evidence, disclosed to organizers, or used in results, leaderboards, certificates, achievements, or analytics. HelloRun stores encrypted connection credentials, the provider account identifier needed to prevent conflicting links, granted scopes, connection timestamps, and technical lifecycle records.
 
-Disconnecting an integration stops future access through HelloRun, subject to technical completion of the disconnection. Records already used for an event, audit, dispute, or recognition may remain as described in this policy. The provider controls its own copies, permissions, and retention.
+Disconnecting revokes provider access where available, deletes the local connection, and records a minimal deletion receipt without provider activity identifiers or metrics. A short-lived encrypted revocation job may remain for no more than 24 hours when the provider is temporarily unavailable. The provider controls its own copies, permissions, and retention.
 
 ### 2.7 Community, publishing, and moderation information
 

@@ -174,6 +174,8 @@
     "smoke:cleanup:dry": "node src/scripts/cleanup-smoke-tests.js --dry-run --expired",
     "probe:cleanup": "node src/scripts/probe-cleanup.js",
     "probe:cleanup:dry": "node src/scripts/probe-cleanup.js --dry-run",
+    "strava:remediate:dry": "node src/scripts/remediate-strava-data.js --dry-run",
+    "strava:remediate:apply": "node src/scripts/remediate-strava-data.js --apply",
     "smoke:report:legacy": "node src/scripts/report-legacy-smoke-candidates.js",
     "smoke:tag:legacy": "node src/scripts/tag-legacy-smoke-candidates.js",
     "smoke:full": "node src/scripts/run-smoke-tests.js",

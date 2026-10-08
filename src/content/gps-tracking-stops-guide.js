@@ -43,7 +43,7 @@ const RAW_CONTENT_HTML = `
 <p>If the activity is for a virtual event, review <a href="/blog/what-counts-as-valid-run-proof">what makes run proof reviewable</a> and <a href="/blog/how-to-submit-run-proof-correctly-hellorun">the HelloRun submission walkthrough</a> before uploading anything.</p>
 
 <h2>How this guide was prepared</h2>
-<p>This guide was reviewed in July 2026 using current official documentation from Strava, Apple, Android, and World Athletics, together with current HelloRun event-window, screenshot, connected-Strava, duplicate-evidence, review, accumulated-progress, and correction behavior.</p>
+<p>This guide was reviewed in October 2026 using current official documentation from Strava, Apple, Android, and World Athletics, together with current HelloRun event-window, screenshot, private connected-app, duplicate-evidence, review, accumulated-progress, and correction behavior.</p>
 <p>It is researched troubleshooting guidance, not independent testing of satellite accuracy, a promise that lost data can be recovered, or instructions for every phone, watch, operating system, and app version. Manufacturer documentation and the live app interface remain authoritative. Event rules determine whether an incomplete, split, manual, indoor, or replacement activity is eligible.</p>
 <p>The guide does not provide individualized medical or emergency advice. Stop addressing the tracker and reach appropriate safety or help first when conditions, symptoms, navigation, traffic, weather, or personal security create a more important problem.</p>
 
@@ -110,9 +110,9 @@ const RAW_CONTENT_HTML = `
 <p>OCR can assist field entry, but it cannot determine the true route or recreate missing GPS points. Confirm every extracted value. A mismatch or unusual record can require organiser or administrator review; one discrepancy does not universally decide the outcome.</p>
 <p>Do not conceal the interruption with excessive cropping. You may protect irrelevant private data, but the event metrics must remain understandable. If the evidence includes a home location, profile name, photo, notification, or health metric that the event does not need, use the source app's privacy controls or a careful privacy-preserving capture without changing the result.</p>
 
-<h2>Connected Strava evidence after a GPS interruption</h2>
-<p>A supported connected-Strava submission imports the activity data available through the authorised account. HelloRun checks account ownership, activity date, supported activity information, event rules, and duplicate use. The import does not repair the source activity.</p>
-<p>If the activity has a straight line, missing map, short distance, or unusual timing, review it in Strava before selecting it. Do not create a manual Strava activity and assume it will be treated like a GPS-recorded import. Strava itself notes that manual activities can have different challenge and segment treatment, while HelloRun acceptance remains event-specific.</p>
+<h2>Strava screenshots after a GPS interruption</h2>
+<p>HelloRun's connected Strava view is private and cannot create event submissions. If the event permits screenshot evidence, capture an appropriate activity summary and use the separate manual upload flow. A screenshot does not repair the source activity.</p>
+<p>If the activity has a straight line, missing map, short distance, or unusual timing, review it in Strava before capturing evidence. Do not create a manual Strava activity and assume it will be accepted. HelloRun acceptance remains event-specific.</p>
 <p>When imported fields are locked in a correction flow, use the displayed source-appropriate option to reselect an eligible activity. Ordinary HelloRun resubmission is limited to rejected results; pending evidence is still under review. Pending evidence does not count as official progress or rank.</p>
 
 <h2>Do not manufacture the missing distance</h2>
@@ -187,7 +187,7 @@ const RAW_CONTENT_HTML = `
 <h2>HelloRun submission and correction checklist</h2>
 <ul>
   <li>Select the correct registration and actual activity date.</li>
-  <li>Use the accepted screenshot or supported connected-Strava path.</li>
+  <li>Use the accepted screenshot path.</li>
   <li>Confirm OCR-assisted values instead of assuming they are accurate.</li>
   <li>Describe the original activity honestly when a GPS gap is visible.</li>
   <li>Remember that submitted or pending is not approved progress.</li>
@@ -216,7 +216,7 @@ const RAW_CONTENT_HTML = `
 <h3>Does HelloRun repair GPS data?</h3>
 <p>No. HelloRun receives submitted screenshot fields or supported imported activity data and supports review; it does not recreate satellite points or provide live GPS monitoring.</p>
 <h3>Will clean OCR automatically approve the activity?</h3>
-<p>Eligible clean OCR or supported Strava activities may qualify for conditional approval under current rules, but this is not universal. Other submissions can require human review.</p>
+<p>Eligible clean OCR-assisted screenshots may qualify for conditional approval under current rules, but this is not universal. Other submissions can require human review.</p>
 <h3>Can I submit a manual activity?</h3>
 <p>Do not assume manual-only evidence is available or accepted in every public flow. Follow the evidence options shown for the event.</p>
 <h3>What if the submission deadline is close?</h3>
@@ -252,7 +252,7 @@ const REQUIRED_HEADINGS = Object.freeze([
   'How GPS failure affects a single-activity event',
   'How GPS failure affects an accumulated-distance challenge',
   'Screenshot proof after a GPS interruption',
-  'Connected Strava evidence after a GPS interruption',
+  'Strava screenshots after a GPS interruption',
   'Do not manufacture the missing distance',
   'Troubleshoot only after preserving the activity',
   'Prevent another interruption',
@@ -345,7 +345,7 @@ function validateArticlePayload(payload) {
   if (/HelloRun (?:directly )?(?:records|tracks|monitors) (?:your )?(?:live )?GPS|HelloRun (?:automatically )?repairs GPS data/i.test(text)) errors.push('article must not claim live GPS monitoring or repair');
   if (/pending (?:distance|activity|evidence) (?:counts|is counted) (?:as )?(?:official|approved|completion)/i.test(text)) errors.push('article must not count pending evidence officially');
   if (/deadline (?:means|requires|justifies) (?:running|continuing) (?:in|through) unsafe/i.test(text)) errors.push('article must not prioritize a deadline over safety');
-  if (!/reviewed in July 2026 using current official documentation/i.test(text)) errors.push('article must disclose methodology and date');
+  if (!/reviewed in October 2026 using current official documentation/i.test(text)) errors.push('article must disclose methodology and date');
   if (!/does not guarantee approval/i.test(text)) errors.push('article must disclose review limits');
   if (!/does not recreate satellite points or provide live GPS monitoring/i.test(text)) errors.push('article must state the HelloRun GPS boundary');
 

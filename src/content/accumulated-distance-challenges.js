@@ -34,7 +34,7 @@ const RAW_CONTENT_HTML = `
   <li>Choose an event and register for the intended distance or category.</li>
   <li>Confirm the selected goal, activity window, submission deadline, permitted activity types, and minimum activity distance.</li>
   <li>Complete one eligible activity and save its original app, watch, or treadmill record.</li>
-  <li>Upload a supported screenshot or import a connected Strava activity.</li>
+  <li>Upload a supported activity screenshot.</li>
   <li>Review the date, distance, unit, duration, activity type, and selected registration.</li>
   <li>Wait for approval or an eligible automatic-approval result.</li>
   <li>Add only approved distance to the official total; keep pending distance separate.</li>
@@ -80,9 +80,9 @@ const RAW_CONTENT_HTML = `
 <p>Browse current <a href="/events">Events</a>, read <a href="/how-it-works">How It Works</a>, and use the <a href="/faq">FAQ</a> when an event summary does not answer these questions.</p>
 
 <h2>Submitting individual activities</h2>
-<p>Each challenge activity should describe one completed session. On HelloRun, the current public flow supports a JPEG, PNG, or WebP activity screenshot and a connected Strava import. Screenshot analysis can propose fields for the runner to confirm. A supported Strava activity supplies recorded date, distance, duration, and activity type from the connected account.</p>
+<p>Each challenge activity should describe one completed session. On HelloRun, the current public flow supports a JPEG, PNG, or WebP activity screenshot. Screenshot analysis can propose fields for the runner to confirm. Connected Strava activities remain private and cannot be used as challenge evidence.</p>
 <p>A weekly, monthly, or lifetime dashboard total is normally poor evidence for this workflow. It does not show which component activities occurred inside the window, whether each met the minimum, whether an activity was duplicated, or which sport type produced the distance. Submit the distinct activity requested by the form.</p>
-<p>The same screenshot hash can be blocked when reused by the same runner, and the same Strava activity ID cannot repeatedly count for one event. These controls reduce accidental or simple duplicate credit; they do not certify the underlying device. See <a href="/blog/what-counts-as-valid-run-proof">What Counts as Valid Run Proof?</a> and <a href="/blog/how-to-submit-run-proof-correctly-hellorun">How to Submit Run Proof Correctly on HelloRun</a> for evidence examples.</p>
+<p>The same screenshot hash can be blocked when reused by the same runner. This control reduces accidental or simple duplicate credit; it does not certify the underlying device. See <a href="/blog/what-counts-as-valid-run-proof">What Counts as Valid Run Proof?</a> and <a href="/blog/how-to-submit-run-proof-correctly-hellorun">How to Submit Run Proof Correctly on HelloRun</a> for evidence examples.</p>
 
 <h2>How activity status changes progress</h2>
 <h3>Submitted or pending</h3>
@@ -120,7 +120,7 @@ const RAW_CONTENT_HTML = `
 <p>Iris reaches a 100K goal with five days left and the event permits continued submissions. Two more approved 8K activities produce a final verified total of 116K. Remaining distance remains zero, progress is 116%, and extra verified distance is 16K. A configured final certificate can record 116K after closeout rather than freezing at the first 100K.</p>
 
 <h2>Conditional automatic approval and human review</h2>
-<p>HelloRun can automatically approve an eligible clean OCR or validated Strava activity when the required validation checks pass and no relevant integrity signal is present. This is conditional. It does not mean every screenshot or connected activity is automatically accepted.</p>
+<p>HelloRun can automatically approve an eligible clean OCR-assisted screenshot when the required validation checks pass and no relevant integrity signal is present. This is conditional. It does not mean every screenshot is automatically accepted.</p>
 <p>Missing fields, low-quality extraction, mismatches, a below-minimum distance, an implausible single-activity total, or another integrity signal can keep an activity submitted for organiser or admin review. A reviewer can approve a submitted or previously rejected accumulated activity; a submitted activity can also be rejected with a runner-facing reason.</p>
 <p>OCR assists extraction and comparison but does not independently prove distance accuracy. The runner should confirm every proposed field against the original evidence. The <a href="/blog/best-apps-to-track-your-virtual-run">tracking-app comparison</a> explains documented app features without claiming a universal accuracy ranking.</p>
 
@@ -177,7 +177,7 @@ const RAW_CONTENT_HTML = `
   <li>Confirm it meets the minimum distance and accepted activity type.</li>
   <li>Show date, distance, unit, duration, source, and any other required fields.</li>
   <li>Review OCR-filled or imported values against the original record.</li>
-  <li>Do not reuse an already submitted screenshot or Strava activity.</li>
+  <li>Do not reuse an already submitted screenshot.</li>
   <li>Keep the original record and note whether the result is submitted, approved, or rejected.</li>
   <li>Track approved and pending distance separately when planning the next activity.</li>
 </ul>

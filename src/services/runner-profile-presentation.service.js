@@ -111,7 +111,8 @@ function buildRunnerProfilePresentation(options = {}) {
     connection: {
       connected: Boolean(options.stravaConnection?.connected),
       athleteName: String(options.stravaConnection?.athleteName || '').trim(),
-      athleteId: String(options.stravaConnection?.stravaAthleteId || '').trim()
+      athleteId: String(options.stravaConnection?.stravaAthleteId || '').trim(),
+      lastSyncAt: options.stravaConnection?.lastSyncAt || null
     },
     account: {
       authProviderLabel: user.authProvider === 'google' ? 'Google' : 'Email and password',

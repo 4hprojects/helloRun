@@ -338,6 +338,19 @@ const COMMUNICATION_EVENTS = Object.freeze([
     displayOrder: 410
   },
   {
+    eventKey: 'result.strava_remediation',
+    name: 'Connected Activity Data Remediation',
+    description: 'Confirms deletion of a Strava-derived result and provides the manual-proof recovery deadline.',
+    category: 'result',
+    priority: 'critical',
+    required: true,
+    emailEnabled: true,
+    inAppEnabled: true,
+    locked: true,
+    recipientRoles: ['runner'],
+    displayOrder: 413
+  },
+  {
     eventKey: 'registration.waitlist_offer',
     name: 'Waitlist Slot Offer',
     description: 'Tells someone on the waitlist that a slot has opened and is being held for them.',

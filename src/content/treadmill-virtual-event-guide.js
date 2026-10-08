@@ -43,7 +43,7 @@ const RAW_CONTENT_HTML = `
 <p>For the wider event journey, read <a href="/blog/what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers">What Is a Virtual Run?</a> and <a href="/blog/how-to-prepare-for-your-first-virtual-run">the first virtual-run preparation guide</a>.</p>
 
 <h2>How this guide was prepared</h2>
-<p>This guide was reviewed in July 2026 using current official documentation from Garmin, Apple, Strava, Google Fitbit, and World Athletics, together with current HelloRun event, screenshot, OCR, connected-Strava, duplicate-evidence, submission-review, accumulated-progress, and correction behavior.</p>
+<p>This guide was reviewed in October 2026 using current official documentation from Garmin, Apple, Strava, Google Fitbit, and World Athletics, together with current HelloRun event, screenshot, OCR, private connected-app, duplicate-evidence, submission-review, accumulated-progress, and correction behavior.</p>
 <p>It is documented guidance rather than personal testing, an independent treadmill calibration study, individualized coaching, or a guarantee that a console or wearable is accurate. Device models, firmware, gym equipment, integrations, and event rules change. The equipment manufacturer, current app interface, venue instructions, and live event mechanics remain authoritative.</p>
 <p>This article does not diagnose symptoms, prescribe exercise, or certify that a treadmill is suitable for a particular person. A runner who needs individualized guidance should use an appropriately qualified professional. Stop and obtain appropriate help for severe, unexplained, worsening, or otherwise concerning symptoms.</p>
 
@@ -142,9 +142,9 @@ const RAW_CONTENT_HTML = `
 <p>For location, use an accurate indoor description permitted by the form, such as the gym or “Home treadmill,” without publishing a full private address. Confirm OCR-assisted fields against the console and source record. Excessive cropping, blur, unexplained totals, altered images, or missing units can make review harder.</p>
 <p>Screenshot submission can target multiple independently eligible events in the current flow, but each event reviews the activity against its own rules. One screenshot is not universally accepted everywhere.</p>
 
-<h2>Use connected Strava evidence carefully</h2>
-<p>A supported Strava activity can be selected when it exists in the authorised runner account and satisfies the event checks. Strava documents that its phone app does not currently record indoor-run distance, while compatible watches and third-party devices may create indoor records that sync to Strava.</p>
-<p>Confirm that the imported activity contains a supported type, actual date, distance, and duration. Connected Strava currently uses one event or Personal Record target per submission action. Exact activity reuse can be blocked. Do not create a manual Strava entry and assume it is equivalent to a supported device record or accepted by the event.</p>
+<h2>Use Strava screenshots carefully</h2>
+<p>Connected Strava activities are available only in an owner-only recent-activity viewer and cannot be selected as event evidence. Strava documents that its phone app does not currently record indoor-run distance, while compatible watches and third-party devices may create indoor records that sync to Strava.</p>
+<p>If the event accepts screenshots, confirm that the captured activity shows a supported type, actual date, distance, and duration, then use the separate manual upload flow. Do not create a manual Strava entry and assume it is equivalent to a supported device record or accepted by the event.</p>
 <p>Imported fields can be source-locked. If a rejected result requires a different source activity, follow the displayed correction strategy and reselect an eligible record rather than editing imported values.</p>
 
 <h2>Single-activity and accumulated treadmill events</h2>
@@ -153,7 +153,7 @@ const RAW_CONTENT_HTML = `
 <p>Read <a href="/blog/how-accumulated-distance-challenges-work">how accumulated challenges work</a> and <a href="/blog/how-to-complete-a-50k-accumulated-distance-challenge">the 50K planning guide</a> before using treadmill sessions toward a larger goal.</p>
 
 <h2>Understand review status and corrections</h2>
-<p>A HelloRun result can be submitted or pending, approved, or rejected. Conditional automatic approval may apply to an eligible clean OCR or supported Strava activity under current rules; it is not guaranteed and does not make OCR perfect. Other evidence remains available for organiser or administrator review.</p>
+<p>A HelloRun result can be submitted or pending, approved, or rejected. Conditional automatic approval may apply to an eligible clean OCR-assisted screenshot under current rules; it is not guaranteed and does not make OCR perfect. Other evidence remains available for organiser or administrator review.</p>
 <p>Pending treadmill distance is not approved progress or an official rank. A configured leaderboard reflects approved results under event-specific rules. Treadmill and outdoor performances are not automatically comparable because their surfaces, measurement systems, environment, and timing sources differ.</p>
 <p>If rejected, use “Fix entry” and follow the displayed correction path. Ordinary resubmission is limited to rejected results. Preserve the original proof and do not upload altered copies to evade duplicate controls.</p>
 
@@ -274,7 +274,7 @@ const REQUIRED_HEADINGS = Object.freeze([
   'Handle console and wearable distance differences',
   'Convert miles and kilometres transparently',
   'Submit a treadmill screenshot on HelloRun',
-  'Use connected Strava evidence carefully',
+  'Use Strava screenshots carefully',
   'Single-activity and accumulated treadmill events',
   'Understand review status and corrections',
   'Protect privacy in a shared gym',
@@ -366,7 +366,7 @@ function validateArticlePayload(payload) {
   if (/pending (?:distance|activity|evidence) (?:counts|is counted) (?:as )?(?:official|approved|completion)/i.test(text)) errors.push('article must not count pending evidence officially');
   if (/HelloRun (?:directly )?(?:records|tracks|monitors) (?:your )?treadmill|HelloRun certifies treadmill distance/i.test(text)) errors.push('article must not claim platform tracking or certification');
   if (/handrails? (?:must|should) never be used|(?:you|runners?) (?:must|should) jump onto (?:the )?side rails/i.test(text)) errors.push('article must not promote unsafe treadmill use');
-  if (!/reviewed in July 2026 using current official documentation/i.test(text)) errors.push('article must disclose methodology and date');
+  if (!/reviewed in October 2026 using current official documentation/i.test(text)) errors.push('article must disclose methodology and date');
   if (!/does not guarantee approval/i.test(text)) errors.push('article must disclose review limits');
   if (!/Pending treadmill distance is not approved progress or an official rank/i.test(text)) errors.push('article must distinguish pending progress');
 
