@@ -40,13 +40,17 @@ test('notification choices are unique and respect email opt-outs', () => {
 test('account and Strava states are normalized for presentation', () => {
   const result = buildRunnerProfilePresentation({
     user: { authProvider: 'google', googleId: 'google-1', passwordHash: 'hash' },
-    stravaConnection: { connected: true, athleteName: 'Runner One', stravaAthleteId: 42 }
+    stravaConnection: { connected: true, athleteName: 'Runner One', stravaAthleteId: 42 },
+    corosStravaBridge: { status: 'user_confirmed', guideVersion: 'coros-strava-v1', confirmedAt: '2026-10-08T00:00:00Z' }
   });
   assert.deepEqual(result.account, {
     authProviderLabel: 'Google', googleLinked: true, localPasswordSet: true, passwordActionLabel: 'Change Password'
   });
   assert.equal(result.connection.connected, true);
   assert.equal(result.connection.athleteName, 'Runner One');
+  assert.equal(result.corosStravaBridge.status, 'user_confirmed');
+  assert.equal(result.corosStravaBridge.stravaConnected, true);
+  assert.equal(result.corosStravaBridge.canValidate, true);
 });
 
 test('achievements expose compact previews and preserve remaining items', () => {

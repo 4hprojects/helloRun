@@ -64,6 +64,7 @@ const {
 } = require('../services/achievement.service');
 const { getRunnerBadgeProgress, getRunnerNextMilestones } = require('../services/badge-progress.service');
 const stravaService = require('../services/strava.service');
+const corosStravaBridgeService = require('../services/coros-strava-bridge.service');
 const { buildRunnerProfilePresentation } = require('../services/runner-profile-presentation.service');
 const { buildRunnerGroupsPresentation } = require('../services/runner-groups-presentation.service');
 const {
@@ -1075,8 +1076,16 @@ async function buildRunnerProfileViewData(user, req, overrides = {}) {
   const profileCompleteness = getProfileCompleteness(profileData);
   const selectedCountry = (countries || []).find((item) => item.code === profileData.country);
   const suggestedCountry = getCloudflareCountrySuggestion(req.headers);
-  const [stravaConnection, badges, badgeProgress, badgePointsSummary] = await Promise.all([
+  const [stravaConnection, corosStravaBridge, badges, badgeProgress, badgePointsSummary] = await Promise.all([
     stravaService.getConnectionSummary(user._id).catch(() => ({ connected: false })),
+    corosStravaBridgeService.getStatus(user._id).catch(() => ({
+      status: 'not_started',
+      guideVersion: corosStravaBridgeService.GUIDE_VERSION,
+      startedAt: null,
+      confirmedAt: null,
+      stravaConnected: false,
+      canValidate: false
+    })),
     getRunnerEarnedBadges(user._id, { limit: 30 }).catch(() => []),
     getRunnerBadgeProgress(user._id, { limit: 30 }).catch(() => []),
     getRunnerPointsSummary(user._id).catch(() => ({ totalPoints: 0, badgeCount: 0 }))
@@ -1100,6 +1109,7 @@ async function buildRunnerProfileViewData(user, req, overrides = {}) {
     profileCompleteness,
     selectedCountryName: selectedCountry?.name || 'Not set',
     stravaConnection,
+    corosStravaBridge,
     badges,
     badgeProgress,
     badgePointsSummary,
@@ -1119,6 +1129,7 @@ async function buildRunnerProfileViewData(user, req, overrides = {}) {
     selectedCountryName: selectedCountry?.name || 'Not set',
     suggestedCountry,
     stravaConnection,
+    corosStravaBridge,
     badges,
     badgeProgress,
     badgePointsSummary,

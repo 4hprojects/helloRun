@@ -114,6 +114,16 @@ function buildRunnerProfilePresentation(options = {}) {
       athleteId: String(options.stravaConnection?.stravaAthleteId || '').trim(),
       lastSyncAt: options.stravaConnection?.lastSyncAt || null
     },
+    corosStravaBridge: {
+      status: ['setup_started', 'user_confirmed'].includes(options.corosStravaBridge?.status)
+        ? options.corosStravaBridge.status
+        : 'not_started',
+      guideVersion: String(options.corosStravaBridge?.guideVersion || 'coros-strava-v1').slice(0, 40),
+      startedAt: options.corosStravaBridge?.startedAt || null,
+      confirmedAt: options.corosStravaBridge?.confirmedAt || null,
+      stravaConnected: Boolean(options.stravaConnection?.connected),
+      canValidate: Boolean(options.stravaConnection?.connected)
+    },
     account: {
       authProviderLabel: user.authProvider === 'google' ? 'Google' : 'Email and password',
       googleLinked: Boolean(user.googleId),

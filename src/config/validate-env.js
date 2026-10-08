@@ -33,7 +33,7 @@ const POSITIVE_NUMBER_VARS = [
   { name: 'PORT', fallback: 'platform-assigned' }
 ];
 
-const BOOLEAN_VARS = ['FEATURE_STEP_COMPETITIONS_ENABLED'];
+const BOOLEAN_VARS = ['FEATURE_STEP_COMPETITIONS_ENABLED', 'COROS_DIRECT_INTEGRATION_ENABLED'];
 
 function validateEnv(env = process.env) {
   const missingRequired = REQUIRED_VARS.filter((name) => !String(env[name] || '').trim());

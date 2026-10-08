@@ -50,6 +50,8 @@ When a runner connects Strava, HelloRun uses the authorization only to show a pr
 
 Disconnecting revokes provider access where available, deletes the local connection, and records a minimal deletion receipt without provider activity identifiers or metrics. A short-lived encrypted revocation job may remain for no more than 24 hours when the provider is temporarily unavailable. The provider controls its own copies, permissions, and retention.
 
+HelloRun may guide a runner through COROS's native connection to Strava. This guided bridge does not receive COROS credentials, call a COROS activity API, verify the provider-to-provider connection, or infer which device created an activity. HelloRun stores only whether the runner started or personally confirmed the guide, the guide version, and the related timestamps. The runner may reset this record, and disconnecting Strava from HelloRun deletes it. Resetting or disconnecting in HelloRun does not change any native connection maintained by COROS or Strava.
+
 ### 2.7 Community, publishing, and moderation information
 
 HelloRun may process blog posts, images, comments, replies, running-group contributions, edits, public revision history, deletion state, reports, moderation outcomes, and safety-analysis results.
@@ -143,6 +145,8 @@ Deletion from one active interface does not necessarily erase every authorized b
 ## 10. Data-subject rights and requests
 
 Subject to applicable law and lawful limitations, a person may request information, access, correction, objection, consent withdrawal, deletion or blocking, portability, or assistance with a complaint. Legal heirs or authorized representatives may exercise rights where applicable and with appropriate authority.
+
+Where relevant, an access or portability response may include the HelloRun-owned COROS-to-Strava guide status, guide version, and start or confirmation timestamps. It does not include COROS credentials or a provider activity history because HelloRun does not collect those through this guided feature.
 
 Use [Contact](/contact?topic=privacy_data) or email `4hprojects@proton.me`. Describe the request first and identify the relevant account, event, or record. Do not email proof or identity documents unless an authorized reviewer requests them through an appropriate channel.
 

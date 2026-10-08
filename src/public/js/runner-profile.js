@@ -12,6 +12,7 @@
     setupSectionNavigation();
     setupStravaConfirmations();
     setupPrivateStravaActivities();
+    setupCorosStravaBridge();
     setupUnlinkConfirmation();
   }
 
@@ -207,13 +208,13 @@
 
   function setupStravaConfirmations() {
     const connectModal = document.getElementById('stravaConnectConfirmModal');
-    const connectTrigger = document.querySelector('[data-open-strava-connect-confirm]');
-    if (connectModal && connectTrigger) {
+    const connectTriggers = Array.from(document.querySelectorAll('[data-open-strava-connect-confirm]'));
+    if (connectModal && connectTriggers.length) {
       const confirm = connectModal.querySelector('[data-confirm-strava-connect]');
-      if (confirm) confirm.href = connectTrigger.href;
+      if (confirm) confirm.href = connectTriggers[0].href;
       bindStravaConfirmation({
         modal: connectModal,
-        triggers: [connectTrigger],
+        triggers: connectTriggers,
         cancel: connectModal.querySelector('[data-cancel-strava-connect]'),
         confirm
       });
@@ -240,15 +241,19 @@
   }
 
   function setupPrivateStravaActivities() {
-    const trigger = document.querySelector('[data-load-private-strava]');
+    const triggers = Array.from(document.querySelectorAll('[data-load-private-strava]'));
     const panel = document.querySelector('[data-private-strava-panel]');
     const status = panel?.querySelector('[data-private-strava-status]');
     const list = panel?.querySelector('[data-private-strava-list]');
-    if (!trigger || !panel || !status || !list) return;
+    if (!triggers.length || !panel || !status || !list) return;
 
-    trigger.addEventListener('click', async () => {
+    triggers.forEach((trigger) => trigger.addEventListener('click', async () => {
       trigger.disabled = true;
+      if (trigger.hasAttribute('data-close-coros-on-load')) {
+        document.dispatchEvent(new CustomEvent('coros-strava-close'));
+      }
       panel.hidden = false;
+      panel.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
       list.replaceChildren();
       status.textContent = 'Loading your recent Strava activities…';
       try {
@@ -282,6 +287,132 @@
       } finally {
         trigger.disabled = false;
       }
+    }));
+  }
+
+  function setupCorosStravaBridge() {
+    const modal = document.getElementById('corosStravaSetupModal');
+    const openTriggers = Array.from(document.querySelectorAll('[data-open-coros-strava-wizard]'));
+    const card = document.querySelector('[data-coros-strava-card]');
+    if (!modal || !openTriggers.length || !card) return;
+    const dialog = modal.querySelector('.modal-dialog');
+    const closeButton = modal.querySelector('[data-close-coros-strava-wizard]');
+    const checkbox = modal.querySelector('[data-coros-strava-confirm-check]');
+    const confirmButton = modal.querySelector('[data-confirm-coros-strava]');
+    const wizardStatus = modal.querySelector('[data-coros-wizard-status]');
+    const cardStatus = card.querySelector('[data-coros-strava-status]');
+    const resetButton = card.querySelector('[data-reset-coros-strava]');
+    const stateLabel = card.querySelector('[data-coros-strava-state]');
+    const summary = card.querySelector('[data-coros-strava-summary]');
+    const confirmedCopy = card.querySelector('[data-coros-confirmed-copy]');
+    const csrfToken = document.querySelector('[name="_csrf"]')?.value || '';
+    let lastTrigger = null;
+
+    const focusables = () => Array.from(dialog.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+    const close = () => {
+      modal.hidden = true;
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      lastTrigger?.focus();
+    };
+    const request = async (url, method, body) => {
+      const response = await fetch(url, {
+        method,
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || payload.success !== true) throw new Error(payload.message || 'Unable to update setup status.');
+      return payload;
+    };
+    const renderStatus = (bridge) => {
+      const status = bridge?.status || 'not_started';
+      card.dataset.bridgeStatus = status;
+      if (status === 'user_confirmed') {
+        stateLabel.textContent = 'Confirmed by you';
+        summary.textContent = 'Native sync confirmed by you';
+        resetButton.hidden = false;
+        confirmedCopy.hidden = false;
+        const confirmedAt = bridge.confirmedAt ? new Date(bridge.confirmedAt) : new Date();
+        confirmedCopy.textContent = `Confirmed by you on ${confirmedAt.toLocaleString()}. Connected activity data remains private and cannot be used as event proof.`;
+      } else if (status === 'setup_started') {
+        stateLabel.textContent = 'In progress';
+        summary.textContent = 'Setup started';
+        resetButton.hidden = false;
+        confirmedCopy.hidden = true;
+      } else {
+        stateLabel.textContent = 'Optional';
+        summary.textContent = 'Not set up';
+        resetButton.hidden = true;
+        confirmedCopy.hidden = true;
+      }
+    };
+
+    openTriggers.forEach((trigger) => trigger.addEventListener('click', async () => {
+      lastTrigger = trigger;
+      modal.hidden = false;
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      closeButton?.focus();
+      if (card.dataset.bridgeStatus === 'not_started') {
+        try {
+          const payload = await request('/api/integrations/coros-strava/setup/start', 'POST');
+          renderStatus(payload.bridge);
+        } catch (error) {
+          if (wizardStatus) wizardStatus.textContent = error.message;
+        }
+      }
+    }));
+    closeButton?.addEventListener('click', close);
+    document.addEventListener('coros-strava-close', close);
+    checkbox?.addEventListener('change', () => {
+      if (!confirmButton) return;
+      confirmButton.disabled = !checkbox.checked;
+    });
+    confirmButton?.addEventListener('click', async () => {
+      confirmButton.disabled = true;
+      confirmButton.setAttribute('aria-busy', 'true');
+      if (wizardStatus) wizardStatus.textContent = 'Saving your confirmation…';
+      try {
+        const payload = await request('/api/integrations/coros-strava/setup/confirm', 'POST', { confirmed: true });
+        renderStatus(payload.bridge);
+        if (wizardStatus) wizardStatus.textContent = 'Setup confirmed. Only you can see the connected activity view.';
+        if (cardStatus) cardStatus.textContent = 'COROS–Strava setup confirmed by you.';
+        checkbox.checked = false;
+        setTimeout(close, 500);
+      } catch (error) {
+        if (wizardStatus) wizardStatus.textContent = error.message;
+        confirmButton.disabled = !checkbox?.checked;
+      } finally {
+        confirmButton.removeAttribute('aria-busy');
+      }
+    });
+    resetButton?.addEventListener('click', async () => {
+      resetButton.disabled = true;
+      if (cardStatus) cardStatus.textContent = 'Removing your HelloRun confirmation…';
+      try {
+        const payload = await request('/api/integrations/coros-strava/setup', 'DELETE');
+        renderStatus(payload.bridge);
+        if (cardStatus) cardStatus.textContent = payload.message;
+      } catch (error) {
+        if (cardStatus) cardStatus.textContent = error.message;
+      } finally {
+        resetButton.disabled = false;
+      }
+    });
+    modal.addEventListener('click', (event) => { if (event.target === modal) close(); });
+    modal.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') { event.preventDefault(); close(); return; }
+      if (event.key !== 'Tab') return;
+      const items = focusables();
+      if (!items.length) return;
+      if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items.at(-1).focus(); }
+      else if (!event.shiftKey && document.activeElement === items.at(-1)) { event.preventDefault(); items[0].focus(); }
     });
   }
 

@@ -30,6 +30,12 @@ intend to exercise. The Strava connection is an athlete-only private viewer;
 connected activities cannot be used as event proof, organizer evidence,
 leaderboard data, certificates, or analytics.
 
+The runner profile also includes a guided COROS-to-Strava setup. It stores only
+the runner's HelloRun-owned setup state and confirmation time; it never receives
+COROS credentials or attempts to connect the providers itself. Direct COROS API
+access remains disabled behind `COROS_DIRECT_INTEGRATION_ENABLED=false` until
+Partner API approval and terms review are documented.
+
 Historical Strava cleanup is deliberately operator-controlled:
 
 ```bash

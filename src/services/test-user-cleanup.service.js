@@ -8,6 +8,7 @@ const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubm
 const SubmissionIdempotencyKey = require('../models/SubmissionIdempotencyKey');
 const OrganiserApplication = require('../models/OrganiserApplication');
 const StravaConnection = require('../models/StravaConnection');
+const CorosStravaBridge = require('../models/CorosStravaBridge');
 const Notification = require('../models/Notification');
 const CommunicationLog = require('../models/CommunicationLog');
 const Blog = require('../models/Blog');
@@ -157,6 +158,7 @@ const EMPTY_TEST_USER_SUMMARY = {
   submissionIdempotencyKeysDeleted: 0,
   organiserApplicationsDeleted: 0,
   stravaConnectionsDeleted: 0,
+  corosStravaBridgesDeleted: 0,
   notificationsDeleted: 0,
   communicationLogsDeleted: 0,
   blogPostsDeleted: 0,
@@ -187,7 +189,7 @@ async function cascadeDeleteOwnedMongoData(userIds) {
 
   const [
     registrationsResult, submissionsResult, accumulatedResult, idempotencyKeysResult,
-    applicationsResult, stravaResult, notificationsResult, communicationLogsResult,
+    applicationsResult, stravaResult, corosStravaBridgeResult, notificationsResult, communicationLogsResult,
     blogCommentsResult, blogLikesResult, blogViewsResult, blogRevisionsResult, blogReportsResult,
     runningGroupActivitiesResult, promotionsResult, reminderDeliveriesResult, certTemplatesResult
   ] = await Promise.all([
@@ -197,6 +199,7 @@ async function cascadeDeleteOwnedMongoData(userIds) {
     SubmissionIdempotencyKey.deleteMany({ runnerId: { $in: userIds } }),
     OrganiserApplication.deleteMany({ userId: { $in: userIds } }),
     StravaConnection.deleteMany({ userId: { $in: userIds } }),
+    CorosStravaBridge.deleteMany({ userId: { $in: userIds } }),
     Notification.deleteMany({ userId: { $in: userIds } }),
     CommunicationLog.deleteMany({ recipientUserId: { $in: userIds } }),
     BlogComment.deleteMany({ $or: [{ blogId: { $in: testBlogIds } }, { authorId: { $in: userIds } }] }),
@@ -221,6 +224,7 @@ async function cascadeDeleteOwnedMongoData(userIds) {
     submissionIdempotencyKeysDeleted: idempotencyKeysResult.deletedCount || 0,
     organiserApplicationsDeleted: applicationsResult.deletedCount || 0,
     stravaConnectionsDeleted: stravaResult.deletedCount || 0,
+    corosStravaBridgesDeleted: corosStravaBridgeResult.deletedCount || 0,
     notificationsDeleted: notificationsResult.deletedCount || 0,
     communicationLogsDeleted: communicationLogsResult.deletedCount || 0,
     blogPostsDeleted: blogsResult.deletedCount || 0,
@@ -264,6 +268,7 @@ const EMPTY_TEST_USER_COUNTS = {
   submissionIdempotencyKeys: 0,
   organiserApplications: 0,
   stravaConnections: 0,
+  corosStravaBridges: 0,
   notifications: 0,
   communicationLogs: 0,
   blogPosts: 0,
@@ -297,6 +302,7 @@ async function getTestUserCounts(excludeUserId) {
     submissionIdempotencyKeys: owned.submissionIdempotencyKeysDeleted,
     organiserApplications: owned.organiserApplicationsDeleted,
     stravaConnections: owned.stravaConnectionsDeleted,
+    corosStravaBridges: owned.corosStravaBridgesDeleted,
     notifications: owned.notificationsDeleted,
     communicationLogs: owned.communicationLogsDeleted,
     blogPosts: owned.blogPostsDeleted,
@@ -321,7 +327,7 @@ async function cascadeDeleteOwnedMongoDataDryRun(userIds) {
   const testGroupIds = (await RunningGroup.find({ createdBy: { $in: userIds } }).select('_id').lean()).map((g) => g._id);
 
   const [
-    registrations, submissions, accumulated, idempotencyKeys, applications, strava,
+    registrations, submissions, accumulated, idempotencyKeys, applications, strava, corosStravaBridges,
     notifications, communicationLogs, blogComments, blogLikes, blogViews, blogRevisions,
     blogReports, blogPosts, runningGroups, runningGroupActivities, promotions, reminderDeliveries, certTemplates
   ] = await Promise.all([
@@ -331,6 +337,7 @@ async function cascadeDeleteOwnedMongoDataDryRun(userIds) {
     SubmissionIdempotencyKey.countDocuments({ runnerId: { $in: userIds } }),
     OrganiserApplication.countDocuments({ userId: { $in: userIds } }),
     StravaConnection.countDocuments({ userId: { $in: userIds } }),
+    CorosStravaBridge.countDocuments({ userId: { $in: userIds } }),
     Notification.countDocuments({ userId: { $in: userIds } }),
     CommunicationLog.countDocuments({ recipientUserId: { $in: userIds } }),
     BlogComment.countDocuments({ $or: [{ blogId: { $in: testBlogIds } }, { authorId: { $in: userIds } }] }),
@@ -353,6 +360,7 @@ async function cascadeDeleteOwnedMongoDataDryRun(userIds) {
     submissionIdempotencyKeysDeleted: idempotencyKeys,
     organiserApplicationsDeleted: applications,
     stravaConnectionsDeleted: strava,
+    corosStravaBridgesDeleted: corosStravaBridges,
     notificationsDeleted: notifications,
     communicationLogsDeleted: communicationLogs,
     blogPostsDeleted: blogPosts,

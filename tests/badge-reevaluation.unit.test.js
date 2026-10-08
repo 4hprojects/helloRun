@@ -203,6 +203,6 @@ test('the correction service re-evaluates value-dependent badges for approved en
 test('a corrected finish time reaches the published ranking row, and the re-rank can be awaited', () => {
   assert.match(read('src/services/ranking.service.js'), /rank_position = EXCLUDED\.rank_position,[\s\S]*?elapsed_ms = EXCLUDED\.elapsed_ms,/);
   const submission = read('src/services/submission.service.js');
-  assert.match(submission, /function syncEventRankingsInBackground\(submission, eventSlug\) \{\s*if \(disableSubmissionSyncBackgroundTasks\) return Promise\.resolve\(\);/);
+  assert.match(submission, /function syncEventRankingsInBackground\(submission, eventSlug, options = \{\}\) \{\s*if \(disableSubmissionSyncBackgroundTasks\) return Promise\.resolve\(\);/);
   assert.match(submission, /return \(async \(\) => \{\s*try \{\s*const allApproved/);
 });

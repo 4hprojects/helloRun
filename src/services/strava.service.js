@@ -1,6 +1,7 @@
 const StravaConnection = require('../models/StravaConnection');
 const StravaRevocationJob = require('../models/StravaRevocationJob');
 const StravaDeletionReceipt = require('../models/StravaDeletionReceipt');
+const CorosStravaBridge = require('../models/CorosStravaBridge');
 const { encryptToken, decryptToken } = require('./token-encryption.service');
 
 const STRAVA_AUTHORIZE_URL = 'https://www.strava.com/oauth/authorize';
@@ -129,6 +130,7 @@ async function getConnectionSummary(userId) {
 async function disconnect(userId, { reason = 'user_disconnect' } = {}) {
   const connection = await StravaConnection.findOne({ userId });
   if (!connection) {
+    await CorosStravaBridge.deleteOne({ userId });
     return createDeletionReceipt(userId, reason, 'not_needed');
   }
 
@@ -143,7 +145,10 @@ async function disconnect(userId, { reason = 'user_disconnect' } = {}) {
     }
   }
 
-  await StravaConnection.deleteOne({ _id: connection._id });
+  await Promise.all([
+    StravaConnection.deleteOne({ _id: connection._id }),
+    CorosStravaBridge.deleteOne({ userId })
+  ]);
   const receipt = await createDeletionReceipt(userId, reason, remoteRevocationStatus);
   if (queuedToken) {
     const expiresAt = new Date(Date.now() + REVOCATION_JOB_TTL_MS);
@@ -169,7 +174,10 @@ async function disconnectByAthleteId(stravaAthleteId) {
   const connection = await StravaConnection.findOne({ stravaAthleteId });
   if (!connection) return null;
   const userId = connection.userId;
-  await StravaConnection.deleteOne({ _id: connection._id });
+  await Promise.all([
+    StravaConnection.deleteOne({ _id: connection._id }),
+    CorosStravaBridge.deleteOne({ userId })
+  ]);
   return createDeletionReceipt(userId, 'provider_deauthorization', 'not_needed');
 }
 

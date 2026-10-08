@@ -17,6 +17,7 @@ const {
   buildXlsxBuffer,
   buildExportFilename
 } = require('../../utils/tabular-export');
+const CorosStravaBridge = require('../../models/CorosStravaBridge');
 
 const ADMIN_USERS_EXPORT_CAP = 5000;
 const ADMIN_USER_EXPORT_HEADERS = [
@@ -223,6 +224,7 @@ exports.deleteUsers = async (req, res) => {
     }
 
     const deletableUsers = users.filter((u) => deletableIds.includes(String(u._id)));
+    await CorosStravaBridge.deleteMany({ userId: { $in: deletableIds } });
     const result = await User.deleteMany({ _id: { $in: deletableIds } });
     const deletedCount = Number(result.deletedCount || 0);
     const blockedCount = foundIds.length - deletedCount;

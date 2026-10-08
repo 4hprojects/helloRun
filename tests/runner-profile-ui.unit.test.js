@@ -77,6 +77,26 @@ test('Strava connect and disconnect retain fallback routes behind accessible con
   assert.match(css, /\.strava-confirm-actions\s*\{ display: grid; grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
 });
 
+test('COROS bridge is a first-class private guided setup with accessible controls', () => {
+  const main = read('src/views/runner/partials/profile-main.ejs');
+  const shell = read('src/views/runner/profile.ejs');
+  const script = read('src/public/js/runner-profile.js');
+  const css = read('src/public/css/runner-profile.css');
+  assert.match(main, /COROS via Strava/);
+  assert.match(main, /HelloRun never receives your COROS credentials/);
+  assert.match(main, /Only future COROS activities sync automatically/);
+  assert.match(main, /data-open-coros-strava-wizard/);
+  assert.match(main, /data-reset-coros-strava/);
+  assert.match(shell, /id="corosStravaSetupModal"[^>]*hidden aria-hidden="true"/);
+  assert.match(shell, /Profile → Settings → 3rd Party Apps → Data Sync → Strava/);
+  assert.match(shell, /data-coros-strava-confirm-check/);
+  assert.match(shell, /support\.coros\.com\/hc\/en-us\/articles\/30913889113492-Connecting-Strava-with-COROS/);
+  assert.match(script, /setupCorosStravaBridge\(\)/);
+  assert.match(script, /\/api\/integrations\/coros-strava\/setup\/confirm/);
+  assert.match(css, /\.coros-strava-dialog/);
+  assert.match(css, /\.coros-strava-confirm-check/);
+});
+
 test('Strava confirmation dialogs open, cancel, restore focus, and submit once confirmed', () => {
   const window = new Window({ url: 'https://hellorun.test/runner/profile#integrations' });
   window.document.body.innerHTML = `

@@ -13,6 +13,7 @@ const AccumulatedActivitySubmission = require('../src/models/AccumulatedActivity
 const SubmissionIdempotencyKey = require('../src/models/SubmissionIdempotencyKey');
 const OrganiserApplication = require('../src/models/OrganiserApplication');
 const StravaConnection = require('../src/models/StravaConnection');
+const CorosStravaBridge = require('../src/models/CorosStravaBridge');
 const Notification = require('../src/models/Notification');
 const CommunicationLog = require('../src/models/CommunicationLog');
 const Blog = require('../src/models/Blog');
@@ -148,6 +149,7 @@ function patchAllOwnedCounters(value) {
     patch(SubmissionIdempotencyKey, 'countDocuments', async () => value),
     patch(OrganiserApplication, 'countDocuments', async () => value),
     patch(StravaConnection, 'countDocuments', async () => value),
+    patch(CorosStravaBridge, 'countDocuments', async () => value),
     patch(Notification, 'countDocuments', async () => value),
     patch(CommunicationLog, 'countDocuments', async () => value),
     patch(BlogComment, 'countDocuments', async () => value),
@@ -239,6 +241,7 @@ test('purgeTestUsers sums direct ownership deletes with organizer-owned-event ca
     mockDeleteMany(SubmissionIdempotencyKey, 1),
     mockDeleteMany(OrganiserApplication, 1),
     mockDeleteMany(StravaConnection, 1),
+    mockDeleteMany(CorosStravaBridge, 1),
     mockDeleteMany(Notification, 1),
     mockDeleteMany(CommunicationLog, 1),
     mockDeleteMany(BlogComment, 1),
@@ -285,6 +288,7 @@ test('purgeTestUsers sums direct ownership deletes with organizer-owned-event ca
     // Not linked to events, so counted once.
     assert.equal(summary.organiserApplicationsDeleted, 1);
     assert.equal(summary.stravaConnectionsDeleted, 1);
+    assert.equal(summary.corosStravaBridgesDeleted, 1);
     assert.equal(summary.notificationsDeleted, 1);
     assert.equal(summary.blogPostsDeleted, 1);
     assert.equal(summary.runningGroupsDeleted, 1);

@@ -141,7 +141,7 @@
       <div class="modal-dialog strava-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="stravaDisconnectConfirmTitle" aria-describedby="stravaDisconnectConfirmDesc" tabindex="-1">
         <span class="strava-confirm-icon strava-confirm-icon-danger"><i data-lucide="unlink" aria-hidden="true"></i></span>
         <h3 id="stravaDisconnectConfirmTitle">Disconnect Strava?</h3>
-        <p id="stravaDisconnectConfirmDesc">HelloRun will revoke access and delete locally held connection data. You will receive confirmation when local deletion completes.</p>
+        <p id="stravaDisconnectConfirmDesc">HelloRun will revoke access and delete locally held connection data, including your COROS setup confirmation. This does not change the native connection between COROS and Strava. You will receive confirmation when local deletion completes.</p>
         <div class="modal-actions strava-confirm-actions">
           <button type="button" class="btn btn-outline" data-cancel-strava-disconnect>Cancel</button>
           <button type="button" class="btn btn-danger" data-confirm-strava-disconnect>Disconnect Strava</button>
@@ -149,6 +149,33 @@
       </div>
     </div>
   <% } %>
+
+  <div class="modal-backdrop" id="corosStravaSetupModal" hidden aria-hidden="true">
+    <div class="modal-dialog coros-strava-dialog" role="dialog" aria-modal="true" aria-labelledby="corosStravaSetupTitle" aria-describedby="corosStravaSetupDesc" tabindex="-1">
+      <span class="strava-confirm-icon"><i data-lucide="watch" aria-hidden="true"></i></span>
+      <h3 id="corosStravaSetupTitle">Connect COROS to Strava</h3>
+      <p id="corosStravaSetupDesc">This setup happens in the COROS app. HelloRun does not receive your COROS login or connect the providers on your behalf.</p>
+      <ol class="coros-strava-steps">
+        <li><strong>Connect Strava to HelloRun.</strong> This is required only so you can privately check the resulting activity here.</li>
+        <li><strong>Open the COROS app.</strong> Go to Profile → Settings → 3rd Party Apps → Data Sync → Strava, then complete COROS’s authorization flow.</li>
+        <li><strong>Sync a future activity.</strong> Activities completed after the native link is enabled should sync automatically; previously unsynced history may not.</li>
+        <li><strong>Check your private view.</strong> HelloRun fetches the latest list on demand and does not save it.</li>
+      </ol>
+      <p><a href="https://support.coros.com/hc/en-us/articles/30913889113492-Connecting-Strava-with-COROS" target="_blank" rel="noopener noreferrer" class="profile-official-help-link">Open official COROS instructions <i data-lucide="external-link" aria-hidden="true"></i></a></p>
+      <% if (profilePresentation.connection.connected) { %>
+        <button type="button" class="btn btn-outline" data-load-private-strava data-close-coros-on-load><i data-lucide="refresh-cw" aria-hidden="true"></i>Refresh private Strava activities</button>
+        <label class="coros-strava-confirm-check"><input type="checkbox" data-coros-strava-confirm-check> <span>I saw my COROS activity in my private Strava activity view.</span></label>
+      <% } else { %>
+        <p class="profile-integration-warning">Connect Strava to HelloRun before confirming this setup.</p>
+        <a href="/integrations/strava/connect?returnTo=/runner/profile%23integrations" class="btn btn-outline">Connect Strava</a>
+      <% } %>
+      <p role="status" aria-live="polite" data-coros-wizard-status></p>
+      <div class="modal-actions strava-confirm-actions">
+        <button type="button" class="btn btn-outline" data-close-coros-strava-wizard>Close</button>
+        <button type="button" class="btn btn-primary" data-confirm-coros-strava disabled <%= profilePresentation.connection.connected ? '' : 'aria-disabled="true"' %>>Confirm setup</button>
+      </div>
+    </div>
+  </div>
 
   <% if (user.googleId) { %>
     <div class="modal-backdrop" id="unlinkGoogleModal" hidden>

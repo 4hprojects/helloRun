@@ -10,6 +10,7 @@ const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const stravaService = require('../services/strava.service');
 const stravaWebhookService = require('../services/strava-webhook.service');
+const corosStravaBridgeService = require('../services/coros-strava-bridge.service');
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
@@ -31,6 +32,13 @@ const stravaWebhookLimiter = createRateLimiter({
   maxRequests: 120,
   message: 'Too many webhook requests.',
   keyFn: (req) => `strava:webhook:${req.ip || 'unknown'}`
+});
+
+const corosStravaBridgeLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 20,
+  message: 'Too many connected-app setup changes. Please wait a few minutes and try again.',
+  keyFn: (req) => `coros-strava:${String(req.session?.userId || req.ip || 'unknown')}`
 });
 
 router.get('/integrations/strava/connect', requireAuth, requireRunnerWorkspace, (req, res) => {
@@ -88,7 +96,7 @@ router.post('/integrations/strava/disconnect', requireAuth, requireRunnerWorkspa
   const returnTo = getSafeReturnTo(req.body.returnTo || '/runner/profile');
   try {
     await stravaService.disconnect(req.session.userId);
-    return res.redirect(withPageMessage(returnTo, 'success', 'Strava disconnected successfully.'));
+    return res.redirect(withPageMessage(returnTo, 'success', 'Strava disconnected and your HelloRun COROS setup confirmation was cleared. Your native COROS–Strava connection was not changed.'));
   } catch (error) {
     return res.redirect(withPageMessage(returnTo, 'error', error.message || 'Unable to disconnect Strava.'));
   }
@@ -137,7 +145,7 @@ router.delete('/api/integrations/strava/connection', requireAuthJson, requireRun
     const receipt = await stravaService.disconnect(req.session.userId);
     return res.json({
       success: true,
-      message: 'Strava connection and locally held connection data were deleted.',
+      message: 'Strava connection and locally held connection data were deleted. HelloRun also cleared your COROS setup confirmation; your native COROS–Strava connection was not changed.',
       deletion: {
         receiptId: String(receipt._id),
         completedAt: receipt.localDeletionCompletedAt,
@@ -151,6 +159,54 @@ router.delete('/api/integrations/strava/connection', requireAuthJson, requireRun
 
 router.get('/api/strava/connection', requireAuthJson, requireRunnerWorkspaceJson, deprecate('/api/integrations/strava/status'), statusHandler);
 router.get('/api/strava/activities', requireAuthJson, requireRunnerWorkspaceJson, deprecate('/api/integrations/strava/activities'), stravaActivityFetchLimiter, stravaProviderLimiter, activitiesHandler);
+
+router.get('/api/integrations/coros-strava/status', requireAuthJson, requireRunnerWorkspaceJson, async (req, res) => {
+  try {
+    const bridge = await corosStravaBridgeService.getStatus(req.session.userId);
+    return res.json({ success: true, bridge });
+  } catch (_error) {
+    return res.status(500).json({ success: false, code: 'coros_strava_status_failed', message: 'Unable to load COROS setup status.' });
+  }
+});
+
+router.post('/api/integrations/coros-strava/setup/start', requireAuthJson, requireRunnerWorkspaceJson, corosStravaBridgeLimiter, requireCsrfProtection, async (req, res) => {
+  try {
+    const bridge = await corosStravaBridgeService.startSetup(req.session.userId);
+    return res.json({ success: true, bridge });
+  } catch (_error) {
+    return res.status(500).json({ success: false, code: 'coros_strava_start_failed', message: 'Unable to start COROS setup.' });
+  }
+});
+
+router.post('/api/integrations/coros-strava/setup/confirm', requireAuthJson, requireRunnerWorkspaceJson, corosStravaBridgeLimiter, requireCsrfProtection, async (req, res) => {
+  if (req.body?.confirmed !== true) {
+    return res.status(400).json({ success: false, code: 'explicit_confirmation_required', message: 'Confirm that you saw your COROS activity in the private Strava view.' });
+  }
+  try {
+    const bridge = await corosStravaBridgeService.confirmSetup(req.session.userId);
+    return res.json({ success: true, bridge });
+  } catch (error) {
+    const isExpectedError = error instanceof corosStravaBridgeService.CorosStravaBridgeError;
+    return res.status(isExpectedError ? error.status : 500).json({
+      success: false,
+      code: isExpectedError ? error.code : 'coros_strava_confirm_failed',
+      message: isExpectedError ? error.message : 'Unable to confirm COROS setup.'
+    });
+  }
+});
+
+router.delete('/api/integrations/coros-strava/setup', requireAuthJson, requireRunnerWorkspaceJson, corosStravaBridgeLimiter, requireCsrfProtection, async (req, res) => {
+  try {
+    const bridge = await corosStravaBridgeService.resetSetup(req.session.userId);
+    return res.json({
+      success: true,
+      bridge,
+      message: 'HelloRun removed your setup confirmation. Your native COROS–Strava connection was not changed.'
+    });
+  } catch (_error) {
+    return res.status(500).json({ success: false, code: 'coros_strava_reset_failed', message: 'Unable to reset COROS setup.' });
+  }
+});
 
 router.post('/api/events/:eventId/submissions/strava', requireAuthJson, requireRunnerWorkspaceJson, requireCsrfProtection, async (req, res) => {
   return res.status(403).json({

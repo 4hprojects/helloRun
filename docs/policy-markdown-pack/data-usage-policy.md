@@ -102,13 +102,13 @@ These tools may be inaccurate or incomplete. A flag or mismatch does not by itse
 
 Runners remain responsible for reviewing auto-filled information and submitting genuine evidence that belongs to them.
 
-## 8. Connected fitness services and imported activities
+## 8. Connected fitness services and guided account setup
 
-Where supported, a runner may authorize HelloRun to receive selected activity information from a connected fitness service.
+A runner may authorize HelloRun to fetch a private, on-demand list of that runner's recent Strava activities. HelloRun does not persist the returned activity list or use it for event submissions, organizer review, results, leaderboards, certificates, achievements, or analytics. Connection credentials are encrypted and lifecycle records are limited to the access, security, revocation, and deletion purposes described in the Privacy Policy.
 
-Imported information may include activity identifiers, date, type, distance, duration, pace, elevation, route or location information made available by the service, and connection metadata needed for traceability.
+HelloRun may also guide the runner through COROS's native connection to Strava. HelloRun does not receive COROS credentials, broker the provider authorization, call a COROS activity API, verify the native link, or infer activity origin. It stores only the runner's setup state, guide version, and start or confirmation timestamps. This HelloRun-owned record may be reset and is deleted when the HelloRun Strava connection is removed; neither action changes the provider-to-provider connection.
 
-HelloRun uses only the data authorized for the selected feature. The connected provider controls its own permission, storage, security, and retention practices. Disconnecting an integration stops future authorized access where supported, but does not necessarily remove an activity already used for an event record, review, leaderboard, audit, dispute, or recognition.
+Connected activities remain visible only to the authenticated runner. Event participation continues through permitted manual screenshot evidence and the normal event validation rules.
 
 ## 9. Organizer access and exported participant records
 
