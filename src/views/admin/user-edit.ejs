@@ -150,6 +150,7 @@
                 <option value="approved" <%= formData.organizerStatus === 'approved' ? 'selected' : '' %>>Approved</option>
                 <option value="rejected" <%= formData.organizerStatus === 'rejected' ? 'selected' : '' %>>Rejected</option>
               </select>
+              <small class="field-hint">Approving a runner also grants the Organiser role.</small>
               <% if (errors.organizerStatus) { %><small class="field-error"><%= errors.organizerStatus %></small><% } %>
             </label>
               <label class="admin-form-field">

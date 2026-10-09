@@ -1,5 +1,18 @@
 # HelloRun Changelog — October 2026
 
+## October 9 — Admin-approved organiser role reconciliation
+
+- Runners whose organizer status was set to Approved through Admin → Users → Edit kept
+  `role: 'runner'`. Organizer workspace access is keyed on role, so those accounts had no
+  Organizer mode switch, dashboard, or event tools.
+- The admin user edit now promotes an approved runner to `organiser`, matching the
+  application-approval path; the existing `admin.user.role_changed` audit event records it.
+  It never demotes and never changes admins. The edit form explains the behaviour.
+- Added `src/scripts/repair-approved-organiser-roles.js` for existing accounts (dry-run by
+  default; `--apply` writes and records audit events). Running it in production is
+  operator work.
+- DB-free coverage: `tests/admin-user-role-reconcile.unit.test.js`.
+
 ## October 9 — Private Strava viewer launch controls
 
 - Added an off-by-default `STRAVA_PRIVATE_VIEWER_ENABLED` gate and readiness failure

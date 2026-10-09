@@ -8,7 +8,7 @@ const {
   mapAdminUserListItem, buildAdminUserListPath, buildAdminUsersRedirect, getAdminPageMessage,
   renderServerError, buildAdminRedirect, normalizeUserIdsForDeletion, getUserDeleteBlockers,
   formatUserDisplayName, maskDateForAdmin, findAdminManagedUser, renderAdminUserNotFound,
-  renderAdminUserEdit, getAdminUserEditFormData, validateAdminUserEditForm,
+  renderAdminUserEdit, getAdminUserEditFormData, reconcileAdminUserRole, validateAdminUserEditForm,
   getRequestIpAddress, getRequestUserAgent, isFullAdminTier,
   getTestUserCounts, purgeTestUsers
 } = require('./_shared');
@@ -329,7 +329,7 @@ exports.updateUser = async (req, res) => {
     const viewer = await User.findById(req.session.userId).select('adminTier').lean();
     const viewerIsFullAdmin = isFullAdminTier(viewer);
 
-    const formData = getAdminUserEditFormData(req.body);
+    const formData = reconcileAdminUserRole(getAdminUserEditFormData(req.body));
     // Parse verifiedAuthor and trustScore from form
     user.verifiedAuthor = String(req.body.verifiedAuthor) === 'true';
     let trustScore = Number(req.body.trustScore);

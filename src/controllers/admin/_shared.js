@@ -523,6 +523,16 @@ function getAdminUserEditFormData(source = {}) {
   };
 }
 
+// Approving organizer status grants organizer access, which is keyed on role.
+// Mirrors the application-approval path so a runner is never left approved
+// without the organiser role. Never demotes and never touches admins.
+function reconcileAdminUserRole(formData) {
+  if (formData.organizerStatus === 'approved' && formData.role === 'runner') {
+    formData.role = 'organiser';
+  }
+  return formData;
+}
+
 function validateAdminUserEditForm(formData) {
   const errors = {};
   const validGenders = new Set(['', 'male', 'female', 'non_binary', 'prefer_not_to_say']);
@@ -1370,7 +1380,7 @@ module.exports = {
   normalizeAdminEventFilters, buildAdminEventQuery, normalizeAdminUserFilters, buildAdminUserQuery,
   getAdminUserSort, buildAdminUserListPath, buildAdminUsersRedirect, formatUserDisplayName,
   getCountMap, maskDateForAdmin, formatAdminShortDate, formatAdminDateTime, formatAdminEnumLabel,
-  formatDateForAdminInput, normalizeAdminRunningGroups, getAdminUserEditFormData, validateAdminUserEditForm,
+  formatDateForAdminInput, normalizeAdminRunningGroups, getAdminUserEditFormData, reconcileAdminUserRole, validateAdminUserEditForm,
   findAdminManagedUser, renderAdminUserNotFound, renderAdminUserEdit, getAdminUserActivityCounts,
   mapAdminUserListItem, normalizeUserIdsForDeletion, getUserDeleteBlockers, formatEventStatusLabel,
   getAdminEventRedirect, findAdminEventOrNull, getEventCountsById, formatAdminReviewDate,
