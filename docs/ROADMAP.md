@@ -13,47 +13,19 @@ ticked in the same commit that implements it, with a one-line note of the
 evidence. Anything requiring a production migration or a hands-on session says so
 and stops for a decision.
 
-## 0. Production is down — since August 9, 2026
+## 0. Deployment record gaps
 
-**`https://hellorun.online` returns `502` on every path, including `/`.** The
-body is Cloudflare's own plain-text `error code: 502`, so the edge is up and the
-origin is not answering.
+The August 9–10 full-site `502` is resolved: production's `.env` `PORT` had
+drifted off nginx's `proxy_pass` target and the app crash-looped under PM2. See
+[operations/deployment-runbook.md](operations/deployment-runbook.md) §1 and §3,
+item 5. What that outage exposed is still open:
 
-This is not the stalled deploy recorded below; a stalled deploy keeps serving the
-old commit. The origin is gone.
-
-The code is not the obvious suspect: the current commit boots locally and served
-`/healthz` in about eleven seconds on the same machine minutes before this was
-observed.
-
-**There are two origins** (confirmed August 10): the **main deployment is
-self-hosted on an Ubuntu machine of Henz's own**, and **Render is the backup**.
-Earlier notes here described only Render, which is why this entry first pointed
-at the wrong place. Work in this order:
-
-1. **Which origin should be live?** `x-render-origin-server` in the response
-   headers means Render is serving; absent means the Ubuntu box is.
-2. **On the Ubuntu box:** is the app process running and listening, and is
-   whatever connects it to Cloudflare — tunnel or port forward — up?
-3. **If that is not quick, fail over to Render.** Restoring service beats
-   diagnosing it; the Ubuntu host can be fixed with the site back up.
-
-The Ubuntu host is **not** the development workstation this repository sits on:
-checked August 10, it has no tunnel client installed, nginx serves only the
-`default` site with no `hellorun` server block, and nothing is listening on an
-app port.
-
-**This is yours and nothing else on this list matters until it moves** — every
-remaining item needs a working deployment to verify, and the site is currently
-serving nobody. See
-[operations/deployment-runbook.md](operations/deployment-runbook.md) §1 and §3.
-
-- [ ] **Write down how the two deployments actually work, and how to switch.**
-      Nothing in this repository records how the Ubuntu host starts and keeps the
-      app up, what fronts it, how new code reaches it, where its `.env` lives, or
-      **how to cut over to the Render backup and back**. A backup nobody has
-      failed over to is a plan, not a capability — the same caveat the runbook
-      makes about restores. Until this exists, both a restart and a failover
+- [ ] **Write down how code reaches production, and how to fail over.** The
+      runbook records the PM2 → nginx → Cloudflare Tunnel chain, but not the
+      exact pull/install/restart procedure (STATUS.md now refers to HelloDeploy
+      releases, which the runbook does not describe), nor **how to cut over to
+      the Render backup and back**. A backup nobody has failed over to is a
+      plan, not a capability. Until this exists, both a deploy and a failover
       depend on one person remembering.
 
 ## 1. Verify what is live

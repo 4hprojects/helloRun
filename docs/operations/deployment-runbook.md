@@ -151,42 +151,26 @@ edge error, meaning it could not get a response from the origin. Nothing in the
 repository can fix that and no push will route around it (see the correction in
 §1). Work in this order:
 
-1. **Which origin should be live?** `x-render-origin-server` present means Render
-   is serving; absent means the self-hosted Ubuntu box is.
-2. **On the Ubuntu box:** is the app process running and listening on its port,
-   and is whatever connects it to Cloudflare — tunnel or port forward — up?
+1. **Which origin should be live?** `x-render-origin-server` present means the
+   Render backup is serving; absent means the PM2 host in §1 is.
+2. **Walk the chain in §1 from the bottom up on the production host:**
+   `pm2 describe hellorun` (online? restart count climbing?), `ss -ltn` against
+   `.env`'s `PORT` and nginx's `proxy_pass` (item 5 above — the cause on August
+   10), then `systemctl status cloudflared`.
 3. **If that will take a while, fail over to the Render backup.** Restoring
-   service beats diagnosing it; the Ubuntu box can be fixed with the site up.
+   service beats diagnosing it.
 
 Before assuming the code is at fault, check whether the commit boots:
 `PORT=3211 node src/server.js` and curl `/healthz` locally. A clean local boot on
-the same commit points at the platform or the service configuration, not at the
-build.
+the same commit points at the host configuration, not at the build.
 
-**Observed August 9–10, 2026, and what it actually turned out to be.** Every
-endpoint returned `502` from Cloudflare for more than a day. Three separate
-redeploys changed nothing, because **the app was never the problem** — it booted
-in three seconds and served the homepage `200` against the production databases,
-on both the deployed commit and `HEAD`.
-
-The break was the *path*. This machine is `192.168.1.19`, a private address
-behind NAT, with no tunnel client installed. Port 443 on the public IP was
-answered by the **router's own admin page** — a ZTE web UI, TLS subject
-`CN=192.168.1.1` — which returns a 404 for `/healthz`. Cloudflare connected to
-the origin, got that instead of the app, and returned `502` to every visitor.
-
-**The lesson for next time: for a `502`, check the path before the app.** Two
-commands would have found this in a minute rather than a day:
-
-```bash
-curl -sk https://<your-public-ip>/healthz          # is the app what answers?
-openssl s_client -connect <your-public-ip>:443 </dev/null 2>/dev/null \
-  | openssl x509 -noout -subject                  # whose certificate is it?
-```
-
-If that certificate is not yours, nothing you deploy will help. The fix is
-`deploy/cloudflared-config.yml` — a tunnel dials out, so it needs no port
-forward and survives the residential IP changing.
+**Diagnose on the production host, not a development machine.** During the
+August 9–10 outage a parallel investigation ran on a development workstation,
+found no tunnel and its router's admin page on port 443, and concluded the route
+was missing. That workstation was never the origin; the real cause was the
+`PORT` drift in item 5. Do not install a tunnel or run
+`cloudflared tunnel route dns` from anywhere but the production host — it would
+repoint `hellorun.online` at that machine.
 
 ## 4. Migrations
 
