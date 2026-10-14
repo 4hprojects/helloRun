@@ -10,6 +10,7 @@ const Event = require('../src/models/Event');
 const Registration = require('../src/models/Registration');
 const Submission = require('../src/models/Submission');
 const AccumulatedActivitySubmission = require('../src/models/AccumulatedActivitySubmission');
+const ReviewDecision = require('../src/models/ReviewDecision');
 const SubmissionIdempotencyKey = require('../src/models/SubmissionIdempotencyKey');
 const OrganiserApplication = require('../src/models/OrganiserApplication');
 const StravaConnection = require('../src/models/StravaConnection');
@@ -238,6 +239,7 @@ test('purgeTestUsers sums direct ownership deletes with organizer-owned-event ca
     mockDeleteMany(Registration, 1),
     mockDeleteMany(Submission, 1),
     mockDeleteMany(AccumulatedActivitySubmission, 1),
+    mockDeleteMany(ReviewDecision, 1),
     mockDeleteMany(SubmissionIdempotencyKey, 1),
     mockDeleteMany(OrganiserApplication, 1),
     mockDeleteMany(StravaConnection, 1),

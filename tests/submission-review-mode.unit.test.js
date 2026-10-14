@@ -82,7 +82,7 @@ test('both auto-approval sites consult the mode before approving, and there are 
   const standard = read('src/services/submission.service.js');
   const fn = standard.slice(standard.indexOf('async function applyAutoApprovalIfEligible'));
   const eligibility = fn.indexOf('isAutoApprovableSubmission(submission)');
-  const lookup = fn.indexOf("select('submissionReviewMode')");
+  const lookup = fn.indexOf(".select('submissionReviewMode ");
   const approve = fn.indexOf("submission.status = 'approved'");
   assert.ok(eligibility > -1 && lookup > eligibility && approve > lookup, 'lookup sits between the eligibility check and the approval');
   assert.match(fn, /if \(isManualSubmissionReview\(eventSettings\)\) \{\s*return submission;/);

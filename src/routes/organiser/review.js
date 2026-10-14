@@ -1,7 +1,12 @@
 // src/routes/organiser/review.js
 const express = require('express');
 const router = express.Router();
-const { getRejectionReasonOptions, resolveRejectionReason } = require('../../utils/rejection-reasons');
+const {
+  getRejectionReasonOptions,
+  resolveRejectionReason,
+  formatRejectionAuditNote
+} = require('../../utils/rejection-reasons');
+const { recordReviewDecisionInBackground } = require('../../services/review-decision.service');
 const { redirectWithFlash } = require('../../utils/session-flash');
 const { normalizeSubmissionHubFilters } = require('../../services/submission-hub.service');
 const { reverseSubmissionApproval } = require('../../services/approval-reversal.service');
@@ -812,6 +817,18 @@ router.post('/events/:id/payment-reviews/bulk-approve', requireAuth, requireCsrf
           userAgent: getRequestUserAgent(req),
           occurredAt: registration.paymentReviewedAt
         });
+        recordReviewDecisionInBackground({
+          kind: 'payment_proof',
+          entry: registration,
+          event,
+          decision: 'approved',
+          statusFrom: previousStatus,
+          statusTo: 'paid',
+          decidedBy: user._id,
+          reviewerRole: user.role,
+          decidedAt: registration.paymentReviewedAt,
+          reviewNotes
+        });
         const runner = await User.findById(registration.userId).select('email firstName');
         notifyWithRetryInBackground('payment.approved', {
           notification: { userId: registration.userId, type: 'payment_approved', title: 'Payment Approved', message: `Your payment for ${event.title || 'the event'} has been approved.`, href: `/my-registrations#registration-${String(registration._id)}`, metadata: { registrationId: String(registration._id), eventId: String(event._id), eventTitle: event.title || '' } },
@@ -1418,6 +1435,18 @@ router.post(
         userAgent: getRequestUserAgent(req),
         occurredAt: reviewedAt
       });
+      recordReviewDecisionInBackground({
+        kind: 'payment_proof',
+        entry: registration,
+        event,
+        decision: 'approved',
+        statusFrom: 'proof_submitted',
+        statusTo: 'paid',
+        decidedBy: user._id,
+        reviewerRole: user.role,
+        decidedAt: reviewedAt,
+        reviewNotes
+      });
 
       try {
         const runner = await User.findById(registration.userId).select('email firstName');
@@ -1565,10 +1594,25 @@ router.post(
         targetId: String(registration._id),
         statusFrom: 'proof_submitted',
         statusTo: 'proof_rejected',
-        notes: rejectionReason,
+        notes: formatRejectionAuditNote({ rejectionCode: resolvedRejection.code, rejectionReason }),
         ipAddress: getRequestIpAddress(req),
         userAgent: getRequestUserAgent(req),
         occurredAt: reviewedAt
+      });
+      recordReviewDecisionInBackground({
+        kind: 'payment_proof',
+        entry: registration,
+        event,
+        decision: 'rejected',
+        statusFrom: 'proof_submitted',
+        statusTo: 'proof_rejected',
+        decidedBy: user._id,
+        reviewerRole: user.role,
+        isSelfReview: String(registration.userId || '') === String(user._id),
+        decidedAt: reviewedAt,
+        rejectionCode: resolvedRejection.code,
+        rejectionReason,
+        reviewNotes
       });
 
       try {

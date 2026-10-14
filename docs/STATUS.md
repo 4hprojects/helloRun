@@ -137,6 +137,11 @@ production services.
 
 ## Implemented, Production or Live Verification Pending
 
+- Review decision history is repository-complete (October 15): an append-only
+  `ReviewDecision` collection records every run-proof, accumulated-activity and
+  payment-proof decision with its evidence snapshot, and run-proof `rejectionCode` /
+  `manualReviewChecklist` are now actually persisted. Not deployed; verified only by
+  DB-free unit tests. Decisions made before deployment have no history rows.
 - The private Strava viewer launch implementation is repository-complete behind
   `STRAVA_PRIVATE_VIEWER_ENABLED=false`: owner-only on-demand activity viewing,
   production readiness checks, explicit consent copy, official connection branding,

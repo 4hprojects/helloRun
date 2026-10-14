@@ -6,7 +6,8 @@ const User = require('../models/User');
 const communicationService = require('./communication.service');
 const { notifyWithRetry } = require('./reliable-communication.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
-const { resolveRejectionReason } = require('../utils/rejection-reasons');
+const { recordReviewDecisionInBackground } = require('./review-decision.service');
+const { resolveRejectionReason, formatRejectionAuditNote } = require('../utils/rejection-reasons');
 const { validateReviewChecklist } = require('../utils/run-proof-review');
 const { resolveEventAccess } = require('./event-access.service');
 const { isManualSubmissionReview } = require('../utils/submission-review-mode');
@@ -183,9 +184,28 @@ async function reviewAccumulatedActivitySubmission({
     statusFrom: previousStatus,
     statusTo: reviewedActivity.status,
     notes: safeAction === 'reject'
-      ? (reviewedActivity.rejectionReason || reviewedActivity.reviewNotes)
+      ? formatRejectionAuditNote(reviewedActivity)
       : reviewedActivity.reviewNotes,
     occurredAt: reviewedActivity.reviewedAt
+  });
+  // Snapshot the pre-update document: approval clears the suspicion flag, and that flag is
+  // part of what the reviewer decided on.
+  const decisionByAction = { approve: 'approved', reject: 'rejected', clarify: 'needs_clarification' };
+  recordReviewDecisionInBackground({
+    kind: 'accumulated_activity',
+    entry: activity,
+    event,
+    decision: isApprovalReversal ? 'approval_reversed' : decisionByAction[safeAction],
+    statusFrom: previousStatus,
+    statusTo: reviewedActivity.status,
+    decidedBy: organizerId,
+    reviewerRole: normalizedReviewerRole,
+    isSelfReview,
+    decidedAt: reviewedActivity.reviewedAt,
+    rejectionCode: reviewedActivity.rejectionCode,
+    rejectionReason: reviewedActivity.rejectionReason,
+    reviewNotes: reviewedActivity.reviewNotes,
+    manualReviewChecklist: reviewedActivity.manualReviewChecklist
   });
 
   if (isSelfReview) {
@@ -453,6 +473,16 @@ async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
     statusTo: 'approved',
     notes: autoApprovalReviewNote,
     occurredAt: activity.reviewedAt
+  });
+  recordReviewDecisionInBackground({
+    kind: 'accumulated_activity',
+    entry: activity,
+    event: eventDoc,
+    decision: 'auto_approved',
+    statusFrom: 'submitted',
+    statusTo: 'approved',
+    decidedAt: activity.reviewedAt,
+    reviewNotes: autoApprovalReviewNote
   });
 
   refreshAccumulatedChallengeProgress(activity.registrationId, {

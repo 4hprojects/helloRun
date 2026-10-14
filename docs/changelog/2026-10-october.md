@@ -1,5 +1,30 @@
 # HelloRun Changelog — October 2026
 
+## October 15 — Review decision history
+
+- **Fix: run-proof rejection codes were never saved.** `rejectionCode` and
+  `manualReviewChecklist` were written by `reviewSubmission` but existed only in an unused
+  `commonActivityFields` object, not in `submissionSchema`, so Mongoose strict mode dropped
+  them. Both are now schema fields and the dead block is gone. Past run-proof rejections
+  have no code and cannot be backfilled. Accumulated activities and payment proofs were
+  unaffected.
+- **New append-only `ReviewDecision` collection** (`src/models/ReviewDecision.js`,
+  `src/services/review-decision.service.js`). Every approve, reject, auto-approve, reversal
+  and needs-clarification decision on run submissions, accumulated activities and payment
+  proofs writes one row: actor, role, self-review, attempt number, code, reason, notes,
+  checklist, the event's acceptance rules, and an evidence snapshot (metrics, proof key and
+  hash, OCR payload, validation, suspicion flag) taken *before* the decision. Resubmission
+  and approval no longer erase why an earlier attempt was decided as it was. Writes run in
+  the background and never fail a review.
+- Rejection rows in the Postgres critical audit now lead with `[code]`, so the trail can
+  be searched by reason.
+- Resubmission no longer deletes a replaced run proof or payment receipt that a recorded
+  decision references, so the history keeps the image the reviewer saw. This grows R2
+  storage by one file per decided-then-replaced attempt.
+- Payment resubmission now also clears `paymentRejectionCode` (it kept the stale code).
+- Test-data and test-user cleanup also delete `ReviewDecision` rows.
+- DB-free coverage: `tests/review-decision.service.unit.test.js`.
+
 ## October 9 — Admin-approved organiser role reconciliation
 
 - Runners whose organizer status was set to Approved through Admin → Users → Edit kept

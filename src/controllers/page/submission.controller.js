@@ -77,6 +77,7 @@ const {
   renderEventNotFound
 } = require('./_shared');
 const { canUseRunnerWorkspace } = require('../../utils/workspace');
+const { isProofReferencedByReviewDecision } = require('../../services/review-decision.service');
 
 let { syncRegistrationPaymentShadow } = require('../../services/registration-payment-shadow.service');
 
@@ -302,7 +303,8 @@ exports.postUploadPaymentProof = async (req, res) => {
             paymentReviewedAt: null,
             paymentReviewedBy: null,
             paymentReviewNotes: '',
-            paymentRejectionReason: ''
+            paymentRejectionReason: '',
+            paymentRejectionCode: ''
           },
           $inc: {
             paymentSubmissionCount: 1
@@ -337,8 +339,13 @@ exports.postUploadPaymentProof = async (req, res) => {
           cleanupKeys.push(derivedKey);
         }
       }
-      if (cleanupKeys.length) {
-        await uploadService.deleteObjects(cleanupKeys);
+      // A receipt an organiser already ruled on stays, so the decision history keeps it.
+      const unreferencedKeys = [];
+      for (const key of cleanupKeys) {
+        if (!await isProofReferencedByReviewDecision(key)) unreferencedKeys.push(key);
+      }
+      if (unreferencedKeys.length) {
+        await uploadService.deleteObjects(unreferencedKeys);
       }
 
       recordCriticalAuditEventInBackground({
@@ -881,11 +888,12 @@ function parseSubmissionAttemptId(value) {
 async function deleteProofObjectIfUnused(proofKey) {
   const safeKey = String(proofKey || '').trim();
   if (!safeKey) return;
-  const [usedBySubmission, usedByAccumulatedActivity] = await Promise.all([
+  const [usedBySubmission, usedByAccumulatedActivity, usedByReviewDecision] = await Promise.all([
     Submission.exists({ 'proof.key': safeKey }),
-    AccumulatedActivitySubmission.exists({ 'proof.key': safeKey })
+    AccumulatedActivitySubmission.exists({ 'proof.key': safeKey }),
+    isProofReferencedByReviewDecision(safeKey)
   ]);
-  if (usedBySubmission || usedByAccumulatedActivity) return;
+  if (usedBySubmission || usedByAccumulatedActivity || usedByReviewDecision) return;
   await uploadService.deleteObjects([safeKey]).catch(() => {});
 }
 

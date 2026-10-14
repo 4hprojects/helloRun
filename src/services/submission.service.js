@@ -15,7 +15,7 @@ const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = re
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 const { detectSuspiciousActivity } = require('../utils/submission-integrity');
 const { REVIEW_REASON_LABELS } = require('../utils/submission-review-labels');
-const { resolveRejectionReason } = require('../utils/rejection-reasons');
+const { resolveRejectionReason, formatRejectionAuditNote } = require('../utils/rejection-reasons');
 const { validateReviewChecklist } = require('../utils/run-proof-review');
 const { assertRunDateNotFuture } = require('../utils/platform-date');
 const { buildAuditIdempotencyKey, recordCriticalAuditEventInBackground } = require('./critical-audit.service');
@@ -26,6 +26,7 @@ const { syncSubmissionShadow } = require('./submission-shadow.service');
 const { recordSyncFailureInBackground } = require('./sync-failure.service');
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
 const { resolveEventAccess } = require('./event-access.service');
+const { recordReviewDecisionInBackground } = require('./review-decision.service');
 const { isManualSubmissionReview, normalizeSubmissionReviewMode } = require('../utils/submission-review-mode');
 
 const APPROVABLE_STATUS = new Set(['submitted', 'rejected']);
@@ -477,8 +478,28 @@ async function reviewSubmission({
     statusTo: reviewedSubmission.status,
     notes: safeAction === 'approve'
       ? reviewedSubmission.reviewNotes
-      : (reviewedSubmission.rejectionReason || reviewedSubmission.reviewNotes),
+      : formatRejectionAuditNote(reviewedSubmission),
     occurredAt: reviewedSubmission.reviewedAt
+  });
+  // Snapshot the pre-update document: approval clears the suspicion flag, and that flag is
+  // part of what the reviewer decided on.
+  recordReviewDecisionInBackground({
+    kind: 'run_submission',
+    entry: submission,
+    event,
+    decision: safeAction === 'approve'
+      ? 'approved'
+      : isApprovalReversal ? 'approval_reversed' : 'rejected',
+    statusFrom: previousStatus,
+    statusTo: reviewedSubmission.status,
+    decidedBy: organizerId,
+    reviewerRole: normalizedReviewerRole,
+    isSelfReview,
+    decidedAt: reviewedSubmission.reviewedAt,
+    rejectionCode: reviewedSubmission.rejectionCode,
+    rejectionReason: reviewedSubmission.rejectionReason,
+    reviewNotes: reviewedSubmission.reviewNotes,
+    manualReviewChecklist: reviewedSubmission.manualReviewChecklist
   });
   if (isSelfReview) {
     // A second row alongside the normal approve/reject event. Renaming the original action
@@ -1594,8 +1615,11 @@ async function applyAutoApprovalIfEligible(submission) {
   // The organizer chose to review every submission (Strava syncs included). Only looked up
   // for entries that would otherwise be approved, so ineligible entries cost nothing extra.
   // Personal records have no event and always stay on system validation.
+  let eventSettings = null;
   if (submission.eventId) {
-    const eventSettings = await Event.findById(submission.eventId).select('submissionReviewMode').lean();
+    eventSettings = await Event.findById(submission.eventId)
+      .select('submissionReviewMode virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm acceptedRunTypes')
+      .lean();
     if (isManualSubmissionReview(eventSettings)) {
       return submission;
     }
@@ -1621,6 +1645,16 @@ async function applyAutoApprovalIfEligible(submission) {
     statusTo: 'approved',
     notes: autoApprovalReviewNote,
     occurredAt: submission.reviewedAt
+  });
+  recordReviewDecisionInBackground({
+    kind: 'run_submission',
+    entry: submission,
+    event: eventSettings,
+    decision: 'auto_approved',
+    statusFrom: 'submitted',
+    statusTo: 'approved',
+    decidedAt: submission.reviewedAt,
+    reviewNotes: autoApprovalReviewNote
   });
 
   const backgroundTask = attachCertAndNotifyInBackground(submission, 'approve');

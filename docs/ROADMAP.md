@@ -326,6 +326,11 @@ What remains of that spec is deliberately deferred, with reasons, in
       `repair-registration-references.js` and `backfill-missing-references.js` fix.
 - [ ] Accept the `audit_critical` gap: every write failed until August 7 and
       those records cannot be reconstructed.
+- [ ] Deploy review decision history, then confirm a live review writes a
+      `ReviewDecision` row and that a run-proof rejection keeps its `rejectionCode`.
+- [ ] Decide a retention period for `ReviewDecision` evidence and retained proof files,
+      and whether account deletion should remove them (it does not remove submissions
+      today either).
 - [ ] Deepen platform analytics and reporting.
 - [ ] Prioritise backlog items using production usage and support evidence.
 - [ ] Evaluate mobile-app integration without duplicating unstable web workflows.

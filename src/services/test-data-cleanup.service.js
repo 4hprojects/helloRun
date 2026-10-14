@@ -4,6 +4,7 @@ const Event = require('../models/Event');
 const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
+const ReviewDecision = require('../models/ReviewDecision');
 const EventPromotion = require('../models/EventPromotion');
 const EventReminderDelivery = require('../models/EventReminderDelivery');
 const CertificateTemplate = require('../models/CertificateTemplate');
@@ -205,6 +206,8 @@ async function cascadeDeleteEventsMongo(eventIds) {
     BibQrToken.deleteMany({ eventId: { $in: eventIds } }),
     EventCoOrganizer.deleteMany({ eventId: { $in: eventIds } })
   ]);
+  // Decision history for the deleted entries; not counted in the summary.
+  await ReviewDecision.deleteMany({ eventId: { $in: eventIds } });
   await User.updateMany(
     { savedEvents: { $in: eventIds } },
     { $pull: { savedEvents: { $in: eventIds } } }
