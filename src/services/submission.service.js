@@ -27,6 +27,7 @@ const { recordSyncFailureInBackground } = require('./sync-failure.service');
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
 const { resolveEventAccess } = require('./event-access.service');
 const { recordReviewDecisionInBackground } = require('./review-decision.service');
+const { applyLinkedReview } = require('./linked-entry-review.service');
 const { isManualSubmissionReview, normalizeSubmissionReviewMode } = require('../utils/submission-review-mode');
 
 const APPROVABLE_STATUS = new Set(['submitted', 'rejected']);
@@ -375,7 +376,10 @@ async function reviewSubmission({
   // Ordinary review treats an approved result as final. Reversing one is a separate,
   // separately-audited capability that unwinds the certificate, badges and ranking, so
   // it opts in explicitly rather than widening REJECTABLE_STATUS for every caller.
-  allowApprovedReversal = false
+  allowApprovedReversal = false,
+  // Set only by linked-entry-review.service when this entry follows a decision made on an
+  // entry submitted together with it. See applyLinkedReview.
+  linkedFrom = null
 }) {
   const safeAction = String(action || '').trim().toLowerCase();
   if (safeAction !== 'approve' && safeAction !== 'reject') {
@@ -404,7 +408,9 @@ async function reviewSubmission({
   if (!event) {
     throw new Error('Submission not found or inaccessible.');
   }
-  if (!isAdminReviewer && !await resolveEventAccess({ eventId: event._id, userId: organizerId, userRole: normalizedReviewerRole })) {
+  // A linked entry may belong to another organiser's event. The reviewer's access was checked
+  // on the source entry, and the decision is recorded against this one with linkedFrom.
+  if (!isAdminReviewer && !linkedFrom && !await resolveEventAccess({ eventId: event._id, userId: organizerId, userRole: normalizedReviewerRole })) {
     throw new Error('Submission not found or inaccessible.');
   }
   // Organisers and co-organisers may join events they manage, so a reviewer can be the
@@ -425,7 +431,8 @@ async function reviewSubmission({
   };
 
   if (safeAction === 'approve') {
-    if (requireVerification) {
+    // The checklist was confirmed on the source entry of a linked decision.
+    if (requireVerification && !linkedFrom) {
       const checklist = validateReviewChecklist({
         event,
         submission,
@@ -499,7 +506,8 @@ async function reviewSubmission({
     rejectionCode: reviewedSubmission.rejectionCode,
     rejectionReason: reviewedSubmission.rejectionReason,
     reviewNotes: reviewedSubmission.reviewNotes,
-    manualReviewChecklist: reviewedSubmission.manualReviewChecklist
+    manualReviewChecklist: reviewedSubmission.manualReviewChecklist,
+    linkedFrom
   });
   if (isSelfReview) {
     // A second row alongside the normal approve/reject event. Renaming the original action
@@ -527,6 +535,20 @@ async function reviewSubmission({
     if (runSubmissionBackgroundTasksInline) {
       await backgroundTask;
     }
+  }
+  // A reversal is its own audited capability and stays on this entry alone.
+  if (!linkedFrom && !isApprovalReversal) {
+    reviewedSubmission.$locals.linkedReview = await applyLinkedReview({
+      sourceEntry: reviewedSubmission,
+      sourceKind: 'run_submission',
+      sourceEvent: event,
+      action: safeAction,
+      organizerId,
+      reviewerRole: normalizedReviewerRole,
+      reviewNotes: safeReviewNotes,
+      rejectionCode,
+      rejectionReason
+    });
   }
   return reviewedSubmission;
 }

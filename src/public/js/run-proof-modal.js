@@ -501,7 +501,8 @@
         setEventsHelperText(
           'This activity qualifies for ' + state.selectedRegistrationIds.size +
           ' events. All are selected and submitting will create ' +
-          state.selectedRegistrationIds.size + ' separate entries. Deselect any event you do not want to include.'
+          state.selectedRegistrationIds.size + ' entries that share one review: approving or rejecting any of them applies to all. ' +
+          'Deselect any event you do not want to include.'
         );
       }
 

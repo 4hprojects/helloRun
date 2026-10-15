@@ -328,6 +328,9 @@ What remains of that spec is deliberately deferred, with reasons, in
       those records cannot be reconstructed.
 - [ ] Deploy review decision history, then confirm a live review writes a
       `ReviewDecision` row and that a run-proof rejection keeps its `rejectionCode`.
+- [ ] With that deployment, confirm on a non-production database that approving one
+      entry of a multi-event submission approves its pending linked entries (standard and
+      accumulated) and that each writes a `ReviewDecision` with `linkedFrom`.
 - [ ] Decide a retention period for `ReviewDecision` evidence and retained proof files,
       and whether account deletion should remove them (it does not remove submissions
       today either).

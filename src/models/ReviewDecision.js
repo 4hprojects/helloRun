@@ -47,7 +47,20 @@ const reviewDecisionSchema = new mongoose.Schema(
     // see buildEvidenceSnapshot in review-decision.service.js.
     evidence: { type: mongoose.Schema.Types.Mixed, default: {} },
     // The event's acceptance rules in force at decision time.
-    eventRules: { type: mongoose.Schema.Types.Mixed, default: {} }
+    eventRules: { type: mongoose.Schema.Types.Mixed, default: {} },
+    // Set when this decision followed one made on an entry submitted together with this one
+    // (same submissionAttemptId), possibly by a reviewer of another event. Null otherwise.
+    linkedFrom: {
+      type: new mongoose.Schema(
+        {
+          kind: { type: String, enum: REVIEW_DECISION_KINDS, required: true },
+          targetId: { type: mongoose.Schema.Types.ObjectId, required: true },
+          eventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', default: null }
+        },
+        { _id: false }
+      ),
+      default: null
+    }
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
@@ -59,6 +72,7 @@ reviewDecisionSchema.index({ targetId: 1, decidedAt: -1 });
 reviewDecisionSchema.index({ eventId: 1, decidedAt: -1 });
 reviewDecisionSchema.index({ runnerId: 1, decidedAt: -1 });
 reviewDecisionSchema.index({ kind: 1, decision: 1, rejectionCode: 1 });
+reviewDecisionSchema.index({ 'linkedFrom.targetId': 1 }, { sparse: true });
 // Proof cleanup checks these before deleting a replaced file.
 reviewDecisionSchema.index({ 'evidence.proof.key': 1 }, { sparse: true });
 reviewDecisionSchema.index({ 'evidence.paymentProof.key': 1 }, { sparse: true });

@@ -151,6 +151,14 @@
               You can review it, and the decision is recorded in the event audit log as a self-review.
             </p>
           <% } %>
+          <% const linkedPending = (locals.linkedEntries || []).filter((entry) => entry.willFollowDecision); %>
+          <% if (isActionable && linkedPending.length) { %>
+            <div class="submission-review-linked-notice" role="note">
+              <strong>Submitted with the same proof to <%= linkedPending.length %> other <%= linkedPending.length === 1 ? 'event' : 'events' %>.</strong>
+              Approving or rejecting here applies the same decision to:
+              <ul><% linkedPending.forEach((entry) => { %><li><%= entry.eventTitle %></li><% }) %></ul>
+            </div>
+          <% } %>
           <% if (isActionable) { %>
             <div class="submission-review-action-header"><span class="status-badge <%= statusBadgeClass %>"><%= status === 'needs_clarification' ? 'Needs Clarification' : 'Pending Review' %></span><h2 id="decision-heading">Decision</h2><p>Complete the checks and choose one outcome.</p></div>
             <div class="review-decision-tabs" role="tablist" aria-label="Review decision">

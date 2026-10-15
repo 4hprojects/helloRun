@@ -106,7 +106,8 @@ function buildReviewDecisionRecord({
   rejectionCode = '',
   rejectionReason = '',
   reviewNotes = '',
-  manualReviewChecklist = null
+  manualReviewChecklist = null,
+  linkedFrom = null
 }) {
   const isPayment = kind === 'payment_proof';
   return {
@@ -130,7 +131,10 @@ function buildReviewDecisionRecord({
       ? JSON.parse(JSON.stringify(toPlain(manualReviewChecklist)))
       : null,
     evidence: buildEvidenceSnapshot(entry, kind),
-    eventRules: buildEventRulesSnapshot(event)
+    eventRules: buildEventRulesSnapshot(event),
+    linkedFrom: linkedFrom?.targetId
+      ? { kind: linkedFrom.kind, targetId: linkedFrom.targetId, eventId: linkedFrom.eventId || null }
+      : null
   };
 }
 

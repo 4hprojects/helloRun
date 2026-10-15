@@ -1,5 +1,26 @@
 # HelloRun Changelog — October 2026
 
+## October 15 — Linked-entry review for multi-event submissions
+
+- A runner who sends one proof to several events in one submission now gets **one review**.
+  A manual approve or reject on any of those entries (shared `submissionAttemptId`) is
+  applied to every linked entry still awaiting review, across organisers and including
+  accumulated-challenge activities. The linked entries' own event rules are not re-checked,
+  and their verification checklist is not required.
+- The cascade never overrides an existing decision: approval follows only to `submitted`
+  (and accumulated `needs_clarification`) entries, rejection only to `submitted` entries,
+  so a cascaded rejection never reverses an approval. Approval reversals and accumulated
+  clarification requests stay on their own entry.
+- Each linked entry goes through the normal review path (shadow sync, rankings,
+  certificate, notification, accumulated progress and certificate reconciliation) and
+  records its own audit row and `ReviewDecision`, with a new `linkedFrom` reference and a
+  review note naming the source entry and event.
+- New `src/services/linked-entry-review.service.js`. The full-page review shows which other
+  events a decision will also apply to, and the organiser success messages report how many
+  linked entries followed. The runner submit modal and the FAQ now say that entries
+  submitted together share one review.
+- DB-free coverage: `tests/linked-entry-review.service.unit.test.js`.
+
 ## October 15 — Review decision history
 
 - **Fix: run-proof rejection codes were never saved.** `rejectionCode` and

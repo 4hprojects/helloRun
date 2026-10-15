@@ -142,6 +142,10 @@ production services.
   payment-proof decision with its evidence snapshot, and run-proof `rejectionCode` /
   `manualReviewChecklist` are now actually persisted. Not deployed; verified only by
   DB-free unit tests. Decisions made before deployment have no history rows.
+- Linked-entry review is repository-complete (October 15): a manual approve or reject on
+  one entry of a multi-event submission applies to every linked entry still awaiting
+  review, across organisers and accumulated challenges, and is recorded with
+  `ReviewDecision.linkedFrom`. Not deployed; verified only by DB-free unit tests.
 - The private Strava viewer launch implementation is repository-complete behind
   `STRAVA_PRIVATE_VIEWER_ENABLED=false`: owner-only on-demand activity viewing,
   production readiness checks, explicit consent copy, official connection branding,

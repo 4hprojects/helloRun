@@ -126,7 +126,7 @@ const FAQ_CATEGORIES = Object.freeze([
       {
         id: 'one-activity-multiple-events',
         question: 'Can one activity be submitted to more than one event?',
-        answer: 'It may be possible when every registration independently accepts that activity, its date falls within each event window, and the evidence satisfies each rule set. Reviewers assess each submission separately, and duplicate or reused evidence may be rejected when an event prohibits it.',
+        answer: 'It may be possible when every registration independently accepts that activity, its date falls within each event window, and the evidence satisfies each rule set. Select every event in the same submission: those entries share one review, so approving or rejecting any of them applies to all of them that are still pending. The same screenshot cannot be submitted again later for another event.',
         keywords: ['multiple events', 'same run', 'duplicate proof'],
         links: [{ label: 'View Submission History', href: '/runner/submissions' }]
       },

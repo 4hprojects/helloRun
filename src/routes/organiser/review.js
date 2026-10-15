@@ -10,6 +10,7 @@ const { recordReviewDecisionInBackground } = require('../../services/review-deci
 const { redirectWithFlash } = require('../../utils/session-flash');
 const { normalizeSubmissionHubFilters } = require('../../services/submission-hub.service');
 const { reverseSubmissionApproval } = require('../../services/approval-reversal.service');
+const { describeLinkedEntries, formatLinkedReviewMessage } = require('../../services/linked-entry-review.service');
 const { resolveChallengeConfig } = require('../../utils/challenge-metrics');
 const { normalizeSubmissionReviewMode, getSubmissionReviewModeLabel } = require('../../utils/submission-review-mode');
 const {
@@ -444,7 +445,7 @@ router.post('/submissions/:submissionId/quick-approve', requireAuth, requireCsrf
     }
 
     const accessibleEvents = await listAccessibleReviewEvents(user);
-    await approveCleanSubmission({
+    const approved = await approveCleanSubmission({
       submissionId: req.params.submissionId,
       eventIds: accessibleEvents.map((event) => String(event._id)),
       user,
@@ -453,7 +454,7 @@ router.post('/submissions/:submissionId/quick-approve', requireAuth, requireCsrf
 
     return respondToSubmissionHubAction(req, res, {
       ok: true,
-      message: 'Submission approved.',
+      message: `Submission approved.${formatLinkedReviewMessage(approved)}`,
       returnPath
     });
   } catch (error) {
@@ -536,6 +537,9 @@ router.get('/submissions/:submissionId/review-panel', requireAuth, async (req, r
     const proofMime = String(submission.proof?.mimeType || '');
     const isImage = proofMime.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(proofPath);
 
+    // A decision here also applies to pending entries submitted with the same proof.
+    const linkedEntries = await describeLinkedEntries(submission);
+
     return res.json({
       success: true,
       submission: {
@@ -594,6 +598,7 @@ router.get('/submissions/:submissionId/review-panel', requireAuth, async (req, r
           correctionUrl: `/admin/submissions/${String(submission._id)}/correct`,
           reviewReasonOptions: Object.entries(REVIEW_REASON_LABELS).map(([value, label]) => ({ value, label }))
         } : {}),
+        linkedEntries,
         // Self-review is permitted but audited; the panel warns before the decision.
         isOwnSubmission: Boolean(submission.runnerId)
           && String(submission.runnerId?._id || submission.runnerId) === String(user._id)
@@ -1726,7 +1731,7 @@ router.post(
 
         const nextItem = await getNextRunProofInQueueContext(event._id, queueContext, activityRecord._id);
         const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
-        await reviewAccumulatedActivitySubmission({
+        const reviewedActivity = await reviewAccumulatedActivitySubmission({
           activityId: activityRecord._id,
           organizerId: user._id,
           reviewerRole: user.role,
@@ -1737,12 +1742,12 @@ router.post(
           requireVerification: true
         });
 
-        return redirectAfterRunProofDecision(res, event._id, 'Activity submission approved.', queueContext, nextItem);
+        return redirectAfterRunProofDecision(res, event._id, `Activity submission approved.${formatLinkedReviewMessage(reviewedActivity)}`, queueContext, nextItem);
       }
 
       const nextItem = await getNextRunProofInQueueContext(event._id, queueContext, submissionRecord._id);
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
-      await reviewSubmission({
+      const reviewedSubmission = await reviewSubmission({
         submissionId: submissionRecord._id,
         organizerId: user._id,
         reviewerRole: user.role,
@@ -1753,7 +1758,7 @@ router.post(
         requireVerification: true
       });
 
-      return redirectAfterRunProofDecision(res, event._id, 'Run result approved.', queueContext, nextItem);
+      return redirectAfterRunProofDecision(res, event._id, `Run result approved.${formatLinkedReviewMessage(reviewedSubmission)}`, queueContext, nextItem);
     } catch (error) {
       return res.redirect(buildSubmissionReviewPath(req.params.id, req.params.submissionId, req.body, {
         type: 'error',
@@ -1825,7 +1830,7 @@ router.post(
         const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
         const rejectionCode = String(req.body.rejectionCode || '').trim();
         const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
-        await reviewAccumulatedActivitySubmission({
+        const reviewedActivity = await reviewAccumulatedActivitySubmission({
           activityId: activityRecord._id,
           organizerId: user._id,
           reviewerRole: user.role,
@@ -1835,14 +1840,14 @@ router.post(
           reviewNotes
         });
 
-        return redirectAfterRunProofDecision(res, event._id, 'Activity submission rejected.', queueContext, nextItem);
+        return redirectAfterRunProofDecision(res, event._id, `Activity submission rejected.${formatLinkedReviewMessage(reviewedActivity)}`, queueContext, nextItem);
       }
 
       const nextItem = await getNextRunProofInQueueContext(event._id, queueContext, submissionRecord._id);
       const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
       const rejectionCode = String(req.body.rejectionCode || '').trim();
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
-      await reviewSubmission({
+      const reviewedSubmission = await reviewSubmission({
         submissionId: submissionRecord._id,
         organizerId: user._id,
         reviewerRole: user.role,
@@ -1852,7 +1857,7 @@ router.post(
         reviewNotes
       });
 
-      return redirectAfterRunProofDecision(res, event._id, 'Run result rejected.', queueContext, nextItem);
+      return redirectAfterRunProofDecision(res, event._id, `Run result rejected.${formatLinkedReviewMessage(reviewedSubmission)}`, queueContext, nextItem);
     } catch (error) {
       return res.redirect(buildSubmissionReviewPath(req.params.id, req.params.submissionId, req.body, {
         type: 'error',
