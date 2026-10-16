@@ -15,6 +15,10 @@
  * then the existing parser. The browser's canvas preprocessing passes are not
  * replicated here, so results describe the engine + parser, not the full
  * runner experience.
+ * Condition B (`--condition B`): the server pipeline (sharp passes, platform
+ * detection, profiles) as used by the OCR worker. `--profiles all` lets test
+ * profiles confirm platforms; the default uses every non-retired profile.
+ * Run A and B on the same manifest to compare them.
  *
  * Images and labels stay in the git-ignored benchmarks/ocr/local/ directory.
  * Samples without a recorded consentBasis are skipped, not scored.
@@ -27,10 +31,25 @@ const path = require('node:path');
 const { loadBrowserOcrParser } = require('../utils/ocr/browser-parser-loader');
 const { predictionFromParsed, scoreBenchmark } = require('../utils/ocr/benchmark-metrics');
 
+/** Map a server pipeline result onto the same scored fields as condition A. */
+function predictionFromPipeline(result = {}) {
+  const fields = result.fields || {};
+  return predictionFromParsed({
+    detectedSource: result.detection?.platform,
+    distance: fields.distance?.value,
+    time: fields.time?.value,
+    date: fields.date?.value,
+    runType: fields.runType?.value
+  });
+}
+
 const REPO_ROOT = path.resolve(__dirname, '../..');
 const DEFAULT_MANIFEST = path.join(REPO_ROOT, 'benchmarks/ocr/local/manifest.json');
 const TESSDATA_DIR = path.join(REPO_ROOT, 'src/public/assets/tessdata');
-const BENCHMARK_CONDITION = 'A-baseline-page-ocr';
+const CONDITIONS = Object.freeze({
+  A: 'A-baseline-page-ocr',
+  B: 'B-server-pipeline-profiles'
+});
 const PAGE_SEGMENTATION_SPARSE_TEXT = '11';
 const PAGE_SEGMENTATION_SINGLE_LINE = '7';
 
@@ -126,6 +145,8 @@ async function runBenchmark(input) {
     labels,
     manifestDir,
     recognizer,
+    condition = 'A',
+    pipelineRunner = null,
     parser = loadBrowserOcrParser(),
     readFile = fs.readFileSync,
     now = () => Date.now()
@@ -161,10 +182,17 @@ async function runBenchmark(input) {
     try {
       const buffer = readFile(sample.imagePath);
       const started = now();
-      const page = await recognizer.recognizePage(buffer);
-      const parsed = parser._parseOcrText(page.text, page.confidence);
-      result.elapsedMsProcessing = now() - started;
-      result.prediction = predictionFromParsed(parsed);
+      if (condition === 'B') {
+        const pipelineResult = await pipelineRunner(buffer);
+        result.elapsedMsProcessing = now() - started;
+        if (pipelineResult.status === 'failed') result.errorCode = pipelineResult.errorCode || 'ocr_failed';
+        result.prediction = predictionFromPipeline(pipelineResult);
+      } else {
+        const page = await recognizer.recognizePage(buffer);
+        const parsed = parser._parseOcrText(page.text, page.confidence);
+        result.elapsedMsProcessing = now() - started;
+        result.prediction = predictionFromParsed(parsed);
+      }
       for (const line of Array.isArray(label?.lines) ? label.lines : []) {
         if (!line?.id || !line?.bbox) continue;
         result.lineHypotheses[line.id] = await recognizer.recognizeLine(buffer, line.bbox);
@@ -176,7 +204,7 @@ async function runBenchmark(input) {
   }
 
   return {
-    condition: BENCHMARK_CONDITION,
+    condition: CONDITIONS[condition] || CONDITIONS.A,
     parserVersion: parser._parseOcrText('', 0).parserVersion || '',
     sampleCount: results.length,
     labeledSampleCount: results.filter((r) => r.label).length,
@@ -201,7 +229,20 @@ async function main() {
   const labelsFile = readJsonIfPresent(labelsPath);
 
   const declaredSamples = Array.isArray(manifestFile.data?.samples) ? manifestFile.data.samples : [];
+  const condition = String(args.condition || 'A').toUpperCase() === 'B' ? 'B' : 'A';
   const recognizer = declaredSamples.length ? createTesseractRecognizer() : null;
+  let pipelineEngine = null;
+  let pipelineRunner = null;
+  if (condition === 'B' && declaredSamples.length) {
+    const { createEngine } = require('../services/ocr/ocr-engine');
+    const { runOcrPipeline } = require('../services/ocr/ocr-pipeline.service');
+    const { listProfiles } = require('../services/ocr/ocr-profiles');
+    pipelineEngine = createEngine();
+    const enabledProfileIds = args.profiles === 'active'
+      ? listProfiles().filter((profile) => profile.status === 'active').map((profile) => profile.id)
+      : listProfiles().filter((profile) => profile.status !== 'retired').map((profile) => profile.id);
+    pipelineRunner = (buffer) => runOcrPipeline(buffer, { engine: pipelineEngine, enabledProfileIds });
+  }
 
   let report;
   try {
@@ -209,10 +250,13 @@ async function main() {
       manifest: manifestFile.data,
       labels: labelsFile.data,
       manifestDir: path.dirname(manifestPath),
-      recognizer
+      recognizer,
+      condition,
+      pipelineRunner
     });
   } finally {
     if (recognizer) await recognizer.close();
+    if (pipelineEngine) await pipelineEngine.terminate();
   }
 
   const tesseractVersion = require('tesseract.js/package.json').version;
@@ -246,4 +290,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseArgs, resolveSampleImage, runBenchmark };
+module.exports = { CONDITIONS, parseArgs, resolveSampleImage, runBenchmark, predictionFromPipeline };

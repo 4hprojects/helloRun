@@ -295,6 +295,7 @@ const stravaRoutes = require('./routes/strava.routes');
 const shopRoutes = require('./routes/shop.routes');
 const organizerShopRoutes = require('./routes/organizer-shop.routes');
 const adminShopRoutes = require('./routes/admin-shop.routes');
+const adminOcrTrainingRoutes = require('./routes/admin-ocr-training.routes');
 const timingSystemWebhooks = require('./routes/webhooks/timing-system');
 
 // Auth locals for all views (BEFORE routes)
@@ -318,6 +319,7 @@ app.use('/organizer', certificateTemplateRoutes);
 app.use('/organizer', certificateRoutes);
 app.use('/organizer', organizerRoutes);
 app.use('/organizer', organizerShopRoutes);
+app.use('/admin/ocr-training', adminOcrTrainingRoutes);
 app.use('/admin', adminRoutes);
 app.use('/admin', adminShopRoutes);
 app.use('/webhooks/timing-system', timingSystemWebhooks);
@@ -409,6 +411,7 @@ const { startEventPromotionWorker } = require('./workers/event-promotion-worker'
 const { startWaitlistOfferWorker } = require('./workers/waitlist-offer-worker');
 const { startEventActivationReminderWorker } = require('./workers/event-activation-reminder-worker');
 const { startStravaLifecycleWorker } = require('./workers/strava-lifecycle-worker');
+const { startOcrExtractionWorker } = require('./workers/ocr-extraction-worker');
 
 async function startServer() {
   await connectToDatabase();
@@ -421,6 +424,7 @@ async function startServer() {
   startWaitlistOfferWorker();
   startEventActivationReminderWorker();
   startStravaLifecycleWorker();
+  startOcrExtractionWorker();
 
   const server = app.listen(PORT, () => {
     logger.info(`Server running on http://localhost:${PORT}`);
@@ -467,6 +471,7 @@ function installGracefulShutdown(server) {
 
     try {
       await new Promise((resolve) => server.close(resolve));
+      await require('./workers/ocr-extraction-worker').stopOcrExtractionWorker().catch(() => {});
       await mongoose.connection.close(false).catch(() => {});
       const { closePostgresClient } = require('./db/postgres');
       await closePostgresClient().catch(() => {});

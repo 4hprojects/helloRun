@@ -81,7 +81,7 @@ test('the guard refuses operator keys in the query string and JSON body before h
 test('every multipart upload middleware re-checks the body that multer parsed', async () => {
   const uploadService = require('../src/services/upload.service');
 
-  assert.equal(uploadService.MULTIPART_UPLOAD_MIDDLEWARE.length, 9);
+  assert.equal(uploadService.MULTIPART_UPLOAD_MIDDLEWARE.length, 10);
   for (const name of uploadService.MULTIPART_UPLOAD_MIDDLEWARE) {
     assert.equal(typeof uploadService[name], 'function', `${name} is not exported`);
 

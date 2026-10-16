@@ -33,7 +33,9 @@ const POSITIVE_NUMBER_VARS = [
   { name: 'PORT', fallback: 'platform-assigned' }
 ];
 
-const BOOLEAN_VARS = ['FEATURE_STEP_COMPETITIONS_ENABLED', 'COROS_DIRECT_INTEGRATION_ENABLED'];
+const { OCR_FLAGS } = require('../services/ocr/ocr-config');
+
+const BOOLEAN_VARS = ['FEATURE_STEP_COMPETITIONS_ENABLED', 'COROS_DIRECT_INTEGRATION_ENABLED', ...OCR_FLAGS];
 
 function validateEnv(env = process.env) {
   const missingRequired = REQUIRED_VARS.filter((name) => !String(env[name] || '').trim());
@@ -57,6 +59,10 @@ function validateEnv(env = process.env) {
     if (raw && !['0', '1', 'true', 'false'].includes(raw)) {
       warnings.push(`${name}="${env[name]}" is not a boolean — the feature will remain disabled.`);
     }
+  }
+  const flagOn = (name) => ['1', 'true'].includes(String(env[name] || '').trim().toLowerCase());
+  if (flagOn('OCR_SERVER_AUTO_APPROVAL_ENABLED') && !flagOn('OCR_SERVER_PIPELINE_ENABLED')) {
+    warnings.push('OCR_SERVER_AUTO_APPROVAL_ENABLED has no effect while OCR_SERVER_PIPELINE_ENABLED is off.');
   }
   if (!String(env.REDIS_URL || '').trim()) {
     warnings.push('REDIS_URL is not set — rate limiters run on the per-process in-memory fallback.');

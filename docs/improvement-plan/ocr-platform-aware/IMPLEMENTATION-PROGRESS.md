@@ -4,15 +4,35 @@
 **Last updated:** October 17, 2026
 **Delivery status owner:** [../../STATUS.md](../../STATUS.md). This file records phase reports and evidence.
 
-| Phase | State |
-|---|---|
-| 0 Repository assessment and baseline | Complete, awaiting owner review |
-| 1 Platform-aware OCR | Not started |
-| 2 Optional activity URL | Not started |
-| 3 Reviewer corrections and datasets | Not started |
-| 4 Manual training and model registry | Not started |
-| 5 Reminders, analytics, exports | Not started |
-| 6 QA and production readiness | Not started |
+States: NOT STARTED · IN PROGRESS · COMPLETED · BLOCKED. "Completed" means implemented and tested
+on this branch. Gates that need data or infrastructure the repository cannot supply are listed
+separately as BLOCKED and are not counted as passed.
+
+| Phase | State | Commit | Blocked gate items |
+|---|---|---|---|
+| 0 Repository assessment and baseline | COMPLETED | fd700ad | Image baseline N/A (no consented samples) |
+| 1 Platform-aware OCR | COMPLETED | see Phase 1 report | Accuracy validation on labelled screenshots |
+| 2 Optional activity URL | NOT STARTED | | |
+| 3 Reviewer corrections and datasets | NOT STARTED | | |
+| 4 Manual training and model registry | NOT STARTED | | |
+| 5 Reminders, analytics, exports | NOT STARTED | | |
+| 6 QA and production readiness | NOT STARTED | | |
+
+## Resume checkpoint
+
+If a session is interrupted, resume from the first phase above that is not COMPLETED.
+Test commands used on this branch:
+
+```bash
+export PATH=$HOME/.nvm/versions/node/v22.23.1/bin:$PATH        # Node 22 (the default v20 is too old)
+node src/scripts/run-test-group.js --parallel tests/*.unit.test.js   # DB-free
+# Local, disposable MongoDB for OCR integration tests (never the .env databases):
+docker run -d --name hellorun-ocr-test-mongo -p 127.0.0.1:27018:27017 --tmpfs /data/db mongo:7.0
+MONGODB_URI=mongodb://127.0.0.1:27018/hellorun_ocr_guard DATABASE_URL= REDIS_URL= RESEND_API_KEY= \
+  R2_BUCKET= R2_ACCESS_KEY_ID= R2_SECRET_ACCESS_KEY= R2_ENDPOINT= CLOUDFLARE_ACCOUNT_ID= R2_PUBLIC_BASE_URL= \
+  OCR_TEST_MONGODB_URI=mongodb://127.0.0.1:27018/hellorun_ocr_test \
+  node src/scripts/run-test-group.js tests/ocr-*.integration.test.js
+```
 
 ---
 
@@ -166,3 +186,70 @@ Only samples with a `consentBasis` are scored. Images listed with a path outside
 3. **Phase 4:** a read-only resource survey of the Ubuntu host, and approval to install Tesseract training tools there.
 4. **Phase 5:** the weekly digest day and time (timezone defaults to Asia/Manila).
 5. Optional: untrack `docs/image_test/`.
+
+---
+
+## Phase 1 report — platform-aware OCR
+
+```text
+PHASE: 1 — Platform identification and platform-aware OCR extraction
+STATE: COMPLETED (implementation and tests). Gate item BLOCKED: accuracy on labelled screenshots.
+FUNCTIONAL BEHAVIOR (all behind flags, default off):
+  - OCR_SERVER_PIPELINE_ENABLED: after a proof is stored, one OcrJob per stored proof is queued.
+    The extraction worker reads the proof back from R2 with a byte ceiling, decodes it safely,
+    runs up to 3 working-copy passes (processed / tall metric crop / dark enhanced / original),
+    parses with the same parser the browser uses, detects platform from evidence, and writes
+    an immutable OcrExtraction plus a serverOcr summary on every entry sharing the proof.
+  - OCR_SERVER_AUTO_APPROVAL_ENABLED: OCR-path auto-approval uses only the server's reading of
+    the entry's current proof. Browser-posted values (confidence, distance, time) can no longer
+    approve anything (closes Phase 0 finding C1). The entry waits as "Server OCR pending" and is
+    re-evaluated when the job completes; failures leave it on manual review ("server_ocr_failed").
+  - Platform detection: brand text is required to confirm Strava/COROS/Garmin; layout anchors only
+    support it; generic metric labels are not evidence (closes C8). Only profiles an admin has set
+    to active may confirm; all ship as `test`. Unconfirmed → generic profile, `uncertain`/`unknown`.
+  - Fields: distance, time (+ moving/elapsed/ambiguous kind), pace, date, activity type, elevation,
+    steps, name, location; raw line text, line confidence and original-image bounding boxes for
+    distance/time/pace (used for training crops in Phase 3); validation flags (missing fields,
+    implausible pace, pace/time inconsistency, low resolution, platform uncertain, URL mismatch).
+  - /admin/ocr-training (overview), /platforms (profile status with required note + history,
+    Test OCR with no writes), /audit (append-only OcrAuditEvent), POST reprocess for an entry.
+  - Organizer review page: "HelloRun server reading" panel beside the browser reading.
+API / DATA CHANGES (additive only):
+  - New collections: OcrJob, OcrExtraction (immutable), OcrProfileSetting, OcrAuditEvent (append-only).
+  - New optional fields on Submission and AccumulatedActivitySubmission: serverOcr, proofDifferenceHash.
+  - New review reasons: server_ocr_pending, server_ocr_failed. ocrData is unchanged.
+  - Postgres untouched; serverOcr is not shadowed (ocr-payload-separation still passes).
+MIGRATIONS / ROLLBACK: none required. Turning both flags off restores the previous behaviour
+  exactly; new fields are ignored when absent. Rollback = flags off (or revert the commit).
+SECURITY & PRIVACY: proof bytes read with a size ceiling; sharp pixel limit and format allowlist from
+  decoded bytes; no image content or raw text in logs; Test OCR writes nothing and is rate-limited
+  (10 / 10 min / admin), CSRF-checked after Multer, admin-only; OCR evidence escaped in views;
+  tesseract.js language cache disabled (no 23 MB file in the app directory, C9).
+RESOURCES: one tesseract.js worker thread per process, serialised, per-call timeout (45 s), job
+  timeout (120 s), recycled after 50 jobs, terminated after 5 min idle; at most 3 jobs per 15 s
+  cycle; OCR_WORKER_MODE=separate moves it to `npm run ocr:worker` under its own PM2 process.
+TESTS RUN:
+  - tests/ocr-platform-aware.unit.test.js 30/30 (detection, image validation, passes, dHash,
+    pipeline with injected engine, engine serialisation/timeout/recycling, auto-approval gate
+    on/off/stale proof, projection, queue no-op/failure, routes, views, escaping).
+  - tests/ocr-engine-real.unit.test.js 2/2 (real tesseract.js on synthetic rendered cards).
+  - tests/ocr-benchmark.unit.test.js 10/10 (adds condition B).
+  - tests/ocr-server-pipeline.integration.test.js 10/10 against disposable local MongoDB, run
+    through the repository DB guard (idempotent enqueue under concurrency, single claimant,
+    lease reclaim, backoff, immutability, forged browser reading not approved, server reading
+    approves, mismatch stays on review, stale proof ignored, unreadable proof fails safe, flags off).
+  - Full unit suite: see commit message.
+BASELINE OR MEASURED METRICS: none. 0 consented labelled screenshots; every accuracy metric N/A.
+  `npm run ocr:benchmark -- --condition A|B` compares baseline and pipeline on the same manifest
+  once samples exist. On one synthetic unbranded card A labelled it strava and B abstained —
+  an illustration of C8, not a measurement.
+KNOWN ISSUES / BLOCKERS:
+  - BLOCKED: gate "tests pass on labelled sample sets across supported and unknown layouts" needs
+    consented Strava/COROS/Garmin screenshots. Profile anchors are unvalidated until then, so
+    profiles stay `test` and production confirms no platform.
+  - Reprocess is admin-only; event-scoped reviewer reprocess was not added (reviewers see the panel).
+  - Bounding boxes come from matching parsed values to OCR lines (`line-value-match-v1`), a heuristic
+    that is recorded with each box.
+NEXT PHASE DEPENDENCIES: none for Phase 2.
+```
+

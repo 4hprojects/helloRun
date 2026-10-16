@@ -273,6 +273,27 @@ exports.uploadResultProof = (req, res, next) => {
   });
 };
 
+// Admin Test OCR (/admin/ocr-training/platforms/test). Same type and size rules as run
+// proofs; the buffer is processed in memory and never stored.
+exports.uploadOcrTestImage = (req, res, next) => {
+  resultProofUpload.single('ocrTestImage')(req, res, (err) => {
+    if (!err) {
+      req.uploadError = null;
+      next();
+      return;
+    }
+    const tooLarge = err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE';
+    req.uploadError = {
+      status: tooLarge ? 413 : 400,
+      code: tooLarge ? 'file_too_large' : 'invalid_upload',
+      message: tooLarge
+        ? `Screenshot exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`
+        : 'Upload a JPEG, PNG or WebP screenshot.'
+    };
+    next();
+  });
+};
+
 exports.uploadResultSheet = (req, res, next) => {
   const uploadSingle = resultSheetUpload.single('resultsFile');
 
@@ -686,7 +707,7 @@ exports.getSignedReadUrlFromR2 = async (key, options = {}) => {
   }
 
   const commandInput = {
-    Bucket: r2Config.bucket,
+    Bucket: String(options.bucket || r2Config.bucket),
     Key: safeKey
   };
 
@@ -700,6 +721,68 @@ exports.getSignedReadUrlFromR2 = async (key, options = {}) => {
   return getSignedUrl(r2Client, new GetObjectCommand(commandInput), {
     expiresIn: Number(options.expiresIn || 300)
   });
+};
+
+/**
+ * Read one object into memory with a byte ceiling (server OCR re-reads stored proofs).
+ * Rejects before buffering past `maxBytes` so a large object cannot exhaust memory.
+ */
+exports.getObjectBufferFromR2 = async (key, options = {}) => {
+  assertR2Configured();
+  const safeKey = String(key || '').trim().replace(/^\/+/, '');
+  if (!safeKey) throw new Error('R2 object key is required.');
+  const maxBytes = Number(options.maxBytes || MAX_UPLOAD_BYTES * 2);
+  const response = await r2Client.send(new GetObjectCommand({
+    Bucket: String(options.bucket || r2Config.bucket),
+    Key: safeKey
+  }));
+  const declared = Number(response.ContentLength || 0);
+  if (declared && declared > maxBytes) {
+    const error = new Error('Stored object exceeds the allowed size.');
+    error.code = 'object_too_large';
+    throw error;
+  }
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of response.Body) {
+    total += chunk.length;
+    if (total > maxBytes) {
+      if (typeof response.Body.destroy === 'function') response.Body.destroy();
+      const error = new Error('Stored object exceeds the allowed size.');
+      error.code = 'object_too_large';
+      throw error;
+    }
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+};
+
+/**
+ * Store an object that must never be linked publicly (OCR crops, model artifacts, logs).
+ * Returns only the key: callers read it back with getSignedReadUrlFromR2 or
+ * getObjectBufferFromR2. Set OCR_R2_BUCKET to keep these in a bucket with no public
+ * domain; otherwise they share the main bucket under unguessable keys.
+ */
+exports.putPrivateObjectToR2 = async ({ key, body, contentType }) => {
+  assertR2Configured();
+  const safeKey = String(key || '').trim().replace(/^\/+/, '');
+  if (!safeKey || safeKey.includes('..')) throw new Error('A safe R2 object key is required.');
+  await r2Client.send(new PutObjectCommand({
+    Bucket: exports.getPrivateBucketName(),
+    Key: safeKey,
+    Body: body,
+    ContentType: String(contentType || 'application/octet-stream')
+  }));
+  return { key: safeKey, bucket: exports.getPrivateBucketName() };
+};
+
+exports.getPrivateBucketName = () => String(process.env.OCR_R2_BUCKET || r2Config.bucket || '').trim();
+
+exports.deletePrivateObjectFromR2 = async (key) => {
+  assertR2Configured();
+  const safeKey = String(key || '').trim().replace(/^\/+/, '');
+  if (!safeKey) return;
+  await r2Client.send(new DeleteObjectCommand({ Bucket: exports.getPrivateBucketName(), Key: safeKey }));
 };
 
 function handleMulterError(err, req, res, next) {
@@ -886,7 +969,8 @@ const MULTIPART_UPLOAD_MIDDLEWARE = [
   'uploadBadgeImage',
   'uploadPaymentProof',
   'uploadResultProof',
-  'uploadResultSheet'
+  'uploadResultSheet',
+  'uploadOcrTestImage'
 ];
 
 for (const name of MULTIPART_UPLOAD_MIDDLEWARE) {

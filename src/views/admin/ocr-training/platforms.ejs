@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/admin-ocr.css">
+</head>
+<body>
+  <%- include('../../layouts/nav') %>
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <%- include('_header') %>
+
+      <section class="ocr-panel" aria-labelledby="ocr-profiles-heading">
+        <h2 id="ocr-profiles-heading">Platform and layout profiles</h2>
+        <p class="ocr-help">Only <strong>active</strong> profiles can confirm a platform in production. A <strong>test</strong> profile's anchors are unvalidated until it passes a regression run on consented, labelled screenshots. The generic fallback is always active.</p>
+        <div class="admin-users-table-wrap">
+          <table class="admin-table ocr-table">
+            <thead><tr><th>Profile</th><th>Version</th><th>Status</th><th>Brand evidence</th><th>Layout anchors</th><th>Change status</th></tr></thead>
+            <tbody>
+              <% profiles.forEach((profile) => { %>
+                <tr>
+                  <td><strong><%= profile.id %></strong></td>
+                  <td><%= profile.version %></td>
+                  <td><span class="ocr-pill ocr-pill-<%= profile.status %>"><%= profile.status %></span></td>
+                  <td><%= profile.brandPatterns.join(' · ') || '—' %></td>
+                  <td><%= profile.anchorPatterns.length %> pattern<%= profile.anchorPatterns.length === 1 ? '' : 's' %></td>
+                  <td>
+                    <% if (profile.id === 'generic') { %>
+                      <span class="ocr-help">Always active</span>
+                    <% } else { %>
+                      <form method="POST" action="/admin/ocr-training/platforms/<%= encodeURIComponent(profile.id) %>/status" class="ocr-form-row">
+                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                        <label>Status
+                          <select name="status">
+                            <% statuses.forEach((status) => { %>
+                              <option value="<%= status %>" <%= status === profile.status ? 'selected' : '' %>><%= status %></option>
+                            <% }) %>
+                          </select>
+                        </label>
+                        <label>Note
+                          <input name="notes" maxlength="500" placeholder="Regression run / reason">
+                        </label>
+                        <button type="submit" class="btn btn-secondary">Save</button>
+                      </form>
+                    <% } %>
+                  </td>
+                </tr>
+                <% if (profile.history.length) { %>
+                  <tr>
+                    <td colspan="6" class="ocr-help">
+                      History: <% profile.history.forEach((entry, index) => { %><%= index ? ' · ' : '' %><%= entry.status %> (<%= formatDateTime(entry.changedAt) %><%= entry.notes ? `: ${entry.notes}` : '' %>)<% }) %>
+                    </td>
+                  </tr>
+                <% } %>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="ocr-panel" aria-labelledby="ocr-test-heading">
+        <h2 id="ocr-test-heading">Test OCR</h2>
+        <p class="ocr-help">Runs the server pipeline on one screenshot and shows the diagnostics. Nothing is stored: no file, no extraction, no training sample. Use only screenshots you are permitted to process.</p>
+        <form method="POST" action="/admin/ocr-training/platforms/test" enctype="multipart/form-data" class="ocr-form-row">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <label>Screenshot (JPEG, PNG or WebP, up to <%= Math.round((limits.maxProofBytes || 0) / 1048576) %> MB)
+            <input type="file" name="ocrTestImage" accept="image/jpeg,image/png,image/webp" required>
+          </label>
+          <label>Profiles considered
+            <select name="profileMode">
+              <option value="production" <%= locals.testMode !== 'all_test' ? 'selected' : '' %>>Production (active only)</option>
+              <option value="all_test" <%= locals.testMode === 'all_test' ? 'selected' : '' %>>Include test profiles</option>
+            </select>
+          </label>
+          <label>Force profile
+            <select name="profileOverride">
+              <option value="">Auto-detect</option>
+              <% profiles.forEach((profile) => { %>
+                <option value="<%= profile.id %>"><%= profile.id %></option>
+              <% }) %>
+            </select>
+          </label>
+          <button type="submit" class="btn">Run Test OCR</button>
+        </form>
+      </section>
+
+      <% if (testResult) { %>
+        <section class="ocr-panel" aria-labelledby="ocr-result-heading">
+          <h2 id="ocr-result-heading">Test result <span class="ocr-pill ocr-pill-<%= testResult.status %>"><%= testResult.status %></span></h2>
+          <% if (testResult.errorCode) { %><p>Error code: <strong><%= testResult.errorCode %></strong></p><% } %>
+          <% if (testResult.detection) { %>
+            <p>
+              Platform <strong><%= testResult.detection.platform %></strong>
+              <span class="ocr-pill ocr-pill-<%= testResult.detection.status %>"><%= testResult.detection.status %></span>
+              · candidate <%= testResult.detection.platformCandidate %> (score <%= testResult.detection.confidence %>)
+              · profile <%= testResult.profile?.id %> <%= testResult.profile?.version %>
+              · layout <%= testResult.layoutId %>
+            </p>
+            <% if (testResult.detection.signals.length) { %>
+              <p class="ocr-help">Evidence: <% testResult.detection.signals.forEach((signal, index) => { %><%= index ? ' · ' : '' %><%= signal.kind %> “<%= signal.evidence %>”<% }) %></p>
+            <% } %>
+          <% } %>
+          <% if (testResult.fields.length) { %>
+            <div class="admin-users-table-wrap">
+              <table class="admin-table ocr-table">
+                <thead><tr><th>Field</th><th>Value</th><th>Kind</th><th>Pass</th><th>Line text</th><th>Line confidence</th></tr></thead>
+                <tbody>
+                  <% testResult.fields.forEach((field) => { %>
+                    <tr>
+                      <td><%= field.key %></td>
+                      <td><%= field.display || '—' %></td>
+                      <td><%= field.kind || '—' %></td>
+                      <td><%= field.sourcePass || '—' %></td>
+                      <td><%= field.rawText || '—' %></td>
+                      <td><%= field.lineConfidence === null ? '—' : field.lineConfidence %></td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+          <p>Confidence <%= testResult.confidence %> · engine <%= testResult.engineConfidence %> · <%= testResult.elapsedMs %> ms · model <%= testResult.modelVersionId || 'n/a' %> · parser <%= testResult.parserVersion %></p>
+          <p>Flags: <% if (!testResult.validationFlags.length) { %>none<% } %><% testResult.validationFlags.forEach((flag) => { %> <span class="ocr-pill"><%= flag %></span><% }) %></p>
+          <p class="ocr-help">Passes: <% testResult.passes.forEach((pass, index) => { %><%= index ? ' · ' : '' %><%= pass.name %> <%= pass.elapsedMs %> ms<% }) %></p>
+          <details>
+            <summary>Raw OCR text</summary>
+            <pre class="ocr-raw-text"><%= testResult.rawText %></pre>
+          </details>
+        </section>
+      <% } %>
+    </section>
+  </main>
+  <%- include('../../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

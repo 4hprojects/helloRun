@@ -113,6 +113,8 @@
             </section>
           <% } %>
 
+          <%- include('partials/server-ocr-panel', { serverOcr: submission.serverOcr || null }) %>
+
           <% if (submission.proofNotes) { %><section class="submission-review-section"><h3><i data-lucide="message-square-text"></i> Runner notes</h3><p><%= submission.proofNotes %></p></section><% } %>
 
           <details class="submission-review-section submission-review-context">

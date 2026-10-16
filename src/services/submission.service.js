@@ -338,6 +338,8 @@ async function resubmitSubmission({
   existing.steps = payload.steps;
   existing.suspiciousFlag = payload.suspiciousFlag;
   existing.suspiciousFlagReason = payload.suspiciousFlagReason;
+  existing.serverOcr = undefined;
+  existing.proofDifferenceHash = '';
   existing.status = 'submitted';
   existing.submissionCount = payload.submissionCount;
   existing.submittedAt = payload.submittedAt;

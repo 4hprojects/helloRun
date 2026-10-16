@@ -78,6 +78,8 @@ const {
 } = require('./_shared');
 const { canUseRunnerWorkspace } = require('../../utils/workspace');
 const { isProofReferencedByReviewDecision } = require('../../services/review-decision.service');
+const { namesMatch } = require('../../utils/ocr/name-match');
+const { queueProofExtraction } = require('../../services/ocr/server-ocr.service');
 
 let { syncRegistrationPaymentShadow } = require('../../services/registration-payment-shadow.service');
 
@@ -720,6 +722,16 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
         }
         throw writeError;
       }
+      // Server OCR re-reads the stored proof in the background (flag-gated; never blocks).
+      await queueProofExtraction({
+        submissionAttemptId,
+        entries: writeResults
+          .filter((item) => !item.priorAttempt && item.submission?._id)
+          .map((item) => ({
+            kind: item.kind === 'accumulated' ? 'accumulated_activity' : 'run_submission',
+            submission: item.submission
+          }))
+      });
       const previousProofKeys = new Set(writeResults.map((item) => item.previousKey).filter(Boolean));
       const savedCount = targetRegistrationIds.length;
       const submittedEntries = writeResults.map((item) => ({
@@ -1000,22 +1012,6 @@ function parseOcrDate(value) {
 function parseRunTypeOrBlank(value) {
   const safe = String(value || '').trim().toLowerCase();
   return ['run', 'walk', 'hike', 'trail_run'].includes(safe) ? safe : '';
-}
-
-function namesMatch(ocrName, accountName) {
-  const ocrNameLower = String(ocrName || '').trim().toLowerCase();
-  const accountNameLower = String(accountName || '').trim().toLowerCase();
-  if (!ocrNameLower || !accountNameLower) return false;
-  if (
-    ocrNameLower === accountNameLower ||
-    ocrNameLower.includes(accountNameLower) ||
-    accountNameLower.includes(ocrNameLower)
-  ) {
-    return true;
-  }
-  const parts = accountNameLower.split(/\s+/).filter(Boolean);
-  if (parts.length < 2) return false;
-  return ocrNameLower.includes(parts[0]) && ocrNameLower.includes(parts[parts.length - 1]);
 }
 
 function cleanOcrNameCandidate(value) {

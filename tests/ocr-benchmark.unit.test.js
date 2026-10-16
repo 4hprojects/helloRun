@@ -149,3 +149,22 @@ test('runBenchmark records engine failures without throwing', async () => {
   assert.equal(report.samples[0].errorCode, 'ocr_failed');
   assert.equal(report.metrics.overall.errors, 1);
 });
+
+test('condition B scores the server pipeline output on the same fields', async () => {
+  const report = await runBenchmark({
+    manifestDir: path.resolve('/bench/local'),
+    manifest: { samples: [{ id: 's1', image: 'a.png', platform: 'strava', layout: 'android', consentBasis: 'owner-own-activity' }] },
+    labels: { labels: { s1: { platform: 'strava', distanceKm: 5.02, elapsedMs: 1_710_000 } } },
+    condition: 'B',
+    pipelineRunner: async () => ({
+      status: 'complete',
+      detection: { platform: 'strava' },
+      fields: { distance: { value: { valueKm: 5.02 } }, time: { value: { totalMs: 1_710_000 } }, date: { value: null }, runType: { value: 'run' } }
+    }),
+    readFile: () => Buffer.from('fake')
+  });
+  assert.equal(report.condition, 'B-server-pipeline-profiles');
+  assert.equal(report.metrics.overall.fields.platform.exactAccuracy, 1);
+  assert.equal(report.metrics.overall.fields.distanceKm.exactAccuracy, 1);
+  assert.equal(report.metrics.overall.fields.elapsedMs.exactAccuracy, 1);
+});

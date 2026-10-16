@@ -1,0 +1,45 @@
+<%
+  // Server re-read of the stored proof (docs/improvement-plan/ocr-platform-aware).
+  // Shown next to the browser reading so reviewers can see where they disagree.
+  const serverOcr = locals.serverOcr || null;
+  const auto = serverOcr && serverOcr.autoApproval ? serverOcr.autoApproval : null;
+  const formatServerTime = (ms) => {
+    const total = Math.round(Number(ms) / 1000);
+    if (!Number.isFinite(total) || total <= 0) return 'Not detected';
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return `${h > 0 ? `${h}h ` : ''}${m}m ${s}s`;
+  };
+  const statusLabel = {
+    queued: 'Queued', processing: 'Processing', complete: 'Read', partial: 'Partly read', failed: 'Could not read', not_run: 'Not run'
+  };
+%>
+<% if (serverOcr && serverOcr.status) { %>
+  <section class="submission-review-section server-ocr-panel" aria-labelledby="server-ocr-heading">
+    <h3 id="server-ocr-heading"><i data-lucide="cpu"></i> HelloRun server reading</h3>
+    <p class="submission-review-muted">
+      <%= statusLabel[serverOcr.status] || serverOcr.status %>
+      <% if (serverOcr.platform) { %> · platform <strong><%= serverOcr.platform %></strong> (<%= serverOcr.platformStatus || 'n/a' %>)<% } %>
+      <% if (serverOcr.profileId) { %> · profile <%= serverOcr.profileId %> <%= serverOcr.profileVersion %><% } %>
+      <% if (serverOcr.timeKind && serverOcr.timeKind !== 'unknown') { %> · time shown is <%= serverOcr.timeKind %><% } %>
+    </p>
+    <% if (auto) { %>
+      <ul class="server-ocr-values">
+        <li>Distance: <%= auto.extractedDistanceKm != null ? `${Number(auto.extractedDistanceKm).toFixed(2)} km` : 'Not detected' %><% if (auto.distanceMismatch) { %> <strong>· differs from entry</strong><% } %></li>
+        <li>Duration: <%= formatServerTime(auto.extractedTimeMs) %><% if (auto.timeMismatch) { %> <strong>· differs from entry</strong><% } %></li>
+        <li>Date: <%= auto.extractedRunDate || 'Not detected' %><% if (auto.dateMismatch) { %> <strong>· differs from entry</strong><% } %></li>
+        <li>Name: <%= auto.extractedName || 'Not detected' %> (<%= auto.nameMatchStatus %>)</li>
+        <li>Confidence: <%= Math.round(Number(auto.confidence || 0) * 100) %>%</li>
+      </ul>
+    <% } %>
+    <% if (serverOcr.validationFlags && serverOcr.validationFlags.length) { %>
+      <p class="submission-review-muted">Flags: <%= serverOcr.validationFlags.join(', ') %></p>
+    <% } %>
+    <% if (serverOcr.suspicious && serverOcr.suspiciousReasons) { %>
+      <p class="submission-review-muted"><%= serverOcr.suspiciousReasons %></p>
+    <% } %>
+    <% if (serverOcr.errorCode) { %><p class="submission-review-muted">Reason: <%= serverOcr.errorCode %></p><% } %>
+    <p class="submission-review-muted">The server reading is evidence for review, not proof the activity happened.</p>
+  </section>
+<% } %>

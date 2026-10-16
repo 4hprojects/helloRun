@@ -10,7 +10,9 @@ const REVIEW_REASON_LABELS = {
   ocr_distance_missing: 'OCR distance missing',
   ocr_time_missing: 'OCR time missing',
   ocr_confidence_below_threshold: 'OCR confidence below threshold',
-  ocr_auto_approval_criteria_not_met: 'OCR auto-approval criteria not met'
+  ocr_auto_approval_criteria_not_met: 'OCR auto-approval criteria not met',
+  server_ocr_pending: 'Server OCR pending',
+  server_ocr_failed: 'Server OCR could not read the proof'
 };
 
 const REVIEW_REASON_DESCRIPTIONS = {
@@ -23,7 +25,9 @@ const REVIEW_REASON_DESCRIPTIONS = {
   ocr_distance_missing: 'The screenshot did not provide a valid OCR distance.',
   ocr_time_missing: 'The screenshot did not provide a valid OCR duration.',
   ocr_confidence_below_threshold: 'The OCR confidence was below the auto-approval threshold.',
-  ocr_auto_approval_criteria_not_met: 'The OCR result did not satisfy all auto-approval criteria.'
+  ocr_auto_approval_criteria_not_met: 'The OCR result did not satisfy all auto-approval criteria.',
+  server_ocr_pending: 'HelloRun has not finished reading the stored screenshot yet. Auto-approval waits for it.',
+  server_ocr_failed: 'HelloRun could not read the stored screenshot, so it needs manual review.'
 };
 
 function getSubmissionReviewReasonCode(submission = {}) {
