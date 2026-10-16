@@ -1,0 +1,72 @@
+<%
+  // Optional activity link and duplicate review signals (docs/improvement-plan/ocr-platform-aware).
+  // normalizedUrl is rebuilt server-side from an allowlisted provider and a parsed id, never the raw paste.
+  const entry = locals.entry || {};
+  const activityUrl = entry.activityUrl || null;
+  const verification = entry.activityUrlVerification || null;
+  const duplicateSignals = Array.isArray(entry.duplicateSignals) ? entry.duplicateSignals : [];
+  const providerLabels = { strava: 'Strava', garmin: 'Garmin Connect', coros: 'COROS' };
+  const statusLabels = {
+    not_provided: 'No link provided', unchecked: 'Not checked yet', inaccessible: 'Could not open',
+    matched: 'Matches the entry', mismatched: 'Does not match', authorized_verified: 'Verified by provider', needs_review: 'Needs another look'
+  };
+  const duplicateLabels = {
+    provider_activity_id: 'The same activity link is on another entry',
+    near_duplicate_screenshot: 'A near-identical screenshot is on another entry'
+  };
+  const actionHref = locals.actionHref || '';
+%>
+<% if (activityUrl || duplicateSignals.length) { %>
+  <section class="submission-review-section activity-url-panel" aria-labelledby="activity-url-heading">
+    <h3 id="activity-url-heading"><i data-lucide="link"></i> Activity link and duplicates</h3>
+    <% if (activityUrl) { %>
+      <p>
+        <%= providerLabels[activityUrl.provider] || activityUrl.provider %> activity
+        <a href="<%= activityUrl.normalizedUrl %>" target="_blank" rel="noopener noreferrer nofollow" referrerpolicy="no-referrer">open in a new tab</a>
+        · <strong><%= statusLabels[verification?.status] || 'Not checked yet' %></strong>
+        <% if (activityUrl.patternStatus === 'unverified-format') { %><span class="submission-review-muted">(link format not yet confirmed for this provider)</span><% } %>
+      </p>
+      <p class="submission-review-muted">A link helps you compare details. It does not prove the activity belongs to this runner. Private activities may not open.</p>
+      <% if (verification && verification.checkedAt) { %>
+        <p class="submission-review-muted">Last checked <%= new Date(verification.checkedAt).toLocaleString('en-US', { timeZone: 'Asia/Manila' }) %><% if (verification.notes) { %>: <%= verification.notes %><% } %></p>
+      <% } %>
+      <% if (actionHref) { %>
+        <details>
+          <summary>Record what you found</summary>
+          <form method="POST" action="<%= actionHref %>" class="activity-url-check-form">
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+            <input type="hidden" name="kind" value="<%= locals.entryKind || 'run_submission' %>">
+            <fieldset>
+              <legend>Overall</legend>
+              <% [['matched', 'Matches'], ['mismatched', 'Does not match'], ['inaccessible', 'Could not open'], ['needs_review', 'Needs another look']].forEach(([value, label]) => { %>
+                <label><input type="radio" name="status" value="<%= value %>" required> <%= label %></label>
+              <% }) %>
+            </fieldset>
+            <% [['distance', 'Distance'], ['duration', 'Duration'], ['date', 'Date']].forEach(([field, label]) => { %>
+              <label><%= label %>
+                <select name="compared_<%= field %>">
+                  <option value="not_compared">Not compared</option>
+                  <option value="matched">Matches</option>
+                  <option value="mismatched">Differs</option>
+                </select>
+              </label>
+            <% }) %>
+            <label>Notes <input name="notes" maxlength="500"></label>
+            <button type="submit" class="nav-login-btn">Save check</button>
+          </form>
+        </details>
+      <% } %>
+    <% } %>
+    <% if (duplicateSignals.length) { %>
+      <ul class="activity-duplicate-signals">
+        <% duplicateSignals.forEach((signal) => { %>
+          <li>
+            <strong><%= duplicateLabels[signal.kind] || signal.kind %></strong>
+            (<%= signal.sameRunner ? 'same runner' : 'different runner' %>, <%= signal.sameEvent ? 'same event' : 'another event' %><% if (signal.distance !== null && signal.distance !== undefined) { %>, difference <%= signal.distance %>/64<% } %>)
+          </li>
+        <% }) %>
+      </ul>
+      <p class="submission-review-muted">Possible re-use is a reason to look closely, not a decision. Different events can allow the same activity.</p>
+    <% } %>
+  </section>
+<% } %>

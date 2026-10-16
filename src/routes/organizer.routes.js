@@ -13,6 +13,7 @@ const registrantSubmissionsRoutes = require('./organiser/registrant-submissions'
 const waitlistRoutes = require('./organiser/waitlist');
 const transferRoutes = require('./organiser/transfers');
 const reviewRoutes = require('./organiser/review');
+const activityEvidenceRoutes = require('./organiser/activity-evidence');
 const profileRoutes = require('./organiser/profile');
 const coOrganizerRoutes = require('./organiser/co-organizers');
 
@@ -27,6 +28,7 @@ router.use('/', registrantSubmissionsRoutes);
 router.use('/', waitlistRoutes);
 router.use('/', transferRoutes);
 router.use('/', reviewRoutes);
+router.use('/', activityEvidenceRoutes);
 router.use('/', profileRoutes);
 router.use('/', coOrganizerRoutes);
 

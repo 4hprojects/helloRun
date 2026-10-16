@@ -283,6 +283,17 @@
               </div>
             </div>
 
+            <% if (locals.activityUrlEnabled) { %>
+              <div class="run-proof-field run-proof-field-row" data-field-wrapper="activityUrl">
+                <label for="runProofActivityUrl">Activity link</label>
+                <div class="run-proof-field-row-input">
+                  <input id="runProofActivityUrl" name="activityUrl" type="url" inputmode="url" maxlength="500" autocomplete="off" placeholder="Optional: https://www.strava.com/activities/…" aria-describedby="runProofActivityUrlHelp runProofActivityUrlError">
+                  <p class="run-proof-field-help" id="runProofActivityUrlHelp">Optional. A Strava, Garmin Connect or COROS link to this activity helps reviewers compare details. Private activities may not open for them, and you do not need to make yours public.</p>
+                  <p class="run-proof-field-error" id="runProofActivityUrlError" aria-live="polite"></p>
+                </div>
+              </div>
+            <% } %>
+
             <div class="run-proof-field run-proof-field-row" data-field-wrapper="steps">
               <label for="runProofSteps">Steps</label>
               <div class="run-proof-field-row-input">

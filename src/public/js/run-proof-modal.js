@@ -298,6 +298,7 @@
       setFieldError('runProofLocationError', 'runLocation', '');
       setFieldError('runProofElevationError', 'elevationGain', '');
       setFieldError('runProofStepsError', 'steps', '');
+      setFieldError('runProofActivityUrlError', 'activityUrl', '');
       setFieldError('runProofRunTypeError', 'runType', '');
       setFieldError('runProofImageError', 'image', '');
     };
@@ -1770,6 +1771,7 @@
           elevationGain: [elevationInput, 'runProofElevationError', 'elevationGain'],
           trackingAppDevice: [trackingAppDeviceInput, 'runProofTrackingAppDeviceError', 'trackingAppDevice'],
           steps: [stepsInput, 'runProofStepsError', 'steps'],
+          activityUrl: [document.getElementById('runProofActivityUrl'), 'runProofActivityUrlError', 'activityUrl'],
           selectedRegistrationIds: [eventsList, 'runProofEventsError', 'events']
         };
         let firstInvalid = null;

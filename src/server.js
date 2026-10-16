@@ -327,6 +327,7 @@ app.use('/webhooks/timing-system', timingSystemWebhooks);
 function populatePublicPageLocals(req, res, next) {
   const pathname = req.path || '/';
   res.locals.renderRunProofModal = shouldRenderRunProofModal(pathname);
+  res.locals.activityUrlEnabled = isActivityUrlEnabled();
 
   if (shouldNoindexPath(pathname)) {
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
@@ -412,6 +413,7 @@ const { startWaitlistOfferWorker } = require('./workers/waitlist-offer-worker');
 const { startEventActivationReminderWorker } = require('./workers/event-activation-reminder-worker');
 const { startStravaLifecycleWorker } = require('./workers/strava-lifecycle-worker');
 const { startOcrExtractionWorker } = require('./workers/ocr-extraction-worker');
+const { isActivityUrlEnabled } = require('./services/ocr/ocr-config');
 
 async function startServer() {
   await connectToDatabase();

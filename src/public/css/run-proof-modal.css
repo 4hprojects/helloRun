@@ -334,6 +334,13 @@
   min-height: 1rem;
 }
 
+.run-proof-field-help {
+  margin: 0.25rem 0 0;
+  font-size: 0.79rem;
+  line-height: 1.4;
+  color: var(--hr-color-subtle, #64748b);
+}
+
 .run-proof-duration {
   margin: 0;
   padding: 0;

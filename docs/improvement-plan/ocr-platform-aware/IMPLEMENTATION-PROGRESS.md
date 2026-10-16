@@ -11,8 +11,8 @@ separately as BLOCKED and are not counted as passed.
 | Phase | State | Commit | Blocked gate items |
 |---|---|---|---|
 | 0 Repository assessment and baseline | COMPLETED | fd700ad | Image baseline N/A (no consented samples) |
-| 1 Platform-aware OCR | COMPLETED | see Phase 1 report | Accuracy validation on labelled screenshots |
-| 2 Optional activity URL | NOT STARTED | | |
+| 1 Platform-aware OCR | COMPLETED | dfac7bf | Accuracy validation on labelled screenshots |
+| 2 Optional activity URL | COMPLETED | see Phase 2 report | `authorized_api` verification (no provider API access) |
 | 3 Reviewer corrections and datasets | NOT STARTED | | |
 | 4 Manual training and model registry | NOT STARTED | | |
 | 5 Reminders, analytics, exports | NOT STARTED | | |
@@ -251,5 +251,51 @@ KNOWN ISSUES / BLOCKERS:
   - Bounding boxes come from matching parsed values to OCR lines (`line-value-match-v1`), a heuristic
     that is recorded with each box.
 NEXT PHASE DEPENDENCIES: none for Phase 2.
+```
+
+---
+
+## Phase 2 report — optional activity URL and verification
+
+```text
+PHASE: 2 — Optional activity URL and verification workflow
+STATE: COMPLETED. BLOCKED item: `authorized_api` verification — HelloRun has no authorised
+  provider API (Strava event use is blocked by policy; no Garmin/COROS partner access).
+FUNCTIONAL BEHAVIOR:
+  - ACTIVITY_URL_ENABLED shows an optional "Activity link" field in the run-proof modal with
+    privacy copy. Empty is always accepted. A link that is not an exact HTTPS Strava, Garmin
+    Connect or COROS activity URL gets a field error the runner can fix or clear, checked
+    before the proof is uploaded.
+  - Parsing is pure string handling (src/utils/ocr/activity-url.js): no DNS, socket or redirect,
+    so there is no SSRF surface. Rejects other schemes, credentials, ports, IP/localhost/metadata
+    hosts, lookalike and punycode hosts, shortlinks, traversal and control characters. The stored
+    link is rebuilt from the provider id; tracking parameters and the raw paste are discarded.
+  - COROS link format is unconfirmed (no real example in the repo): host-only trust, id from
+    `labelId`, marked `unverified-format` in data and in the reviewer panel.
+  - Verification methods: format_only (on submission), manual_open (reviewer opens the link in
+    their own browser and records overall + per-field results; append-only history in
+    ActivityUrlVerification; a field mismatch is never stored as a match), authorized_api
+    (reported unavailable; nothing fetched).
+  - Duplicate signals (flags, never rejections): same provider activity id on another entry
+    (checked at submission), near-identical screenshot by 64-bit difference hash, Hamming ≤ 6
+    (checked by the OCR worker, same event in 180 days or exact hash anywhere). Entries
+    submitted together are never flagged against each other. Any signal blocks auto-approval.
+  - Screenshot platform vs link provider disagreement is recorded as `url_provider_mismatch`
+    and blocks server auto-approval.
+  - Review page: "Activity link and duplicates" panel with the rebuilt link
+    (noopener noreferrer nofollow, no referrer), status, signals and the check form.
+API / DATA CHANGES (additive): Submission/AccumulatedActivitySubmission gain optional activityUrl,
+  activityUrlVerification, duplicateSignals; partial indexes on provider id and difference hash;
+  new ActivityUrlVerification collection; route POST
+  /organizer/events/:id/submissions/:submissionId/activity-url-check (event-scoped, CSRF, rate-limited).
+MIGRATIONS / ROLLBACK: none. With ACTIVITY_URL_ENABLED off nothing is added to entries
+  (sanitizeActivityEvidence returns no fields). Near-duplicate flags need OCR_SERVER_PIPELINE_ENABLED.
+TESTS RUN: tests/ocr-activity-url.unit.test.js 14/14 (26 SSRF/spoofing inputs, no network code in
+  URL modules, normalisation, evidence shaping, auto-approval guards, panel, modal, controller order,
+  route scoping); tests/ocr-activity-evidence.integration.test.js 4/4 and Phase 1 integration 10/10
+  on local MongoDB through the DB guard; related UI/escaping suites green. Full unit suite: see
+  Phase 2 commit follow-up below.
+KNOWN ISSUES: provider id duplicates are flagged even across different events for the same runner
+  (conservative; reviewers decide, per doc 03). COROS pattern needs confirming with a real link.
 ```
 

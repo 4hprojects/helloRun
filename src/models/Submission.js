@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const { organizerCorrectionSchema } = require('./organizer-correction.schema');
 const { serverOcrSchema } = require('./server-ocr.schema');
+const { activityUrlSchema, activityUrlVerificationSchema, duplicateSignalSchema } = require('./activity-evidence.schema');
 const { syncSubmissionShadow } = require('../services/submission-shadow.service');
 const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 const { applyRestrictedProviderScope } = require('../utils/restricted-provider-scope');
@@ -279,6 +280,11 @@ const submissionSchema = new mongoose.Schema(
     serverOcr: { type: serverOcrSchema, default: undefined },
     // 64-bit difference hash of the proof image for near-duplicate review flags.
     proofDifferenceHash: { type: String, trim: true, default: '', maxlength: 16 },
+    // Optional activity link (Phase 2). Corroboration for reviewers, never proof on its own.
+    activityUrl: { type: activityUrlSchema, default: undefined },
+    activityUrlVerification: { type: activityUrlVerificationSchema, default: undefined },
+    // Possible re-use of the same activity or screenshot. Review flags, never automatic rejections.
+    duplicateSignals: { type: [duplicateSignalSchema], default: undefined },
     suspiciousFlag: {
       type: Boolean,
       default: false
@@ -347,6 +353,19 @@ submissionSchema.index({ runnerId: 1, 'proof.hash': 1 }, { sparse: true });
 submissionSchema.index(
   { runnerId: 1, isPersonalRecord: 1, 'stravaActivity.id': 1 },
   { sparse: true }
+);
+// Duplicate review signals (docs/improvement-plan/ocr-platform-aware, Phase 2).
+submissionSchema.index(
+  { 'activityUrl.provider': 1, 'activityUrl.providerActivityId': 1 },
+  { partialFilterExpression: { 'activityUrl.providerActivityId': { $type: 'string' } } }
+);
+submissionSchema.index(
+  { eventId: 1, proofDifferenceHash: 1 },
+  { partialFilterExpression: { proofDifferenceHash: { $gt: '' } } }
+);
+submissionSchema.index(
+  { proofDifferenceHash: 1 },
+  { partialFilterExpression: { proofDifferenceHash: { $gt: '' } } }
 );
 applySmokeTestSchema(submissionSchema);
 applyRestrictedProviderScope(submissionSchema);

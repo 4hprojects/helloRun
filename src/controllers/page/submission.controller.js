@@ -80,6 +80,7 @@ const { canUseRunnerWorkspace } = require('../../utils/workspace');
 const { isProofReferencedByReviewDecision } = require('../../services/review-decision.service');
 const { namesMatch } = require('../../utils/ocr/name-match');
 const { queueProofExtraction } = require('../../services/ocr/server-ocr.service');
+const { buildActivityEvidence } = require('../../services/ocr/activity-evidence.service');
 
 let { syncRegistrationPaymentShadow } = require('../../services/registration-payment-shadow.service');
 
@@ -600,6 +601,23 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
 
     const ocrData = parseOcrData(req.body, distanceKm, elapsedMs, user);
 
+    // Optional activity link (flag-gated). Validated before the proof is uploaded so a link
+    // the runner must fix never leaves an orphaned file; an empty field is always accepted.
+    const activityEvidenceResult = await buildActivityEvidence({
+      rawUrl: req.body.activityUrl,
+      runnerId: user._id,
+      submissionAttemptId,
+      eventIds: selectedRegistrations.map((item) => item.eventId?._id || item.eventId).filter(Boolean),
+      excludeIds: existingSubmissions.map((item) => item._id)
+    });
+    if (!activityEvidenceResult.ok) {
+      return respond('error', activityEvidenceResult.message, {
+        code: 'INVALID_ACTIVITY_URL',
+        fieldErrors: { activityUrl: activityEvidenceResult.message }
+      });
+    }
+    const activityEvidence = activityEvidenceResult.evidence;
+
     const proofHash = crypto.createHash('sha256').update(resultProofFile.buffer).digest('hex');
     let idempotencyLock = null;
 
@@ -678,7 +696,8 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
             steps,
             ocrData,
             submissionAttemptId,
-            honorSystemConfirmed
+            honorSystemConfirmed,
+            activityEvidence
           };
 
           let savedSubmission;

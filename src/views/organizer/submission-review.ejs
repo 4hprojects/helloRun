@@ -114,6 +114,12 @@
           <% } %>
 
           <%- include('partials/server-ocr-panel', { serverOcr: submission.serverOcr || null }) %>
+          <%- include('partials/activity-url-panel', {
+            entry: submission,
+            entryKind: submissionKind === 'accumulated' ? 'accumulated_activity' : 'run_submission',
+            actionHref: `/organizer/events/${event._id}/submissions/${submissionId}/activity-url-check`,
+            csrfToken: locals.csrfToken || ''
+          }) %>
 
           <% if (submission.proofNotes) { %><section class="submission-review-section"><h3><i data-lucide="message-square-text"></i> Runner notes</h3><p><%= submission.proofNotes %></p></section><% } %>
 

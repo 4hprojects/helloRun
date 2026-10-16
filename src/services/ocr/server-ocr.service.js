@@ -27,6 +27,8 @@ const { runOcrPipeline } = require('./ocr-pipeline.service');
 const { getSharedEngine } = require('./ocr-engine');
 const { getEnabledProfileIds } = require('./ocr-profile-settings.service');
 const jobs = require('./ocr-job.service');
+const { findNearDuplicateScreenshots } = require('./activity-duplicate.service');
+const { sanitizeDuplicateSignals } = require('../../utils/ocr/activity-evidence');
 
 const PERMANENT_ERROR_CODES = new Set([
   'proof_missing',
@@ -249,10 +251,14 @@ async function processExtractionJob(job, deps = {}) {
   let result;
   try {
     const enabledProfileIds = deps.enabledProfileIds || await getEnabledProfileIds();
+    // The runner's optional link is a separate provider signal; a disagreement is a flag only.
+    const firstTarget = job.targets[0];
+    const linked = await modelForKind(firstTarget.kind).findById(firstTarget.id).select('activityUrl.provider').lean().catch(() => null);
     result = await runOcrPipeline(buffer, {
       engine,
       limits,
       enabledProfileIds,
+      urlProvider: linked?.activityUrl?.provider || '',
       profileOverride: job.options?.profileOverride || ''
     });
   } catch (error) {
@@ -278,7 +284,7 @@ async function processExtractionJob(job, deps = {}) {
   for (const target of job.targets) {
     const Model = modelForKind(target.kind);
     const entry = await Model.findById(target.id)
-      .select('distanceKm elapsedMs runDate runLocation runType elevationGain steps status proof.key')
+      .select('distanceKm elapsedMs runDate runLocation runType elevationGain steps status proof.key runnerId eventId submissionAttemptId')
       .lean();
     if (!entry) {
       outcome.targets.push({ id: String(target.id), result: 'missing' });
@@ -290,6 +296,20 @@ async function processExtractionJob(job, deps = {}) {
       continue;
     }
     const projection = buildAutoApprovalProjection(result, entry, accountName);
+    let nearDuplicates = [];
+    if (result.differenceHash) {
+      try {
+        nearDuplicates = await findNearDuplicateScreenshots({
+          differenceHash: result.differenceHash,
+          runnerId: entry.runnerId,
+          submissionAttemptId: entry.submissionAttemptId,
+          eventIds: entry.eventId ? [entry.eventId] : [],
+          excludeIds: job.targets.map((item) => item.id)
+        });
+      } catch (error) {
+        logger.warn('[server-ocr] near-duplicate lookup failed', { error: error?.message });
+      }
+    }
     await Model.updateOne(
       { _id: target.id, 'proof.key': job.proofKey },
       {
@@ -315,7 +335,8 @@ async function processExtractionJob(job, deps = {}) {
             completedAt
           },
           proofDifferenceHash: result.differenceHash || ''
-        }
+        },
+        ...(nearDuplicates.length ? { $push: { duplicateSignals: { $each: sanitizeDuplicateSignals(nearDuplicates) } } } : {})
       }
     );
     let decision = 'recorded';

@@ -412,10 +412,14 @@ function getCurrentServerOcrPayload(submission) {
 
 function isAutoApprovableSubmission(submission) {
   if (!submission || String(submission.status || '') !== 'submitted') return false;
+  // A possible re-used activity or screenshot always goes to a person.
+  if (Array.isArray(submission.duplicateSignals) && submission.duplicateSignals.length) return false;
   const isStrava = String(submission.source || '').trim().toLowerCase() === 'strava';
   if (!isStrava && isServerOcrAutoApprovalEnabled()) {
     const serverOcr = getCurrentServerOcrPayload(submission);
     if (!serverOcr) return false;
+    // Linked activity from a different provider than the screenshot: a person decides.
+    if ((serverOcr.validationFlags || []).includes('url_provider_mismatch')) return false;
     return isAutoApprovableOcrPayload({
       ocrData: serverOcr.autoApproval,
       suspiciousFlag: Boolean(submission.suspiciousFlag || serverOcr.suspicious)
