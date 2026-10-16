@@ -10,6 +10,8 @@ const { shutdownSharedEngine } = require('../services/ocr/ocr-engine');
 
 let timer = null;
 let running = false;
+let lastRetentionSweepAt = 0;
+const RETENTION_SWEEP_EVERY_MS = 60 * 60 * 1000;
 
 async function processOcrJobBatch({ maxJobs, deps = {} } = {}) {
   if (running) return { skipped: true, processed: 0 };
@@ -17,6 +19,13 @@ async function processOcrJobBatch({ maxJobs, deps = {} } = {}) {
   const results = [];
   try {
     await failExhaustedJobs();
+    if (Date.now() - lastRetentionSweepAt > RETENTION_SWEEP_EVERY_MS) {
+      lastRetentionSweepAt = Date.now();
+      // Training-sample retention: exclude expired samples and delete their crops.
+      await require('../services/ocr/training-sample.service').expireSamples().catch((error) => {
+        logger.warn('[ocr-extraction-worker] retention sweep failed', { error: error?.message });
+      });
+    }
     const limit = Number(maxJobs || getOcrLimits().jobsPerCycle);
     for (let index = 0; index < limit; index += 1) {
       const job = await claimNextJob();

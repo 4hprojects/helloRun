@@ -12,8 +12,8 @@ separately as BLOCKED and are not counted as passed.
 |---|---|---|---|
 | 0 Repository assessment and baseline | COMPLETED | fd700ad | Image baseline N/A (no consented samples) |
 | 1 Platform-aware OCR | COMPLETED | dfac7bf | Accuracy validation on labelled screenshots |
-| 2 Optional activity URL | COMPLETED | see Phase 2 report | `authorized_api` verification (no provider API access) |
-| 3 Reviewer corrections and datasets | NOT STARTED | | |
+| 2 Optional activity URL | COMPLETED | 6e37c6f | `authorized_api` verification (no provider API access) |
+| 3 Reviewer corrections and datasets | COMPLETED | see Phase 3 report | Real samples need consent wording published + consented screenshots |
 | 4 Manual training and model registry | NOT STARTED | | |
 | 5 Reminders, analytics, exports | NOT STARTED | | |
 | 6 QA and production readiness | NOT STARTED | | |
@@ -297,5 +297,55 @@ TESTS RUN: tests/ocr-activity-url.unit.test.js 14/14 (26 SSRF/spoofing inputs, n
   Phase 2 commit follow-up below.
 KNOWN ISSUES: provider id duplicates are flagged even across different events for the same runner
   (conservative; reviewers decide, per doc 03). COROS pattern needs confirming with a real link.
+```
+
+Phase 2 full unit suite (commit 6e37c6f, run in a separate git worktree so work could continue):
+all pass except `deploy-hygiene › the commit resolves … from .git`, which fails only in a worktree
+because `.git` is a file there; it passes in the main checkout (Phase 1 run: 2405/2405).
+
+---
+
+## Phase 3 report — reviewer corrections and training dataset management
+
+```text
+PHASE: 3 — Reviewer corrections and training dataset management
+STATE: COMPLETED. BLOCKED for real use: (1) publish privacy-policy wording for the opt-in before
+  enabling OCR_TRAINING_CONSENT_PROMPT_ENABLED (Phase 0 finding C7, owner/legal decision);
+  (2) consented screenshots to produce actual samples.
+FUNCTIONAL BEHAVIOR:
+  - Reviewer activity corrections stay where they were (organizerCorrections + ReviewDecision) and
+    are never copied into training data (unit test asserts the correction code never references it).
+  - Consent: OCR_TRAINING_CONSENT_PROMPT_ENABLED shows an unchecked opt-in in the run-proof modal;
+    stored on the entry with the wording version (2026-10-v1). Runners withdraw from their submission
+    page; withdrawal excludes that screenshot's samples from all future datasets (audited). Admins can
+    exclude every sample of a participant on request.
+  - Candidates: the OCR worker crops only the located distance / time / pace lines (padded, clamped)
+    of opted-in proofs, stores them privately (`ocr-training/crops/<random>.png`, signed 5-minute reads,
+    optional OCR_R2_BUCKET), dedupes by crop checksum, and creates `pending`, `ineligible` samples with
+    an empty transcription. Admins can also add their own screenshots (consent basis + attestation);
+    only line crops are kept, never the screenshot.
+  - Review (/admin/ocr-training/samples): crop viewer, engine reading and activity value shown
+    separately from the literal-transcription field; approve requires text + explicit alignment
+    confirmation + consent basis; exclude requires a reason; optimistic concurrency (409 on stale
+    version); every action audited.
+  - Eligibility = approved + consent basis + literal text + alignment + crop present + retention not
+    expired. Retention default 730 days (setting); expired samples are excluded and their crops deleted
+    hourly by the extraction worker (and by the training worker).
+  - Snapshots: immutable DatasetVersion with canonical manifest + SHA-256 hash (reproducible), split
+    rule group-sha256-v1 (80/10/10 by screenshot, so no leakage), duplicate removal, quality report.
+    Readiness fails closed until thresholds are met AND the owner marks them approved in settings.
+    Manifest JSON download (no crop keys, no participant data).
+  - Export: `npm run ocr:dataset:export -- --dataset <id> --out <dir>` writes tesstrain pairs
+    (<id>.png + <id>.gt.txt) for train+validation and a separate held-out test directory; every crop
+    checksum is verified.
+DATA CHANGES (additive): TrainingSample, DatasetVersion, OcrSettings collections; optional
+  ocrTrainingConsent on entries.
+TESTS RUN: tests/ocr-training-data.unit.test.js 11/11; tests/ocr-training-data.integration.test.js 6/6
+  on local MongoDB through the DB guard (consent required, pending/ineligible start, dedupe, approval
+  rules, 409 conflict, exclusion reason, eligible-only immutable snapshots with reproducible hash,
+  opt-in → worker candidates, withdrawal, cross-runner withdrawal refused, retention expiry).
+KNOWN ISSUES: one consenting entry per proof supplies the consent for its crops (entries submitted
+  together share one screenshot). Deleting a sample does not remove its influence on an already
+  trained model (doc 05); this is stated in the UI.
 ```
 

@@ -294,6 +294,15 @@
               </div>
             <% } %>
 
+            <% if (locals.ocrTrainingConsentPromptEnabled) { %>
+              <div class="run-proof-field" data-field-wrapper="ocrTrainingConsent">
+                <label class="run-proof-consent-checkbox">
+                  <input type="checkbox" name="ocrTrainingConsent" value="1">
+                  <span>Optional: let HelloRun keep cropped text lines (distance, time, pace) from this screenshot to improve how it reads screenshots. Names, maps and photos are not kept. Saying no does not affect your review, and you can withdraw later from your submission page.</span>
+                </label>
+              </div>
+            <% } %>
+
             <div class="run-proof-field run-proof-field-row" data-field-wrapper="steps">
               <label for="runProofSteps">Steps</label>
               <div class="run-proof-field-row-input">

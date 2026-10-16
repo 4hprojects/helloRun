@@ -46,7 +46,7 @@ const {
   isAutoApprovableSubmission,
   getAutoApprovalReviewNote
 } = require('./submission-validation.service');
-const { sanitizeActivityEvidence } = require('../utils/ocr/activity-evidence');
+const { sanitizeActivityEvidence, sanitizeTrainingConsent } = require('../utils/ocr/activity-evidence');
 let runSubmissionBackgroundTasksInline = false;
 let disableSubmissionSyncBackgroundTasks = false;
 
@@ -68,7 +68,8 @@ async function createSubmission({
   source,
   stravaActivity,
   submissionAttemptId,
-  activityEvidence
+  activityEvidence,
+  ocrTrainingConsent
 }) {
   assertPermittedSubmissionSource(source);
   if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
@@ -89,7 +90,8 @@ async function createSubmission({
       source,
       stravaActivity,
       submissionAttemptId,
-      activityEvidence
+      activityEvidence,
+      ocrTrainingConsent
     });
   }
 
@@ -122,7 +124,8 @@ async function createSubmission({
       source,
       stravaActivity,
       submissionAttemptId,
-      activityEvidence
+      activityEvidence,
+      ocrTrainingConsent
     }));
   } catch (error) {
     await releaseRemediationGrant(claimedGrant?._id);
@@ -287,7 +290,8 @@ async function resubmitSubmission({
   source,
   stravaActivity,
   submissionAttemptId,
-  activityEvidence
+  activityEvidence,
+  ocrTrainingConsent
 }) {
   assertPermittedSubmissionSource(source);
   if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
@@ -323,7 +327,8 @@ async function resubmitSubmission({
     source,
     stravaActivity,
     submissionAttemptId,
-    activityEvidence
+    activityEvidence,
+    ocrTrainingConsent
   });
 
   existing.distanceKm = payload.distanceKm;
@@ -347,6 +352,7 @@ async function resubmitSubmission({
   existing.activityUrl = payload.activityUrl;
   existing.activityUrlVerification = payload.activityUrlVerification;
   existing.duplicateSignals = payload.duplicateSignals;
+  existing.ocrTrainingConsent = payload.ocrTrainingConsent;
   existing.serverOcr = undefined;
   existing.proofDifferenceHash = '';
   existing.status = 'submitted';
@@ -1021,7 +1027,8 @@ async function createPersonalRecordSubmission({
   source,
   stravaActivity,
   submissionAttemptId,
-  activityEvidence
+  activityEvidence,
+  ocrTrainingConsent
 }) {
   const runner = await User.findById(runnerId)
     .select('firstName lastName email mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup')
@@ -1100,7 +1107,8 @@ async function createPersonalRecordSubmission({
     source,
     stravaActivity,
     submissionAttemptId,
-    activityEvidence
+    activityEvidence,
+    ocrTrainingConsent
   });
   payload.isPersonalRecord = true;
   payload.validation = {
@@ -1286,7 +1294,8 @@ function buildSubmissionPayload(registration, input, context = {}) {
     status: 'submitted',
     submissionCount: Number(input.submissionCount || 1),
     submittedAt: new Date(),
-    ...sanitizeActivityEvidence(input.activityEvidence)
+    ...sanitizeActivityEvidence(input.activityEvidence),
+    ...sanitizeTrainingConsent(input.ocrTrainingConsent)
   };
 }
 

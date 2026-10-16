@@ -73,6 +73,29 @@ async function platformBreakdown(sinceDays = 30) {
   }));
 }
 
+/** Cross-phase summary cards; each part degrades to absent rather than failing the page. */
+async function loadOverviewExtras() {
+  const extras = {};
+  try {
+    extras.samples = await require('../../services/ocr/training-sample.service').getSampleCounts();
+  } catch (error) {
+    logger.warn('[ocr-training] sample counts unavailable', { error: error?.message });
+  }
+  try {
+    const registry = await require('../../services/ocr/model-registry.service').getRegistry();
+    extras.activeModel = { id: registry.activeModelId, label: registry.activeModelId === 'base-eng' ? 'Base English' : String(registry.activeModelId).slice(-8) };
+  } catch (error) {
+    logger.warn('[ocr-training] model registry unavailable', { error: error?.message });
+  }
+  try {
+    const job = await require('../../services/ocr/training-job.service').getActiveTrainingJob();
+    if (job) extras.trainingJob = { status: job.status };
+  } catch (error) {
+    logger.warn('[ocr-training] training job lookup failed', { error: error?.message });
+  }
+  return extras;
+}
+
 exports.renderOverview = async (req, res) => {
   try {
     const [queue, breakdown, profiles, recentJobs, extras] = await Promise.all([
@@ -80,7 +103,7 @@ exports.renderOverview = async (req, res) => {
       platformBreakdown(30),
       getEffectiveProfiles(),
       OcrJob.find({}).sort({ createdAt: -1 }).limit(10).select('status errorCode attempts createdAt finishedAt elapsedMs options targets').lean(),
-      exports._overviewExtras ? exports._overviewExtras() : {}
+      loadOverviewExtras()
     ]);
     return res.render('admin/ocr-training/overview', {
       ...baseLocals(req, 'overview', 'Overview'),

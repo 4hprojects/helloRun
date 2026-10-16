@@ -280,11 +280,12 @@ async function processExtractionJob(job, deps = {}) {
     : null;
   const accountName = `${String(runner?.firstName || '').trim()} ${String(runner?.lastName || '').trim()}`.trim();
   const completedAt = new Date();
+  let consentingEntry = null;
 
   for (const target of job.targets) {
     const Model = modelForKind(target.kind);
     const entry = await Model.findById(target.id)
-      .select('distanceKm elapsedMs runDate runLocation runType elevationGain steps status proof.key runnerId eventId submissionAttemptId')
+      .select('distanceKm elapsedMs runDate runLocation runType elevationGain steps status proof.key runnerId eventId submissionAttemptId ocrTrainingConsent')
       .lean();
     if (!entry) {
       outcome.targets.push({ id: String(target.id), result: 'missing' });
@@ -365,6 +366,32 @@ async function processExtractionJob(job, deps = {}) {
       ).catch(() => {});
     }
     outcome.targets.push({ id: String(target.id), result: decision });
+    if (!consentingEntry && entry.ocrTrainingConsent?.granted && !entry.ocrTrainingConsent?.withdrawnAt) {
+      consentingEntry = { kind: target.kind, entry };
+    }
+  }
+
+  // Runner opted in: cut pending ground-truth candidates. They need an OCR admin's literal
+  // transcription and approval before any dataset can use them. Never blocks the job.
+  if (consentingEntry && result.status !== 'failed') {
+    try {
+      const createCandidates = deps.createTrainingCandidates || require('./training-sample.service').createCandidatesFromExtraction;
+      const candidates = await createCandidates({
+        extraction: extraction.toObject ? extraction.toObject() : extraction,
+        buffer,
+        consentBasis: 'participant_opt_in',
+        consentRecordedAt: consentingEntry.entry.ocrTrainingConsent.recordedAt,
+        consentNoticeVersion: consentingEntry.entry.ocrTrainingConsent.noticeVersion,
+        source: 'submission_opt_in',
+        sourceEntry: { kind: consentingEntry.kind, id: consentingEntry.entry._id },
+        eventId: consentingEntry.entry.eventId || null,
+        runnerId: consentingEntry.entry.runnerId || null
+      });
+      outcome.trainingCandidates = candidates.length;
+    } catch (error) {
+      logger.warn('[server-ocr] training candidate creation failed (entry unaffected)', { error: error?.message });
+      outcome.trainingCandidates = 0;
+    }
   }
 
   await jobs.completeJob(job, { extractionId: extraction._id, elapsedMs: result.elapsedMs });

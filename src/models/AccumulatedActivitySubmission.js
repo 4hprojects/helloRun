@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const { organizerCorrectionSchema } = require('./organizer-correction.schema');
 const { serverOcrSchema } = require('./server-ocr.schema');
-const { activityUrlSchema, activityUrlVerificationSchema, duplicateSignalSchema } = require('./activity-evidence.schema');
+const { activityUrlSchema, activityUrlVerificationSchema, duplicateSignalSchema, ocrTrainingConsentSchema } = require('./activity-evidence.schema');
 const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 const { applyRestrictedProviderScope } = require('../utils/restricted-provider-scope');
 
@@ -286,6 +286,8 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
     activityUrlVerification: { type: activityUrlVerificationSchema, default: undefined },
     // Possible re-use of the same activity or screenshot. Review flags, never automatic rejections.
     duplicateSignals: { type: [duplicateSignalSchema], default: undefined },
+    // Optional opt-in to OCR model improvement (Phase 3). Absent unless the prompt was shown.
+    ocrTrainingConsent: { type: ocrTrainingConsentSchema, default: undefined },
     suspiciousFlag: {
       type: Boolean,
       default: false

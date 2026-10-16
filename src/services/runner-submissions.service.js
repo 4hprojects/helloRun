@@ -339,6 +339,7 @@ function formatSubmissionListItem(doc) {
     rejectionGuidance: REJECTION_REASONS.run[doc.rejectionCode]?.guidance || '',
     hasProof: Boolean(doc.proof?.url),
     proofUrl: doc.proof?.url || '',
+    ocrTrainingConsentGranted: Boolean(doc.ocrTrainingConsent?.granted && !doc.ocrTrainingConsent?.withdrawnAt),
     hasCertificate,
     certificateUrl: hasCertificate ? `/my-submissions/${String(doc._id)}/certificate` : '',
     certVerificationUrl: hasCertificate ? (doc.certificate?.verificationUrl || '') : '',

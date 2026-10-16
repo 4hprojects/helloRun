@@ -5,6 +5,7 @@ const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const uploadService = require('../services/upload.service');
 const controller = require('../controllers/admin/ocr-training.controller');
+const dataController = require('../controllers/admin/ocr-training-data.controller');
 
 // OCR Training Center (docs/improvement-plan/ocr-platform-aware). Mounted at
 // /admin/ocr-training. Every route requires an admin; model activation and rollback
@@ -37,6 +38,12 @@ router.get('/platforms', controller.renderPlatforms);
 router.post('/platforms/test', ocrTestLimiter, uploadService.uploadOcrTestImage, requireCsrfProtection, controller.testOcr);
 router.post('/platforms/:profileId/status', ocrMutationLimiter, controller.updateProfileStatus);
 router.post('/entries/:kind/:entryId/reprocess', ocrMutationLimiter, controller.reprocessEntry);
+router.get('/samples', dataController.renderSamples);
+router.post('/samples/upload', ocrTestLimiter, uploadService.uploadOcrTestImage, requireCsrfProtection, dataController.uploadTrainingScreenshot);
+router.post('/samples/participant-exclusion', ocrMutationLimiter, dataController.excludeRunnerSamples);
+router.post('/samples/:sampleId/review', ocrMutationLimiter, dataController.reviewSample);
+router.post('/datasets', ocrMutationLimiter, dataController.createDataset);
+router.get('/datasets/:datasetId/manifest.json', dataController.downloadDatasetManifest);
 router.get('/audit', controller.renderAudit);
 
 module.exports = router;

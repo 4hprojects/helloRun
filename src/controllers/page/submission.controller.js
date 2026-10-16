@@ -81,6 +81,7 @@ const { isProofReferencedByReviewDecision } = require('../../services/review-dec
 const { namesMatch } = require('../../utils/ocr/name-match');
 const { queueProofExtraction } = require('../../services/ocr/server-ocr.service');
 const { buildActivityEvidence } = require('../../services/ocr/activity-evidence.service');
+const { isTrainingConsentPromptEnabled, OCR_TRAINING_CONSENT_NOTICE_VERSION } = require('../../services/ocr/ocr-config');
 
 let { syncRegistrationPaymentShadow } = require('../../services/registration-payment-shadow.service');
 
@@ -617,6 +618,15 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       });
     }
     const activityEvidence = activityEvidenceResult.evidence;
+    // Opt-in to model-improvement use of cropped text lines: flag-gated, unchecked by default,
+    // recorded with the wording version shown. Not consenting changes nothing about review.
+    const ocrTrainingConsent = isTrainingConsentPromptEnabled()
+      ? {
+        granted: String(req.body.ocrTrainingConsent || '') === '1',
+        recordedAt: new Date(),
+        noticeVersion: OCR_TRAINING_CONSENT_NOTICE_VERSION
+      }
+      : undefined;
 
     const proofHash = crypto.createHash('sha256').update(resultProofFile.buffer).digest('hex');
     let idempotencyLock = null;
@@ -697,7 +707,8 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
             ocrData,
             submissionAttemptId,
             honorSystemConfirmed,
-            activityEvidence
+            activityEvidence,
+            ocrTrainingConsent
           };
 
           let savedSubmission;

@@ -20,6 +20,9 @@ function readPositiveInt(name, fallback, { min = 1, max = Number.MAX_SAFE_INTEGE
   return Math.min(max, Math.max(min, numeric));
 }
 
+// Version of the opt-in wording shown in the run-proof modal. Change it whenever the text changes.
+const OCR_TRAINING_CONSENT_NOTICE_VERSION = '2026-10-v1';
+
 const OCR_FLAGS = Object.freeze([
   'OCR_SERVER_PIPELINE_ENABLED',
   'OCR_SERVER_AUTO_APPROVAL_ENABLED',
@@ -80,6 +83,7 @@ function getOcrLimits() {
 }
 
 module.exports = {
+  OCR_TRAINING_CONSENT_NOTICE_VERSION,
   OCR_FLAGS,
   readFlag,
   readPositiveInt,

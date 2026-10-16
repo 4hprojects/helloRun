@@ -1642,3 +1642,18 @@
   gap: 0.75rem;
   flex-wrap: wrap;
 }
+
+.run-proof-consent-checkbox {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--hr-color-muted, #475569);
+}
+
+.run-proof-consent-checkbox input {
+  margin-top: 0.2rem;
+  flex: 0 0 auto;
+}
+

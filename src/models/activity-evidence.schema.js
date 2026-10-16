@@ -48,4 +48,15 @@ const duplicateSignalSchema = new mongoose.Schema(
   { _id: false }
 );
 
-module.exports = { activityUrlSchema, activityUrlVerificationSchema, duplicateSignalSchema };
+// Opt-in to using cropped text lines of this screenshot to improve OCR (Phase 3).
+const ocrTrainingConsentSchema = new mongoose.Schema(
+  {
+    granted: { type: Boolean, default: false },
+    recordedAt: { type: Date, default: Date.now },
+    noticeVersion: { type: String, trim: true, default: '', maxlength: 40 },
+    withdrawnAt: { type: Date, default: null }
+  },
+  { _id: false }
+);
+
+module.exports = { activityUrlSchema, activityUrlVerificationSchema, duplicateSignalSchema, ocrTrainingConsentSchema };

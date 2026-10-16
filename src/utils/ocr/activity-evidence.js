@@ -57,7 +57,21 @@ function sanitizeActivityEvidence(evidence) {
   };
 }
 
+/** Participant opt-in to model-improvement use (Phase 3). Absent while the prompt flag is off. */
+function sanitizeTrainingConsent(consent) {
+  if (!consent) return {};
+  return {
+    ocrTrainingConsent: {
+      granted: consent.granted === true,
+      recordedAt: consent.recordedAt ? new Date(consent.recordedAt) : new Date(),
+      noticeVersion: String(consent.noticeVersion || '').slice(0, 40),
+      withdrawnAt: null
+    }
+  };
+}
+
 module.exports = {
+  sanitizeTrainingConsent,
   URL_VERIFICATION_STATUSES,
   URL_VERIFICATION_METHODS,
   DUPLICATE_SIGNAL_KINDS,
