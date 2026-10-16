@@ -13,8 +13,8 @@ separately as BLOCKED and are not counted as passed.
 | 0 Repository assessment and baseline | COMPLETED | fd700ad | Image baseline N/A (no consented samples) |
 | 1 Platform-aware OCR | COMPLETED | dfac7bf | Accuracy validation on labelled screenshots |
 | 2 Optional activity URL | COMPLETED | 6e37c6f | `authorized_api` verification (no provider API access) |
-| 3 Reviewer corrections and datasets | COMPLETED | see Phase 3 report | Real samples need consent wording published + consented screenshots |
-| 4 Manual training and model registry | NOT STARTED | | |
+| 3 Reviewer corrections and datasets | COMPLETED | 2854d93 | Real samples need consent wording published + consented screenshots |
+| 4 Manual training and model registry | COMPLETED | see Phase 4 report | Real tesstrain run on the Ubuntu host; staging rollback rehearsal |
 | 5 Reminders, analytics, exports | NOT STARTED | | |
 | 6 QA and production readiness | NOT STARTED | | |
 
@@ -300,8 +300,9 @@ KNOWN ISSUES: provider id duplicates are flagged even across different events fo
 ```
 
 Phase 2 full unit suite (commit 6e37c6f, run in a separate git worktree so work could continue):
-all pass except `deploy-hygiene › the commit resolves … from .git`, which fails only in a worktree
-because `.git` is a file there; it passes in the main checkout (Phase 1 run: 2405/2405).
+2417/2419. The two failures are worktree-only: `deploy-hygiene › the commit resolves … from .git`
+(`.git` is a file in a worktree) and `thirty-day-running-challenge-blog-content › single-article
+creator …` (needs MONGODB_URI from `.env`, absent in the worktree). Both pass in the main checkout.
 
 ---
 
@@ -347,5 +348,61 @@ TESTS RUN: tests/ocr-training-data.unit.test.js 11/11; tests/ocr-training-data.i
 KNOWN ISSUES: one consenting entry per proof supplies the consent for its crops (entries submitted
   together share one screenshot). Deleting a sample does not remove its influence on an already
   trained model (doc 05); this is stated in the UI.
+```
+
+---
+
+## Phase 4 report — manual training, evaluation, deployment controls and rollback
+
+```text
+PHASE: 4 — Manual Tesseract training, model evaluation, deployment controls, rollback
+STATE: COMPLETED (control plane, worker, evaluation, registry, admin UI, tests).
+  BLOCKED: (1) no real tesstrain run — tesseract/lstmtraining/tesstrain are not installed on any
+  machine available to this work, and installing them on the Ubuntu production host is a production
+  infrastructure change that needs owner approval (Phase 0 decision); (2) the doc-04 gate
+  "rollback proven in staging" — there is no staging tier. Rollback is proven against a local
+  MongoDB with injected storage; it has not been rehearsed against production-like infrastructure.
+FUNCTIONAL BEHAVIOR:
+  - Start (/admin/ocr-training/jobs): any admin, OCR_TRAINING_ENABLED on, a `ready` immutable dataset
+    whose hash still verifies, a training worker seen in the last 3 min with a passing preflight.
+    Idempotency key per page render (double-click → same job); a unique partial index on
+    TrainingJob.activeLock allows one active job system-wide (409 otherwise). 503/422 per doc 03.
+  - Worker (`npm run ocr:training-worker`, separate PM2 process, never in the web app): lowers its own
+    priority, heartbeats + preflight every minute, marks jobs whose lease expired as `interrupted`
+    (no silent resume), sweeps sample retention, runs one job at a time.
+  - Preflight: tesseract, lstmtraining, make, tesstrain Makefile, tessdata_best eng.traineddata,
+    a resource limiter (systemd-run scope or prlimit), nice, free disk ≥ setting, free memory.
+  - Training: dataset materialised from the manifest (checksums verified; test split held apart),
+    `make training` built as a fixed argument array (validated names/paths; no shell) wrapped in
+    systemd-run --user --scope -p CPUQuota/-p MemoryMax (or prlimit --as), nice -n 19, ionice -c3,
+    OMP_THREAD_LIMIT=1, wall-clock timeout; whole process group killed on cancel/timeout; log capped at
+    5 MB and stored privately; peak RSS sampled from /proc.
+  - Output: checksummed artifact stored once under a job-specific key → OcrModelVersion `candidate`.
+  - Evaluation: candidate vs the currently active model on the held-out test lines (PSM 7, same engine);
+    CER + exact-line accuracy overall and per platform/layout. Gates fail closed: owner-approved
+    thresholds required, coverage per platform, no per-platform CER regression beyond the margin,
+    overall not worse → `passed_gates` / `failed_gates`. Never auto-promoted.
+  - Approve / Activate / Roll back (/admin/ocr-training/models): full admin tier only, reason ≥ 10
+    chars, typed confirmation (APPROVE / ACTIVATE / ROLLBACK), rate-limited, audited. Activation needs
+    `approved`, verifies the artifact checksum first, then compare-and-set on the registry version (a
+    stale page or a concurrent activation gets 409). Rollback to previous, base, or another approved
+    model. Every attempt (incl. failures) recorded in append-only OcrDeploymentEvent.
+  - Inference: the engine resolves the active model through the registry (60 s cache) and loads a
+    checksum-verified local copy; any failure falls back to the bundled base model and is counted
+    on the Models page. Browser prefill keeps the base model (C5).
+DATA CHANGES (additive): TrainingJob, OcrModelVersion, OcrModelRegistry, OcrDeploymentEvent,
+  OcrTrainingWorkerStatus collections.
+TESTS RUN: tests/ocr-training-models.unit.test.js 8/8 (argument-array command with limits and
+  injection refusal, preflight fail-closed, real child-process stand-in: exit/timeout/cancel kill the
+  process group with no orphans, spawn failure, log cap, gates incl. per-platform regression and
+  unapproved thresholds, engine switching models, deployment routes require full tier, trainer never
+  in the web app, views with/without deploy rights); tests/ocr-training-models.integration.test.js
+  7/7 on local MongoDB (refusals 503/422, double-click idempotency, 409 single active job, cancel
+  releases lock, failed trainer leaves production unchanged, interrupted recovery, completed job →
+  passed_gates candidate, approval/activation rules, stale version 409, checksum-verified activation,
+  tampered artifact → base fallback, rollback, concurrent activations, failed activation recorded).
+RESOURCES: the training worker's own evaluation uses tesseract.js in its process at nice 19.
+KNOWN ISSUES: CPU/memory limits rely on systemd user scopes or prlimit being usable on the host;
+  preflight reports which. MemoryMax applies to the scope, prlimit to address space (coarser).
 ```
 

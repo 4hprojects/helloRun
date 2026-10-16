@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/admin-ocr.css">
+</head>
+<body>
+  <%- include('../../layouts/nav') %>
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <%- include('_header') %>
+
+      <div class="ocr-panel-grid">
+        <section class="ocr-panel" aria-labelledby="ocr-worker-heading">
+          <h2 id="ocr-worker-heading">Training worker</h2>
+          <% if (!worker.row) { %>
+            <p class="ocr-empty">No training worker has ever reported in. Run <code>npm run ocr:training-worker</code> as its own process on the training host.</p>
+          <% } else { %>
+            <p><span class="ocr-pill <%= worker.online ? 'ocr-pill-on' : 'ocr-pill-failed' %>"><%= worker.online ? 'online' : 'offline' %></span> <%= worker.row.hostname %> · last seen <%= formatDateTime(worker.row.lastSeenAt) %></p>
+            <% if (worker.row.preflight) { %>
+              <p>Preflight: <span class="ocr-pill <%= worker.row.preflight.passed ? 'ocr-pill-on' : 'ocr-pill-failed' %>"><%= worker.row.preflight.passed ? 'passing' : 'failing' %></span></p>
+              <ul>
+                <% (worker.row.preflight.checks || []).forEach((check) => { %>
+                  <li><%= check.passed ? '✓' : '✗' %> <%= check.id %> — <span class="ocr-help"><%= check.detail %></span></li>
+                <% }) %>
+              </ul>
+            <% } %>
+          <% } %>
+        </section>
+
+        <section class="ocr-panel" aria-labelledby="ocr-start-heading">
+          <h2 id="ocr-start-heading">Start training</h2>
+          <% if (!trainingEnabled) { %>
+            <p class="ocr-help">Training is disabled (<code>OCR_TRAINING_ENABLED</code> is off).</p>
+          <% } else if (active) { %>
+            <p>A job is already <strong><%= active.status %></strong>. Only one training job runs at a time.</p>
+          <% } else if (!readyDatasets.length) { %>
+            <p class="ocr-help">No dataset snapshot is ready. Create one on the Samples page once enough approved samples exist.</p>
+          <% } else if (!worker.online || !worker.preflightPassed) { %>
+            <p class="ocr-help">The training worker must be online with a passing preflight.</p>
+          <% } %>
+          <form method="POST" action="/admin/ocr-training/jobs" class="ocr-form-row">
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+            <input type="hidden" name="idempotencyKey" value="<%= idempotencyKey %>">
+            <label>Dataset snapshot
+              <select name="datasetVersionId" required>
+                <% readyDatasets.forEach((dataset) => { %>
+                  <option value="<%= dataset._id %>"><%= dataset.name %> (<%= dataset.counts.total %> lines, <%= String(dataset.manifestHash).slice(0, 8) %>)</option>
+                <% }) %>
+              </select>
+            </label>
+            <button type="submit" class="btn" <%= (!trainingEnabled || active || !readyDatasets.length || !worker.online || !worker.preflightPassed) ? 'disabled' : '' %>>Start training</button>
+          </form>
+          <p class="ocr-help">Training produces a candidate model only. Nothing changes in production until a full admin approves and activates it on the Models page.</p>
+        </section>
+      </div>
+
+      <section class="ocr-panel" aria-labelledby="ocr-jobs-heading">
+        <h2 id="ocr-jobs-heading">Training jobs</h2>
+        <% if (!jobs.length) { %>
+          <p class="ocr-empty">No training jobs yet.</p>
+        <% } else { %>
+          <div class="admin-users-table-wrap">
+            <table class="admin-table ocr-table">
+              <thead><tr><th>Created</th><th>Status</th><th>Dataset</th><th>Progress</th><th>Resources</th><th>Result</th><th>Actions</th></tr></thead>
+              <tbody>
+                <% jobs.forEach((job) => { %>
+                  <tr>
+                    <td><%= formatDateTime(job.createdAt) %></td>
+                    <td><span class="ocr-pill ocr-pill-<%= job.status %>"><%= job.status %></span><% if (job.cancelRequested && !['cancelled', 'completed', 'failed', 'interrupted'].includes(job.status)) { %> <span class="ocr-help">cancel requested</span><% } %></td>
+                    <td><code><%= String(job.datasetManifestHash || '').slice(0, 8) %></code></td>
+                    <td><%= job.progress?.phase || '—' %><% if (job.progress?.message) { %><br><span class="ocr-help"><%= job.progress.message %></span><% } %></td>
+                    <td><%= job.resources?.durationSeconds ? `${job.resources.durationSeconds}s` : '—' %><% if (job.resources?.peakRssMb) { %> · <%= job.resources.peakRssMb %> MB<% } %><% if (job.resources?.limiter) { %> · <%= job.resources.limiter %><% } %></td>
+                    <td><% if (job.resultModelVersionId) { %><a href="/admin/ocr-training/models">candidate</a><% } else if (job.errorCode) { %><%= job.errorCode %><br><span class="ocr-help"><%= job.errorSummary %></span><% } else { %>—<% } %></td>
+                    <td>
+                      <% if (job.logsKey) { %><a href="/admin/ocr-training/jobs/<%= job._id %>/log">Log</a><% } %>
+                      <% if (['queued', 'preparing', 'training', 'evaluating'].includes(job.status) && !job.cancelRequested) { %>
+                        <form method="POST" action="/admin/ocr-training/jobs/<%= job._id %>/cancel" onsubmit="return confirm('Cancel this training job?');">
+                          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                          <button type="submit" class="btn btn-secondary">Cancel</button>
+                        </form>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </section>
+
+      <section class="ocr-panel" aria-labelledby="ocr-datasets-heading">
+        <h2 id="ocr-datasets-heading">Dataset snapshots</h2>
+        <form method="POST" action="/admin/ocr-training/datasets" class="ocr-form-row">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <input type="hidden" name="returnTo" value="/admin/ocr-training/jobs">
+          <label>Name <input name="name" maxlength="80" placeholder="dataset-2026-10"></label>
+          <button type="submit" class="btn btn-secondary">Create snapshot</button>
+        </form>
+        <% if (!datasets.length) { %>
+          <p class="ocr-empty">No snapshots yet.</p>
+        <% } else { %>
+          <ul>
+            <% datasets.forEach((dataset) => { %>
+              <li><%= dataset.name %> · <span class="ocr-pill ocr-pill-<%= dataset.validationStatus === 'ready' ? 'ready' : 'pending' %>"><%= dataset.validationStatus %></span> · <%= dataset.counts.train %>/<%= dataset.counts.validation %>/<%= dataset.counts.test %> · <a href="/admin/ocr-training/datasets/<%= dataset._id %>/manifest.json">manifest</a><% if (dataset.notReadyReasons && dataset.notReadyReasons.length) { %><br><span class="ocr-help"><%= dataset.notReadyReasons.join(' · ') %></span><% } %></li>
+            <% }) %>
+          </ul>
+        <% } %>
+      </section>
+    </section>
+  </main>
+  <%- include('../../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

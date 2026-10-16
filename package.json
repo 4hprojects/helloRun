@@ -188,6 +188,7 @@
     "ocr:benchmark": "node src/scripts/ocr-benchmark.js",
     "ocr:worker": "node src/scripts/ocr-worker.js",
     "ocr:dataset:export": "node src/scripts/ocr-dataset-export.js",
+    "ocr:training-worker": "node src/scripts/ocr-training-worker.js",
     "postinstall": "npm run setup && npm run copy-tesseract-assets && npm run download-tessdata",
     "test": "node src/scripts/run-test-group.js",
     "test:parallel": "node src/scripts/run-test-group.js --parallel tests/*.test.js",

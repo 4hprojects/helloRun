@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { requireAdmin, requireFullAdmin } = require('../middleware/auth.middleware');
+const { requireAdmin, requireFullAdmin, isFullAdminTier } = require('../middleware/auth.middleware');
+const User = require('../models/User');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const uploadService = require('../services/upload.service');
 const controller = require('../controllers/admin/ocr-training.controller');
 const dataController = require('../controllers/admin/ocr-training-data.controller');
+const modelsController = require('../controllers/admin/ocr-training-models.controller');
 
 // OCR Training Center (docs/improvement-plan/ocr-platform-aware). Mounted at
 // /admin/ocr-training. Every route requires an admin; model activation and rollback
@@ -27,6 +29,22 @@ const ocrTestLimiter = createRateLimiter({
 });
 
 router.use(requireAdmin);
+// Lets pages show or hide deployment controls; the deployment routes still enforce the tier.
+async function attachAdminTier(req, res, next) {
+  try {
+    const user = await User.findById(req.session.userId).select('adminTier').lean();
+    res.locals.isFullAdmin = isFullAdminTier(user);
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+const ocrDeployLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 10,
+  message: 'Too many model deployment actions. Please wait and try again.',
+  keyFn: actorKey('ocr-admin-deploy')
+});
 router.use((req, res, next) => {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(String(req.method || '').toUpperCase())) return next();
   if (String(req.headers['content-type'] || '').startsWith('multipart/form-data')) return next();
@@ -44,7 +62,16 @@ router.post('/samples/participant-exclusion', ocrMutationLimiter, dataController
 router.post('/samples/:sampleId/review', ocrMutationLimiter, dataController.reviewSample);
 router.post('/datasets', ocrMutationLimiter, dataController.createDataset);
 router.get('/datasets/:datasetId/manifest.json', dataController.downloadDatasetManifest);
+router.get('/jobs', modelsController.renderJobs);
+router.post('/jobs', ocrMutationLimiter, modelsController.startJob);
+router.get('/jobs/:jobId', modelsController.getJob);
+router.get('/jobs/:jobId/log', modelsController.downloadJobLog);
+router.post('/jobs/:jobId/cancel', ocrMutationLimiter, modelsController.cancelJob);
+router.get('/models', attachAdminTier, modelsController.renderModels);
+router.post('/models/:modelId/approve', requireFullAdmin, ocrDeployLimiter, modelsController.approveModel);
+router.post('/models/:modelId/activate', requireFullAdmin, ocrDeployLimiter, modelsController.activateModel);
+router.post('/models/rollback', requireFullAdmin, ocrDeployLimiter, modelsController.rollbackModel);
 router.get('/audit', controller.renderAudit);
 
 module.exports = router;
-module.exports._limiters = { ocrMutationLimiter, ocrTestLimiter, requireFullAdmin };
+module.exports._limiters = { ocrMutationLimiter, ocrTestLimiter, ocrDeployLimiter, requireFullAdmin };

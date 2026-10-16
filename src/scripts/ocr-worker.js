@@ -22,6 +22,7 @@ async function main() {
   }
   if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is required.');
   await mongoose.connect(process.env.MONGODB_URI, { autoIndex: false });
+  require('../services/ocr/ocr-engine').setLanguageResolver(require('../services/ocr/model-registry.service').resolveLanguage);
   startOcrExtractionWorker({ force: true });
   // Interval timers are unref'd for the web process; keep this process alive explicitly.
   const keepAlive = setInterval(() => {}, 60 * 60 * 1000);

@@ -427,6 +427,8 @@ async function startServer() {
   startWaitlistOfferWorker();
   startEventActivationReminderWorker();
   startStravaLifecycleWorker();
+  // Server OCR loads whichever model is active in the registry (base English until one is activated).
+  require('./services/ocr/ocr-engine').setLanguageResolver(require('./services/ocr/model-registry.service').resolveLanguage);
   startOcrExtractionWorker();
 
   const server = app.listen(PORT, () => {
