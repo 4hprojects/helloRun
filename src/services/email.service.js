@@ -2261,3 +2261,20 @@ exports.sendStravaDeletionConfirmationEmail = async (email, payload = {}) => {
   if (error) throw error;
   return data;
 };
+
+// OCR Training Center administrator email (docs/improvement-plan/ocr-platform-aware, Phase 5).
+// Counts and an authenticated dashboard link only: never screenshots, OCR text or activity data.
+exports.sendOcrAdminNotificationEmail = async ({ to, firstName, subject, heading, paragraphs = [], ctaHref, ctaLabel }) => {
+  const body = paragraphs.map((text) => `<p>${escapeHtml(text)}</p>`).join('');
+  const cta = ctaHref
+    ? `<p style="margin:24px 0;"><a href="${escapeHtml(ctaHref)}" style="background:#c2410c;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold;">${escapeHtml(ctaLabel || 'Open the OCR Training Center')}</a></p>`
+    : '';
+  const { data, error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject,
+    html: `<!doctype html><html><body style="margin:0;background:#f8fafc;color:#1e293b;font-family:Arial,sans-serif;">${buildBrandedEmailHeader()}<main style="max-width:600px;margin:0 auto;background:#fff;padding:32px;line-height:1.5;"><h1 style="font-size:22px;">${escapeHtml(heading)}</h1><p>Hi ${escapeHtml(firstName || 'Admin')},</p>${body}${cta}<p style="color:#64748b;font-size:13px;">You receive this because you administer HelloRun OCR. Change frequency or mute these emails in the OCR Training Center settings.</p></main></body></html>`
+  });
+  if (error) throw Object.assign(new Error(error.message || 'Email provider rejected the message.'), { providerError: error });
+  return data;
+};

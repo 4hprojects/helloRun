@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/admin-ocr.css">
+</head>
+<body>
+  <%- include('../../layouts/nav') %>
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <%- include('_header') %>
+      <% const n = settings.notifications || {}; const d = settings.dataset || {}; const e = settings.evaluation || {}; const r = settings.retention || {}; const t = settings.training || {}; %>
+      <% const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']; %>
+      <% if (!canEdit) { %><div class="admin-alert admin-alert-info" role="status">Only a full administrator can change these settings. You can still send yourself a test email.</div><% } %>
+
+      <form method="POST" action="/admin/ocr-training/settings">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+        <fieldset class="ocr-panel" <%= canEdit ? '' : 'disabled' %>>
+          <legend><h2>Administrator reminders</h2></legend>
+          <p class="ocr-help">Reminders are sent only when there is work to do, and never start training. Operator switch <code>OCR_REMINDERS_ENABLED</code> is <strong><%= remindersFlag ? 'on' : 'off' %></strong>. Next digest: <%= schedule.reason === 'schedule_not_set' ? 'choose a day and hour' : (schedule.reason === 'frequency_off' ? 'off' : (schedule.due ? `due for ${schedule.periodKey}` : `not yet due in ${schedule.periodKey}`)) %>.</p>
+          <input type="hidden" name="notifications.enabled__present" value="1">
+          <div class="ocr-form-row">
+            <label><input type="checkbox" name="notifications.enabled" value="1" <%= n.enabled ? 'checked' : '' %>> Send OCR reminders</label>
+            <label>Frequency
+              <select name="notifications.frequency">
+                <% ['off', 'weekly', 'biweekly', 'monthly'].forEach((value) => { %><option value="<%= value %>" <%= n.frequency === value ? 'selected' : '' %>><%= value %></option><% }) %>
+              </select>
+            </label>
+            <label>Day
+              <select name="notifications.dayOfWeek">
+                <option value="" <%= n.dayOfWeek === null || n.dayOfWeek === undefined ? 'selected' : '' %>>Choose…</option>
+                <% days.forEach((label, index) => { %><option value="<%= index %>" <%= n.dayOfWeek === index ? 'selected' : '' %>><%= label %></option><% }) %>
+              </select>
+            </label>
+            <label>Hour (0–23)
+              <input type="number" name="notifications.hour" min="0" max="23" value="<%= n.hour === null || n.hour === undefined ? '' : n.hour %>">
+            </label>
+            <label>Timezone
+              <input name="notifications.timezone" value="<%= n.timezone || 'Asia/Manila' %>" maxlength="60">
+            </label>
+            <label>New verified samples threshold
+              <input type="number" name="notifications.minimumNewSamples" min="1" value="<%= n.minimumNewSamples %>">
+            </label>
+          </div>
+          <input type="hidden" name="notifications.eventTypes__present" value="1">
+          <fieldset>
+            <legend>Email events</legend>
+            <% Object.entries(eventTypeLabels).forEach(([key, label]) => { %>
+              <label><input type="checkbox" name="notifications.eventTypes" value="<%= key %>" <%= (n.eventTypes || []).includes(key) ? 'checked' : '' %>> <%= label %></label><br>
+            <% }) %>
+          </fieldset>
+          <input type="hidden" name="notifications.recipients__present" value="1">
+          <div class="ocr-form-row">
+            <label>Recipients
+              <select name="notifications.recipientMode">
+                <option value="all_admins" <%= n.recipientMode !== 'selected' ? 'selected' : '' %>>All active administrators</option>
+                <option value="selected" <%= n.recipientMode === 'selected' ? 'selected' : '' %>>Only the administrators ticked below</option>
+              </select>
+            </label>
+          </div>
+          <div class="admin-users-table-wrap">
+            <table class="admin-table ocr-table">
+              <thead><tr><th>Administrator</th><th>Tier</th><th>Selected</th><th>Muted</th></tr></thead>
+              <tbody>
+                <% admins.forEach((admin) => { const id = String(admin._id); %>
+                  <tr>
+                    <td><%= `${admin.firstName || ''} ${admin.lastName || ''}`.trim() || admin.email %></td>
+                    <td><%= admin.adminTier === 'support' ? 'support' : 'full' %></td>
+                    <td><input type="checkbox" name="notifications.recipientUserIds" value="<%= id %>" aria-label="Select <%= admin.email %>" <%= (n.recipientUserIds || []).map(String).includes(id) ? 'checked' : '' %>></td>
+                    <td><input type="checkbox" name="notifications.mutedUserIds" value="<%= id %>" aria-label="Mute <%= admin.email %>" <%= (n.mutedUserIds || []).map(String).includes(id) ? 'checked' : '' %>></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </fieldset>
+
+        <fieldset class="ocr-panel" <%= canEdit ? '' : 'disabled' %>>
+          <legend><h2>Dataset readiness and evaluation gates</h2></legend>
+          <p class="ocr-help">These values are placeholders, not scientific minimums. Set them after reviewing real baseline results, then tick the approval boxes. Until then no dataset is "ready" and no candidate passes its gates.</p>
+          <input type="hidden" name="dataset.thresholdsApprovedByOwner__present" value="1">
+          <input type="hidden" name="evaluation.gatesApprovedByOwner__present" value="1">
+          <div class="ocr-form-row">
+            <label>Minimum approved samples <input type="number" name="dataset.minApprovedSamples" min="1" value="<%= d.minApprovedSamples %>"></label>
+            <label>Minimum test samples <input type="number" name="dataset.minTestSamples" min="1" value="<%= d.minTestSamples %>"></label>
+            <label>Minimum validation samples <input type="number" name="dataset.minValidationSamples" min="0" value="<%= d.minValidationSamples %>"></label>
+            <label>Minimum samples per platform <input type="number" name="dataset.minSamplesPerPlatform" min="0" value="<%= d.minSamplesPerPlatform %>"></label>
+            <label><input type="checkbox" name="dataset.thresholdsApprovedByOwner" value="1" <%= d.thresholdsApprovedByOwner ? 'checked' : '' %>> Owner approves these dataset thresholds</label>
+          </div>
+          <div class="ocr-form-row">
+            <label>Allowed per-platform CER increase <input type="number" step="0.001" min="0" max="1" name="evaluation.maxPlatformCerRegression" value="<%= e.maxPlatformCerRegression %>"></label>
+            <label>Minimum held-out lines per platform <input type="number" min="1" name="evaluation.minEvaluationSamplesPerPlatform" value="<%= e.minEvaluationSamplesPerPlatform %>"></label>
+            <label><input type="checkbox" name="evaluation.gatesApprovedByOwner" value="1" <%= e.gatesApprovedByOwner ? 'checked' : '' %>> Owner approves these evaluation gates</label>
+          </div>
+        </fieldset>
+
+        <fieldset class="ocr-panel" <%= canEdit ? '' : 'disabled' %>>
+          <legend><h2>Retention and training limits</h2></legend>
+          <div class="ocr-form-row">
+            <label>Keep training samples (days) <input type="number" min="30" max="3650" name="retention.sampleRetentionDays" value="<%= r.sampleRetentionDays %>"></label>
+            <label>Max iterations <input type="number" min="100" max="100000" name="training.maxIterations" value="<%= t.maxIterations %>"></label>
+            <label>Timeout (minutes) <input type="number" min="10" max="1440" name="training.timeoutMinutes" value="<%= t.timeoutMinutes %>"></label>
+            <label>CPU quota (%) <input type="number" min="10" max="400" name="training.cpuQuotaPercent" value="<%= t.cpuQuotaPercent %>"></label>
+            <label>Memory limit (MB) <input type="number" min="256" max="16384" name="training.memoryMaxMb" value="<%= t.memoryMaxMb %>"></label>
+            <label>Free disk required (MB) <input type="number" min="512" name="training.minFreeDiskMb" value="<%= t.minFreeDiskMb %>"></label>
+          </div>
+        </fieldset>
+        <% if (canEdit) { %><button type="submit" class="btn">Save settings</button><% } %>
+      </form>
+
+      <section class="ocr-panel" aria-labelledby="ocr-test-email">
+        <h2 id="ocr-test-email">Test email</h2>
+        <form method="POST" action="/admin/ocr-training/settings/test-email">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <button type="submit" class="btn btn-secondary">Send me a test email</button>
+        </form>
+      </section>
+
+      <section class="ocr-panel" aria-labelledby="ocr-deliveries">
+        <h2 id="ocr-deliveries">Delivery history</h2>
+        <% if (!deliveries.length) { %><p class="ocr-empty">No OCR emails yet.</p><% } else { %>
+          <div class="admin-users-table-wrap"><table class="admin-table ocr-table">
+            <thead><tr><th>Created</th><th>Event</th><th>Status</th><th>Attempts</th><th>Sent</th><th>Error</th></tr></thead>
+            <tbody><% deliveries.forEach((row) => { %>
+              <tr><td><%= formatDateTime(row.createdAt) %></td><td><%= row.eventType %></td><td><span class="ocr-pill ocr-pill-<%= row.status %>"><%= row.status %></span></td><td><%= row.attempts %></td><td><%= row.sentAt ? formatDateTime(row.sentAt) : '—' %></td><td><%= row.errorCode || '—' %></td></tr>
+            <% }) %></tbody>
+          </table></div>
+        <% } %>
+      </section>
+    </section>
+  </main>
+  <%- include('../../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

@@ -14,8 +14,8 @@ separately as BLOCKED and are not counted as passed.
 | 1 Platform-aware OCR | COMPLETED | dfac7bf | Accuracy validation on labelled screenshots |
 | 2 Optional activity URL | COMPLETED | 6e37c6f | `authorized_api` verification (no provider API access) |
 | 3 Reviewer corrections and datasets | COMPLETED | 2854d93 | Real samples need consent wording published + consented screenshots |
-| 4 Manual training and model registry | COMPLETED | see Phase 4 report | Real tesstrain run on the Ubuntu host; staging rollback rehearsal |
-| 5 Reminders, analytics, exports | NOT STARTED | | |
+| 4 Manual training and model registry | COMPLETED | cc710ad | Real tesstrain run on the Ubuntu host; staging rollback rehearsal |
+| 5 Reminders, analytics, exports | COMPLETED | see Phase 5 report | Weekly digest day/hour must be chosen by the owner |
 | 6 QA and production readiness | NOT STARTED | | |
 
 ## Resume checkpoint
@@ -404,5 +404,50 @@ TESTS RUN: tests/ocr-training-models.unit.test.js 8/8 (argument-array command wi
 RESOURCES: the training worker's own evaluation uses tesseract.js in its process at nice 19.
 KNOWN ISSUES: CPU/memory limits rely on systemd user scopes or prlimit being usable on the host;
   preflight reports which. MemoryMax applies to the scope, prlimit to address space (coarser).
+```
+
+---
+
+## Phase 5 report — administrator reminders, scheduling, analytics and reports
+
+```text
+PHASE: 5 — Administrator email reminders, scheduling, analytics, reports
+STATE: COMPLETED. Open owner input: the digest day and hour (doc 08 forbids inventing one; until set,
+  the digest is "not scheduled"). Timezone defaults to Asia/Manila.
+FUNCTIONAL BEHAVIOR:
+  - Switches: OCR_REMINDERS_ENABLED (operator) and Settings › "Send OCR reminders" (admin). Both off
+    by default. Reminders never start training or change models.
+  - Events: ocr.review_digest (scheduled; only if samples are pending or new eligible samples ≥
+    threshold), ocr.dataset_ready (threshold crossed since the last completed training; wording says it
+    is not a scientific minimum), ocr.training_completed / ocr.training_failed (from the training
+    worker; initiator included), ocr.model_approval_needed and ocr.model_activated (full admins only),
+    ocr.quality_regression (server-vs-entry disagreement for a platform up ≥ 15 points over the 28-day
+    baseline with ≥ 20 readings in both windows; daily check). Per-event subscriptions in settings.
+  - Recipients: resolved from RBAC each time (active admins; optional selected list; mute list).
+  - Scheduling: weekly / fortnightly / monthly at the admin's day and hour in their IANA timezone
+    (Intl; DST-correct); one period key per period, so late or restarted schedulers send once.
+  - Dedupe: unique (eventKey, recipient) row. Delivery claims the row (lease), respects the shared
+    daily email budget and maintenance mode, retries 5 min / 30 min / 2 h / 12 h, stops at 5 attempts
+    (failed), suppresses recipients who lost admin rights, stores the provider message id.
+  - Email content: counts and authenticated admin links only (sendOcrAdminNotificationEmail).
+  - Settings page (/admin/ocr-training/settings, edit = full admin): reminders, recipients, mute,
+    event subscriptions, dataset thresholds + owner approval, evaluation gates + owner approval,
+    retention, training limits, test email, delivery history.
+  - Analytics (/admin/ocr-training/analytics, 7/30/90/365 days): extraction completeness and latency
+    (median/p95) by detected platform, detection distribution (confirmed/uncertain/unknown), server-vs-
+    entry disagreement, manual review count, correction rate (distance/time corrections), auto-approved
+    count, review time median/p95, accuracy on reviewed ground truth (CER, exact lines), job failures,
+    training history with resource use, held-out evaluations. N/A wherever nothing was measured.
+  - Research export (full admin, rate-limited, audited): long-format CSV of aggregates with experiment
+    id, window, metric-rules version, model/dataset as short hashes; no participant, entry, event, URL,
+    name, location or image identifiers; formula injection neutralised.
+DATA CHANGES (additive): OcrNotificationEvent collection. In-process ocr-maintenance-worker (5 min,
+  flag-gated).
+TESTS RUN: tests/ocr-notifications.unit.test.js 11/11 (schedule, DST in America/New_York, fortnight
+  and month periods, ISO week edge, event keys, email content, CSV injection, export source has no
+  identifiers, tier gating, worker gating, views); tests/ocr-notifications.integration.test.js 7/7 on
+  local MongoDB (both switches, RBAC recipients incl. full-tier-only, three concurrent emits → one row
+  per recipient, retry/backoff to the limit, budget wait, suppression, digest actionability + once per
+  period across restart, analytics values and an identifier-free export).
 ```
 

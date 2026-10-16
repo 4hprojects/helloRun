@@ -414,6 +414,7 @@ const { startWaitlistOfferWorker } = require('./workers/waitlist-offer-worker');
 const { startEventActivationReminderWorker } = require('./workers/event-activation-reminder-worker');
 const { startStravaLifecycleWorker } = require('./workers/strava-lifecycle-worker');
 const { startOcrExtractionWorker } = require('./workers/ocr-extraction-worker');
+const { startOcrMaintenanceWorker } = require('./workers/ocr-maintenance-worker');
 const { isActivityUrlEnabled, isTrainingConsentPromptEnabled } = require('./services/ocr/ocr-config');
 
 async function startServer() {
@@ -430,6 +431,7 @@ async function startServer() {
   // Server OCR loads whichever model is active in the registry (base English until one is activated).
   require('./services/ocr/ocr-engine').setLanguageResolver(require('./services/ocr/model-registry.service').resolveLanguage);
   startOcrExtractionWorker();
+  startOcrMaintenanceWorker();
 
   const server = app.listen(PORT, () => {
     logger.info(`Server running on http://localhost:${PORT}`);
