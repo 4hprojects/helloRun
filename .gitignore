@@ -54,6 +54,9 @@ coverage/
 .nyc_output/
 docs/image_test/
 
+# OCR benchmark inputs (consented screenshots, labels, reports) stay local
+benchmarks/ocr/local/
+
 # Temporary files
 tmp/
 temp/

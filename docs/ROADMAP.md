@@ -291,6 +291,10 @@ Detailed plan:
 
 - [ ] Establish performance baselines before changing request-path behaviour.
 - [ ] Reduce avoidable authenticated-user lookups and request-time OCR work.
+- [ ] **Platform-aware OCR and training** ([plan](improvement-plan/ocr-platform-aware/README.md)).
+      Phase 0 done Oct 17 (assessment + benchmark harness). Next: Phase 1 server
+      OCR re-read so auto-approval stops trusting client OCR values. Gate needs
+      consented, labeled Strava/COROS/Garmin screenshots.
 - [ ] Confirm edge compression, asset versioning, caching and bundle behaviour.
 - [ ] Complete residual communication delivery and unsubscribe observability.
 

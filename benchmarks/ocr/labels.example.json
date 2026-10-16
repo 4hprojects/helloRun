@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "description": "Copy to benchmarks/ocr/local/labels.json (git-ignored). Values are what the screenshot shows, verified by a person. 'lines' are literal transcriptions of cropped text lines for CER.",
+  "labels": {
+    "strava-android-0001": {
+      "platform": "strava",
+      "distanceKm": 5.02,
+      "elapsedMs": 1710000,
+      "timeKind": "moving",
+      "runDate": "2026-10-01",
+      "runType": "run",
+      "lines": [
+        { "id": "distance", "bbox": { "left": 40, "top": 900, "width": 300, "height": 70 }, "text": "5.02 km" }
+      ]
+    }
+  }
+}

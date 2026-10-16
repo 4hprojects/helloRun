@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "description": "Copy to benchmarks/ocr/local/manifest.json (git-ignored). Image paths are relative to that file and must stay inside its directory.",
+  "samples": [
+    {
+      "id": "strava-android-0001",
+      "image": "images/strava-android-0001.png",
+      "platform": "strava",
+      "layout": "android-activity-summary",
+      "activityGroupId": "activity-0001",
+      "consentBasis": "owner-own-activity"
+    }
+  ]
+}

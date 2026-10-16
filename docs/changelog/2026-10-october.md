@@ -1,5 +1,22 @@
 # HelloRun Changelog — October 2026
 
+## October 17 — Platform-aware OCR plan: Phase 0 assessment
+
+- The approved OCR, activity-verification and training plan moved to
+  `docs/improvement-plan/ocr-platform-aware/`, with a Phase 0 report in
+  `IMPLEMENTATION-PROGRESS.md`. It covers the verified architecture, a gap table, security
+  findings and owner decisions.
+- Main finding: auto-approval relies on OCR values the browser sends. Phase 1
+  will add a server-side re-read of the stored proof.
+- New offline benchmark harness: `npm run ocr:benchmark`
+  (`src/scripts/ocr-benchmark.js`, `src/utils/ocr/benchmark-metrics.js`). It
+  reports per-platform/layout exact-field accuracy, CER, completeness and
+  latency, and prints `N/A` when nothing was measured. Images and labels stay
+  in git-ignored `benchmarks/ocr/local/`; samples without a consent basis are
+  skipped.
+- No application behaviour changed. DB-free coverage:
+  `tests/ocr-benchmark.unit.test.js`.
+
 ## October 15 — Linked-entry review for multi-event submissions
 
 - A runner who sends one proof to several events in one submission now gets **one review**.

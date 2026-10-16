@@ -263,6 +263,10 @@ Open themes include:
   runtime verification;
 - request-path and asset efficiency work that depends on measurement;
 - server-spawning test open-handle investigation;
+- platform-aware OCR and training plan: Phase 0 assessment and DB-free
+  benchmark harness complete on `feature/platform-aware-ocr-training`; no
+  feature code yet and no measured accuracy (0 consented labeled samples). See
+  [`improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md`](improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md);
 - residual event-promotion delivery/unsubscribe refinements listed in
   [`improvement-plan/event-promotion-follow-ups.md`](improvement-plan/event-promotion-follow-ups.md).
 

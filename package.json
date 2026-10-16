@@ -185,6 +185,7 @@
     "smoke:full": "node src/scripts/run-smoke-tests.js",
     "copy-tesseract-assets": "node src/scripts/copy-tesseract-assets.js",
     "download-tessdata": "node src/scripts/download-tessdata.js",
+    "ocr:benchmark": "node src/scripts/ocr-benchmark.js",
     "postinstall": "npm run setup && npm run copy-tesseract-assets && npm run download-tessdata",
     "test": "node src/scripts/run-test-group.js",
     "test:parallel": "node src/scripts/run-test-group.js --parallel tests/*.test.js",
