@@ -2,7 +2,7 @@
 
 // Server OCR queue + processing against a real, disposable, LOCAL MongoDB.
 //
-//   docker run -d --name hellorun-ocr-test-mongo -p 127.0.0.1:27018:27017 --tmpfs /data/db mongo:7.0
+//   docker run -d --name hellorun-ocr-test-mongo --ulimit nofile=64000:64000 -p 127.0.0.1:27018:27017 --tmpfs /data/db mongo:7.0
 //   OCR_TEST_MONGODB_URI=mongodb://127.0.0.1:27018/hellorun_ocr_test MONGODB_URI= DATABASE_URL= REDIS_URL= \
 //     node src/scripts/run-test-group.js tests/ocr-server-pipeline.integration.test.js
 //

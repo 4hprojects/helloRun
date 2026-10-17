@@ -139,6 +139,32 @@
   box-sizing: border-box;
 }
 
+.ocr-form-row input[type="checkbox"],
+.ocr-form-row input[type="radio"] {
+  width: auto;
+  min-height: 0;
+}
+
+.ocr-form-row label:has(> input[type="checkbox"]) {
+  display: flex;
+  gap: var(--hr-space-2);
+  align-items: center;
+  font-weight: 500;
+}
+
+/* Fieldsets default to min-width: min-content, which pushes wide grids past the viewport. */
+fieldset.ocr-panel {
+  min-width: 0;
+}
+
+fieldset.ocr-panel > legend {
+  padding: 0 var(--hr-space-1);
+}
+
+fieldset.ocr-panel > legend h2 {
+  margin: 0;
+}
+
 .ocr-help {
   margin: var(--hr-space-1) 0 0;
   color: var(--hr-color-subtle);

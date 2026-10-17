@@ -27,7 +27,14 @@ const RUN_EVIDENCE_FIELDS = [
   'validation',
   'suspiciousFlag',
   'suspiciousFlagReason',
-  'isPersonalRecord'
+  'isPersonalRecord',
+  // Platform-aware OCR (docs/improvement-plan/ocr-platform-aware): the server reading that
+  // auto-approval relies on, the optional link and its check, and duplicate review signals.
+  // Absent fields are simply not copied, so older entries record exactly as before.
+  'serverOcr',
+  'activityUrl',
+  'activityUrlVerification',
+  'duplicateSignals'
 ];
 
 // No paymentStatus: decisions are recorded after the update, and statusFrom already holds it.

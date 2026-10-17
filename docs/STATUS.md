@@ -263,9 +263,12 @@ Open themes include:
   runtime verification;
 - request-path and asset efficiency work that depends on measurement;
 - server-spawning test open-handle investigation;
-- platform-aware OCR and training plan: Phase 0 assessment and DB-free
-  benchmark harness complete on `feature/platform-aware-ocr-training`; no
-  feature code yet and no measured accuracy (0 consented labeled samples). See
+- platform-aware OCR, activity verification and training: Phases 0–6
+  implemented and repository-verified on `feature/platform-aware-ocr-training`
+  (not merged, not deployed; every feature flag defaults off). No accuracy has
+  been measured on real screenshots (0 consented labelled samples), no real
+  Tesseract training run has happened (tools not installed; host change needs
+  approval), and rollback has not been rehearsed in staging (none exists). See
   [`improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md`](improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md);
 - residual event-promotion delivery/unsubscribe refinements listed in
   [`improvement-plan/event-promotion-follow-ups.md`](improvement-plan/event-promotion-follow-ups.md).

@@ -177,7 +177,14 @@ async function runOcrPipeline(buffer, options = {}) {
       score: scoreParsed(parsed),
       elapsedMs: now() - passStarted
     });
-    if (parsed.distance && parsed.time && parsed.date) break;
+    // Stop early to protect the shared host: everything found, or the two core fields found
+    // by two passes (a third pass rarely adds anything but the date).
+    const found = passResults.reduce((acc, pass) => ({
+      distance: acc.distance || Boolean(pass.parsed.distance),
+      time: acc.time || Boolean(pass.parsed.time),
+      date: acc.date || Boolean(pass.parsed.date)
+    }), { distance: false, time: false, date: false });
+    if (found.distance && found.time && (found.date || passResults.length >= 2)) break;
   }
 
   if (!passResults.length) {

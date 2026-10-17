@@ -1,5 +1,27 @@
 # HelloRun Changelog — October 2026
 
+## October 17–18 — Platform-aware OCR, activity verification and training (feature branch)
+
+Implemented on `feature/platform-aware-ocr-training`, not merged or deployed. Every feature
+flag defaults off; with them off, behaviour is unchanged. Details and evidence:
+`docs/improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md`.
+
+- **Server OCR** re-reads stored run proofs in a background worker (`OCR_SERVER_PIPELINE_ENABLED`)
+  with evidence-based Strava/COROS/Garmin detection and a generic fallback. With
+  `OCR_SERVER_AUTO_APPROVAL_ENABLED`, auto-approval no longer trusts OCR values posted by the
+  browser.
+- **Optional activity link** (`ACTIVITY_URL_ENABLED`), parsed without any network request;
+  reviewer link checks; duplicate-activity and near-duplicate-screenshot review flags.
+- **Ground truth**: unchecked opt-in consent, private line crops, literal-transcription review,
+  immutable dataset snapshots with leak-free splits, tesstrain export.
+- **Manual training** in a separate, resource-limited worker; held-out evaluation with per-platform
+  gates; full-admin approve, activate (checksum-verified, compare-and-set) and rollback.
+- **Admin reminders**, analytics and a privacy-minimised research export.
+- `ReviewDecision` evidence snapshots now include the server OCR reading, activity link and
+  duplicate signals when present.
+- Coverage: OCR unit tests, six local-MongoDB integration suites (39 tests) and an end-to-end
+  boot test, all run through the repository DB guard.
+
 ## October 17 — Platform-aware OCR plan: Phase 0 assessment
 
 - The approved OCR, activity-verification and training plan moved to

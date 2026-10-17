@@ -1,7 +1,7 @@
 # Platform-Aware OCR — Implementation Progress
 
 **Branch:** `feature/platform-aware-ocr-training` (from `review-decision-history` @ 1753047)
-**Last updated:** October 17, 2026
+**Last updated:** October 18, 2026
 **Delivery status owner:** [../../STATUS.md](../../STATUS.md). This file records phase reports and evidence.
 
 States: NOT STARTED · IN PROGRESS · COMPLETED · BLOCKED. "Completed" means implemented and tested
@@ -15,8 +15,8 @@ separately as BLOCKED and are not counted as passed.
 | 2 Optional activity URL | COMPLETED | 6e37c6f | `authorized_api` verification (no provider API access) |
 | 3 Reviewer corrections and datasets | COMPLETED | 2854d93 | Real samples need consent wording published + consented screenshots |
 | 4 Manual training and model registry | COMPLETED | cc710ad | Real tesstrain run on the Ubuntu host; staging rollback rehearsal |
-| 5 Reminders, analytics, exports | COMPLETED | see Phase 5 report | Weekly digest day/hour must be chosen by the owner |
-| 6 QA and production readiness | NOT STARTED | | |
+| 5 Reminders, analytics, exports | COMPLETED | fe7bbd2 | Weekly digest day/hour must be chosen by the owner |
+| 6 QA and production readiness | COMPLETED | see git log | Staging rehearsal (no staging tier); real-screenshot accuracy; owner sign-off |
 
 ## Resume checkpoint
 
@@ -27,7 +27,7 @@ Test commands used on this branch:
 export PATH=$HOME/.nvm/versions/node/v22.23.1/bin:$PATH        # Node 22 (the default v20 is too old)
 node src/scripts/run-test-group.js --parallel tests/*.unit.test.js   # DB-free
 # Local, disposable MongoDB for OCR integration tests (never the .env databases):
-docker run -d --name hellorun-ocr-test-mongo -p 127.0.0.1:27018:27017 --tmpfs /data/db mongo:7.0
+docker run -d --name hellorun-ocr-test-mongo --ulimit nofile=64000:64000 -p 127.0.0.1:27018:27017 --tmpfs /data/db mongo:7.0
 MONGODB_URI=mongodb://127.0.0.1:27018/hellorun_ocr_guard DATABASE_URL= REDIS_URL= RESEND_API_KEY= \
   R2_BUCKET= R2_ACCESS_KEY_ID= R2_SECRET_ACCESS_KEY= R2_ENDPOINT= CLOUDFLARE_ACCOUNT_ID= R2_PUBLIC_BASE_URL= \
   OCR_TEST_MONGODB_URI=mongodb://127.0.0.1:27018/hellorun_ocr_test \
@@ -450,4 +450,74 @@ TESTS RUN: tests/ocr-notifications.unit.test.js 11/11 (schedule, DST in America/
   per recipient, retry/backoff to the limit, budget wait, suppression, digest actionability + once per
   period across restart, analytics values and an identifier-free export).
 ```
+
+---
+
+## Phase 6 report — QA, security validation, production readiness
+
+```text
+PHASE: 6 — Quality assurance, security validation, production readiness
+STATE: COMPLETED for everything the repository and a local machine can verify. Not verifiable here:
+  staging rehearsal of migration/flags/rollback (no staging tier exists), accuracy on real
+  screenshots (none consented yet), production resource use (measured on the dev box only).
+WORK DONE:
+  - Full regression: final sequential unit run 2458/2459 on the finished code; the one failure was
+    my own Phase 2 source-assertion made stale by Phase 3 (payload property order). Fixed; all OCR
+    unit files 172/172; full rerun after the fix: 2459/2459 (Node 22.23.1, sequential).
+  - Integration: all six OCR suites, 39/39, on a disposable local MongoDB through the repo DB guard.
+  - End to end (tests/ocr-admin-e2e.integration.test.js): boots the real app with every OCR flag on
+    and all external services blanked; /healthz and /readyz 200; anonymous → login; runner 403 on
+    every OCR admin route; support admin can read all eight pages but gets 403 on settings, rollback
+    and research export and sees no deploy controls; full admin: all pages 200, missing CSRF → 403,
+    settings saved and invalid timezone rejected, profile enable requires a note and is audited, a
+    real Test OCR upload through Multer + engine returns the reading (≈4.9 s), a GIF is refused.
+  - Security regression suite (tests/ocr-security-regression.unit.test.js): flags default off; OCR
+    evidence preserved in ReviewDecision snapshots; no OCR text/crops/tokens in logs; no outbound
+    HTTP or shell in OCR modules; all 14 mutating admin routes behind admin + CSRF, deploy/settings/
+    export behind the full tier (route count pinned); organiser/runner routes CSRF + scoped; admin
+    redirects confined; new views escape output; no OCR data in the Supabase shadow; trainer never
+    reachable from a request.
+  - Fix found by review: ReviewDecision evidence snapshots now include serverOcr, activityUrl,
+    activityUrlVerification and duplicateSignals, so an auto-approval records the server reading it
+    relied on (absent fields are not copied; older entries record exactly as before).
+  - Resource: real engine measured on synthetic 1080×2400 cards: 3.3–5.5 s wall, 3.4–7.6 s CPU,
+    peak RSS ≈ 350 MB per process. Added an early stop (distance + time found by two passes), which
+    cut per-proof time by about a third (previously 5.0–7.3 s, always three passes).
+  - Responsive/accessibility (headless Chromium, 375×812): all eight admin pages render with no
+    horizontal overflow, no unlabelled inputs/selects, no console errors. Fixed a settings-page
+    overflow (fieldset min-width) and oversized checkboxes found this way.
+  - Test environment note: the disposable MongoDB needs `--ulimit nofile=64000:64000`; without it
+    WiredTiger aborted with EMFILE when all suites ran together (documented in the commands).
+  - Deployment, staged rollout, rollback, training-host setup and monitoring:
+    DEPLOYMENT-AND-ROLLBACK.md.
+```
+
+## Final acceptance checklist (doc 09)
+
+| Item | State | Evidence / blocker |
+|---|---|---|
+| Phase 0 source audit complete, assumptions reconciled | COMPLETED | Phase 0 report |
+| Existing submissions regression tested | COMPLETED | Full unit suite; flags-off integration test; review-decision and auto-approval suites |
+| Platform-aware profiles and generic fallback validated | BLOCKED (partly) | Logic tested on text and synthetic images; validation on consented, labelled real screenshots pending |
+| Optional activity URL validated safely without arbitrary network fetches | COMPLETED | 26 SSRF/spoofing cases; no network code in URL modules |
+| Reviewer verification and activity corrections audited | COMPLETED | ReviewDecision (now with OCR evidence), ActivityUrlVerification, OcrAuditEvent |
+| Ground truth samples correctly paired, dataset splits leak-free | COMPLETED | Export checksum verification; group split tests |
+| Training worker and resource guardrails proven | COMPLETED (stand-in) / BLOCKED (real) | Process-group kill, timeout, cancel, limits argv tested; no real tesstrain run (tools not installed; host change needs approval) |
+| Candidate metrics measured on holdout; per-platform comparison reviewed | BLOCKED | Mechanism tested with injected recognisers; no real candidate exists |
+| Model activation and rollback proven in staging | BLOCKED | Proven on local MongoDB; no staging tier |
+| Admin email reminders opt-in/preferences, dedupe and failures tested | COMPLETED | Notification unit + integration suites |
+| Security, privacy, RBAC and data retention tested | COMPLETED | Security regression suite, e2e RBAC/CSRF, retention tests |
+| Research reports reproducible and privacy-minimised | COMPLETED | Identifier-free export test; metric rules versioned |
+| Owner grants separate authorization for merge/deployment | NOT STARTED | Awaiting owner review |
+
+## Owner actions before production use
+
+1. Review the branch (`feature/platform-aware-ocr-training`, based on `review-decision-history`).
+2. Supply consented Strava/COROS/Garmin screenshots; run the benchmark (conditions A and B); set
+   dataset and gate thresholds; approve them in Settings.
+3. Publish privacy-policy wording for the training opt-in before enabling the prompt.
+4. Approve (or not) installing Tesseract training tools on the Ubuntu host.
+5. Choose the weekly digest day and hour.
+6. Untrack `docs/image_test/` (13 real user screenshots in git) if desired.
+7. Approve merge, then deploy and roll out by flags (DEPLOYMENT-AND-ROLLBACK.md §4).
 

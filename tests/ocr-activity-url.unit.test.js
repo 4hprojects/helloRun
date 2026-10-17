@@ -196,7 +196,7 @@ test('submission controller validates the link before uploading the proof', () =
   assert.ok(evidenceAt > 0);
   assert.ok(evidenceAt < controller.indexOf('uploadService.uploadResultProofToR2'));
   assert.match(controller, /fieldErrors: \{ activityUrl:/);
-  assert.match(controller, /honorSystemConfirmed,\s*activityEvidence\s*\};/);
+  assert.match(controller, /honorSystemConfirmed,\s*activityEvidence[,\s]/);
 });
 
 test('a screenshot/link provider disagreement keeps an entry on review', async () => {

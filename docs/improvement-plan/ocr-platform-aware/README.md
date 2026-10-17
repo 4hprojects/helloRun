@@ -1,6 +1,6 @@
 # HelloRun Platform-Aware OCR and Activity Verification
 
-Status: APPROVED FUNCTIONAL PLAN. Phase 0 complete; feature implementation not started. Progress: [IMPLEMENTATION-PROGRESS.md](IMPLEMENTATION-PROGRESS.md)  
+Status: APPROVED FUNCTIONAL PLAN. Phases 0–6 implemented on `feature/platform-aware-ocr-training`, not merged or deployed; data-dependent gates open. Progress: [IMPLEMENTATION-PROGRESS.md](IMPLEMENTATION-PROGRESS.md) · Deploy: [DEPLOYMENT-AND-ROLLBACK.md](DEPLOYMENT-AND-ROLLBACK.md)  
 Plan version: 1.0  
 Approved: 2026-10-17  
 Audience: Claude Code, maintainers, reviewers, and research stakeholders
