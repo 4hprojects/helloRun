@@ -153,3 +153,15 @@ test('settings page disables editing for support admins and lists delivery histo
   assert.match(full, /Save settings/);
   assert.match(full, /ocr-pill-sent/);
 });
+
+test('the digest defaults to the owner-chosen Friday 16:00 Asia/Manila', () => {
+  const OcrSettings = require('../src/models/OcrSettings');
+  const defaults = new OcrSettings().notifications.toObject();
+  assert.equal(defaults.dayOfWeek, 5);
+  assert.equal(defaults.hour, 16);
+  assert.equal(defaults.timezone, 'Asia/Manila');
+  assert.equal(defaults.enabled, false, 'still off until an admin enables reminders');
+  // Friday 2026-10-23 16:00 Manila = 08:00 UTC.
+  assert.equal(getDigestSchedule(new Date('2026-10-23T07:59:00Z'), defaults).due, false);
+  assert.equal(getDigestSchedule(new Date('2026-10-23T08:00:00Z'), defaults).due, true);
+});

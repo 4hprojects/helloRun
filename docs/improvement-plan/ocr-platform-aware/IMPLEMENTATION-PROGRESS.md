@@ -15,7 +15,7 @@ separately as BLOCKED and are not counted as passed.
 | 2 Optional activity URL | COMPLETED | 6e37c6f | `authorized_api` verification (no provider API access) |
 | 3 Reviewer corrections and datasets | COMPLETED | 2854d93 | Real samples need consent wording published + consented screenshots |
 | 4 Manual training and model registry | COMPLETED | cc710ad | Real tesstrain run on the Ubuntu host; staging rollback rehearsal |
-| 5 Reminders, analytics, exports | COMPLETED | fe7bbd2 | Weekly digest day/hour must be chosen by the owner |
+| 5 Reminders, analytics, exports | COMPLETED | fe7bbd2 | — (digest set to Friday 16:00 by owner) |
 | 6 QA and production readiness | COMPLETED | see git log | Staging rehearsal (no staging tier); real-screenshot accuracy; owner sign-off |
 
 ## Resume checkpoint
@@ -522,7 +522,7 @@ WORK DONE:
    `npm run data-usage:prepare-draft` (these write drafts to the database in `.env`), then review
    and publish from the admin policy pages.
 4. Approve (or not) installing Tesseract training tools on the Ubuntu host.
-5. Choose the weekly digest day and hour.
+5. ~~Choose the weekly digest day and hour~~ — done: Friday 16:00 Asia/Manila (2026-10-18).
 6. Untrack `docs/image_test/` (13 real user screenshots in git) if desired.
 7. Approve merge, then deploy and roll out by flags (DEPLOYMENT-AND-ROLLBACK.md §4).
 

@@ -34,8 +34,9 @@ const ocrSettingsSchema = new mongoose.Schema(
     notifications: {
       enabled: { type: Boolean, default: false },
       frequency: { type: String, enum: ['off', 'weekly', 'biweekly', 'monthly'], default: 'weekly' },
-      dayOfWeek: { type: Number, default: null, min: 0, max: 6 },
-      hour: { type: Number, default: null, min: 0, max: 23 },
+      // Owner choice (2026-10-18): Friday 16:00 in the timezone below. Admins can change it.
+      dayOfWeek: { type: Number, default: 5, min: 0, max: 6 },
+      hour: { type: Number, default: 16, min: 0, max: 23 },
       timezone: { type: String, default: 'Asia/Manila', maxlength: 60 },
       minimumNewSamples: { type: Number, default: 100, min: 1 },
       recipientMode: { type: String, enum: ['all_admins', 'selected'], default: 'all_admins' },

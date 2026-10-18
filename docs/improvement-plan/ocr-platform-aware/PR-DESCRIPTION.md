@@ -57,7 +57,7 @@ destructive. Old code ignores the new data, so reverting is safe.
 - No real tesstrain run: tools are not installed; installing them on the production host needs approval.
 - No staging rehearsal: there is no staging tier.
 - Privacy-policy wording for the training opt-in must be published before enabling that flag.
-- The weekly digest day and hour must be chosen by the owner.
+- The weekly digest defaults to Friday 16:00 Asia/Manila (owner choice); admins can change it.
 
 ## Rollout and rollback
 
