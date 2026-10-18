@@ -515,8 +515,11 @@ WORK DONE:
 ## Owner actions before production use
 
 1. Review the branch (`feature/platform-aware-ocr-training`, based on `review-decision-history`).
-2. Supply consented Strava/COROS/Garmin screenshots; run the benchmark (conditions A and B); set
-   dataset and gate thresholds; approve them in Settings.
+2. After deploying with flags off, run your own Strava/COROS/Garmin screenshots through
+   *Platforms › Test OCR* in the live admin and report misreads; then set dataset and gate
+   thresholds and approve them in Settings. (Decision 2026-10-18: no local folder; existing
+   database entries are not used, because their runners did not consent. Training data comes only
+   from new opted-in submissions.)
 3. Review and publish the privacy wording for the training opt-in before enabling the prompt. The
    draft text is in `docs/policy-markdown-pack/privacy-policy.md` (§2.4, §2.5, new §2.5.1, §3, §6, §9)
    and `data-usage-policy.md` (§7 and retention). It needs legal review; it was written to match

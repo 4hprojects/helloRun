@@ -79,10 +79,15 @@ Each step is reversible by turning its flag off and restarting (`pm2 restart hel
 
 1. **Deploy code, all flags off.** Smoke check: `/healthz`, `/readyz`, a runner proof submission, an
    organiser approval, `/admin/ocr-training` loads for a full admin.
-2. **Collect consented screenshots** (the owner's own Strava/COROS/Garmin activities) and add them
-   through *Samples › Add your own screenshot* or the local benchmark. Run
-   `npm run ocr:benchmark -- --condition A` and `--condition B` locally to get the first real
-   baseline. Set dataset and gate thresholds in *Settings* from those numbers.
+2. **Baseline with the owner's own screenshots, in the live admin** (decision 2026-10-18): open
+   *Platforms › Test OCR* and upload each of your own Strava/COROS/Garmin screenshots (plus one or
+   two from other apps). Test OCR needs no flag and stores nothing except an audit row. Note which
+   ones were misread (platform or values) so the profiles/parser can be fixed with regression tests.
+   Optionally add them through *Samples › Add your own screenshot* (basis "My own activity") so
+   their line crops become the first approved ground truth. The local benchmark
+   (`npm run ocr:benchmark`) remains available but is not required.
+   Existing database entries are **not** used for evaluation or training: their runners did not
+   consent to that use. Training data comes only from new submissions whose runner opted in.
 3. **`OCR_SERVER_PIPELINE_ENABLED=true`** (auto-approval still off). Watch *Overview* and
    *Analytics* for failures, latency and server-vs-entry disagreement for a week. Reviewers now see
    the server reading. Enable profiles only after their regression check (*Platforms*).
