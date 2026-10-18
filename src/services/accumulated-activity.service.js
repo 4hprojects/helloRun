@@ -6,7 +6,9 @@ const User = require('../models/User');
 const communicationService = require('./communication.service');
 const { notifyWithRetry } = require('./reliable-communication.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
-const { resolveRejectionReason } = require('../utils/rejection-reasons');
+const { recordReviewDecisionInBackground } = require('./review-decision.service');
+const { applyLinkedReview } = require('./linked-entry-review.service');
+const { resolveRejectionReason, formatRejectionAuditNote } = require('../utils/rejection-reasons');
 const { validateReviewChecklist } = require('../utils/run-proof-review');
 const { resolveEventAccess } = require('./event-access.service');
 const { isManualSubmissionReview } = require('../utils/submission-review-mode');
@@ -77,7 +79,10 @@ async function reviewAccumulatedActivitySubmission({
   rejectionCode,
   checklistVersion,
   verifiedCriteria,
-  requireVerification = false
+  requireVerification = false,
+  // Set only by linked-entry-review.service when this activity follows a decision made on
+  // an entry submitted together with it. See applyLinkedReview.
+  linkedFrom = null
 }) {
   const safeAction = String(action || '').trim().toLowerCase();
   if (safeAction !== 'approve' && safeAction !== 'reject' && safeAction !== 'clarify') {
@@ -106,7 +111,9 @@ async function reviewAccumulatedActivitySubmission({
   if (!event || !isAccumulatedChallenge(event)) {
     throw new Error('Activity submission not found or inaccessible.');
   }
-  if (!isAdminReviewer && !await resolveEventAccess({ eventId: event._id, userId: organizerId, userRole: normalizedReviewerRole })) {
+  // A linked entry may belong to another organiser's event. The reviewer's access was checked
+  // on the source entry, and the decision is recorded against this one with linkedFrom.
+  if (!isAdminReviewer && !linkedFrom && !await resolveEventAccess({ eventId: event._id, userId: organizerId, userRole: normalizedReviewerRole })) {
     throw new Error('Activity submission not found or inaccessible.');
   }
   // Organisers and co-organisers may join events they manage, so a reviewer can be the
@@ -130,7 +137,8 @@ async function reviewAccumulatedActivitySubmission({
   };
 
   if (safeAction === 'approve') {
-    if (requireVerification) {
+    // The checklist was confirmed on the source entry of a linked decision.
+    if (requireVerification && !linkedFrom) {
       const checklist = validateReviewChecklist({
         event,
         submission: activity,
@@ -183,9 +191,29 @@ async function reviewAccumulatedActivitySubmission({
     statusFrom: previousStatus,
     statusTo: reviewedActivity.status,
     notes: safeAction === 'reject'
-      ? (reviewedActivity.rejectionReason || reviewedActivity.reviewNotes)
+      ? formatRejectionAuditNote(reviewedActivity)
       : reviewedActivity.reviewNotes,
     occurredAt: reviewedActivity.reviewedAt
+  });
+  // Snapshot the pre-update document: approval clears the suspicion flag, and that flag is
+  // part of what the reviewer decided on.
+  const decisionByAction = { approve: 'approved', reject: 'rejected', clarify: 'needs_clarification' };
+  recordReviewDecisionInBackground({
+    kind: 'accumulated_activity',
+    entry: activity,
+    event,
+    decision: isApprovalReversal ? 'approval_reversed' : decisionByAction[safeAction],
+    statusFrom: previousStatus,
+    statusTo: reviewedActivity.status,
+    decidedBy: organizerId,
+    reviewerRole: normalizedReviewerRole,
+    isSelfReview,
+    decidedAt: reviewedActivity.reviewedAt,
+    rejectionCode: reviewedActivity.rejectionCode,
+    rejectionReason: reviewedActivity.rejectionReason,
+    reviewNotes: reviewedActivity.reviewNotes,
+    manualReviewChecklist: reviewedActivity.manualReviewChecklist,
+    linkedFrom
   });
 
   if (isSelfReview) {
@@ -231,6 +259,22 @@ async function reviewAccumulatedActivitySubmission({
     action: isApprovalReversal ? 'reverse' : safeAction,
     certificateWasIssued: false
   });
+
+  // Clarification is a conversation with the runner about this activity, and a reversal is
+  // its own audited capability, so neither applies to linked entries.
+  if (!linkedFrom && !isApprovalReversal && safeAction !== 'clarify') {
+    reviewedActivity.$locals.linkedReview = await applyLinkedReview({
+      sourceEntry: reviewedActivity,
+      sourceKind: 'accumulated_activity',
+      sourceEvent: event,
+      action: safeAction,
+      organizerId,
+      reviewerRole: normalizedReviewerRole,
+      reviewNotes: safeReviewNotes,
+      rejectionCode,
+      rejectionReason
+    });
+  }
 
   return reviewedActivity;
 }
@@ -453,6 +497,16 @@ async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
     statusTo: 'approved',
     notes: autoApprovalReviewNote,
     occurredAt: activity.reviewedAt
+  });
+  recordReviewDecisionInBackground({
+    kind: 'accumulated_activity',
+    entry: activity,
+    event: eventDoc,
+    decision: 'auto_approved',
+    statusFrom: 'submitted',
+    statusTo: 'approved',
+    decidedAt: activity.reviewedAt,
+    reviewNotes: autoApprovalReviewNote
   });
 
   refreshAccumulatedChallengeProgress(activity.registrationId, {

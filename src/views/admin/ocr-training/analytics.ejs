@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/admin-ocr.css">
+</head>
+<body>
+  <%- include('../../layouts/nav') %>
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <%- include('_header') %>
+      <% const fmt = (rateValue) => (typeof rateValue === 'number' ? `${(rateValue * 100).toFixed(1)}%` : 'N/A'); %>
+
+      <form method="GET" action="/admin/ocr-training/analytics" class="ocr-form-row" aria-label="Analytics window">
+        <label>Window
+          <select name="days">
+            <% windows.forEach((days) => { %><option value="<%= days %>" <%= analytics.windowDays === days ? 'selected' : '' %>>Last <%= days %> days</option><% }) %>
+          </select>
+        </label>
+        <button type="submit" class="btn btn-secondary">Show</button>
+        <% if (canExport) { %>
+          <a class="btn btn-secondary" href="/admin/ocr-training/analytics/research-export.csv?days=<%= analytics.windowDays %>">Research export (CSV, aggregates only)</a>
+        <% } %>
+      </form>
+      <p class="ocr-help">Measured from stored records since <%= formatDateTime(analytics.since) %>. "N/A" means nothing was measured. Platform detection is shown as a distribution; labelled detection accuracy comes from the benchmark (<code>npm run ocr:benchmark</code>). Metric rules <%= analytics.metricRulesVersion %>.</p>
+
+      <section class="ocr-panel" aria-labelledby="an-extraction">
+        <h2 id="an-extraction">Server extraction by detected platform</h2>
+        <% if (!analytics.extraction.length) { %><p class="ocr-empty">No server extractions in this window.</p><% } else { %>
+          <div class="admin-users-table-wrap"><table class="admin-table ocr-table">
+            <thead><tr><th>Platform</th><th>Readings</th><th>Complete</th><th>Failed</th><th>Confirmed / uncertain / unknown</th><th>Latency median</th><th>p95</th></tr></thead>
+            <tbody><% analytics.extraction.forEach((row) => { %>
+              <tr><td><%= row.platform %></td><td><%= row.total %></td><td><%= fmt(row.completeRate) %></td><td><%= fmt(row.failedRate) %></td><td><%= row.confirmed %> / <%= row.uncertain %> / <%= row.unknown %></td><td><%= row.latencyMedianMs === 'N/A' ? 'N/A' : `${row.latencyMedianMs} ms` %></td><td><%= row.latencyP95Ms === 'N/A' ? 'N/A' : `${row.latencyP95Ms} ms` %></td></tr>
+            <% }) %></tbody>
+          </table></div>
+        <% } %>
+      </section>
+
+      <section class="ocr-panel" aria-labelledby="an-review">
+        <h2 id="an-review">Agreement with entries and reviewer effort</h2>
+        <% if (!analytics.entries.length) { %><p class="ocr-empty">No entries with a server reading in this window.</p><% } else { %>
+          <div class="admin-users-table-wrap"><table class="admin-table ocr-table">
+            <thead><tr><th>Platform</th><th>Readings</th><th>Disagree with entry</th><th>Reviewed by a person</th><th>Corrected</th><th>Auto-approved</th><th>Review time median</th><th>p95</th></tr></thead>
+            <tbody><% analytics.entries.forEach((row) => { %>
+              <tr><td><%= row.platform %></td><td><%= row.readings %></td><td><%= fmt(row.disagreementRate) %></td><td><%= row.reviewedManually %></td><td><%= fmt(row.correctionRate) %></td><td><%= row.autoApproved %></td><td><%= row.reviewMinutesMedian === 'N/A' ? 'N/A' : `${row.reviewMinutesMedian} min` %></td><td><%= row.reviewMinutesP95 === 'N/A' ? 'N/A' : `${row.reviewMinutesP95} min` %></td></tr>
+            <% }) %></tbody>
+          </table></div>
+        <% } %>
+      </section>
+
+      <section class="ocr-panel" aria-labelledby="an-gt">
+        <h2 id="an-gt">Accuracy on reviewed ground truth</h2>
+        <p class="ocr-help">Engine reading vs the approved literal transcription of each reviewed line.</p>
+        <% if (!analytics.groundTruth.length) { %><p class="ocr-empty">No approved samples in this window, so no accuracy is reported.</p><% } else { %>
+          <div class="admin-users-table-wrap"><table class="admin-table ocr-table">
+            <thead><tr><th>Platform</th><th>Field</th><th>Lines</th><th>CER</th><th>Exact lines</th></tr></thead>
+            <tbody><% analytics.groundTruth.forEach((row) => { %>
+              <tr><td><%= row.platform %></td><td><%= row.fieldKey %></td><td><%= row.lines %></td><td><%= row.cer %></td><td><%= fmt(row.exactLineAccuracy) %></td></tr>
+            <% }) %></tbody>
+          </table></div>
+        <% } %>
+      </section>
+
+      <div class="ocr-panel-grid">
+        <section class="ocr-panel" aria-labelledby="an-jobs">
+          <h2 id="an-jobs">Extraction jobs</h2>
+          <p><% Object.entries(analytics.jobs.extractionByStatus).forEach(([status, count], index) => { %><%= index ? ' · ' : '' %><%= status %> <%= count %><% }) %><% if (!Object.keys(analytics.jobs.extractionByStatus).length) { %>None<% } %></p>
+          <% if (analytics.jobs.extractionFailures.length) { %><ul><% analytics.jobs.extractionFailures.forEach((row) => { %><li><%= row.errorCode %>: <%= row.count %></li><% }) %></ul><% } %>
+        </section>
+        <section class="ocr-panel" aria-labelledby="an-training">
+          <h2 id="an-training">Training history</h2>
+          <% if (!analytics.jobs.training.length) { %><p class="ocr-empty">No training jobs in this window.</p><% } else { %>
+            <ul><% analytics.jobs.training.forEach((job) => { %><li><%= formatDateTime(job.createdAt) %> · <span class="ocr-pill ocr-pill-<%= job.status %>"><%= job.status %></span><% if (job.resources?.durationSeconds) { %> · <%= job.resources.durationSeconds %>s<% } %><% if (job.resources?.peakRssMb) { %> · peak <%= job.resources.peakRssMb %> MB<% } %><% if (job.errorCode) { %> · <%= job.errorCode %><% } %></li><% }) %></ul>
+          <% } %>
+        </section>
+      </div>
+
+      <section class="ocr-panel" aria-labelledby="an-models">
+        <h2 id="an-models">Held-out evaluations</h2>
+        <% if (!analytics.models.length) { %><p class="ocr-empty">No evaluated models.</p><% } else { %>
+          <ul><% analytics.models.forEach((model) => { %><li><%= model.label %> (<%= model.status %>) · <%= model.evaluation.testSampleCount %> lines · CER <%= model.evaluation.overall?.candidate?.cer %> vs baseline <%= model.evaluation.overall?.baseline?.cer %></li><% }) %></ul>
+        <% } %>
+      </section>
+    </section>
+  </main>
+  <%- include('../../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

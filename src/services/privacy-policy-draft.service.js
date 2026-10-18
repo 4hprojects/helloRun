@@ -11,7 +11,7 @@ const PRIVACY_POLICY_SLUG = 'privacy-policy';
 const PRIVACY_POLICY_SOURCE = path.resolve(__dirname, '../../docs/policy-markdown-pack/privacy-policy.md');
 const PRIVACY_POLICY_LEGACY_SOURCE = path.resolve(__dirname, '../../docs/contents/Privacy Policy.md');
 const BASELINE_EFFECTIVE_DATE = new Date('2026-05-23T00:00:00+08:00');
-const SUMMARY = 'Clarifies privacy rights, public and private data boundaries, organizer access, assisted review, retention, community evidence, provider processing, advertising controls, and current request pathways.';
+const SUMMARY = 'Clarifies privacy rights, public and private data boundaries, organizer access, assisted review, retention, community evidence, provider processing, advertising controls, and current request pathways. Adds server screenshot reading, optional activity links, duplicate checks, and the optional, consent-based screenshot-reading improvement program.';
 const ALLOWED_TAGS = ['h1', 'h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'a', 'code', 'pre', 'hr'];
 
 function normalizeMarkdown(value) { return String(value || '').replace(/\r\n/g, '\n').trim(); }

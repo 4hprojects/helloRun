@@ -37,8 +37,9 @@ core platform:
 - revocable bib QR codes, withdrawn on cancellation and bib reassignment, with
   scanning distinguishing withdrawn from unrecognised and unreadable;
 - guest registration without an account, with hashed manage/claim links, plus
-  organiser walk-in registration at the check-in desk — repaired and verified end
-  to end on August 8 — and bulk registrant import
+  organiser walk-in registration at the check-in desk — repaired August 8 and
+  verified from its own form in a browser on August 9, which is the check that
+  found the defect in the first place — and bulk registrant import
   from a CSV or XLSX — all three sharing one guest path, so a person with no
   HelloRun account can be entered by any route and later claim the entry with a
   verified email;
@@ -60,7 +61,9 @@ core platform:
   person without touching any payment;
 - per-size race-kit stock, added August 8 — sizes chosen at registration by every
   route, atomic claim at the kit table, substitution recorded, and stock returned
-  when a registration is cancelled;
+  when a registration is cancelled; releasing a kit no longer blanks the
+  registration's Postgres shadow row, which had been removing the runner's bib and
+  check-in from the race-day console (fixed August 10);
 - a waitlist for full categories, added August 8 — joining, organiser-managed and
   automatic promotion, offers that hold a real slot and expire, and a worker that
   passes a lapsed slot to the next person in line;
@@ -134,6 +137,15 @@ production services.
 
 ## Implemented, Production or Live Verification Pending
 
+- Review decision history is repository-complete (October 15): an append-only
+  `ReviewDecision` collection records every run-proof, accumulated-activity and
+  payment-proof decision with its evidence snapshot, and run-proof `rejectionCode` /
+  `manualReviewChecklist` are now actually persisted. Not deployed; verified only by
+  DB-free unit tests. Decisions made before deployment have no history rows.
+- Linked-entry review is repository-complete (October 15): a manual approve or reject on
+  one entry of a multi-event submission applies to every linked entry still awaiting
+  review, across organisers and accumulated challenges, and is recorded with
+  `ReviewDecision.linkedFrom`. Not deployed; verified only by DB-free unit tests.
 - The private Strava viewer launch implementation is repository-complete behind
   `STRAVA_PRIVATE_VIEWER_ENABLED=false`: owner-only on-demand activity viewing,
   production readiness checks, explicit consent copy, official connection branding,
@@ -163,6 +175,12 @@ production services.
   - Registration, payment-proof and run-proof POSTs still reach the network.
   Remaining navigation and responsive work is tracked in
   [`improvement-plan/ui-pwa-follow-ups.md`](improvement-plan/ui-pwa-follow-ups.md).
+
+The organiser race-day chain — walk-in, bib, check-in, kit release, result
+record and approve, and cancellation — was walked through its own interfaces on
+August 9 and is no longer on this list. It was checked against a **local server
+on the current commit**, not against production, and not on a phone; both of
+those remain open below.
 
 - Validate runner, organiser, and administrator workflows on deployed phone,
   tablet, and desktop layouts, including weak-connectivity onsite behavior.
@@ -245,6 +263,13 @@ Open themes include:
   runtime verification;
 - request-path and asset efficiency work that depends on measurement;
 - server-spawning test open-handle investigation;
+- platform-aware OCR, activity verification and training: Phases 0–6
+  implemented and repository-verified on `feature/platform-aware-ocr-training`
+  (not merged, not deployed; every feature flag defaults off). No accuracy has
+  been measured on real screenshots (0 consented labelled samples), no real
+  Tesseract training run has happened (tools not installed; host change needs
+  approval), and rollback has not been rehearsed in staging (none exists). See
+  [`improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md`](improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md);
 - residual event-promotion delivery/unsubscribe refinements listed in
   [`improvement-plan/event-promotion-follow-ups.md`](improvement-plan/event-promotion-follow-ups.md).
 

@@ -5,6 +5,7 @@ const Event = require('../models/Event');
 const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
+const ReviewDecision = require('../models/ReviewDecision');
 const SubmissionIdempotencyKey = require('../models/SubmissionIdempotencyKey');
 const OrganiserApplication = require('../models/OrganiserApplication');
 const StravaConnection = require('../models/StravaConnection');
@@ -213,6 +214,8 @@ async function cascadeDeleteOwnedMongoData(userIds) {
     CertificateTemplate.deleteMany({ organizerId: { $in: userIds } })
   ]);
 
+  // Decision history for the deleted entries; not counted in the summary.
+  await ReviewDecision.deleteMany({ runnerId: { $in: userIds } });
   const blogsResult = await Blog.deleteMany({ authorId: { $in: userIds } });
   const runningGroupsResult = await RunningGroup.deleteMany({ createdBy: { $in: userIds } });
 

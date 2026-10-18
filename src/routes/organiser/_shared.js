@@ -35,6 +35,7 @@ const {
 const { reviewSubmission } = require('../../services/submission.service');
 const { recordCriticalAuditEventInBackground } = require('../../services/critical-audit.service');
 const { getAccessibleEvent } = require('../../services/event-access.service');
+const { describeLinkedEntries } = require('../../services/linked-entry-review.service');
 const { syncRegistrationPaymentShadow } = require('../../services/registration-payment-shadow.service');
 const { buildEntryExtras } = require('../../utils/entry-extras');
 const { recordSyncFailureInBackground } = require('../../services/sync-failure.service');
@@ -920,10 +921,13 @@ async function getSubmissionReviewContext(event, submissionId, queryParams = {})
 
   const queueContext = normalizeRunProofQueueContext(queryParams);
   const queueContextParams = buildRunProofQueueContextParams(queueContext);
+  // A decision on this entry also applies to pending entries submitted with the same proof.
+  const linkedEntries = await describeLinkedEntries(submission);
 
   return {
     submission: mappedSubmission,
     submissionKind,
+    linkedEntries,
     participant: {
       name: [participant.firstName, participant.lastName].filter(Boolean).join(' ').trim() ||
         [runner.firstName, runner.lastName].filter(Boolean).join(' ').trim() ||

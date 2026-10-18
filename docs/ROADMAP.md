@@ -13,6 +13,21 @@ ticked in the same commit that implements it, with a one-line note of the
 evidence. Anything requiring a production migration or a hands-on session says so
 and stops for a decision.
 
+## 0. Deployment record gaps
+
+The August 9–10 full-site `502` is resolved: production's `.env` `PORT` had
+drifted off nginx's `proxy_pass` target and the app crash-looped under PM2. See
+[operations/deployment-runbook.md](operations/deployment-runbook.md) §1 and §3,
+item 5. What that outage exposed is still open:
+
+- [ ] **Write down how code reaches production, and how to fail over.** The
+      runbook records the PM2 → nginx → Cloudflare Tunnel chain, but not the
+      exact pull/install/restart procedure (STATUS.md now refers to HelloDeploy
+      releases, which the runbook does not describe), nor **how to cut over to
+      the Render backup and back**. A backup nobody has failed over to is a
+      plan, not a capability. Until this exists, both a deploy and a failover
+      depend on one person remembering.
+
 ## 1. Verify what is live
 
 - [~] **Launch the private Strava viewer.** Repository work is complete behind a
@@ -23,12 +38,13 @@ and stops for a decision.
       submissions remain intentionally blocked.
 
 Everything below the line has been verified by DB-free tests and by live probes
-against throwaway data. **None of it has been used by a human in a browser.**
-That is now the single largest risk on this list, because the whole August 7–8
-run — guest registration, walk-in, waitlist, kit inventory, transfers, custom
-questions, capacity — is deployed and reachable by real users.
+against throwaway data. The organiser race-day chain has now also been driven
+through its own interfaces (August 8–9) — that item is closed. What remains
+unverified is how these surfaces behave **on a phone at a start line**, which is
+where they are actually used, and none of it has yet been exercised against
+production rather than a local server on the same commit.
 
-- [~] **Walk a draft event end to end in a browser.** Partly done August 8 with a
+- [x] **Walk a draft event end to end in a browser.** Done August 8–9 with a
       headless browser against a **local** server on the current commit. Verified
       the guest race pass renders on a phone viewport with a real 300×300 QR and a
       readable bib. **It found a site-wide bug nothing else could:** saving cookie
@@ -37,9 +53,27 @@ questions, capacity — is deployed and reachable by real users.
       `HTMLFormElement.action` — so the fetch posted to `/[object RadioNodeList]`.
       The consent banner could never be dismissed, and on the race pass it sat over
       the QR code.
-      Still outstanding, because they need an organiser session and production:
-      assign a bib, release a kit, record and approve a result, cancel and confirm
-      the slot returns.
+      **The organiser race-day chain was completed August 9** against a local server
+      on the current commit, driving each step through its own interface rather than
+      calling the services: walk-in registered (`201`, confirmation code issued),
+      bib assigned, checked in, kit released with stock decrementing 5→4, finish
+      time recorded, result approved. The approval produced the whole B2 chain —
+      a submission with a null runner, one ranking row at position 1 with
+      `elapsed_ms` 1,725,000 matching the 00:28:45 entered, and zero certificates,
+      which is the agreed guest policy. State persisted across a full page reload.
+      Walk-in registration is therefore browser-verified for the first time.
+      **Cancellation returns everything it should**, checked August 9 through
+      `POST /organizer/events/:id/registrants/:registrationId/cancel` on an event
+      with a capped category and kit stock: `raceCategories.reserved` went 1→0,
+      the kit went back on the books (`released` 1→0, stock 5 available again),
+      the registration read `cancelled`, and the Postgres bib assignment moved to
+      `voided` so the number is reissuable — which is what the organiser's own
+      confirmation message promises.
+
+      One finding, filed in §2: kit release before a bib exists answers `500`
+      with "Something went wrong. Please try again." while the log holds the
+      actually useful "No live bib assignment found for this registration. Assign
+      a bib first."
 - [ ] Responsive and weak-connectivity checks on the onsite surfaces, which are
       used on a phone at a start line.
 - [ ] Finish the AdSense crawl, sitemap, content-seed and review operations.
@@ -48,6 +82,32 @@ Completion requires recorded production observations, not repository tests.
 
 ## 2. Live behaviour that is wrong
 
+- [x] **Releasing a race kit blanked the runner's shadow row.** Found and fixed
+      August 10. The kit service reads the registration with a projection, saves,
+      and the model's `post('save')` hook syncs that half-read document — and the
+      upsert writes every column from `excluded`, so the unloaded fields were
+      overwritten rather than skipped. `mongo_event_id` became `''`, and the
+      onsite roster joins on it, so **the runner's bib and check-in disappeared
+      from the console the moment their kit was handed over.** Fixed in
+      `syncRegistrationPaymentShadow`, which now reloads a projected document
+      before normalising it — at the choke point, because the hook fires for
+      every `save()` anywhere. Reproduced live and re-verified. No production data
+      affected: the only blanked row was a probe row, since this feature has never
+      deployed.
+- [x] **Race-kit release hid the one instruction the organiser needs.** Fixed
+      August 10. Releasing a kit before a bib was assigned failed with `500` and
+      "Something went wrong. Please try again.", while the service raised "Assign
+      a bib first." — an instruction, not a fault. A duplicate bib number behaved
+      the same way. At a kit table with a queue, that is the difference between a
+      five-second fix and a stuck volunteer. The onsite services now mark
+      operational failures with a code and the routes answer `409`/`404` with the
+      service's own message; the console already rendered it. The ordering
+      constraint itself was correct and stays. Verified live through both routes.
+- [x] **`probe:cleanup` reported clean while a row survived.** Fixed August 10.
+      It found data by walking down from `events_core`, so a registration whose
+      event link had been blanked was invisible to it — which is exactly how the
+      defect above survived a teardown. It now also sweeps probe rows and accounts
+      by the `zz-…@example.com` convention and fails loudly if any remain.
 - [x] **Guest cancellation files a false failure every time.** Fixed August 8.
       A guest has no in-app inbox, so the notification is now requested only when
       there is an account, and `notify` treats a missing recipient as
@@ -231,6 +291,11 @@ Detailed plan:
 
 - [ ] Establish performance baselines before changing request-path behaviour.
 - [ ] Reduce avoidable authenticated-user lookups and request-time OCR work.
+- [ ] **Platform-aware OCR and training** ([plan](improvement-plan/ocr-platform-aware/README.md)).
+      Phases 0–6 implemented Oct 17–18 on the feature branch (flags off). Next, owner
+      actions: review/merge; consented screenshots + baseline benchmark; privacy wording
+      for the opt-in; approval to install training tools; then flag-by-flag rollout per
+      `DEPLOYMENT-AND-ROLLBACK.md`.
 - [ ] Confirm edge compression, asset versioning, caching and bundle behaviour.
 - [ ] Complete residual communication delivery and unsubscribe observability.
 
@@ -266,6 +331,14 @@ What remains of that spec is deliberately deferred, with reasons, in
       `repair-registration-references.js` and `backfill-missing-references.js` fix.
 - [ ] Accept the `audit_critical` gap: every write failed until August 7 and
       those records cannot be reconstructed.
+- [ ] Deploy review decision history, then confirm a live review writes a
+      `ReviewDecision` row and that a run-proof rejection keeps its `rejectionCode`.
+- [ ] With that deployment, confirm on a non-production database that approving one
+      entry of a multi-event submission approves its pending linked entries (standard and
+      accumulated) and that each writes a `ReviewDecision` with `linkedFrom`.
+- [ ] Decide a retention period for `ReviewDecision` evidence and retained proof files,
+      and whether account deletion should remove them (it does not remove submissions
+      today either).
 - [ ] Deepen platform analytics and reporting.
 - [ ] Prioritise backlog items using production usage and support evidence.
 - [ ] Evaluate mobile-app integration without duplicating unstable web workflows.

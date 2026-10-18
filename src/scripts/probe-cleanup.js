@@ -40,6 +40,78 @@ const { getPostgresClient } = require('../db/postgres');
 const PROBE_TITLE = /^ZZ /;
 const PROBE_SLUG = /^zz-/;
 
+// Probe accounts and participants use a `zz-` local part on `example.com`, which is a
+// reserved domain and cannot belong to a real person.
+const PROBE_EMAIL_SQL = 'zz-%@example.com';
+const PROBE_EMAIL_MONGO = /^zz-.*@example\.com$/;
+
+/**
+ * Probe rows that no longer hang off any event.
+ *
+ * Everything above finds data by walking down from `events_core`, which is the right shape
+ * for a probe that finished. It cannot see a row whose event link was never written or was
+ * blanked — and that happened: a shadow row written from a projected document lost its
+ * `mongo_event_id`, so the sweep reported clean while the row sat in production.
+ *
+ * Keyed on the email convention rather than on the missing link, because `event_core_id IS
+ * NULL` is true of thousands of legitimate rows from before the events shadow existed.
+ */
+async function countProbeOrphans(sql) {
+  if (!sql) return {};
+  const orphans = {};
+
+  const [registrations] = await sql`
+    select count(*)::int as count from registrations
+    where participant_email like ${PROBE_EMAIL_SQL}
+  `;
+  if (registrations?.count) orphans['postgres:registrations'] = registrations.count;
+
+  const [users] = await sql`
+    select count(*)::int as count from app_users where email like ${PROBE_EMAIL_SQL}
+  `;
+  if (users?.count) orphans['postgres:app_users'] = users.count;
+
+  return orphans;
+}
+
+/**
+ * Remove probe rows the event-scoped teardown cannot reach, children first.
+ *
+ * @param {Function} sql
+ * @param {Object} [options]
+ * @param {Object} [options.User] - the Mongo model, injectable so the delete order can be
+ *   asserted without a database.
+ */
+async function sweepProbeOrphans(sql, options = {}) {
+  const rows = await sql`
+    select id from registrations where participant_email like ${PROBE_EMAIL_SQL}
+  `;
+
+  for (const row of rows) {
+    await sql`delete from bib_assignments where registration_id = ${row.id}`;
+    await sql`delete from check_ins where registration_id = ${row.id}`;
+    await sql`delete from onsite_results where registration_id = ${row.id}`;
+  }
+  if (rows.length) {
+    await sql`delete from registrations where id = any(${rows.map((row) => row.id)})`;
+  }
+
+  const users = await sql`select id from app_users where email like ${PROBE_EMAIL_SQL}`;
+  if (users.length) {
+    await sql`delete from app_users where id = any(${users.map((user) => user.id)})`;
+  }
+
+  // The Mongo accounts behind them, which every probe has had to delete by hand.
+  const User = options.User || require('../models/User');
+  const mongoUsers = await User.deleteMany({ email: PROBE_EMAIL_MONGO });
+
+  return {
+    registrations: rows.length,
+    postgresUsers: users.length,
+    mongoUsers: mongoUsers.deletedCount || 0
+  };
+}
+
 /**
  * Count anything still referencing these events, after a teardown claims to be done.
  */
@@ -128,13 +200,39 @@ async function main() {
   const host = new URL(process.env.MONGODB_URI).hostname;
   console.log(`${dryRun ? 'DRY RUN — nothing will be deleted' : 'DELETING'} against ${host}`);
 
+  const sql = getPostgresClient();
+
   const stranded = await findStrandedProbeEvents();
   console.log(`Stranded probe events: ${stranded.length}`);
   stranded.forEach((event) => console.log(`  ${event.slug}  ${event.title}`));
 
-  if (!stranded.length || dryRun) return;
+  if (dryRun) {
+    const orphans = await countProbeOrphans(sql);
+    console.log(
+      Object.keys(orphans).length
+        ? `Orphaned probe rows: ${JSON.stringify(orphans)}`
+        : 'Orphaned probe rows: none'
+    );
+    return;
+  }
 
-  await teardownProbe(stranded.map((event) => event._id));
+  if (stranded.length) {
+    await teardownProbe(stranded.map((event) => event._id));
+  }
+
+  // Anything the event-scoped teardown could not see, plus the throwaway accounts.
+  const swept = await sweepProbeOrphans(sql);
+  const sweptSummary = Object.entries(swept)
+    .filter(([, count]) => count > 0)
+    .map(([key, count]) => `${key}=${count}`)
+    .join(' ');
+  if (sweptSummary) console.log(`orphan sweep: ${sweptSummary}`);
+
+  const remaining = await countProbeOrphans(sql);
+  if (Object.keys(remaining).length > 0) {
+    throw new Error(`Probe orphans survived the sweep: ${JSON.stringify(remaining)}`);
+  }
+
   console.log('All stranded probe data removed, and verified gone.');
 }
 
@@ -152,4 +250,14 @@ if (require.main === module) {
     });
 }
 
-module.exports = { teardownProbe, countResidue, findStrandedProbeEvents, PROBE_TITLE, PROBE_SLUG };
+module.exports = {
+  teardownProbe,
+  countResidue,
+  countProbeOrphans,
+  sweepProbeOrphans,
+  findStrandedProbeEvents,
+  PROBE_TITLE,
+  PROBE_SLUG,
+  PROBE_EMAIL_SQL,
+  PROBE_EMAIL_MONGO
+};

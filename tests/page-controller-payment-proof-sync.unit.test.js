@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const pageController = require('../src/controllers/page.controller');
 const User = require('../src/models/User');
 const Registration = require('../src/models/Registration');
+const ReviewDecision = require('../src/models/ReviewDecision');
 const uploadService = require('../src/services/upload.service');
 const communicationService = require('../src/services/communication.service');
 const { __setDisableSubmissionIdempotencyLocks } = require('../src/services/submission-idempotency.service');
@@ -65,7 +66,10 @@ function resetStubs() {
   originalSyncRegistrationPaymentShadow = pageController.__resetSyncRegistrationPaymentShadow;
 }
 
+const originalReviewDecisionExists = ReviewDecision.exists;
+
 function restoreStubs() {
+  ReviewDecision.exists = originalReviewDecisionExists;
   User.findById = originalUserFindById;
   Registration.findOne = originalRegistrationFindOne;
   Registration.updateOne = originalRegistrationUpdateOne;
@@ -109,6 +113,8 @@ test('postUploadPaymentProof triggers shadow sync after successful upload', asyn
     return { url: 'https://new.url/proof.png', key: 'new-proof-key' };
   };
 
+  // No decision references the replaced receipt, so it is still cleaned up.
+  ReviewDecision.exists = async () => null;
   uploadService.deleteObjects = async (keys) => {
     assert.deepEqual(keys, ['old-proof-key']);
   };

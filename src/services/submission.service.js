@@ -15,7 +15,7 @@ const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = re
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 const { detectSuspiciousActivity } = require('../utils/submission-integrity');
 const { REVIEW_REASON_LABELS } = require('../utils/submission-review-labels');
-const { resolveRejectionReason } = require('../utils/rejection-reasons');
+const { resolveRejectionReason, formatRejectionAuditNote } = require('../utils/rejection-reasons');
 const { validateReviewChecklist } = require('../utils/run-proof-review');
 const { assertRunDateNotFuture } = require('../utils/platform-date');
 const { buildAuditIdempotencyKey, recordCriticalAuditEventInBackground } = require('./critical-audit.service');
@@ -26,6 +26,8 @@ const { syncSubmissionShadow } = require('./submission-shadow.service');
 const { recordSyncFailureInBackground } = require('./sync-failure.service');
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
 const { resolveEventAccess } = require('./event-access.service');
+const { recordReviewDecisionInBackground } = require('./review-decision.service');
+const { applyLinkedReview } = require('./linked-entry-review.service');
 const { isManualSubmissionReview, normalizeSubmissionReviewMode } = require('../utils/submission-review-mode');
 
 const APPROVABLE_STATUS = new Set(['submitted', 'rejected']);
@@ -44,6 +46,7 @@ const {
   isAutoApprovableSubmission,
   getAutoApprovalReviewNote
 } = require('./submission-validation.service');
+const { sanitizeActivityEvidence, sanitizeTrainingConsent } = require('../utils/ocr/activity-evidence');
 let runSubmissionBackgroundTasksInline = false;
 let disableSubmissionSyncBackgroundTasks = false;
 
@@ -64,7 +67,9 @@ async function createSubmission({
   ocrData,
   source,
   stravaActivity,
-  submissionAttemptId
+  submissionAttemptId,
+  activityEvidence,
+  ocrTrainingConsent
 }) {
   assertPermittedSubmissionSource(source);
   if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
@@ -84,7 +89,9 @@ async function createSubmission({
       ocrData,
       source,
       stravaActivity,
-      submissionAttemptId
+      submissionAttemptId,
+      activityEvidence,
+      ocrTrainingConsent
     });
   }
 
@@ -116,7 +123,9 @@ async function createSubmission({
       ocrData,
       source,
       stravaActivity,
-      submissionAttemptId
+      submissionAttemptId,
+      activityEvidence,
+      ocrTrainingConsent
     }));
   } catch (error) {
     await releaseRemediationGrant(claimedGrant?._id);
@@ -280,7 +289,9 @@ async function resubmitSubmission({
   ocrData,
   source,
   stravaActivity,
-  submissionAttemptId
+  submissionAttemptId,
+  activityEvidence,
+  ocrTrainingConsent
 }) {
   assertPermittedSubmissionSource(source);
   if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
@@ -315,7 +326,9 @@ async function resubmitSubmission({
     ocrData,
     source,
     stravaActivity,
-    submissionAttemptId
+    submissionAttemptId,
+    activityEvidence,
+    ocrTrainingConsent
   });
 
   existing.distanceKm = payload.distanceKm;
@@ -336,6 +349,12 @@ async function resubmitSubmission({
   existing.steps = payload.steps;
   existing.suspiciousFlag = payload.suspiciousFlag;
   existing.suspiciousFlagReason = payload.suspiciousFlagReason;
+  existing.activityUrl = payload.activityUrl;
+  existing.activityUrlVerification = payload.activityUrlVerification;
+  existing.duplicateSignals = payload.duplicateSignals;
+  existing.ocrTrainingConsent = payload.ocrTrainingConsent;
+  existing.serverOcr = undefined;
+  existing.proofDifferenceHash = '';
   existing.status = 'submitted';
   existing.submissionCount = payload.submissionCount;
   existing.submittedAt = payload.submittedAt;
@@ -374,7 +393,10 @@ async function reviewSubmission({
   // Ordinary review treats an approved result as final. Reversing one is a separate,
   // separately-audited capability that unwinds the certificate, badges and ranking, so
   // it opts in explicitly rather than widening REJECTABLE_STATUS for every caller.
-  allowApprovedReversal = false
+  allowApprovedReversal = false,
+  // Set only by linked-entry-review.service when this entry follows a decision made on an
+  // entry submitted together with it. See applyLinkedReview.
+  linkedFrom = null
 }) {
   const safeAction = String(action || '').trim().toLowerCase();
   if (safeAction !== 'approve' && safeAction !== 'reject') {
@@ -403,7 +425,9 @@ async function reviewSubmission({
   if (!event) {
     throw new Error('Submission not found or inaccessible.');
   }
-  if (!isAdminReviewer && !await resolveEventAccess({ eventId: event._id, userId: organizerId, userRole: normalizedReviewerRole })) {
+  // A linked entry may belong to another organiser's event. The reviewer's access was checked
+  // on the source entry, and the decision is recorded against this one with linkedFrom.
+  if (!isAdminReviewer && !linkedFrom && !await resolveEventAccess({ eventId: event._id, userId: organizerId, userRole: normalizedReviewerRole })) {
     throw new Error('Submission not found or inaccessible.');
   }
   // Organisers and co-organisers may join events they manage, so a reviewer can be the
@@ -424,7 +448,8 @@ async function reviewSubmission({
   };
 
   if (safeAction === 'approve') {
-    if (requireVerification) {
+    // The checklist was confirmed on the source entry of a linked decision.
+    if (requireVerification && !linkedFrom) {
       const checklist = validateReviewChecklist({
         event,
         submission,
@@ -477,8 +502,29 @@ async function reviewSubmission({
     statusTo: reviewedSubmission.status,
     notes: safeAction === 'approve'
       ? reviewedSubmission.reviewNotes
-      : (reviewedSubmission.rejectionReason || reviewedSubmission.reviewNotes),
+      : formatRejectionAuditNote(reviewedSubmission),
     occurredAt: reviewedSubmission.reviewedAt
+  });
+  // Snapshot the pre-update document: approval clears the suspicion flag, and that flag is
+  // part of what the reviewer decided on.
+  recordReviewDecisionInBackground({
+    kind: 'run_submission',
+    entry: submission,
+    event,
+    decision: safeAction === 'approve'
+      ? 'approved'
+      : isApprovalReversal ? 'approval_reversed' : 'rejected',
+    statusFrom: previousStatus,
+    statusTo: reviewedSubmission.status,
+    decidedBy: organizerId,
+    reviewerRole: normalizedReviewerRole,
+    isSelfReview,
+    decidedAt: reviewedSubmission.reviewedAt,
+    rejectionCode: reviewedSubmission.rejectionCode,
+    rejectionReason: reviewedSubmission.rejectionReason,
+    reviewNotes: reviewedSubmission.reviewNotes,
+    manualReviewChecklist: reviewedSubmission.manualReviewChecklist,
+    linkedFrom
   });
   if (isSelfReview) {
     // A second row alongside the normal approve/reject event. Renaming the original action
@@ -506,6 +552,20 @@ async function reviewSubmission({
     if (runSubmissionBackgroundTasksInline) {
       await backgroundTask;
     }
+  }
+  // A reversal is its own audited capability and stays on this entry alone.
+  if (!linkedFrom && !isApprovalReversal) {
+    reviewedSubmission.$locals.linkedReview = await applyLinkedReview({
+      sourceEntry: reviewedSubmission,
+      sourceKind: 'run_submission',
+      sourceEvent: event,
+      action: safeAction,
+      organizerId,
+      reviewerRole: normalizedReviewerRole,
+      reviewNotes: safeReviewNotes,
+      rejectionCode,
+      rejectionReason
+    });
   }
   return reviewedSubmission;
 }
@@ -966,7 +1026,9 @@ async function createPersonalRecordSubmission({
   ocrData,
   source,
   stravaActivity,
-  submissionAttemptId
+  submissionAttemptId,
+  activityEvidence,
+  ocrTrainingConsent
 }) {
   const runner = await User.findById(runnerId)
     .select('firstName lastName email mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup')
@@ -1044,7 +1106,9 @@ async function createPersonalRecordSubmission({
     ocrData,
     source,
     stravaActivity,
-    submissionAttemptId
+    submissionAttemptId,
+    activityEvidence,
+    ocrTrainingConsent
   });
   payload.isPersonalRecord = true;
   payload.validation = {
@@ -1229,7 +1293,9 @@ function buildSubmissionPayload(registration, input, context = {}) {
     }),
     status: 'submitted',
     submissionCount: Number(input.submissionCount || 1),
-    submittedAt: new Date()
+    submittedAt: new Date(),
+    ...sanitizeActivityEvidence(input.activityEvidence),
+    ...sanitizeTrainingConsent(input.ocrTrainingConsent)
   };
 }
 
@@ -1594,8 +1660,11 @@ async function applyAutoApprovalIfEligible(submission) {
   // The organizer chose to review every submission (Strava syncs included). Only looked up
   // for entries that would otherwise be approved, so ineligible entries cost nothing extra.
   // Personal records have no event and always stay on system validation.
+  let eventSettings = null;
   if (submission.eventId) {
-    const eventSettings = await Event.findById(submission.eventId).select('submissionReviewMode').lean();
+    eventSettings = await Event.findById(submission.eventId)
+      .select('submissionReviewMode virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm acceptedRunTypes')
+      .lean();
     if (isManualSubmissionReview(eventSettings)) {
       return submission;
     }
@@ -1621,6 +1690,16 @@ async function applyAutoApprovalIfEligible(submission) {
     statusTo: 'approved',
     notes: autoApprovalReviewNote,
     occurredAt: submission.reviewedAt
+  });
+  recordReviewDecisionInBackground({
+    kind: 'run_submission',
+    entry: submission,
+    event: eventSettings,
+    decision: 'auto_approved',
+    statusFrom: 'submitted',
+    statusTo: 'approved',
+    decidedAt: submission.reviewedAt,
+    reviewNotes: autoApprovalReviewNote
   });
 
   const backgroundTask = attachCertAndNotifyInBackground(submission, 'approve');

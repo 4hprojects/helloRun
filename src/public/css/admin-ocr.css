@@ -1,0 +1,222 @@
+/* OCR Training Center (/admin/ocr-training). Layout only; colors come from design-system tokens. */
+
+.ocr-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hr-space-2);
+  margin: var(--hr-space-4) 0 var(--hr-space-5);
+  padding: 0;
+  list-style: none;
+}
+
+.ocr-tabs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 var(--hr-space-4);
+  border: 1px solid var(--hr-color-border);
+  border-radius: var(--hr-radius-md);
+  color: var(--hr-color-muted);
+  background: var(--hr-color-surface);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.ocr-tabs a:hover,
+.ocr-tabs a:focus-visible {
+  border-color: var(--hr-color-border-strong);
+  color: var(--hr-color-ink);
+}
+
+.ocr-tabs a[aria-current="page"] {
+  border-color: var(--hr-color-brand);
+  color: var(--hr-color-brand);
+  background: var(--hr-color-warning-bg);
+}
+
+.ocr-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hr-space-2);
+  margin: 0 0 var(--hr-space-4);
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.ocr-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--hr-color-border);
+  background: var(--hr-color-page);
+  color: var(--hr-color-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ocr-pill-on,
+.ocr-pill-active,
+.ocr-pill-complete,
+.ocr-pill-completed,
+.ocr-pill-approved,
+.ocr-pill-confirmed,
+.ocr-pill-ready,
+.ocr-pill-sent {
+  border-color: var(--hr-color-success);
+  color: var(--hr-color-success);
+  background: var(--hr-color-success-bg);
+}
+
+.ocr-pill-test,
+.ocr-pill-queued,
+.ocr-pill-running,
+.ocr-pill-pending,
+.ocr-pill-uncertain,
+.ocr-pill-partial,
+.ocr-pill-candidate,
+.ocr-pill-evaluating,
+.ocr-pill-training,
+.ocr-pill-preparing {
+  border-color: var(--hr-color-warning);
+  color: #92400e;
+  background: var(--hr-color-warning-bg);
+}
+
+.ocr-pill-failed,
+.ocr-pill-excluded,
+.ocr-pill-retired,
+.ocr-pill-rejected,
+.ocr-pill-interrupted,
+.ocr-pill-failed_gates,
+.ocr-pill-suppressed {
+  border-color: var(--hr-color-danger);
+  color: var(--hr-color-danger);
+  background: var(--hr-color-danger-bg);
+}
+
+.ocr-panel {
+  margin: 0 0 var(--hr-space-5);
+  padding: var(--hr-space-4);
+  border: 1px solid var(--hr-color-border);
+  border-radius: var(--hr-radius-md);
+  background: var(--hr-color-surface);
+}
+
+.ocr-panel h2,
+.ocr-panel h3 {
+  margin-top: 0;
+}
+
+.ocr-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: var(--hr-space-4);
+}
+
+.ocr-form-row {
+  display: grid;
+  gap: var(--hr-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  align-items: end;
+}
+
+.ocr-form-row label {
+  display: grid;
+  gap: var(--hr-space-1);
+  font-weight: 600;
+  color: var(--hr-color-ink);
+}
+
+.ocr-form-row input,
+.ocr-form-row select,
+.ocr-form-row textarea {
+  width: 100%;
+  min-height: var(--hr-control-height);
+  box-sizing: border-box;
+}
+
+.ocr-form-row input[type="checkbox"],
+.ocr-form-row input[type="radio"] {
+  width: auto;
+  min-height: 0;
+}
+
+.ocr-form-row label:has(> input[type="checkbox"]) {
+  display: flex;
+  gap: var(--hr-space-2);
+  align-items: center;
+  font-weight: 500;
+}
+
+/* Fieldsets default to min-width: min-content, which pushes wide grids past the viewport. */
+fieldset.ocr-panel {
+  min-width: 0;
+}
+
+fieldset.ocr-panel > legend {
+  padding: 0 var(--hr-space-1);
+}
+
+fieldset.ocr-panel > legend h2 {
+  margin: 0;
+}
+
+.ocr-help {
+  margin: var(--hr-space-1) 0 0;
+  color: var(--hr-color-subtle);
+  font-size: 0.85rem;
+}
+
+.ocr-empty {
+  padding: var(--hr-space-5);
+  text-align: center;
+  color: var(--hr-color-subtle);
+}
+
+.ocr-raw-text {
+  max-height: 260px;
+  overflow: auto;
+  padding: var(--hr-space-3);
+  border-radius: var(--hr-radius-sm);
+  background: var(--hr-color-page);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ocr-table {
+  min-width: 640px;
+}
+
+.ocr-crop-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--hr-color-border);
+  border-radius: var(--hr-radius-sm);
+  background: var(--hr-color-page);
+}
+
+.ocr-proof-image {
+  display: block;
+  max-width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+  border-radius: var(--hr-radius-sm);
+}
+
+.ocr-danger-zone {
+  border-color: var(--hr-color-danger);
+}
+
+@media (max-width: 480px) {
+  .ocr-tabs a {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}

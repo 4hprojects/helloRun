@@ -36,13 +36,29 @@ Do not upload passwords, PINs, OTPs, full account credentials, unrelated transac
 
 For single-result and accumulated-distance events, HelloRun may process activity type, date, distance, duration, pace, route or location information, elevation, submitted notes, proof files, source application, app username, activity identifiers, selected goal, verified and pending totals, review status, correction history, and official result information.
 
+Where an event offers it, a runner may also add an optional link to the same activity on a supported provider (currently Strava, Garmin Connect, or COROS). HelloRun keeps only a normalized link rebuilt from the provider's activity identifier, not the address as pasted, and does not fetch the link. Authorized reviewers may open it in their own browser and record whether it matched the entry. A link is supporting information only; it does not prove that the activity belongs to the runner, and private activities may not open for reviewers.
+
 Pending activity does not become an official result until approved. Approved accumulated distance may exceed a selected goal and may affect official standings. Recognition records may snapshot a selected goal and final verified total.
 
 ### 2.5 OCR and assisted review information
 
 Optical character recognition and structured checks may extract or compare visible distance, duration, date, name, username, payment reference, amount, or other relevant fields. Name matching, duplicate detection, mismatch signals, and similar checks assist review; they do not independently establish fraud or guarantee approval.
 
+HelloRun may also read a stored activity screenshot again on its own servers, identify the likely source application from text visible in the image, and record a compact image fingerprint used to flag possible re-use of the same screenshot. Where enabled, automatic approval relies on this server reading rather than on values sent from the runner's browser. A possible duplicate or mismatch is a reason for human review, not a finding of misconduct.
+
 Raw OCR text, confidence information, suspicious signals, private proof, and internal review reasoning are restricted to authorized workflows. Runners should review extracted values before submission, and authorized reviewers remain responsible for the final decision where review is configured.
+
+### 2.5.1 Optional help improving screenshot reading
+
+Where HelloRun offers it, a runner may tick an optional, unticked box when submitting a screenshot to let HelloRun keep small cropped images of the text lines showing distance, time, and pace, together with the text a HelloRun administrator confirms is shown in each crop. These examples are used only to test and improve how HelloRun reads activity screenshots. Saying no does not affect review, approval, or results.
+
+- **What is kept:** the cropped text lines and their confirmed text, the source application and screen layout, and the date and wording version of the permission. HelloRun does not keep names, faces, maps, routes, or profile photos for this purpose, and an administrator removes any crop that shows them.
+- **Who can see it:** only authorized HelloRun administrators managing screenshot reading. It is not shared with organizers or made public.
+- **Basis:** your consent. You can withdraw it at any time from that submission's page in your account. Withdrawal removes the related examples from all future improvement datasets. It cannot remove what an already-built reading model has learned, and HelloRun will not claim that it does.
+- **How long:** each example is kept for up to 730 days unless withdrawn or removed earlier, after which the crop is deleted.
+- **Research and reporting:** HelloRun may report aggregated accuracy and review statistics, including for academic research. These reports contain counts and rates only, never names, contact details, activity links, locations, or images.
+
+HelloRun administrators may also add screenshots of their own activities, or generated test images, for the same purpose.
 
 ### 2.6 Third-party fitness and account integrations
 
@@ -77,7 +93,7 @@ Depending on the workflow and applicable law, processing may be necessary to:
 - comply with accounting, legal, regulatory, audit, or safety obligations;
 - protect legitimate interests in platform security, event integrity, abuse prevention, dispute handling, reliable communication, and accurate public records, where those interests are not overridden by applicable rights;
 - respond to emergencies or protect a person’s vital interests where appropriate; or
-- act on consent where consent is the appropriate processing criterion, including HelloRun Analytics choices and Google advertising consent managed through Google’s certified controls where applicable.
+- act on consent where consent is the appropriate processing criterion, including HelloRun Analytics choices, the optional screenshot-reading improvement described in section 2.5.1, and Google advertising consent managed through Google’s certified controls where applicable.
 
 Not every workflow depends on consent. Withdrawing consent does not require deletion of information that remains necessary under another lawful criterion. Where a requested feature cannot operate without required information, withdrawing or withholding that information may make the feature unavailable.
 
@@ -104,7 +120,7 @@ Organizer exports remain limited to the relevant event purpose. Organizers must 
 
 Depending on event and user settings, public information may include display name or privacy-safe runner name, avatar, category, approved distance, time, pace, rank, completion state, badge, certificate number, selected goal, final verified total, blog post, comment, reply, revision history, or running-group contribution.
 
-Payment proof, activity-proof files, emergency contacts, contact details, precise routes, raw OCR, pending-review evidence, internal mismatch signals, report snapshots, security records, and organizer-only review information are not intentionally published as public result data.
+Payment proof, activity-proof files, optional activity links, screenshot-reading improvement examples, emergency contacts, contact details, precise routes, raw OCR, pending-review evidence, internal mismatch signals, report snapshots, security records, and organizer-only review information are not intentionally published as public result data.
 
 Public certificates and results can form part of event history and integrity. Correction, visibility, blocking, or removal requests are reviewed against accuracy, safety, event-history, recognition, dispute, fraud-prevention, and legal needs.
 
@@ -135,6 +151,7 @@ Retention is applied by record purpose rather than one universal deadline:
 - account and profile information is generally retained while the account is active, then deleted, anonymized, or restricted subject to security, consent, dispute, and legal records;
 - registration, payment, order, and fulfilment records remain through event or commerce operations and the necessary accounting, audit, refund, fraud, and dispute period;
 - activity proof, OCR, and review information remains through review, event-integrity, correction, dispute, and recognition needs, after which access may be restricted and files deleted or anonymized where appropriate;
+- optional screenshot-reading improvement examples are kept for up to 730 days, or until consent is withdrawn or the example is removed, after which they are excluded from future datasets and the crop is deleted;
 - official results, certificate snapshots, and public recognition may remain as event history, subject to justified correction or privacy requests;
 - community content remains while published, while private report snapshots or tombstones may remain for moderation, safety, thread, or dispute integrity;
 - communication, support, security, and audit records remain only as long as needed for delivery, support, abuse prevention, incident response, accountability, or legal needs; and

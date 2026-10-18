@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/admin-ocr.css">
+</head>
+<body>
+  <%- include('../../layouts/nav') %>
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <%- include('_header') %>
+      <% const modelName = (id) => {
+        if (!id || id === 'base-eng') return 'Base English (bundled)';
+        const found = models.find((model) => String(model._id) === String(id));
+        return found ? found.label : String(id);
+      }; %>
+
+      <section class="ocr-panel" aria-labelledby="ocr-active-heading">
+        <h2 id="ocr-active-heading">Production model</h2>
+        <p>Active: <strong><%= modelName(registry.activeModelId) %></strong> · previous: <%= registry.previousModelId ? modelName(registry.previousModelId) : 'none' %> · registry version <%= registry.version %><% if (registry.activatedAt) { %> · changed <%= formatDateTime(registry.activatedAt) %><% } %></p>
+        <% if (loadFailures.count) { %>
+          <div class="admin-alert admin-alert-warning" role="status">The active model failed to load <%= loadFailures.count %> time(s) in this process (last <%= formatDateTime(loadFailures.lastAt) %>); OCR fell back to the base model.</div>
+        <% } %>
+        <p class="ocr-help">The browser prefill still uses the bundled base model. Activation changes server OCR only.</p>
+        <% if (canDeploy && registry.activeModelId !== 'base-eng') { %>
+          <form method="POST" action="/admin/ocr-training/models/rollback" class="ocr-form-row ocr-danger-zone ocr-panel">
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+            <input type="hidden" name="registryVersion" value="<%= registry.version %>">
+            <label>Roll back to
+              <select name="targetModelId">
+                <option value="">Previous (<%= registry.previousModelId ? modelName(registry.previousModelId) : 'base' %>)</option>
+                <option value="base-eng">Base English (bundled)</option>
+              </select>
+            </label>
+            <label>Reason <input name="reason" minlength="10" maxlength="500" required></label>
+            <label>Type ROLLBACK <input name="confirmation" required autocomplete="off"></label>
+            <button type="submit" class="btn btn-secondary">Roll back</button>
+          </form>
+        <% } %>
+      </section>
+
+      <section class="ocr-panel" aria-labelledby="ocr-models-heading">
+        <h2 id="ocr-models-heading">Candidate and approved models</h2>
+        <% if (!models.length) { %>
+          <p class="ocr-empty">No trained models yet. Candidates appear after a training job completes.</p>
+        <% } %>
+        <% models.forEach((model) => { %>
+          <article class="ocr-panel" aria-labelledby="model-<%= model._id %>">
+            <h3 id="model-<%= model._id %>"><%= model.label %> <span class="ocr-pill ocr-pill-<%= model.status %>"><%= model.status %></span><% if (String(registry.activeModelId) === String(model._id)) { %> <span class="ocr-pill ocr-pill-on">active</span><% } %></h3>
+            <p class="ocr-help">Checksum <code><%= String(model.checksum).slice(0, 16) %>…</code> · <%= Math.round((model.sizeBytes || 0) / 1024) %> KB · dataset <code><%= String(model.datasetManifestHash || '').slice(0, 8) %></code> · parent <%= model.parentModelId %> · created <%= formatDateTime(model.createdAt) %></p>
+            <% if (model.evaluation && model.evaluation.evaluatedAt) { %>
+              <p>Held-out lines: <%= model.evaluation.testSampleCount %> · CER candidate <strong><%= model.evaluation.overall?.candidate?.cer %></strong> vs baseline <%= model.evaluation.overall?.baseline?.cer %> · exact lines <%= model.evaluation.overall?.candidate?.exactLineAccuracy %> vs <%= model.evaluation.overall?.baseline?.exactLineAccuracy %></p>
+              <div class="admin-users-table-wrap">
+                <table class="admin-table ocr-table">
+                  <thead><tr><th>Platform / layout</th><th>Lines</th><th>CER candidate</th><th>CER baseline</th></tr></thead>
+                  <tbody>
+                    <% Object.entries(model.evaluation.byPlatformLayout || {}).forEach(([key, row]) => { %>
+                      <tr><td><%= key %></td><td><%= row.candidate.lines %></td><td><%= row.candidate.cer %></td><td><%= row.baseline.cer %></td></tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+              <ul>
+                <% (model.evaluation.gates || []).forEach((gate) => { %>
+                  <li><%= gate.passed ? '✓' : '✗' %> <%= gate.id %> — <span class="ocr-help"><%= gate.detail %></span></li>
+                <% }) %>
+              </ul>
+            <% } else { %>
+              <p class="ocr-help">Not evaluated yet.</p>
+            <% } %>
+            <% if (canDeploy && model.status === 'passed_gates') { %>
+              <form method="POST" action="/admin/ocr-training/models/<%= model._id %>/approve" class="ocr-form-row">
+                <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                <label>Approval reason <input name="reason" minlength="10" maxlength="500" required></label>
+                <label>Type APPROVE <input name="confirmation" required autocomplete="off"></label>
+                <button type="submit" class="btn btn-secondary">Approve</button>
+              </form>
+            <% } %>
+            <% if (canDeploy && model.status === 'approved' && String(registry.activeModelId) !== String(model._id)) { %>
+              <form method="POST" action="/admin/ocr-training/models/<%= model._id %>/activate" class="ocr-form-row ocr-danger-zone">
+                <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                <input type="hidden" name="registryVersion" value="<%= registry.version %>">
+                <label>Activation reason <input name="reason" minlength="10" maxlength="500" required></label>
+                <label>Type ACTIVATE <input name="confirmation" required autocomplete="off"></label>
+                <button type="submit" class="btn">Activate in production</button>
+              </form>
+            <% } %>
+            <% if (!canDeploy && ['passed_gates', 'approved'].includes(model.status)) { %>
+              <p class="ocr-help">A full administrator approves and activates models.</p>
+            <% } %>
+          </article>
+        <% }) %>
+      </section>
+
+      <section class="ocr-panel" aria-labelledby="ocr-deploy-heading">
+        <h2 id="ocr-deploy-heading">Deployment history</h2>
+        <% if (!deployments.length) { %>
+          <p class="ocr-empty">No activations or rollbacks yet.</p>
+        <% } else { %>
+          <div class="admin-users-table-wrap">
+            <table class="admin-table ocr-table">
+              <thead><tr><th>When</th><th>Action</th><th>Outcome</th><th>From</th><th>To</th><th>Reason</th></tr></thead>
+              <tbody>
+                <% deployments.forEach((event) => { %>
+                  <tr>
+                    <td><%= formatDateTime(event.createdAt) %></td>
+                    <td><%= event.action %></td>
+                    <td><span class="ocr-pill ocr-pill-<%= event.outcome === 'succeeded' ? 'on' : 'failed' %>"><%= event.outcome %></span><% if (event.errorCode) { %> <%= event.errorCode %><% } %></td>
+                    <td><%= modelName(event.oldModelId) %></td>
+                    <td><%= modelName(event.newModelId) %></td>
+                    <td><%= event.reason || '—' %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </section>
+    </section>
+  </main>
+  <%- include('../../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

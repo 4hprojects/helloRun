@@ -10,6 +10,7 @@ const Event = require('../src/models/Event');
 const Registration = require('../src/models/Registration');
 const Submission = require('../src/models/Submission');
 const AccumulatedActivitySubmission = require('../src/models/AccumulatedActivitySubmission');
+const ReviewDecision = require('../src/models/ReviewDecision');
 const EventPromotion = require('../src/models/EventPromotion');
 const EventReminderDelivery = require('../src/models/EventReminderDelivery');
 const CertificateTemplate = require('../src/models/CertificateTemplate');
@@ -191,6 +192,7 @@ test('purgeTestData deletes Postgres first, then every Mongo collection, then au
     mockDeleteMany(Registration, 'Registration', 4),
     mockDeleteMany(Submission, 'Submission', 3),
     mockDeleteMany(AccumulatedActivitySubmission, 'AccumulatedActivitySubmission', 2),
+    mockDeleteMany(ReviewDecision, 'ReviewDecision', 7),
     mockDeleteMany(EventPromotion, 'EventPromotion', 1),
     mockDeleteMany(EventReminderDelivery, 'EventReminderDelivery', 6),
     mockDeleteMany(CertificateTemplate, 'CertificateTemplate', 5),
@@ -226,7 +228,7 @@ test('purgeTestData deletes Postgres first, then every Mongo collection, then au
 
     const deletedModelNames = deleteManyCalls.map((c) => c.name);
     assert.ok(deletedModelNames.includes('Event'), 'Event.deleteMany should run');
-    for (const name of ['EventReminderDelivery', 'GuestRegistrationToken', 'WaitlistEntry', 'RegistrationTransfer', 'BibQrToken', 'EventCoOrganizer']) {
+    for (const name of ['EventReminderDelivery', 'GuestRegistrationToken', 'WaitlistEntry', 'RegistrationTransfer', 'BibQrToken', 'EventCoOrganizer', 'ReviewDecision']) {
       assert.ok(deletedModelNames.includes(name), `${name}.deleteMany should run — it is event-scoped`);
     }
     const eventDeleteIndex = deletedModelNames.indexOf('Event');

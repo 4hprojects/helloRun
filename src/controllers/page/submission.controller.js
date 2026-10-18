@@ -77,6 +77,11 @@ const {
   renderEventNotFound
 } = require('./_shared');
 const { canUseRunnerWorkspace } = require('../../utils/workspace');
+const { isProofReferencedByReviewDecision } = require('../../services/review-decision.service');
+const { namesMatch } = require('../../utils/ocr/name-match');
+const { queueProofExtraction } = require('../../services/ocr/server-ocr.service');
+const { buildActivityEvidence } = require('../../services/ocr/activity-evidence.service');
+const { isTrainingConsentPromptEnabled, OCR_TRAINING_CONSENT_NOTICE_VERSION } = require('../../services/ocr/ocr-config');
 
 let { syncRegistrationPaymentShadow } = require('../../services/registration-payment-shadow.service');
 
@@ -302,7 +307,8 @@ exports.postUploadPaymentProof = async (req, res) => {
             paymentReviewedAt: null,
             paymentReviewedBy: null,
             paymentReviewNotes: '',
-            paymentRejectionReason: ''
+            paymentRejectionReason: '',
+            paymentRejectionCode: ''
           },
           $inc: {
             paymentSubmissionCount: 1
@@ -337,8 +343,13 @@ exports.postUploadPaymentProof = async (req, res) => {
           cleanupKeys.push(derivedKey);
         }
       }
-      if (cleanupKeys.length) {
-        await uploadService.deleteObjects(cleanupKeys);
+      // A receipt an organiser already ruled on stays, so the decision history keeps it.
+      const unreferencedKeys = [];
+      for (const key of cleanupKeys) {
+        if (!await isProofReferencedByReviewDecision(key)) unreferencedKeys.push(key);
+      }
+      if (unreferencedKeys.length) {
+        await uploadService.deleteObjects(unreferencedKeys);
       }
 
       recordCriticalAuditEventInBackground({
@@ -591,6 +602,32 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
 
     const ocrData = parseOcrData(req.body, distanceKm, elapsedMs, user);
 
+    // Optional activity link (flag-gated). Validated before the proof is uploaded so a link
+    // the runner must fix never leaves an orphaned file; an empty field is always accepted.
+    const activityEvidenceResult = await buildActivityEvidence({
+      rawUrl: req.body.activityUrl,
+      runnerId: user._id,
+      submissionAttemptId,
+      eventIds: selectedRegistrations.map((item) => item.eventId?._id || item.eventId).filter(Boolean),
+      excludeIds: existingSubmissions.map((item) => item._id)
+    });
+    if (!activityEvidenceResult.ok) {
+      return respond('error', activityEvidenceResult.message, {
+        code: 'INVALID_ACTIVITY_URL',
+        fieldErrors: { activityUrl: activityEvidenceResult.message }
+      });
+    }
+    const activityEvidence = activityEvidenceResult.evidence;
+    // Opt-in to model-improvement use of cropped text lines: flag-gated, unchecked by default,
+    // recorded with the wording version shown. Not consenting changes nothing about review.
+    const ocrTrainingConsent = isTrainingConsentPromptEnabled()
+      ? {
+        granted: String(req.body.ocrTrainingConsent || '') === '1',
+        recordedAt: new Date(),
+        noticeVersion: OCR_TRAINING_CONSENT_NOTICE_VERSION
+      }
+      : undefined;
+
     const proofHash = crypto.createHash('sha256').update(resultProofFile.buffer).digest('hex');
     let idempotencyLock = null;
 
@@ -669,7 +706,9 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
             steps,
             ocrData,
             submissionAttemptId,
-            honorSystemConfirmed
+            honorSystemConfirmed,
+            activityEvidence,
+            ocrTrainingConsent
           };
 
           let savedSubmission;
@@ -713,6 +752,16 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
         }
         throw writeError;
       }
+      // Server OCR re-reads the stored proof in the background (flag-gated; never blocks).
+      await queueProofExtraction({
+        submissionAttemptId,
+        entries: writeResults
+          .filter((item) => !item.priorAttempt && item.submission?._id)
+          .map((item) => ({
+            kind: item.kind === 'accumulated' ? 'accumulated_activity' : 'run_submission',
+            submission: item.submission
+          }))
+      });
       const previousProofKeys = new Set(writeResults.map((item) => item.previousKey).filter(Boolean));
       const savedCount = targetRegistrationIds.length;
       const submittedEntries = writeResults.map((item) => ({
@@ -881,11 +930,12 @@ function parseSubmissionAttemptId(value) {
 async function deleteProofObjectIfUnused(proofKey) {
   const safeKey = String(proofKey || '').trim();
   if (!safeKey) return;
-  const [usedBySubmission, usedByAccumulatedActivity] = await Promise.all([
+  const [usedBySubmission, usedByAccumulatedActivity, usedByReviewDecision] = await Promise.all([
     Submission.exists({ 'proof.key': safeKey }),
-    AccumulatedActivitySubmission.exists({ 'proof.key': safeKey })
+    AccumulatedActivitySubmission.exists({ 'proof.key': safeKey }),
+    isProofReferencedByReviewDecision(safeKey)
   ]);
-  if (usedBySubmission || usedByAccumulatedActivity) return;
+  if (usedBySubmission || usedByAccumulatedActivity || usedByReviewDecision) return;
   await uploadService.deleteObjects([safeKey]).catch(() => {});
 }
 
@@ -992,22 +1042,6 @@ function parseOcrDate(value) {
 function parseRunTypeOrBlank(value) {
   const safe = String(value || '').trim().toLowerCase();
   return ['run', 'walk', 'hike', 'trail_run'].includes(safe) ? safe : '';
-}
-
-function namesMatch(ocrName, accountName) {
-  const ocrNameLower = String(ocrName || '').trim().toLowerCase();
-  const accountNameLower = String(accountName || '').trim().toLowerCase();
-  if (!ocrNameLower || !accountNameLower) return false;
-  if (
-    ocrNameLower === accountNameLower ||
-    ocrNameLower.includes(accountNameLower) ||
-    accountNameLower.includes(ocrNameLower)
-  ) {
-    return true;
-  }
-  const parts = accountNameLower.split(/\s+/).filter(Boolean);
-  if (parts.length < 2) return false;
-  return ocrNameLower.includes(parts[0]) && ocrNameLower.includes(parts[parts.length - 1]);
 }
 
 function cleanOcrNameCandidate(value) {

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/admin-ocr.css">
+</head>
+<body>
+  <%- include('../../layouts/nav') %>
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <%- include('_header') %>
+
+      <div class="dashboard-grid">
+        <% [['Pending review', counts.pending], ['Approved', counts.approved], ['Eligible for datasets', counts.eligible], ['Excluded', counts.excluded]].forEach(([label, value]) => { %>
+          <article class="metric-card"><p class="metric-label"><%= label %></p><p class="metric-value"><%= value || 0 %></p></article>
+        <% }) %>
+      </div>
+
+      <section class="ocr-panel" aria-labelledby="ocr-sample-rules">
+        <h2 id="ocr-sample-rules">How to review a sample</h2>
+        <p class="ocr-help">Type <strong>exactly the text visible in the crop</strong>, including units and punctuation, even if the activity value is wrong or the runner's entry was corrected. Approve only when the crop shows one readable line that matches your text. Exclude crops that contain names, faces, maps or more than one line.</p>
+      </section>
+
+      <form class="admin-filters ocr-form-row" method="GET" action="/admin/ocr-training/samples" aria-label="Filter samples">
+        <label>Status
+          <select name="status">
+            <% ['pending', 'approved', 'excluded'].forEach((value) => { %><option value="<%= value %>" <%= filters.status === value ? 'selected' : '' %>><%= value %></option><% }) %>
+          </select>
+        </label>
+        <label>Platform
+          <select name="platform">
+            <option value="">All</option>
+            <% ['strava', 'coros', 'garmin', 'unknown'].forEach((value) => { %><option value="<%= value %>" <%= filters.platform === value ? 'selected' : '' %>><%= value %></option><% }) %>
+          </select>
+        </label>
+        <label>Field
+          <select name="fieldKey">
+            <option value="">All</option>
+            <% ['distance', 'time', 'pace'].forEach((value) => { %><option value="<%= value %>" <%= filters.fieldKey === value ? 'selected' : '' %>><%= value %></option><% }) %>
+          </select>
+        </label>
+        <button type="submit" class="btn">Filter</button>
+      </form>
+
+      <% if (!page.items.length) { %>
+        <p class="ocr-empty">No <%= filters.status %> samples match. Samples appear when a runner opts in on a proof processed by server OCR, or when an admin adds their own screenshot below.</p>
+      <% } %>
+
+      <% page.items.forEach((sample) => { %>
+        <article class="ocr-panel" aria-labelledby="sample-<%= sample._id %>">
+          <h3 id="sample-<%= sample._id %>"><%= sample.fieldKey %> line · <%= sample.platform %> · <span class="ocr-pill ocr-pill-<%= sample.status %>"><%= sample.status %></span> <span class="ocr-pill ocr-pill-<%= sample.eligibility === 'eligible' ? 'ready' : 'pending' %>"><%= sample.eligibility %></span></h3>
+          <div class="ocr-panel-grid">
+            <div>
+              <% if (sample.cropUrl) { %>
+                <img class="ocr-crop-image" src="<%= sample.cropUrl %>" alt="Cropped <%= sample.fieldKey %> text line for transcription" width="<%= sample.cropWidth || '' %>" height="<%= sample.cropHeight || '' %>" loading="lazy" referrerpolicy="no-referrer">
+              <% } else { %>
+                <p class="ocr-empty"><%= sample.cropDeletedAt ? 'Crop deleted under the retention policy.' : 'Crop preview unavailable (R2 not configured).' %></p>
+              <% } %>
+              <p class="ocr-help">Engine read: <code><%= sample.ocrText || '—' %></code> · activity value: <%= sample.normalizedValue || '—' %> · layout <%= sample.layoutId || 'n/a' %></p>
+              <p class="ocr-help">Consent: <%= sample.consentBasis || 'none' %><% if (sample.retentionExpiry) { %> · keep until <%= formatDateTime(sample.retentionExpiry) %><% } %></p>
+              <% if (sample.ineligibleReasons && sample.ineligibleReasons.length) { %><p class="ocr-help">Not eligible: <%= sample.ineligibleReasons.join(', ') %></p><% } %>
+              <% if (sample.exclusionReason) { %><p class="ocr-help">Excluded: <%= sample.exclusionReason %></p><% } %>
+            </div>
+            <form method="POST" action="/admin/ocr-training/samples/<%= sample._id %>/review" class="ocr-form-row">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <input type="hidden" name="version" value="<%= sample.__v %>">
+              <input type="hidden" name="returnTo" value="/admin/ocr-training/samples?status=<%= encodeURIComponent(filters.status) %>">
+              <label>Literal transcription
+                <input name="transcribedText" maxlength="200" value="<%= sample.transcribedText || sample.ocrText || '' %>" autocomplete="off" spellcheck="false">
+              </label>
+              <label><input type="checkbox" name="alignmentConfirmed" value="1"> The crop shows exactly this text</label>
+              <label>Reason (required to exclude)
+                <input name="reason" maxlength="300">
+              </label>
+              <div>
+                <button type="submit" name="action" value="approve" class="btn">Approve</button>
+                <button type="submit" name="action" value="save" class="btn btn-secondary">Save text</button>
+                <% if (sample.status === 'excluded') { %>
+                  <button type="submit" name="action" value="reopen" class="btn btn-secondary">Reopen</button>
+                <% } else { %>
+                  <button type="submit" name="action" value="exclude" class="btn btn-secondary">Exclude</button>
+                <% } %>
+              </div>
+            </form>
+          </div>
+        </article>
+      <% }) %>
+
+      <% if (page.pages > 1) { %>
+        <nav aria-label="Sample pages" class="ocr-tabs">
+          <% for (let n = 1; n <= page.pages; n += 1) { %>
+            <a href="/admin/ocr-training/samples?status=<%= encodeURIComponent(filters.status) %>&platform=<%= encodeURIComponent(filters.platform) %>&fieldKey=<%= encodeURIComponent(filters.fieldKey) %>&page=<%= n %>" <%= n === page.page ? 'aria-current=page' : '' %>><%= n %></a>
+          <% } %>
+        </nav>
+      <% } %>
+
+      <section class="ocr-panel" aria-labelledby="ocr-datasets-heading">
+        <h2 id="ocr-datasets-heading">Dataset snapshots</h2>
+        <p class="ocr-help">A snapshot freezes every approved, eligible sample with its literal text. Each screenshot's lines stay in one split (train, validation or held-out test) by a fixed hash rule, so the test set never leaks into training. Snapshots never change after creation.</p>
+        <form method="POST" action="/admin/ocr-training/datasets" class="ocr-form-row">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <label>Name <input name="name" maxlength="80" placeholder="dataset-2026-10"></label>
+          <button type="submit" class="btn">Create snapshot</button>
+        </form>
+        <% if (!datasets.length) { %>
+          <p class="ocr-empty">No snapshots yet.</p>
+        <% } else { %>
+          <div class="admin-users-table-wrap">
+            <table class="admin-table ocr-table">
+              <thead><tr><th>Created</th><th>Name</th><th>Status</th><th>Train / val / test</th><th>Groups</th><th>Hash</th><th>Manifest</th></tr></thead>
+              <tbody>
+                <% datasets.forEach((dataset) => { %>
+                  <tr>
+                    <td><%= formatDateTime(dataset.createdAt) %></td>
+                    <td><%= dataset.name %></td>
+                    <td><span class="ocr-pill ocr-pill-<%= dataset.validationStatus === 'ready' ? 'ready' : 'pending' %>"><%= dataset.validationStatus %></span><% if (dataset.notReadyReasons && dataset.notReadyReasons.length) { %><br><span class="ocr-help"><%= dataset.notReadyReasons.join(' · ') %></span><% } %></td>
+                    <td><%= dataset.counts.train %> / <%= dataset.counts.validation %> / <%= dataset.counts.test %></td>
+                    <td><%= dataset.counts.groups %></td>
+                    <td><code><%= String(dataset.manifestHash).slice(0, 12) %></code></td>
+                    <td><a href="/admin/ocr-training/datasets/<%= dataset._id %>/manifest.json">JSON</a></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </section>
+
+      <section class="ocr-panel" aria-labelledby="ocr-upload-heading">
+        <h2 id="ocr-upload-heading">Add your own screenshot</h2>
+        <p class="ocr-help">For screenshots you own or have permission to use for model improvement (for example your own Strava, COROS or Garmin activities). Only the located distance, time and pace lines are cropped and kept; the screenshot itself is not stored.</p>
+        <form method="POST" action="/admin/ocr-training/samples/upload" enctype="multipart/form-data" class="ocr-form-row">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <label>Screenshot
+            <input type="file" name="ocrTestImage" accept="image/jpeg,image/png,image/webp" required>
+          </label>
+          <label>Consent basis
+            <select name="consentBasis" required>
+              <option value="">Choose…</option>
+              <option value="owner_own_activity">My own activity</option>
+              <option value="synthetic">Synthetic / generated</option>
+            </select>
+          </label>
+          <label><input type="checkbox" name="attestation" value="1" required> I am allowed to use this screenshot to improve HelloRun OCR</label>
+          <button type="submit" class="btn">Add line crops</button>
+        </form>
+      </section>
+
+      <section class="ocr-panel ocr-danger-zone" aria-labelledby="ocr-withdraw-heading">
+        <h2 id="ocr-withdraw-heading">Exclude a participant's samples</h2>
+        <p class="ocr-help">Use for a withdrawal request or authorised removal. Excluded samples never enter future datasets. Models already trained are not changed by this.</p>
+        <form method="POST" action="/admin/ocr-training/samples/participant-exclusion" class="ocr-form-row" onsubmit="return confirm('Exclude every sample from this participant from future datasets?');">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <label>Participant user id <input name="runnerId" pattern="[a-fA-F0-9]{24}" required></label>
+          <label>Reason <input name="reason" minlength="5" maxlength="300" required></label>
+          <button type="submit" class="btn btn-secondary">Exclude samples</button>
+        </form>
+      </section>
+    </section>
+  </main>
+  <%- include('../../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

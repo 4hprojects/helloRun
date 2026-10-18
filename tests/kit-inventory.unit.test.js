@@ -166,8 +166,37 @@ test('stock is claimed before the kit is marked gone, and put back if that write
 });
 
 test('running out of a size is an answer, not a 500', () => {
-  assert.match(routes, /error\.code === 'NO_STOCK' \|\| error\.code === 'ALREADY_RELEASED'/);
-  assert.match(routes, /res\.status\(409\)/);
+  // The per-code branch this used to read moved into `sendOnsiteError`, which now covers
+  // every desk-actionable onsite failure rather than just the two kit ones. Assert what
+  // the desk receives instead of the shape of the handler — see
+  // tests/onsite-operational-errors.unit.test.js for the full mapping.
+  const { sendOnsiteError } = require('../src/routes/organiser/onsite-operations');
+
+  for (const code of ['NO_STOCK', 'ALREADY_RELEASED']) {
+    const error = new Error('No M left. Choose another size to hand over instead.');
+    error.code = code;
+
+    let status = null;
+    let body = null;
+    sendOnsiteError(
+      {
+        status(value) {
+          status = value;
+          return this;
+        },
+        json(payload) {
+          body = payload;
+          return this;
+        }
+      },
+      'Error releasing race kit:',
+      error
+    );
+
+    assert.equal(status, 409, `${code} is a refusal the desk can act on, not a fault`);
+    assert.match(body.error, /No M left/);
+  }
+
   assert.match(release, /out_of_stock: `No \$\{requested\} left/);
   // The desk has to be able to act on it rather than being stuck on an error.
   assert.match(read('src/public/js/organizer-onsite-kits.js'), /button\.disabled = false/);

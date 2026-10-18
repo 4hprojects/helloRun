@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const { organizerCorrectionSchema } = require('./organizer-correction.schema');
+const { serverOcrSchema } = require('./server-ocr.schema');
+const { activityUrlSchema, activityUrlVerificationSchema, duplicateSignalSchema, ocrTrainingConsentSchema } = require('./activity-evidence.schema');
 const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 const { applyRestrictedProviderScope } = require('../utils/restricted-provider-scope');
 
@@ -274,6 +276,18 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
       },
       nameMismatchAcknowledged: { type: Boolean, default: false }
     },
+    // Server re-read of the stored proof (Phase 1 of docs/improvement-plan/ocr-platform-aware).
+    // Absent on entries submitted while OCR_SERVER_PIPELINE_ENABLED was off.
+    serverOcr: { type: serverOcrSchema, default: undefined },
+    // 64-bit difference hash of the proof image for near-duplicate review flags.
+    proofDifferenceHash: { type: String, trim: true, default: '', maxlength: 16 },
+    // Optional activity link (Phase 2). Corroboration for reviewers, never proof on its own.
+    activityUrl: { type: activityUrlSchema, default: undefined },
+    activityUrlVerification: { type: activityUrlVerificationSchema, default: undefined },
+    // Possible re-use of the same activity or screenshot. Review flags, never automatic rejections.
+    duplicateSignals: { type: [duplicateSignalSchema], default: undefined },
+    // Optional opt-in to OCR model improvement (Phase 3). Absent unless the prompt was shown.
+    ocrTrainingConsent: { type: ocrTrainingConsentSchema, default: undefined },
     suspiciousFlag: {
       type: Boolean,
       default: false
@@ -339,6 +353,19 @@ accumulatedActivitySubmissionSchema.index(
 );
 accumulatedActivitySubmissionSchema.index({ runnerId: 1, 'proof.hash': 1 }, { sparse: true });
 accumulatedActivitySubmissionSchema.index({ registrationId: 1, 'certificate.url': 1 });
+// Duplicate review signals (docs/improvement-plan/ocr-platform-aware, Phase 2).
+accumulatedActivitySubmissionSchema.index(
+  { 'activityUrl.provider': 1, 'activityUrl.providerActivityId': 1 },
+  { partialFilterExpression: { 'activityUrl.providerActivityId': { $type: 'string' } } }
+);
+accumulatedActivitySubmissionSchema.index(
+  { eventId: 1, proofDifferenceHash: 1 },
+  { partialFilterExpression: { proofDifferenceHash: { $gt: '' } } }
+);
+accumulatedActivitySubmissionSchema.index(
+  { proofDifferenceHash: 1 },
+  { partialFilterExpression: { proofDifferenceHash: { $gt: '' } } }
+);
 applySmokeTestSchema(accumulatedActivitySubmissionSchema);
 applyRestrictedProviderScope(accumulatedActivitySubmissionSchema);
 

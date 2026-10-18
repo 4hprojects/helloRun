@@ -1,5 +1,90 @@
 # HelloRun Changelog — October 2026
 
+## October 17–18 — Platform-aware OCR, activity verification and training (feature branch)
+
+Implemented on `feature/platform-aware-ocr-training`, not merged or deployed. Every feature
+flag defaults off; with them off, behaviour is unchanged. Details and evidence:
+`docs/improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md`.
+
+- **Server OCR** re-reads stored run proofs in a background worker (`OCR_SERVER_PIPELINE_ENABLED`)
+  with evidence-based Strava/COROS/Garmin detection and a generic fallback. With
+  `OCR_SERVER_AUTO_APPROVAL_ENABLED`, auto-approval no longer trusts OCR values posted by the
+  browser.
+- **Optional activity link** (`ACTIVITY_URL_ENABLED`), parsed without any network request;
+  reviewer link checks; duplicate-activity and near-duplicate-screenshot review flags.
+- **Ground truth**: unchecked opt-in consent, private line crops, literal-transcription review,
+  immutable dataset snapshots with leak-free splits, tesstrain export.
+- **Manual training** in a separate, resource-limited worker; held-out evaluation with per-platform
+  gates; full-admin approve, activate (checksum-verified, compare-and-set) and rollback.
+- **Admin reminders**, analytics and a privacy-minimised research export.
+- `ReviewDecision` evidence snapshots now include the server OCR reading, activity link and
+  duplicate signals when present.
+- Coverage: OCR unit tests, six local-MongoDB integration suites (39 tests) and an end-to-end
+  boot test, all run through the repository DB guard.
+
+## October 17 — Platform-aware OCR plan: Phase 0 assessment
+
+- The approved OCR, activity-verification and training plan moved to
+  `docs/improvement-plan/ocr-platform-aware/`, with a Phase 0 report in
+  `IMPLEMENTATION-PROGRESS.md`. It covers the verified architecture, a gap table, security
+  findings and owner decisions.
+- Main finding: auto-approval relies on OCR values the browser sends. Phase 1
+  will add a server-side re-read of the stored proof.
+- New offline benchmark harness: `npm run ocr:benchmark`
+  (`src/scripts/ocr-benchmark.js`, `src/utils/ocr/benchmark-metrics.js`). It
+  reports per-platform/layout exact-field accuracy, CER, completeness and
+  latency, and prints `N/A` when nothing was measured. Images and labels stay
+  in git-ignored `benchmarks/ocr/local/`; samples without a consent basis are
+  skipped.
+- No application behaviour changed. DB-free coverage:
+  `tests/ocr-benchmark.unit.test.js`.
+
+## October 15 — Linked-entry review for multi-event submissions
+
+- A runner who sends one proof to several events in one submission now gets **one review**.
+  A manual approve or reject on any of those entries (shared `submissionAttemptId`) is
+  applied to every linked entry still awaiting review, across organisers and including
+  accumulated-challenge activities. The linked entries' own event rules are not re-checked,
+  and their verification checklist is not required.
+- The cascade never overrides an existing decision: approval follows only to `submitted`
+  (and accumulated `needs_clarification`) entries, rejection only to `submitted` entries,
+  so a cascaded rejection never reverses an approval. Approval reversals and accumulated
+  clarification requests stay on their own entry.
+- Each linked entry goes through the normal review path (shadow sync, rankings,
+  certificate, notification, accumulated progress and certificate reconciliation) and
+  records its own audit row and `ReviewDecision`, with a new `linkedFrom` reference and a
+  review note naming the source entry and event.
+- New `src/services/linked-entry-review.service.js`. The full-page review shows which other
+  events a decision will also apply to, and the organiser success messages report how many
+  linked entries followed. The runner submit modal and the FAQ now say that entries
+  submitted together share one review.
+- DB-free coverage: `tests/linked-entry-review.service.unit.test.js`.
+
+## October 15 — Review decision history
+
+- **Fix: run-proof rejection codes were never saved.** `rejectionCode` and
+  `manualReviewChecklist` were written by `reviewSubmission` but existed only in an unused
+  `commonActivityFields` object, not in `submissionSchema`, so Mongoose strict mode dropped
+  them. Both are now schema fields and the dead block is gone. Past run-proof rejections
+  have no code and cannot be backfilled. Accumulated activities and payment proofs were
+  unaffected.
+- **New append-only `ReviewDecision` collection** (`src/models/ReviewDecision.js`,
+  `src/services/review-decision.service.js`). Every approve, reject, auto-approve, reversal
+  and needs-clarification decision on run submissions, accumulated activities and payment
+  proofs writes one row: actor, role, self-review, attempt number, code, reason, notes,
+  checklist, the event's acceptance rules, and an evidence snapshot (metrics, proof key and
+  hash, OCR payload, validation, suspicion flag) taken *before* the decision. Resubmission
+  and approval no longer erase why an earlier attempt was decided as it was. Writes run in
+  the background and never fail a review.
+- Rejection rows in the Postgres critical audit now lead with `[code]`, so the trail can
+  be searched by reason.
+- Resubmission no longer deletes a replaced run proof or payment receipt that a recorded
+  decision references, so the history keeps the image the reviewer saw. This grows R2
+  storage by one file per decided-then-replaced attempt.
+- Payment resubmission now also clears `paymentRejectionCode` (it kept the stale code).
+- Test-data and test-user cleanup also delete `ReviewDecision` rows.
+- DB-free coverage: `tests/review-decision.service.unit.test.js`.
+
 ## October 9 — Admin-approved organiser role reconciliation
 
 - Runners whose organizer status was set to Approved through Admin → Users → Edit kept

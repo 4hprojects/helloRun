@@ -298,6 +298,7 @@
       setFieldError('runProofLocationError', 'runLocation', '');
       setFieldError('runProofElevationError', 'elevationGain', '');
       setFieldError('runProofStepsError', 'steps', '');
+      setFieldError('runProofActivityUrlError', 'activityUrl', '');
       setFieldError('runProofRunTypeError', 'runType', '');
       setFieldError('runProofImageError', 'image', '');
     };
@@ -501,7 +502,8 @@
         setEventsHelperText(
           'This activity qualifies for ' + state.selectedRegistrationIds.size +
           ' events. All are selected and submitting will create ' +
-          state.selectedRegistrationIds.size + ' separate entries. Deselect any event you do not want to include.'
+          state.selectedRegistrationIds.size + ' entries that share one review: approving or rejecting any of them applies to all. ' +
+          'Deselect any event you do not want to include.'
         );
       }
 
@@ -1769,6 +1771,7 @@
           elevationGain: [elevationInput, 'runProofElevationError', 'elevationGain'],
           trackingAppDevice: [trackingAppDeviceInput, 'runProofTrackingAppDeviceError', 'trackingAppDevice'],
           steps: [stepsInput, 'runProofStepsError', 'steps'],
+          activityUrl: [document.getElementById('runProofActivityUrl'), 'runProofActivityUrlError', 'activityUrl'],
           selectedRegistrationIds: [eventsList, 'runProofEventsError', 'events']
         };
         let firstInvalid = null;

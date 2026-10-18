@@ -7,6 +7,26 @@ const { evaluateOnsiteResultAchievements } = require('./achievement.service');
 const logger = require('../utils/logger');
 
 /**
+ * Mark an error as something the person at the desk can act on.
+ *
+ * These routes answer a race-day console. A duplicate bib number, a kit asked for
+ * before a bib exists, a registration that belongs to another event — none of those are
+ * server faults, and all of them have an obvious next step. Left uncoded they reached
+ * `sendJsonServerError`, which deliberately replaces the message with "Something went
+ * wrong. Please try again." That is right for a genuine fault and useless here: the one
+ * sentence that tells a volunteer what to do was the sentence being thrown away.
+ *
+ * `race-kit-release.service.js` already worked this way (`NO_STOCK`, `ALREADY_RELEASED`);
+ * this brings the rest of the onsite services in line.
+ */
+function operationalError(message, code) {
+  const error = new Error(message);
+  error.code = code;
+  error.isOperational = true;
+  return error;
+}
+
+/**
  * Assign a bib number to a registration
  * @param {string} eventId - MongoDB event ID
  * @param {string} registrationId - MongoDB registration ID
@@ -22,7 +42,7 @@ async function assignBib(eventId, registrationId, bibNumber, options = {}) {
     const eventRows = await sql`
       SELECT id FROM events_core WHERE mongo_event_id = ${eventId} LIMIT 1
     `;
-    if (eventRows.length === 0) throw new Error(`Event not found for ID: ${eventId}`);
+    if (eventRows.length === 0) throw operationalError(`Event not found for ID: ${eventId}`, 'NOT_FOUND');
     const eventCoreId = eventRows[0].id;
 
     // Scoped to this event, not just to the id. The route guard checks the organiser owns
@@ -35,7 +55,10 @@ async function assignBib(eventId, registrationId, bibNumber, options = {}) {
       LIMIT 1
     `;
     if (regRows.length === 0) {
-      throw new Error(`Registration not found for ID: ${registrationId} on this event`);
+      throw operationalError(
+        `Registration not found for ID: ${registrationId} on this event`,
+        'NOT_FOUND'
+      );
     }
     const registrationCoreId = regRows[0].id;
     const runnerUserId = regRows[0].app_user_id;
@@ -47,7 +70,7 @@ async function assignBib(eventId, registrationId, bibNumber, options = {}) {
       LIMIT 1
     `;
     if (dupRows.length > 0) {
-      throw new Error(`Bib number ${bibNumber} already assigned for this event`);
+      throw operationalError(`Bib number ${bibNumber} already assigned for this event`, 'BIB_TAKEN');
     }
 
     // Insert or reassign. The conflict target is the partial unique index added in
@@ -141,7 +164,10 @@ async function markRaceKitReleased(eventId, registrationId) {
     `;
 
     if (result.length === 0) {
-      throw new Error('No live bib assignment found for this registration. Assign a bib first.');
+      throw operationalError(
+        'No live bib assignment found for this registration. Assign a bib first.',
+        'NO_BIB'
+      );
     }
 
     logger.debug(`[Onsite] Race kit released for registration ${registrationId} at event ${eventId}`);
@@ -167,7 +193,7 @@ async function recordCheckIn(eventId, registrationId, options = {}) {
     const eventRows = await sql`
       SELECT id FROM events_core WHERE mongo_event_id = ${eventId} LIMIT 1
     `;
-    if (eventRows.length === 0) throw new Error(`Event not found for ID: ${eventId}`);
+    if (eventRows.length === 0) throw operationalError(`Event not found for ID: ${eventId}`, 'NOT_FOUND');
     const eventCoreId = eventRows[0].id;
 
     // Scoped to this event, not just to the id. The route guard checks the organiser owns
@@ -180,7 +206,10 @@ async function recordCheckIn(eventId, registrationId, options = {}) {
       LIMIT 1
     `;
     if (regRows.length === 0) {
-      throw new Error(`Registration not found for ID: ${registrationId} on this event`);
+      throw operationalError(
+        `Registration not found for ID: ${registrationId} on this event`,
+        'NOT_FOUND'
+      );
     }
     const registrationCoreId = regRows[0].id;
     const runnerUserId = regRows[0].app_user_id;
@@ -236,14 +265,14 @@ async function recordCheckIn(eventId, registrationId, options = {}) {
 async function createRaceKit(eventId, kitData) {
   const sql = getPostgresClient();
   if (!String(kitData?.name || '').trim()) {
-    throw new Error('Race kit name is required');
+    throw operationalError('Race kit name is required', 'INVALID_INPUT');
   }
 
   try {
     const eventRows = await sql`
       SELECT id FROM events_core WHERE mongo_event_id = ${eventId} LIMIT 1
     `;
-    if (eventRows.length === 0) throw new Error(`Event not found for ID: ${eventId}`);
+    if (eventRows.length === 0) throw operationalError(`Event not found for ID: ${eventId}`, 'NOT_FOUND');
     const eventCoreId = eventRows[0].id;
 
     const result = await sql`
@@ -282,13 +311,13 @@ async function logResultImport(eventId, userId, importData) {
     const eventRows = await sql`
       SELECT id FROM events_core WHERE mongo_event_id = ${eventId} LIMIT 1
     `;
-    if (eventRows.length === 0) throw new Error(`Event not found for ID: ${eventId}`);
+    if (eventRows.length === 0) throw operationalError(`Event not found for ID: ${eventId}`, 'NOT_FOUND');
     const eventCoreId = eventRows[0].id;
 
     const userRows = await sql`
       SELECT id FROM app_users WHERE mongo_user_id = ${userId} LIMIT 1
     `;
-    if (userRows.length === 0) throw new Error(`User not found for ID: ${userId}`);
+    if (userRows.length === 0) throw operationalError(`User not found for ID: ${userId}`, 'NOT_FOUND');
     const appUserId = userRows[0].id;
 
     const result = await sql`
@@ -328,7 +357,7 @@ async function recordOnsiteResult(eventId, registrationId, resultData) {
     const eventRows = await sql`
       SELECT id FROM events_core WHERE mongo_event_id = ${eventId} LIMIT 1
     `;
-    if (eventRows.length === 0) throw new Error(`Event not found for ID: ${eventId}`);
+    if (eventRows.length === 0) throw operationalError(`Event not found for ID: ${eventId}`, 'NOT_FOUND');
     const eventCoreId = eventRows[0].id;
 
     // Scoped to this event, not just to the id. The route guard checks the organiser owns
@@ -341,7 +370,10 @@ async function recordOnsiteResult(eventId, registrationId, resultData) {
       LIMIT 1
     `;
     if (regRows.length === 0) {
-      throw new Error(`Registration not found for ID: ${registrationId} on this event`);
+      throw operationalError(
+        `Registration not found for ID: ${registrationId} on this event`,
+        'NOT_FOUND'
+      );
     }
     const registrationCoreId = regRows[0].id;
     const runnerUserId = regRows[0].app_user_id;
@@ -455,7 +487,9 @@ async function approveOnsiteResult(eventId, onsiteResultId, options = {}) {
         AND result_status != 'disqualified'
       RETURNING *
     `;
-    if (result.length === 0) throw new Error('Onsite result not found or cannot be approved');
+    if (result.length === 0) {
+      throw operationalError('Onsite result not found or cannot be approved', 'RESULT_NOT_APPROVABLE');
+    }
 
     // The approval above is already committed. Anything after it is a consequence of
     // the approval, not a condition of it — so a failure here is reported, never thrown.

@@ -1,4 +1,5 @@
 const express = require('express');
+const ocrConsentController = require('../controllers/runner-ocr-consent.controller');
 const router = express.Router();
 const runnerController = require('../controllers/runner.controller');
 const groupCommunityController = require('../controllers/running-group-community.controller');
@@ -64,6 +65,7 @@ router.get('/runner/groups/create', requireAuth, runnerController.getCreateRunni
 router.get('/runner/submissions', requireAuth, runnerController.getRunnerSubmissionsPage);
 router.get('/runner/submissions/:submissionId/proof', requireAuth, runnerController.getRunnerSubmissionProof);
 router.get('/runner/submissions/:submissionId', requireAuth, runnerController.getRunnerSubmissionDetailPage);
+router.post('/runner/submissions/:submissionId/ocr-training-consent/withdraw', requireAuth, ocrConsentController.withdrawOcrTrainingConsent);
 router.get('/runner/groups/:slug/announcements/:announcementId/comments', requireAuth, groupCommunityController.listComments);
 router.get('/runner/groups/:slug/announcements/:announcementId/comments/:commentId/replies', requireAuth, groupCommunityController.listReplies);
 router.get('/runner/groups/:slug/announcements/:announcementId/comments/:commentId/history', requireAuth, groupCommunityController.commentHistory);

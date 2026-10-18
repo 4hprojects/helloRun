@@ -16,8 +16,8 @@ is called out as untested rather than described as if it works.
 ## 1. How a deploy happens
 
 **Corrected August 10, 2026.** Every previous version of this section said
-Render auto-deploys from GitHub `main`. That was wrong — there is no evidence
-this repository has ever been hosted on Render. Production runs on a single
+Render auto-deploys from GitHub `main`. That was wrong — Render is at most a
+backup (see below). Production runs on a single
 host via PM2, discovered by tracing an actual outage rather than trusting the
 prior text:
 
@@ -50,6 +50,12 @@ What that means in practice:
   whatever `node` is already on `PATH` on this host. The field only matters
   if some install step runs with `engine-strict` set, which nothing in this
   chain does.
+- **Render is a backup origin, not the deploy path.** Henz keeps a Render
+  service as a fallback (an `x-render-origin-server` header was seen in July).
+  It does not normally serve traffic, and **how to cut Cloudflare over to it and
+  back is not recorded** — a backup nobody has failed over to is a plan, not a
+  capability. If you revert or ship a fix, update Render too so the fallback is
+  not left on old code.
 
 What still holds regardless of host:
 
@@ -128,6 +134,43 @@ Work down this list. Each has actually happened.
    and `/etc/nginx/sites-enabled/hellorun`'s `proxy_pass`. This is a real risk
    specific to sharing a host with other apps — nothing in this repository
    would ever surface it.
+
+### A different shape: the origin is gone
+
+A stalled deploy still serves the old commit. **If every path returns `502` —
+including `/` — the origin is not answering at all**, which is a separate
+failure and a full outage rather than a stale one. Tell them apart from the
+response, not the dashboard:
+
+```bash
+curl -sI https://hellorun.online/healthz | head -3
+```
+
+`server: cloudflare` with a plain-text `error code: 502` body is Cloudflare's own
+edge error, meaning it could not get a response from the origin. Nothing in the
+repository can fix that and no push will route around it (see the correction in
+§1). Work in this order:
+
+1. **Which origin should be live?** `x-render-origin-server` present means the
+   Render backup is serving; absent means the PM2 host in §1 is.
+2. **Walk the chain in §1 from the bottom up on the production host:**
+   `pm2 describe hellorun` (online? restart count climbing?), `ss -ltn` against
+   `.env`'s `PORT` and nginx's `proxy_pass` (item 5 above — the cause on August
+   10), then `systemctl status cloudflared`.
+3. **If that will take a while, fail over to the Render backup.** Restoring
+   service beats diagnosing it.
+
+Before assuming the code is at fault, check whether the commit boots:
+`PORT=3211 node src/server.js` and curl `/healthz` locally. A clean local boot on
+the same commit points at the host configuration, not at the build.
+
+**Diagnose on the production host, not a development machine.** During the
+August 9–10 outage a parallel investigation ran on a development workstation,
+found no tunnel and its router's admin page on port 443, and concluded the route
+was missing. That workstation was never the origin; the real cause was the
+`PORT` drift in item 5. Do not install a tunnel or run
+`cloudflared tunnel route dns` from anywhere but the production host — it would
+repoint `hellorun.online` at that machine.
 
 ## 4. Migrations
 

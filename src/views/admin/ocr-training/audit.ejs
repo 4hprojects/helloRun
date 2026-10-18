@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/admin-ocr.css">
+</head>
+<body>
+  <%- include('../../layouts/nav') %>
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <%- include('_header') %>
+      <section class="ocr-panel" aria-labelledby="ocr-audit-heading">
+        <h2 id="ocr-audit-heading">OCR administration audit trail</h2>
+        <p class="ocr-help">Append-only. The 100 most recent actions are shown.</p>
+        <% if (!rows.length) { %>
+          <p class="ocr-empty">No OCR administration actions recorded yet.</p>
+        <% } else { %>
+          <div class="admin-users-table-wrap">
+            <table class="admin-table ocr-table">
+              <thead><tr><th>When</th><th>Action</th><th>Actor</th><th>Target</th><th>Status</th><th>Reason</th></tr></thead>
+              <tbody>
+                <% rows.forEach((row) => { %>
+                  <tr>
+                    <td><%= formatDateTime(row.createdAt) %></td>
+                    <td><%= row.action %></td>
+                    <td><%= row.actorId ? String(row.actorId) : 'system' %></td>
+                    <td><%= row.targetType %> <%= row.targetId %></td>
+                    <td><%= row.statusFrom || '—' %> → <%= row.statusTo || '—' %></td>
+                    <td><%= row.reason || '—' %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </section>
+    </section>
+  </main>
+  <%- include('../../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

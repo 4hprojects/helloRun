@@ -49,4 +49,16 @@ function resolveRejectionReason(kind, code, detail, options = {}) {
   };
 }
 
-module.exports = { REJECTION_REASONS, getRejectionReasonOptions, resolveRejectionReason };
+// Audit note for a rejection: the structured code first, so the Postgres audit trail can be
+// searched by reason, then the runner-facing message.
+function formatRejectionAuditNote({ rejectionCode, rejectionReason, reviewNotes } = {}) {
+  const message = rejectionReason || reviewNotes || '';
+  return rejectionCode ? `[${rejectionCode}] ${message}`.trim() : message;
+}
+
+module.exports = {
+  REJECTION_REASONS,
+  getRejectionReasonOptions,
+  resolveRejectionReason,
+  formatRejectionAuditNote
+};

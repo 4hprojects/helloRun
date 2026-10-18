@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/admin-ocr.css">
+</head>
+<body>
+  <%- include('../../layouts/nav') %>
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <%- include('_header') %>
+
+      <h2 class="dashboard-section-title">Extraction queue</h2>
+      <div class="dashboard-grid">
+        <% ['queued', 'running', 'completed', 'failed'].forEach((status) => { %>
+          <article class="metric-card">
+            <p class="metric-label"><%= status %></p>
+            <p class="metric-value"><%= queue[status] || 0 %></p>
+          </article>
+        <% }) %>
+        <% if (extras && extras.samples) { %>
+          <article class="metric-card">
+            <p class="metric-label">Samples pending review</p>
+            <p class="metric-value"><%= extras.samples.pending || 0 %></p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-label">Approved eligible samples</p>
+            <p class="metric-value"><%= extras.samples.eligible || 0 %></p>
+          </article>
+        <% } %>
+        <% if (extras && extras.activeModel) { %>
+          <article class="metric-card">
+            <p class="metric-label">Active model</p>
+            <p class="metric-value metric-value-sm"><%= extras.activeModel.label %></p>
+          </article>
+        <% } %>
+        <% if (extras && extras.trainingJob) { %>
+          <article class="metric-card">
+            <p class="metric-label">Training job</p>
+            <p class="metric-value metric-value-sm"><%= extras.trainingJob.status %></p>
+          </article>
+        <% } %>
+      </div>
+
+      <div class="ocr-panel-grid">
+        <section class="ocr-panel" aria-labelledby="ocr-detected-heading">
+          <h2 id="ocr-detected-heading">Server OCR, last 30 days</h2>
+          <% if (!breakdown.length) { %>
+            <p class="ocr-empty">No server extractions yet. They appear once OCR_SERVER_PIPELINE_ENABLED is on and proofs are submitted.</p>
+          <% } else { %>
+            <div class="admin-users-table-wrap">
+              <table class="admin-table">
+                <thead><tr><th>Platform</th><th>Detection</th><th>Extractions</th><th>Avg time</th></tr></thead>
+                <tbody>
+                  <% breakdown.forEach((row) => { %>
+                    <tr>
+                      <td><%= row.platform %></td>
+                      <td><span class="ocr-pill ocr-pill-<%= row.detectionStatus %>"><%= row.detectionStatus || 'n/a' %></span></td>
+                      <td><%= row.count %></td>
+                      <td><%= row.avgElapsedMs === null ? 'N/A' : `${row.avgElapsedMs} ms` %></td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+          <p class="ocr-help">Counts only. Accuracy needs reviewed ground truth; see Analytics.</p>
+        </section>
+
+        <section class="ocr-panel" aria-labelledby="ocr-profiles-heading">
+          <h2 id="ocr-profiles-heading">Profiles</h2>
+          <ul>
+            <% profiles.forEach((profile) => { %>
+              <li><strong><%= profile.id %></strong> <%= profile.version %> <span class="ocr-pill ocr-pill-<%= profile.status %>"><%= profile.status %></span></li>
+            <% }) %>
+          </ul>
+          <a class="btn btn-secondary" href="/admin/ocr-training/platforms">Manage profiles and Test OCR</a>
+        </section>
+      </div>
+
+      <section class="ocr-panel" aria-labelledby="ocr-jobs-heading">
+        <h2 id="ocr-jobs-heading">Recent extraction jobs</h2>
+        <% if (!recentJobs.length) { %>
+          <p class="ocr-empty">No extraction jobs yet.</p>
+        <% } else { %>
+          <div class="admin-users-table-wrap">
+            <table class="admin-table ocr-table">
+              <thead><tr><th>Queued</th><th>Status</th><th>Reason</th><th>Entries</th><th>Attempts</th><th>Time</th><th>Error</th></tr></thead>
+              <tbody>
+                <% recentJobs.forEach((job) => { %>
+                  <tr>
+                    <td><%= formatDateTime(job.createdAt) %></td>
+                    <td><span class="ocr-pill ocr-pill-<%= job.status %>"><%= job.status %></span></td>
+                    <td><%= job.options?.reason || 'submission' %></td>
+                    <td><%= (job.targets || []).length %></td>
+                    <td><%= job.attempts %></td>
+                    <td><%= job.elapsedMs ? `${job.elapsedMs} ms` : '—' %></td>
+                    <td><%= job.errorCode || '—' %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </section>
+    </section>
+  </main>
+  <%- include('../../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

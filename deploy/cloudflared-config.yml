@@ -1,0 +1,51 @@
+# Cloudflare Tunnel — the route from Cloudflare to this machine.
+#
+# Why a tunnel rather than a port forward.
+#
+# On August 10, 2026 the site returned 502 for over a day. The app was fine: it booted in
+# three seconds and served the homepage 200 against the production databases. What was
+# broken was the path. This machine is 192.168.1.19 — a private address behind NAT — and
+# the public IP's port 443 was answered by the *router's own admin page* (a ZTE web UI,
+# TLS subject CN=192.168.1.1). Cloudflare connected to the origin, got a router 404
+# instead of the app, and returned 502 to every visitor.
+#
+# A port forward can be restored, and will break again: the address is a residential
+# dynamic IP, and the forward is lost whenever the router resets. A tunnel dials *out* from
+# this machine, so it needs no forward, no open inbound port, and no stable public address.
+#
+# Setup, once:
+#   curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o /tmp/cloudflared.deb
+#   sudo dpkg -i /tmp/cloudflared.deb
+#   cloudflared tunnel login                  # browser; authorises this machine
+#   cloudflared tunnel create hellorun        # writes ~/.cloudflared/<UUID>.json
+#   cloudflared tunnel route dns hellorun hellorun.online
+#
+# Then put this file where the service will read it, filling in the UUID printed above:
+#   sudo mkdir -p /etc/cloudflared
+#   sudo cp deploy/cloudflared-config.yml /etc/cloudflared/config.yml
+#   sudo cp ~/.cloudflared/<UUID>.json /etc/cloudflared/
+#   sudo $(which cloudflared) service install
+#   systemctl status cloudflared --no-pager
+#
+# Verify — and verify the public URL, not the local one, because the local one was never
+# the thing that was broken:
+#   curl -s https://hellorun.online/healthz    # commitShort must match what is deployed
+
+# Replace with the UUID from `cloudflared tunnel create hellorun`.
+tunnel: REPLACE_WITH_TUNNEL_UUID
+credentials-file: /etc/cloudflared/REPLACE_WITH_TUNNEL_UUID.json
+
+# Keep the connection honest rather than silently half-open: if the app stops answering,
+# the tunnel should report it rather than hold a socket that goes nowhere.
+originRequest:
+  connectTimeout: 30s
+  noTLSVerify: false
+
+ingress:
+  # The app, as started by deploy/hellorun.service, on the port from .env (PORT=3000).
+  - hostname: hellorun.online
+    service: http://localhost:3000
+  - hostname: www.hellorun.online
+    service: http://localhost:3000
+  # Required: cloudflared refuses to start without a catch-all rule last.
+  - service: http_status:404

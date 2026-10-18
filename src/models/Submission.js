@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const { organizerCorrectionSchema } = require('./organizer-correction.schema');
+const { serverOcrSchema } = require('./server-ocr.schema');
+const { activityUrlSchema, activityUrlVerificationSchema, duplicateSignalSchema, ocrTrainingConsentSchema } = require('./activity-evidence.schema');
 const { syncSubmissionShadow } = require('../services/submission-shadow.service');
 const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 const { applyRestrictedProviderScope } = require('../utils/restricted-provider-scope');
@@ -13,81 +15,6 @@ const manualReviewChecklistSchema = new mongoose.Schema({
   confirmedAt: { type: Date, required: true },
   confirmedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { _id: false });
-
-/**
- * Shared schema fragments for activity metrics and metadata
- */
-const commonActivityFields = {
-  proofType: {
-    type: String,
-    enum: ['gps', 'photo', 'manual'],
-    default: 'manual'
-  },
-  proof: {
-    url: { type: String, default: '' },
-    key: { type: String, default: '' },
-    mimeType: { type: String, default: '' },
-    size: { type: Number, default: 0 },
-    hash: { type: String, default: '', maxlength: 64 }
-  },
-  stravaActivity: {
-    id: { type: Number, default: null },
-    athleteId: { type: Number, default: null },
-    name: { type: String, trim: true, default: '', maxlength: 200 },
-    // ... other strava fields
-  },
-  ocrData: {
-    extractedDistanceKm: { type: Number, default: null },
-    extractedTimeMs: { type: Number, default: null },
-    extractedElevationGain: { type: Number, default: null },
-    extractedSteps: { type: Number, default: null },
-    extractedRunDate: { type: String, default: '', maxlength: 10 },
-    extractedRunLocation: { type: String, trim: true, default: '', maxlength: 200 },
-    extractedRunType: {
-      type: String,
-      enum: ['run', 'walk', 'hike', 'trail_run', ''],
-      default: ''
-    },
-    rawText: { type: String, default: '', maxlength: 2000 },
-    confidence: { type: Number, default: 0, min: 0, max: 1 },
-    distanceMismatch: { type: Boolean, default: false },
-    timeMismatch: { type: Boolean, default: false },
-    elevationMismatch: { type: Boolean, default: false },
-    stepsMismatch: { type: Boolean, default: false },
-    dateMismatch: { type: Boolean, default: false },
-    locationMismatch: { type: Boolean, default: false },
-    runTypeMismatch: { type: Boolean, default: false },
-    detectedSource: {
-      type: String,
-      enum: ['strava', 'nike', 'garmin', 'apple', 'google', 'coros', 'unknown', ''],
-      default: ''
-    },
-    parserVersion: { type: String, trim: true, default: '', maxlength: 40 },
-    ocrPass: { type: String, trim: true, default: '', maxlength: 40 },
-    qualityFlags: [{ type: String, trim: true, maxlength: 80 }],
-    extractedName: { type: String, trim: true, default: '', maxlength: 120 },
-    nameMatchStatus: {
-      type: String,
-      enum: ['matched', 'mismatched', 'not_detected', 'not_checked'],
-      default: 'not_checked'
-    },
-    nameMismatchAcknowledged: { type: Boolean, default: false }
-  },
-  status: {
-    type: String,
-    enum: ['submitted', 'approved', 'rejected'],
-    default: 'submitted',
-    index: true
-  },
-  reviewedAt: { type: Date, default: null },
-  reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-  reviewNotes: { type: String, trim: true, default: '', maxlength: 1200 },
-  rejectionReason: { type: String, trim: true, default: '', maxlength: 500 },
-  rejectionCode: { type: String, trim: true, default: '', maxlength: 80 },
-  manualReviewChecklist: { type: manualReviewChecklistSchema, default: undefined },
-  suspiciousFlag: { type: Boolean, default: false },
-  suspiciousFlagReason: { type: String, trim: true, default: '', maxlength: 500 }
-};
 
 /**
  * Submission model for single-activity result submissions
@@ -277,6 +204,15 @@ const submissionSchema = new mongoose.Schema(
       default: '',
       maxlength: 500
     },
+    // Both were written by reviewSubmission for a long time but missing here, so strict
+    // mode dropped them silently. Records reviewed before this field existed have neither.
+    rejectionCode: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 80
+    },
+    manualReviewChecklist: { type: manualReviewChecklistSchema, default: undefined },
     certificate: {
       type: {
         type: String,
@@ -339,6 +275,18 @@ const submissionSchema = new mongoose.Schema(
       },
       nameMismatchAcknowledged: { type: Boolean, default: false }
     },
+    // Server re-read of the stored proof (Phase 1 of docs/improvement-plan/ocr-platform-aware).
+    // Absent on entries submitted while OCR_SERVER_PIPELINE_ENABLED was off.
+    serverOcr: { type: serverOcrSchema, default: undefined },
+    // 64-bit difference hash of the proof image for near-duplicate review flags.
+    proofDifferenceHash: { type: String, trim: true, default: '', maxlength: 16 },
+    // Optional activity link (Phase 2). Corroboration for reviewers, never proof on its own.
+    activityUrl: { type: activityUrlSchema, default: undefined },
+    activityUrlVerification: { type: activityUrlVerificationSchema, default: undefined },
+    // Possible re-use of the same activity or screenshot. Review flags, never automatic rejections.
+    duplicateSignals: { type: [duplicateSignalSchema], default: undefined },
+    // Optional opt-in to OCR model improvement (Phase 3). Absent unless the prompt was shown.
+    ocrTrainingConsent: { type: ocrTrainingConsentSchema, default: undefined },
     suspiciousFlag: {
       type: Boolean,
       default: false
@@ -407,6 +355,19 @@ submissionSchema.index({ runnerId: 1, 'proof.hash': 1 }, { sparse: true });
 submissionSchema.index(
   { runnerId: 1, isPersonalRecord: 1, 'stravaActivity.id': 1 },
   { sparse: true }
+);
+// Duplicate review signals (docs/improvement-plan/ocr-platform-aware, Phase 2).
+submissionSchema.index(
+  { 'activityUrl.provider': 1, 'activityUrl.providerActivityId': 1 },
+  { partialFilterExpression: { 'activityUrl.providerActivityId': { $type: 'string' } } }
+);
+submissionSchema.index(
+  { eventId: 1, proofDifferenceHash: 1 },
+  { partialFilterExpression: { proofDifferenceHash: { $gt: '' } } }
+);
+submissionSchema.index(
+  { proofDifferenceHash: 1 },
+  { partialFilterExpression: { proofDifferenceHash: { $gt: '' } } }
 );
 applySmokeTestSchema(submissionSchema);
 applyRestrictedProviderScope(submissionSchema);
