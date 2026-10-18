@@ -521,8 +521,9 @@ WORK DONE:
    the implemented behaviour exactly. To publish: `npm run privacy:prepare-draft` and
    `npm run data-usage:prepare-draft` (these write drafts to the database in `.env`), then review
    and publish from the admin policy pages.
-4. Approve (or not) installing Tesseract training tools on the Ubuntu host.
+4. Training host: run `deploy/ocr-training/survey.sh` (read-only), pick the two commit pins, preview
+   `install-training-tools.sh` (dry run), then apply with approval. Steps in DEPLOYMENT-AND-ROLLBACK.md §6.
 5. ~~Choose the weekly digest day and hour~~ — done: Friday 16:00 Asia/Manila (2026-10-18).
-6. Untrack `docs/image_test/` (13 real user screenshots in git) if desired.
+6. ~~Untrack `docs/image_test/`~~ — done (5a59804); still present in git history.
 7. Approve merge, then deploy and roll out by flags (DEPLOYMENT-AND-ROLLBACK.md §4).
 

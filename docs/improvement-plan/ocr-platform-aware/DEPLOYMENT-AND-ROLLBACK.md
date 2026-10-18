@@ -111,12 +111,19 @@ Record the active model id (*Models* page) before any activation, as doc 05 requ
 The training worker's preflight checks every requirement. On the chosen host (owner decision: the
 Ubuntu production host, separate PM2 process):
 
-1. Survey resources (read-only): `nproc`, `free -m`, `df -h`, other apps' load.
-2. With approval, install Tesseract 5 with training tools (`tesseract`, `lstmtraining`), `make`,
-   Python as required by tesstrain; clone tesstrain to `OCR_TESSTRAIN_DIR` at a pinned commit; put
-   `tessdata_best/eng.traineddata` in `OCR_TRAINING_TESSDATA_DIR`. Record versions and checksums.
-3. Confirm `systemd-run --user --scope -p MemoryMax=… true` works for the PM2 user (enable
-   lingering if needed), otherwise the worker falls back to `prlimit`.
+1. Survey resources (read-only, changes nothing), as the PM2 user:
+   `bash deploy/ocr-training/survey.sh --check-scope`. Review the output (cores, free memory, disk,
+   other PM2 apps and containers, whether training tools and user scopes are available).
+2. Choose and review two pins: a tesstrain commit and a tessdata_best commit (full SHAs). Then
+   preview, which prints every command and changes nothing:
+   `sudo TESSTRAIN_REF=<sha> TESSDATA_BEST_REF=<sha> bash deploy/ocr-training/install-training-tools.sh --user <pm2-user>`
+3. With approval, run the same command with `--apply`. It installs `tesseract-ocr`, `make`,
+   `python3`, `python3-pil`, `bc`, `git`, `curl`; stops if Ubuntu's package lacks `lstmtraining`
+   (choose a vetted source then, no unreviewed PPA); clones tesstrain at the pinned commit;
+   downloads `eng.traineddata` at the pinned commit and prints its SHA-256 (pin it next time with
+   `ENG_BEST_SHA256`); creates `/var/lib/hellorun-ocr-training` owned by the PM2 user; enables
+   lingering so CPU/memory scopes work; writes `/opt/hellorun-ocr-training-versions.txt`. It does
+   not touch HelloRun, PM2, nginx, the database or env files.
 4. `pm2 start npm --name hellorun-ocr-training -- run ocr:training-worker`, then check *Jobs*: the
    worker should show **online** and a **passing** preflight.
 5. Set training limits in *Settings*, then `OCR_TRAINING_ENABLED=true` on the web app.
