@@ -9,7 +9,7 @@ const { nextVersion } = require('./terms-draft.service');
 
 const DATA_USAGE_SLUG = 'data-usage-policy';
 const DATA_USAGE_SOURCE = path.resolve(__dirname, '../../docs/policy-markdown-pack/data-usage-policy.md');
-const SUMMARY = 'Clarifies the data journey, authorized access, assisted review, private evidence, public results, organizer exports, community records, retention, advertising boundaries, and user controls.';
+const SUMMARY = 'Clarifies the data journey, authorized access, assisted review, private evidence, public results, organizer exports, community records, retention, advertising boundaries, and user controls. Adds the optional, consent-based screenshot-reading improvement program.';
 const ALLOWED_TAGS = ['h1', 'h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'a', 'code', 'pre', 'hr'];
 
 async function prepareDataUsageDraft(options = {}) {

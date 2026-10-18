@@ -515,7 +515,12 @@ WORK DONE:
 1. Review the branch (`feature/platform-aware-ocr-training`, based on `review-decision-history`).
 2. Supply consented Strava/COROS/Garmin screenshots; run the benchmark (conditions A and B); set
    dataset and gate thresholds; approve them in Settings.
-3. Publish privacy-policy wording for the training opt-in before enabling the prompt.
+3. Review and publish the privacy wording for the training opt-in before enabling the prompt. The
+   draft text is in `docs/policy-markdown-pack/privacy-policy.md` (§2.4, §2.5, new §2.5.1, §3, §6, §9)
+   and `data-usage-policy.md` (§7 and retention). It needs legal review; it was written to match
+   the implemented behaviour exactly. To publish: `npm run privacy:prepare-draft` and
+   `npm run data-usage:prepare-draft` (these write drafts to the database in `.env`), then review
+   and publish from the admin policy pages.
 4. Approve (or not) installing Tesseract training tools on the Ubuntu host.
 5. Choose the weekly digest day and hour.
 6. Untrack `docs/image_test/` (13 real user screenshots in git) if desired.

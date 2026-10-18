@@ -98,6 +98,8 @@ Assisted processing may:
 - support configured auto-approval when the available evidence satisfies the applicable checks
 - route uncertain or inconsistent entries for human review
 
+Where HelloRun offers it, runners may separately choose to let HelloRun keep cropped text lines from a screenshot to improve how screenshots are read. This is optional, based on consent, can be withdrawn from the submission page, and never affects review or results. Only text-line crops and their administrator-confirmed text are kept, they are visible only to authorized HelloRun administrators, and any reporting from them is aggregated without identifiers. The [Privacy Policy](/privacy) describes this program in full.
+
 These tools may be inaccurate or incomplete. A flag or mismatch does not by itself establish fraud. Relevant organizers or authorized administrators may review the underlying evidence, apply event rules, correct eligible data, approve or reject a result, or request a new submission.
 
 Runners remain responsible for reviewing auto-filled information and submitting genuine evidence that belongs to them.
@@ -193,7 +195,7 @@ Different records serve different purposes and therefore do not all share one re
 
 HelloRun may retain, restrict, archive, anonymize, or delete data according to account operation, event review, payment or accounting needs, leaderboard and certificate integrity, moderation evidence, support, dispute resolution, fraud prevention, security, audit, and legal obligations.
 
-The [Privacy Policy retention section](/privacy#14-data-retention) is authoritative for current retention periods and category guidance. OCR-derived information should be retained for the same or a shorter period than its source evidence unless a separate restricted record remains necessary for an audit, dispute, security, or legal purpose.
+The [Privacy Policy retention section](/privacy#14-data-retention) is authoritative for current retention periods and category guidance. OCR-derived information should be retained for the same or a shorter period than its source evidence unless a separate restricted record remains necessary for an audit, dispute, security, or legal purpose. Screenshot-reading improvement examples kept with a runner's consent follow their own published retention period instead, and are deleted earlier when consent is withdrawn.
 
 Account deletion or integration disconnection does not automatically remove records that must remain restricted for an event, payment, certificate, moderation, audit, dispute, security, or legal purpose.
 

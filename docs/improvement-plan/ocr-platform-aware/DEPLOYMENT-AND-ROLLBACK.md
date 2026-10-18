@@ -89,7 +89,7 @@ Each step is reversible by turning its flag off and restarting (`pm2 restart hel
 4. **`OCR_SERVER_AUTO_APPROVAL_ENABLED=true`.** Auto-approval now relies on the server reading.
    Expect entries to wait seconds to minutes as "Server OCR pending". Watch the auto-approval count.
 5. **`ACTIVITY_URL_ENABLED=true`.** Optional link + duplicate signals.
-6. **Publish the privacy-policy wording**, then **`OCR_TRAINING_CONSENT_PROMPT_ENABLED=true`.**
+6. **Publish the privacy wording** (drafted in `docs/policy-markdown-pack/privacy-policy.md` §2.5.1 and `data-usage-policy.md` §7; `npm run privacy:prepare-draft`, `npm run data-usage:prepare-draft`, then publish from the admin policy pages after legal review), then **`OCR_TRAINING_CONSENT_PROMPT_ENABLED=true`.**
 7. **`OCR_REMINDERS_ENABLED=true`**, then choose the digest day and hour in *Settings*.
 8. **Training (needs separate owner approval for host changes):** see section 6.
 
