@@ -163,11 +163,13 @@ The only server-side Tesseract is `id-ocr.service.js` (organiser IDs, inside the
 **Reproduce:**
 
 ```bash
-mkdir -p benchmarks/ocr/local/images        # git-ignored
-cp benchmarks/ocr/manifest.example.json benchmarks/ocr/local/manifest.json
-cp benchmarks/ocr/labels.example.json   benchmarks/ocr/local/labels.json
-# add consented images + verified labels, then:
-npm run ocr:benchmark -- --out benchmarks/ocr/local/report.json
+mkdir -p benchmarks/ocr/local/images        # git-ignored; put consented screenshots here
+npm run ocr:benchmark:init                   # writes manifest.json + labels.json with unverified suggestions
+# edit benchmarks/ocr/local/manifest.json: set consentBasis (e.g. "owner-own-activity"), platform, layout
+# edit benchmarks/ocr/local/labels.json: check each suggestion against the screenshot, copy correct values
+#   to the top-level fields and lines[].text, then set "verified": true (unverified labels are not scored)
+npm run ocr:benchmark -- --condition A --out benchmarks/ocr/local/report-a.json
+npm run ocr:benchmark -- --condition B --out benchmarks/ocr/local/report-b.json
 ```
 
 Only samples with a `consentBasis` are scored. Images listed with a path outside the manifest directory are refused. Labels hold what the screenshot shows, and the `lines[]` entries hold literal transcriptions of cropped text lines used for CER. Metric rules are versioned (`ocr-metrics-v1`): distance tolerance 0.01 km, time tolerance under 1 s.

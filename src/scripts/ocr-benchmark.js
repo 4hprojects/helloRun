@@ -168,7 +168,10 @@ async function runBenchmark(input) {
 
   const results = [];
   for (const sample of eligible) {
-    const label = labelMap[sample.id] || null;
+    // `verified: false` marks a suggestion from `npm run ocr:benchmark:init` that nobody has
+    // checked yet; it is never scored.
+    const candidate = labelMap[sample.id] || null;
+    const label = candidate && candidate.verified !== false ? candidate : null;
     const result = {
       id: sample.id,
       platform: sample.platform || label?.platform || '',

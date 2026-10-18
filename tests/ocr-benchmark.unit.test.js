@@ -168,3 +168,34 @@ test('condition B scores the server pipeline output on the same fields', async (
   assert.equal(report.metrics.overall.fields.distanceKm.exactAccuracy, 1);
   assert.equal(report.metrics.overall.fields.elapsedMs.exactAccuracy, 1);
 });
+
+test('unverified suggested labels are never scored', async () => {
+  const report = await runBenchmark({
+    manifestDir: path.resolve('/bench/local'),
+    manifest: { samples: [{ id: 's1', image: 'a.png', consentBasis: 'owner-own-activity' }] },
+    labels: { labels: { s1: { verified: false, distanceKm: 5.02, suggested: { distanceKm: 5.02 } } } },
+    recognizer: { async recognizePage() { return { text: 'Distance 5.02 km', confidence: 90 }; }, async recognizeLine() { return ''; } },
+    readFile: () => Buffer.from('fake')
+  });
+  assert.equal(report.labeledSampleCount, 0);
+  assert.equal(report.metrics.overall.fields.distanceKm.exactAccuracy, 'N/A');
+});
+
+test('benchmark init derives safe sample ids and line suggestions', () => {
+  const { sampleIdFor, suggestionFrom } = require('../src/scripts/ocr-benchmark-init');
+  assert.equal(sampleIdFor('Screenshot 2026-10-18 at 07.15.22 PM.PNG'), 'screenshot-2026-10-18-at-07-15-22-pm');
+  assert.equal(sampleIdFor('../../etc/passwd.png'), 'passwd');
+  const suggestion = suggestionFrom({
+    status: 'complete',
+    detection: { platformCandidate: 'strava' },
+    fields: {
+      distance: { value: { valueKm: 5.02 }, location: { boundingBox: { left: 1, top: 2, width: 3, height: 4 }, rawText: 'Distance 5.02 km' } },
+      time: { value: { totalMs: 1_710_000 }, kind: 'moving', location: null },
+      date: { value: null }, runType: { value: 'run' }
+    }
+  });
+  assert.equal(suggestion.platform, 'strava');
+  assert.equal(suggestion.distanceKm, 5.02);
+  assert.equal(suggestion.timeKind, 'moving');
+  assert.deepEqual(suggestion.lines, [{ id: 'distance', bbox: { left: 1, top: 2, width: 3, height: 4 }, text: 'Distance 5.02 km' }]);
+});

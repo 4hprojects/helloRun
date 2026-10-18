@@ -186,6 +186,7 @@
     "copy-tesseract-assets": "node src/scripts/copy-tesseract-assets.js",
     "download-tessdata": "node src/scripts/download-tessdata.js",
     "ocr:benchmark": "node src/scripts/ocr-benchmark.js",
+    "ocr:benchmark:init": "node src/scripts/ocr-benchmark-init.js",
     "ocr:worker": "node src/scripts/ocr-worker.js",
     "ocr:dataset:export": "node src/scripts/ocr-dataset-export.js",
     "ocr:training-worker": "node src/scripts/ocr-training-worker.js",
