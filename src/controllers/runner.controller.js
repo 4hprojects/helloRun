@@ -1124,6 +1124,7 @@ async function buildRunnerProfileViewData(user, req, overrides = {}) {
     title: 'My Profile - HelloRun',
     user,
     userName: user.firstName,
+    ocrTrainingOptedOut: Boolean(user.ocrTrainingOptOut?.optedOut),
     message: getRunnerProfileMessage(req.query),
     profileData,
     profileCompleteness,

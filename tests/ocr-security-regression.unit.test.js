@@ -87,7 +87,7 @@ test('every OCR admin mutation is behind admin auth and CSRF; deployment and set
   const routes = read('src/routes/admin-ocr-training.routes.js');
   const lines = routes.split('\n').filter((line) => /^router\.(post|put|patch|delete)\(/.test(line));
   // Pinned: adding a mutating route means reviewing it here.
-  assert.equal(lines.length, 14, `found ${lines.length} mutating routes`);
+  assert.equal(lines.length, 19, `found ${lines.length} mutating routes`);
   assert.ok(routes.indexOf('router.use(requireAdmin)') < routes.indexOf('router.get('), 'requireAdmin precedes every route');
   for (const line of lines) {
     if (line.includes('uploadService.')) assert.match(line, /uploadService\.\w+, requireCsrfProtection/, line);

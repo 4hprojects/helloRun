@@ -48,6 +48,40 @@ function formatNormalizedValue(fieldKey, value) {
   return '';
 }
 
+const IMAGE_MIME = /^image\/(?:jpeg|png|webp)$/;
+const ADULT_AGE_YEARS = 18;
+
+function isKnownMinor(dateOfBirth, now) {
+  if (!dateOfBirth) return false;
+  const born = new Date(dateOfBirth);
+  if (Number.isNaN(born.getTime())) return false;
+  const adultFrom = new Date(born);
+  adultFrom.setFullYear(born.getFullYear() + ADULT_AGE_YEARS);
+  return adultFrom > now;
+}
+
+/**
+ * The one rule deciding whether an entry's screenshot may become training material.
+ * Review outcome (approved / rejected) is deliberately ignored: the label is the text in a crop.
+ * @returns {{ usable: boolean, consentBasis: string, reason: string }}
+ */
+function isEntryUsableForTraining(entry, runner, settings, now = new Date()) {
+  const no = (reason) => ({ usable: false, consentBasis: '', reason });
+  if (!entry?.proof?.key) return no('no_proof');
+  if (entry.proof.mimeType && !IMAGE_MIME.test(entry.proof.mimeType)) return no('not_an_image');
+  if (!entry.runnerId || !runner) return no('no_runner_account');
+  if (['closed', 'suspended'].includes(runner.accountStatus)) return no('account_inactive');
+  if (runner.ocrTrainingOptOut?.optedOut) return no('runner_objected');
+  if (isKnownMinor(runner.dateOfBirth, now)) return no('known_minor');
+  if (entry.ocrTrainingConsent?.withdrawnAt) return no('entry_withdrawn');
+  if (entry.ocrTrainingConsent?.granted) return { usable: true, consentBasis: 'participant_opt_in', reason: '' };
+  const training = settings?.training || {};
+  if (training.basis === 'notice_opt_out' && training.noticePublishedAt && new Date(training.noticePublishedAt) <= now) {
+    return { usable: true, consentBasis: 'notice_legitimate_interest', reason: '' };
+  }
+  return no('no_basis');
+}
+
 /** Why a sample cannot enter a dataset right now (empty array = eligible). */
 function computeIneligibleReasons(sample, now = new Date()) {
   const reasons = [];
@@ -260,6 +294,8 @@ async function getCropReadUrl(sample) {
 }
 
 module.exports = {
+  isEntryUsableForTraining,
+  isKnownMinor,
   CROP_FIELDS,
   SampleError,
   computeIneligibleReasons,

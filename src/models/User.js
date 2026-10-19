@@ -316,6 +316,13 @@ const userSchema = new mongoose.Schema({
     emailOptOut: { type: [String], default: [] }
   },
 
+  // Objection to using this runner's screenshots to improve OCR (docs/improvement-plan/
+  // ocr-platform-aware). Honoured for past and future entries under every training basis.
+  ocrTrainingOptOut: {
+    optedOut: { type: Boolean, default: false },
+    at: { type: Date, default: null }
+  },
+
   lastLoginAt: { type: Date, default: null },
 
   savedEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Event' }],

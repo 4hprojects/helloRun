@@ -39,6 +39,12 @@ async function processOcrJobBatch({ maxJobs, deps = {} } = {}) {
         results.push({ jobId: String(job._id), status: 'crashed' });
       }
     }
+    // Backfill of existing entries runs only after normal submission jobs; it yields on its own.
+    if (results.length < limit) {
+      await require('../services/ocr/ocr-backfill.service').stepBackfill({ deps }).catch((error) => {
+        logger.warn('[ocr-extraction-worker] backfill step failed', { error: error?.message });
+      });
+    }
   } finally {
     running = false;
   }

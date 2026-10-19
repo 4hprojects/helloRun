@@ -9,8 +9,8 @@ const mongoose = require('mongoose');
 // recorded consent basis can enter a DatasetVersion.
 const SAMPLE_STATUSES = ['pending', 'approved', 'excluded'];
 const SAMPLE_FIELD_KEYS = ['distance', 'time', 'pace', 'date', 'other'];
-const CONSENT_BASES = ['participant_opt_in', 'owner_own_activity', 'synthetic'];
-const SAMPLE_SOURCES = ['submission_opt_in', 'admin_upload'];
+const CONSENT_BASES = ['participant_opt_in', 'notice_legitimate_interest', 'owner_own_activity', 'synthetic'];
+const SAMPLE_SOURCES = ['submission_opt_in', 'submission_notice', 'backfill', 'admin_upload'];
 
 const trainingSampleSchema = new mongoose.Schema(
   {

@@ -48,14 +48,17 @@ HelloRun may also read a stored activity screenshot again on its own servers, id
 
 Raw OCR text, confidence information, suspicious signals, private proof, and internal review reasoning are restricted to authorized workflows. Runners should review extracted values before submission, and authorized reviewers remain responsible for the final decision where review is configured.
 
-### 2.5.1 Optional help improving screenshot reading
+### 2.5.1 Using screenshots to improve screenshot reading
 
-Where HelloRun offers it, a runner may tick an optional, unticked box when submitting a screenshot to let HelloRun keep small cropped images of the text lines showing distance, time, and pace, together with the text a HelloRun administrator confirms is shown in each crop. These examples are used only to test and improve how HelloRun reads activity screenshots. Saying no does not affect review, approval, or results.
+HelloRun uses small cropped images of the text lines showing distance, time, and pace from activity screenshots submitted to HelloRun, together with the text a HelloRun administrator confirms is shown in each crop, to test and improve how it reads activity screenshots. This includes screenshots submitted before this section was published, whether the entry was approved or rejected. It never affects review, approval, or results.
 
-- **What is kept:** the cropped text lines and their confirmed text, the source application and screen layout, and the date and wording version of the permission. HelloRun does not keep names, faces, maps, routes, or profile photos for this purpose, and an administrator removes any crop that shows them.
+- **What is kept:** the cropped text lines and their confirmed text, the source application and screen layout, and the policy version in force. HelloRun does not keep names, faces, maps, routes, or profile photos for this purpose, and an administrator removes any crop that shows them.
 - **Who can see it:** only authorized HelloRun administrators managing screenshot reading. It is not shared with organizers or made public.
-- **Basis:** your consent. You can withdraw it at any time from that submission's page in your account. Withdrawal removes the related examples from all future improvement datasets. It cannot remove what an already-built reading model has learned, and HelloRun will not claim that it does.
-- **How long:** each example is kept for up to 730 days unless withdrawn or removed earlier, after which the crop is deleted.
+- **Basis:** HelloRun's legitimate interest in reading proof accurately and reviewing entries fairly and consistently, balanced against your rights through the limits above. Where HelloRun asked for your consent instead, that consent applies.
+- **Your right to object:** you can object at any time under *Profile › Screenshot reader improvement*. HelloRun then stops using all of your screenshots, past and future, and removes your existing examples from all future improvement datasets. You can also withdraw a single submission from its page. Objecting cannot remove what an already-built reading model has learned, and HelloRun will not claim that it does.
+- **Not used:** screenshots from accounts known to belong to minors, closed or suspended accounts, and entries submitted without a HelloRun account.
+- **Before past screenshots are used:** HelloRun waits at least 30 days after publishing this section so that you can object first.
+- **How long:** each example is kept for up to 730 days unless you object or it is removed earlier, after which the crop is deleted.
 - **Research and reporting:** HelloRun may report aggregated accuracy and review statistics, including for academic research. These reports contain counts and rates only, never names, contact details, activity links, locations, or images.
 
 HelloRun administrators may also add screenshots of their own activities, or generated test images, for the same purpose.
@@ -93,7 +96,9 @@ Depending on the workflow and applicable law, processing may be necessary to:
 - comply with accounting, legal, regulatory, audit, or safety obligations;
 - protect legitimate interests in platform security, event integrity, abuse prevention, dispute handling, reliable communication, and accurate public records, where those interests are not overridden by applicable rights;
 - respond to emergencies or protect a person’s vital interests where appropriate; or
-- act on consent where consent is the appropriate processing criterion, including HelloRun Analytics choices, the optional screenshot-reading improvement described in section 2.5.1, and Google advertising consent managed through Google’s certified controls where applicable.
+- act on consent where consent is the appropriate processing criterion, including HelloRun Analytics choices and Google advertising consent managed through Google’s certified controls where applicable.
+
+Screenshot-reading improvement (section 2.5.1) relies on legitimate interest with a right to object.
 
 Not every workflow depends on consent. Withdrawing consent does not require deletion of information that remains necessary under another lawful criterion. Where a requested feature cannot operate without required information, withdrawing or withholding that information may make the feature unavailable.
 
@@ -151,7 +156,7 @@ Retention is applied by record purpose rather than one universal deadline:
 - account and profile information is generally retained while the account is active, then deleted, anonymized, or restricted subject to security, consent, dispute, and legal records;
 - registration, payment, order, and fulfilment records remain through event or commerce operations and the necessary accounting, audit, refund, fraud, and dispute period;
 - activity proof, OCR, and review information remains through review, event-integrity, correction, dispute, and recognition needs, after which access may be restricted and files deleted or anonymized where appropriate;
-- optional screenshot-reading improvement examples are kept for up to 730 days, or until consent is withdrawn or the example is removed, after which they are excluded from future datasets and the crop is deleted;
+- screenshot-reading improvement examples are kept for up to 730 days, or until you object or the example is removed, after which they are excluded from future datasets and the crop is deleted;
 - official results, certificate snapshots, and public recognition may remain as event history, subject to justified correction or privacy requests;
 - community content remains while published, while private report snapshots or tombstones may remain for moderation, safety, thread, or dispute integrity;
 - communication, support, security, and audit records remain only as long as needed for delivery, support, abuse prevention, incident response, accountability, or legal needs; and

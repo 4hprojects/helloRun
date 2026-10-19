@@ -54,7 +54,8 @@ const NUMERIC_FIELDS = {
   'training.cpuQuotaPercent': { min: 10, max: 400, int: true },
   'training.memoryMaxMb': { min: 256, max: 16384, int: true },
   'training.minFreeDiskMb': { min: 512, max: 1_000_000, int: true },
-  'notifications.minimumNewSamples': { min: 1, max: 100_000, int: true }
+  'notifications.minimumNewSamples': { min: 1, max: 100_000, int: true },
+  'training.backfillDailyCap': { min: 1, max: 20_000, int: true }
 };
 
 /**
@@ -106,10 +107,60 @@ function buildSettingsUpdate(body = {}) {
     const list = (Array.isArray(raw) ? raw : (raw ? [raw] : [])).map(String).filter((item) => allowed.has(item));
     set['notifications.eventTypes'] = [...new Set(list)];
   }
+  if (body['training.basis'] !== undefined) {
+    const basis = String(body['training.basis']);
+    if (!['opt_in', 'notice_opt_out'].includes(basis)) errors.push('Choose a valid training basis.');
+    else set['training.basis'] = basis;
+  }
+  if (body['training.noticePublishedAt'] !== undefined) {
+    const raw = String(body['training.noticePublishedAt']).trim();
+    const date = raw ? new Date(`${raw}T00:00:00+08:00`) : null;
+    if (raw && (!/^\d{4}-\d{2}-\d{2}$/.test(raw) || Number.isNaN(date.getTime()))) errors.push('Enter the notice date as YYYY-MM-DD.');
+    else set['training.noticePublishedAt'] = date;
+  }
+  if (body['training.noticePolicyVersion'] !== undefined) {
+    set['training.noticePolicyVersion'] = String(body['training.noticePolicyVersion']).trim().slice(0, 40);
+  }
+  if (body['training.backfillNotBefore'] !== undefined) {
+    const raw = String(body['training.backfillNotBefore']).trim();
+    const date = raw ? new Date(`${raw}T00:00:00+08:00`) : null;
+    if (raw && (!/^\d{4}-\d{2}-\d{2}$/.test(raw) || Number.isNaN(date.getTime()))) errors.push('Enter the backfill start date as YYYY-MM-DD.');
+    else set['training.backfillNotBefore'] = date;
+  }
   if (body['retention.consentNoticeVersion'] !== undefined) {
     set['retention.consentNoticeVersion'] = String(body['retention.consentNoticeVersion']).trim().slice(0, 40);
   }
   return { set, errors };
+}
+
+const NOTICE_PERIOD_DAYS = 30;
+
+/**
+ * Gate for switching to the notice + objection basis: a published notice date and policy
+ * version are required, the notice date cannot be in the future, and the backfill may not
+ * start before the objection period ends. `current` is the stored settings document.
+ */
+function validateTrainingBasis(set, current = {}, now = new Date()) {
+  const merged = {
+    basis: set['training.basis'] ?? current.training?.basis ?? 'opt_in',
+    noticePublishedAt: set['training.noticePublishedAt'] !== undefined ? set['training.noticePublishedAt'] : current.training?.noticePublishedAt || null,
+    noticePolicyVersion: set['training.noticePolicyVersion'] ?? current.training?.noticePolicyVersion ?? '',
+    backfillNotBefore: set['training.backfillNotBefore'] !== undefined ? set['training.backfillNotBefore'] : current.training?.backfillNotBefore || null
+  };
+  const errors = [];
+  if (merged.basis === 'notice_opt_out') {
+    if (!merged.noticePublishedAt) errors.push('Record the date the revised privacy notice was published before switching basis.');
+    if (!merged.noticePolicyVersion) errors.push('Record the published policy version before switching basis.');
+    if (merged.noticePublishedAt && new Date(merged.noticePublishedAt) > now) errors.push('The notice date cannot be in the future.');
+    if (merged.noticePublishedAt) {
+      const earliest = new Date(new Date(merged.noticePublishedAt).getTime() + NOTICE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+      if (!merged.backfillNotBefore || new Date(merged.backfillNotBefore) < earliest) {
+        set['training.backfillNotBefore'] = earliest;
+        merged.backfillNotBefore = earliest;
+      }
+    }
+  }
+  return { errors, merged };
 }
 
 async function updateOcrSettings(set, actorId) {
@@ -123,6 +174,8 @@ async function updateOcrSettings(set, actorId) {
 }
 
 module.exports = {
+  NOTICE_PERIOD_DAYS,
+  validateTrainingBasis,
   getOcrSettings,
   updateOcrSettings,
   buildSettingsUpdate,

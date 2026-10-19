@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 // (doc 02 "OCRExtraction": write original recognition immutably). Reprocessing writes a
 // new row with a higher revision; reviewer edits live on the entry's organizerCorrections
 // and, for training text, on TrainingSample. Mongo-only, like ocrData.
-const EXTRACTION_SOURCES = ['submission', 'reprocess', 'admin_test'];
+const EXTRACTION_SOURCES = ['submission', 'reprocess', 'backfill', 'admin_test'];
 
 const boundingBoxSchema = new mongoose.Schema(
   {

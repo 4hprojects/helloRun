@@ -520,15 +520,44 @@ WORK DONE:
    thresholds and approve them in Settings. (Decision 2026-10-18: no local folder; existing
    database entries are not used, because their runners did not consent. Training data comes only
    from new opted-in submissions.)
-3. Review and publish the privacy wording for the training opt-in before enabling the prompt. The
-   draft text is in `docs/policy-markdown-pack/privacy-policy.md` (§2.4, §2.5, new §2.5.1, §3, §6, §9)
-   and `data-usage-policy.md` (§7 and retention). It needs legal review; it was written to match
-   the implemented behaviour exactly. To publish: `npm run privacy:prepare-draft` and
-   `npm run data-usage:prepare-draft` (these write drafts to the database in `.env`), then review
-   and publish from the admin policy pages.
+3. Training material from all entries (decision 2026-10-18): legal review, publish the revised
+   wording (notice + right to object; drafts in `docs/policy-markdown-pack/`), record basis, date and
+   version in Settings, wait 30 days, then run *Jobs › Backfill past entries*
+   (DEPLOYMENT-AND-ROLLBACK.md §4 step 6).
 4. Training host: run `deploy/ocr-training/survey.sh` (read-only), pick the two commit pins, preview
    `install-training-tools.sh` (dry run), then apply with approval. Steps in DEPLOYMENT-AND-ROLLBACK.md §6.
 5. ~~Choose the weekly digest day and hour~~ — done: Friday 16:00 Asia/Manila (2026-10-18).
 6. ~~Untrack `docs/image_test/`~~ — done (5a59804); still present in git history.
 7. Approve merge, then deploy and roll out by flags (DEPLOYMENT-AND-ROLLBACK.md §4).
+
+---
+
+## Follow-up — training basis: notice and objection (2026-10-18)
+
+```text
+DECISION: Henz — use all run-proof entries (past and future, accepted and rejected) as OCR training
+  material, under a published notice with a right to object, instead of opt-in only.
+STATE: COMPLETED on branch feature/ocr-training-notice-basis. Nothing is processed until the owner
+  records the legal prerequisites; the code enforces them.
+BEHAVIOR:
+  - Settings: training basis opt_in (default) | notice_opt_out. Switching needs the notice date and
+    policy version, typed CHANGE BASIS, full admin; audited. Backfill date held ≥ 30 days after notice.
+  - One rule, isEntryUsableForTraining: image proof, existing active account, not objected, not a known
+    minor, entry not withdrawn, and (opt-in tick OR published notice basis). Review status is ignored.
+  - Objection: Profile › Screenshot reader improvement (account-wide, past and future, audited);
+    excludes existing samples. Per-entry withdrawal unchanged. Modal shows a notice under the new basis.
+  - Backfill: full-admin dry run (counts and exclusion reasons, read-only), START BACKFILL, pause,
+    resume, cancel. Runs in the extraction worker only when no submission job waits, ≤ 5 entries per
+    cycle, ≤ 5 outstanding jobs, daily cap (default 500), resumable cursor; reuses current server
+    readings; pauses itself if the basis is withdrawn or the pipeline is turned off.
+  - Policy drafts revised to notice + objection wording (still for legal review).
+DATA (additive): User.ocrTrainingOptOut; OcrSettings.training.{basis, noticePublishedAt,
+  noticePolicyVersion, backfillNotBefore, backfillDailyCap}; OcrBackfillRun collection; new sample
+  basis notice_legitimate_interest and sources submission_notice / backfill; extraction source backfill.
+TESTS: tests/ocr-training-notice.unit.test.js 9/9 (eligibility truth table incl. approved = rejected,
+  minors on the 18th birthday, gates, UI); tests/ocr-backfill.integration.test.js 7/7 (gates, dry-run
+  counts, yielding, daily cap + resume, objection afterwards, reuse of existing readings, basis
+  withdrawal pauses); all OCR integration suites 46/46; full unit suite: see commit.
+NOT DONE: legal review and publication (owner); no production data was read for this work.
+```
 

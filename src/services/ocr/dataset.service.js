@@ -12,6 +12,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const TrainingSample = require('../../models/TrainingSample');
+const { CONSENT_BASES } = require('../../models/TrainingSample');
 const DatasetVersion = require('../../models/DatasetVersion');
 const { getOcrSettings } = require('./ocr-settings.service');
 
@@ -111,7 +112,7 @@ async function loadEligibleSamples(now = new Date()) {
     status: 'approved',
     eligibility: 'eligible',
     cropDeletedAt: null,
-    consentBasis: { $in: ['participant_opt_in', 'owner_own_activity', 'synthetic'] },
+    consentBasis: { $in: CONSENT_BASES },
     alignmentConfirmed: true,
     transcribedText: { $gt: '' },
     $or: [{ retentionExpiry: null }, { retentionExpiry: { $gt: now } }]

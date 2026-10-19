@@ -29,7 +29,16 @@ const ocrSettingsSchema = new mongoose.Schema(
       timeoutMinutes: { type: Number, default: 240, min: 10, max: 1440 },
       cpuQuotaPercent: { type: Number, default: 100, min: 10, max: 400 },
       memoryMaxMb: { type: Number, default: 2048, min: 256, max: 16384 },
-      minFreeDiskMb: { type: Number, default: 5120, min: 512 }
+      minFreeDiskMb: { type: Number, default: 5120, min: 512 },
+      // Legal basis for using entries as training material. `opt_in`: only entries whose runner
+      // ticked the box. `notice_opt_out`: every eligible entry, past and future, unless the runner
+      // objects; allowed only after the revised policy is published (owner decision 2026-10-18).
+      basis: { type: String, enum: ['opt_in', 'notice_opt_out'], default: 'opt_in' },
+      noticePublishedAt: { type: Date, default: null },
+      noticePolicyVersion: { type: String, default: '', maxlength: 40 },
+      // Earliest date the backfill of existing entries may start (objection period).
+      backfillNotBefore: { type: Date, default: null },
+      backfillDailyCap: { type: Number, default: 500, min: 1, max: 20000 }
     },
     notifications: {
       enabled: { type: Boolean, default: false },
