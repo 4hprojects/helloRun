@@ -75,7 +75,12 @@ router.post('/samples/participant-exclusion', ocrMutationLimiter, dataController
 router.post('/samples/:sampleId/review', ocrMutationLimiter, dataController.reviewSample);
 router.post('/datasets', ocrMutationLimiter, dataController.createDataset);
 router.get('/datasets/:datasetId/manifest.json', dataController.downloadDatasetManifest);
-router.get('/jobs', modelsController.renderJobs);
+router.get('/jobs', attachAdminTier, modelsController.renderJobs);
+router.post('/backfill/plan', requireFullAdmin, ocrExportLimiter, modelsController.planBackfill);
+router.post('/backfill', requireFullAdmin, ocrDeployLimiter, modelsController.startBackfill);
+router.post('/backfill/:runId/pause', requireFullAdmin, ocrMutationLimiter, modelsController.pauseBackfill);
+router.post('/backfill/:runId/resume', requireFullAdmin, ocrMutationLimiter, modelsController.resumeBackfill);
+router.post('/backfill/:runId/cancel', requireFullAdmin, ocrMutationLimiter, modelsController.cancelBackfill);
 router.post('/jobs', ocrMutationLimiter, modelsController.startJob);
 router.get('/jobs/:jobId', modelsController.getJob);
 router.get('/jobs/:jobId/log', modelsController.downloadJobLog);

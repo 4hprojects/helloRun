@@ -95,6 +95,26 @@
           </div>
         </fieldset>
 
+        <fieldset class="ocr-panel ocr-danger-zone" <%= canEdit ? '' : 'disabled' %>>
+          <legend><h2>Which entries may be used for training</h2></legend>
+          <% const toDate = (value) => value ? new Date(value).toISOString().slice(0, 10) : ''; %>
+          <p class="ocr-help"><strong>Opt-in</strong>: only entries whose runner ticked the optional box. <strong>Notice and objection</strong>: every eligible entry, past and future, accepted or rejected, unless the runner objects in their profile. Use the second only after legal review and after the revised Privacy Policy is published and users were notified. Excluded either way: runners who objected, known minors, closed or suspended accounts, guest entries without an account.</p>
+          <div class="ocr-form-row">
+            <label>Basis
+              <select name="training.basis">
+                <option value="opt_in" <%= (t.basis || 'opt_in') === 'opt_in' ? 'selected' : '' %>>Opt-in only</option>
+                <option value="notice_opt_out" <%= t.basis === 'notice_opt_out' ? 'selected' : '' %>>Notice and objection (all entries)</option>
+              </select>
+            </label>
+            <label>Revised notice published on <input type="date" name="training.noticePublishedAt" value="<%= toDate(t.noticePublishedAt) %>"></label>
+            <label>Published policy version <input name="training.noticePolicyVersion" maxlength="40" value="<%= t.noticePolicyVersion || '' %>" placeholder="e.g. 1.6"></label>
+            <label>Backfill not before <input type="date" name="training.backfillNotBefore" value="<%= toDate(t.backfillNotBefore) %>"></label>
+            <label>Backfill proofs per day <input type="number" min="1" max="20000" name="training.backfillDailyCap" value="<%= t.backfillDailyCap || 500 %>"></label>
+            <label>To change the basis, type CHANGE BASIS <input name="basisConfirmation" autocomplete="off"></label>
+          </div>
+          <p class="ocr-help">The backfill date is held at least 30 days after the notice date so people can object first.</p>
+        </fieldset>
+
         <fieldset class="ocr-panel" <%= canEdit ? '' : 'disabled' %>>
           <legend><h2>Retention and training limits</h2></legend>
           <div class="ocr-form-row">

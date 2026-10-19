@@ -39,12 +39,15 @@ function sendError(req, res, error, back) {
 
 exports.renderJobs = async (req, res) => {
   try {
-    const [worker, datasets, jobs, active] = await Promise.all([
+    const [worker, datasets, jobs, active, backfillRuns, settings] = await Promise.all([
       training.getWorkerStatus(),
       listDatasets(20),
       training.listTrainingJobs(20),
-      training.getActiveTrainingJob()
+      training.getActiveTrainingJob(),
+      require('../../services/ocr/ocr-backfill.service').listBackfillRuns(5),
+      require('../../services/ocr/ocr-settings.service').getOcrSettings()
     ]);
+    const backfillPlan = req.session?.ocrBackfillPlan || null;
     return res.render('admin/ocr-training/jobs', {
       ...base._baseLocals(req, 'jobs', 'Training jobs'),
       worker,
@@ -53,6 +56,11 @@ exports.renderJobs = async (req, res) => {
       jobs,
       active,
       trainingEnabled: isTrainingEnabled(),
+      backfillRuns,
+      backfillPlan,
+      backfillGate: require('../../services/ocr/ocr-backfill.service').checkGates(settings),
+      trainingBasis: settings.training?.basis || 'opt_in',
+      canDeploy: Boolean(res.locals?.isFullAdmin),
       idempotencyKey: crypto.randomBytes(18).toString('base64url')
     });
   } catch (error) {
@@ -194,3 +202,50 @@ exports.rollbackModel = async (req, res) => {
 };
 
 exports._DatasetVersion = DatasetVersion;
+
+// ---------------------------------------------------------------------------
+// Backfill of existing entries (notice + objection basis). Full admin only (router).
+// ---------------------------------------------------------------------------
+
+const backfill = require('../../services/ocr/ocr-backfill.service');
+
+exports.planBackfill = async (req, res) => {
+  try {
+    const plan = await backfill.planBackfill();
+    await recordOcrAudit({ action: 'ocr.backfill_planned', targetType: 'ocr_backfill', targetId: 'plan', details: { total: plan.total, usable: plan.usable, excluded: plan.excluded }, req });
+    req.session.ocrBackfillPlan = { ...plan, plannedAt: new Date().toISOString() };
+    return base._redirectWith(res, '/admin/ocr-training/jobs', 'info', `Dry run: ${plan.usable} of ${plan.total} entries would be used.${plan.gate ? ` Not startable yet: ${plan.gate}` : ''}`.slice(0, 290));
+  } catch (error) {
+    return sendError(req, res, error, '/admin/ocr-training/jobs');
+  }
+};
+
+exports.startBackfill = async (req, res) => {
+  const back = '/admin/ocr-training/jobs';
+  try {
+    if (String(req.body?.confirmation || '').trim() !== 'START BACKFILL') return base._redirectWith(res, back, 'error', 'Type START BACKFILL to confirm.');
+    const run = await backfill.startBackfill({ actorId: req.session?.userId });
+    await recordOcrAudit({ action: 'ocr.backfill_started', targetType: 'ocr_backfill', targetId: String(run._id), statusTo: 'running', details: { dailyCap: run.dailyCap, noticePolicyVersion: run.noticePolicyVersion }, req });
+    return base._redirectWith(res, back, 'success', 'Backfill started. It runs in the background after normal submissions, within the daily cap.');
+  } catch (error) {
+    return sendError(req, res, error, back);
+  }
+};
+
+function backfillTransition(fn, action, label) {
+  return async (req, res) => {
+    const back = '/admin/ocr-training/jobs';
+    try {
+      const run = await fn(req.params.runId);
+      await recordOcrAudit({ action, targetType: 'ocr_backfill', targetId: String(run._id), statusTo: run.status, req });
+      return base._redirectWith(res, back, 'success', `Backfill ${label}.`);
+    } catch (error) {
+      return sendError(req, res, error, back);
+    }
+  };
+}
+
+exports.pauseBackfill = backfillTransition(backfill.pauseBackfill, 'ocr.backfill_paused', 'paused');
+exports.resumeBackfill = backfillTransition(backfill.resumeBackfill, 'ocr.backfill_resumed', 'resumed');
+exports.cancelBackfill = backfillTransition(backfill.cancelBackfill, 'ocr.backfill_cancelled', 'cancelled');
+exports._backfill = backfill;

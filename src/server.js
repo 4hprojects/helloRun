@@ -338,7 +338,13 @@ function populatePublicPageLocals(req, res, next) {
     };
   }
 
-  next();
+  // The run-proof modal shows either the opt-in box or the notice, depending on the training
+  // basis an admin recorded (cached settings; failures fall back to the opt-in behaviour).
+  if (!res.locals.renderRunProofModal) return next();
+  return require('./services/ocr/ocr-settings.service').getOcrSettings()
+    .then((settings) => { res.locals.ocrTrainingBasis = settings?.training?.basis || 'opt_in'; })
+    .catch(() => { res.locals.ocrTrainingBasis = 'opt_in'; })
+    .finally(() => next());
 }
 
 function shouldRenderRunProofModal(pathname) {

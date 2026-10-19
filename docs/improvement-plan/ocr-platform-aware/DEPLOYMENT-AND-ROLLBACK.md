@@ -79,17 +79,33 @@ Each step is reversible by turning its flag off and restarting (`pm2 restart hel
 
 1. **Deploy code, all flags off.** Smoke check: `/healthz`, `/readyz`, a runner proof submission, an
    organiser approval, `/admin/ocr-training` loads for a full admin.
-2. **Collect consented screenshots** (the owner's own Strava/COROS/Garmin activities) and add them
-   through *Samples › Add your own screenshot* or the local benchmark. Run
-   `npm run ocr:benchmark -- --condition A` and `--condition B` locally to get the first real
-   baseline. Set dataset and gate thresholds in *Settings* from those numbers.
+2. **Baseline with the owner's own screenshots, in the live admin** (decision 2026-10-18): open
+   *Platforms › Test OCR* and upload each of your own Strava/COROS/Garmin screenshots (plus one or
+   two from other apps). Test OCR needs no flag and stores nothing except an audit row. Note which
+   ones were misread (platform or values) so the profiles/parser can be fixed with regression tests.
+   Optionally add them through *Samples › Add your own screenshot* (basis "My own activity") so
+   their line crops become the first approved ground truth. The local benchmark
+   (`npm run ocr:benchmark`) remains available but is not required.
+   Existing database entries are **not** used for evaluation or training: their runners did not
+   consent to that use. Training data comes only from new submissions whose runner opted in.
 3. **`OCR_SERVER_PIPELINE_ENABLED=true`** (auto-approval still off). Watch *Overview* and
    *Analytics* for failures, latency and server-vs-entry disagreement for a week. Reviewers now see
    the server reading. Enable profiles only after their regression check (*Platforms*).
 4. **`OCR_SERVER_AUTO_APPROVAL_ENABLED=true`.** Auto-approval now relies on the server reading.
    Expect entries to wait seconds to minutes as "Server OCR pending". Watch the auto-approval count.
 5. **`ACTIVITY_URL_ENABLED=true`.** Optional link + duplicate signals.
-6. **Publish the privacy wording** (drafted in `docs/policy-markdown-pack/privacy-policy.md` §2.5.1 and `data-usage-policy.md` §7; `npm run privacy:prepare-draft`, `npm run data-usage:prepare-draft`, then publish from the admin policy pages after legal review), then **`OCR_TRAINING_CONSENT_PROMPT_ENABLED=true`.**
+6. **Training material from all entries (owner decision 2026-10-18), in this order:**
+   1. Legal review of using past and future screenshots under legitimate interest with a right to object.
+   2. Publish the revised wording (`privacy-policy.md` §2.5.1, `data-usage-policy.md` §7):
+      `npm run privacy:prepare-draft`, `npm run data-usage:prepare-draft`, then publish from the admin
+      policy pages. Publishing sends the existing policy-update notice to users.
+   3. In *Settings › Which entries may be used for training*: choose *Notice and objection*, enter the
+      publication date and policy version, type CHANGE BASIS. The backfill date is held at least 30 days later.
+   4. New submissions now produce candidates for runners who have not objected. After the 30 days, in
+      *Jobs › Backfill past entries*: run the dry run, then type START BACKFILL. It runs in the background
+      after normal submissions, within the daily cap (default 500/day). Pause, resume or cancel there.
+   Rollback: switch the basis back to *Opt-in only*. A running backfill pauses itself; already created
+   samples stay for review or exclusion. Runners object under *Profile › Screenshot reader improvement*.
 7. **`OCR_REMINDERS_ENABLED=true`**, then tick *Send OCR reminders* in *Settings* (the weekly digest defaults to Friday 16:00 Asia/Manila).
 8. **Training (needs separate owner approval for host changes):** see section 6.
 

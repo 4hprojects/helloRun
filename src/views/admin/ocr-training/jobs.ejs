@@ -90,6 +90,63 @@
         <% } %>
       </section>
 
+      <section class="ocr-panel" aria-labelledby="ocr-backfill-heading">
+        <h2 id="ocr-backfill-heading">Backfill past entries</h2>
+        <p class="ocr-help">Cuts training candidates from existing accepted and rejected entries under the notice-and-objection basis. Skips runners who objected, known minors, closed or suspended accounts, guest entries and withdrawn entries. Runs in the background only when no submission is waiting, within the daily cap. Training basis now: <strong><%= trainingBasis === 'notice_opt_out' ? 'notice and objection' : 'opt-in only' %></strong>.</p>
+        <% if (backfillGate) { %><p class="ocr-help">Not startable yet: <%= backfillGate %></p><% } %>
+        <% if (backfillPlan) { %>
+          <p>Last dry run (<%= formatDateTime(backfillPlan.plannedAt) %>): <strong><%= backfillPlan.usable %></strong> of <%= backfillPlan.total %> entries would be used<% if (backfillPlan.alreadySampled) { %>, <%= backfillPlan.alreadySampled %> already sampled<% } %>.
+            <% if (Object.keys(backfillPlan.byStatus || {}).length) { %>By status: <% Object.entries(backfillPlan.byStatus).forEach(([status, count], index) => { %><%= index ? ', ' : '' %><%= status %> <%= count %><% }) %>.<% } %>
+            <% if (Object.keys(backfillPlan.excluded || {}).length) { %>Excluded: <% Object.entries(backfillPlan.excluded).forEach(([reason, count], index) => { %><%= index ? ', ' : '' %><%= reason.replace(/_/g, ' ') %> <%= count %><% }) %>.<% } %></p>
+        <% } %>
+        <% const activeRun = backfillRuns.find((run) => ['running', 'paused'].includes(run.status)); %>
+        <% if (canDeploy) { %>
+          <div class="ocr-form-row">
+            <form method="POST" action="/admin/ocr-training/backfill/plan">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <button type="submit" class="btn btn-secondary">Dry run (counts only)</button>
+            </form>
+            <% if (!activeRun) { %>
+              <form method="POST" action="/admin/ocr-training/backfill" class="ocr-form-row">
+                <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                <label>Type START BACKFILL <input name="confirmation" autocomplete="off" required></label>
+                <button type="submit" class="btn" <%= backfillGate ? 'disabled' : '' %>>Start backfill</button>
+              </form>
+            <% } else { %>
+              <% if (activeRun.status === 'running') { %>
+                <form method="POST" action="/admin/ocr-training/backfill/<%= activeRun._id %>/pause"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><button type="submit" class="btn btn-secondary">Pause</button></form>
+              <% } else { %>
+                <form method="POST" action="/admin/ocr-training/backfill/<%= activeRun._id %>/resume"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><button type="submit" class="btn btn-secondary">Resume</button></form>
+              <% } %>
+              <form method="POST" action="/admin/ocr-training/backfill/<%= activeRun._id %>/cancel" onsubmit="return confirm('Cancel this backfill? Samples already created stay for review.');"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><button type="submit" class="btn btn-secondary">Cancel</button></form>
+            <% } %>
+          </div>
+        <% } else { %>
+          <p class="ocr-help">A full administrator runs the backfill.</p>
+        <% } %>
+        <% if (backfillRuns.length) { %>
+          <div class="admin-users-table-wrap">
+            <table class="admin-table ocr-table">
+              <thead><tr><th>Started</th><th>Status</th><th>Scanned</th><th>Queued for OCR</th><th>Reused readings</th><th>Candidates from reused</th><th>Excluded</th><th>Today</th></tr></thead>
+              <tbody>
+                <% backfillRuns.forEach((run) => { const excludedTotal = Object.values(run.counts?.excluded || {}).reduce((a, b) => a + Number(b || 0), 0); %>
+                  <tr>
+                    <td><%= formatDateTime(run.createdAt) %></td>
+                    <td><span class="ocr-pill ocr-pill-<%= run.status === 'running' ? 'running' : run.status %>"><%= run.status %></span><% if (run.errorSummary) { %><br><span class="ocr-help"><%= run.errorSummary %></span><% } %></td>
+                    <td><%= run.counts?.scanned || 0 %></td>
+                    <td><%= run.counts?.queued || 0 %></td>
+                    <td><%= run.counts?.reused || 0 %></td>
+                    <td><%= run.counts?.candidates || 0 %></td>
+                    <td><%= excludedTotal %></td>
+                    <td><%= run.today?.processed || 0 %> / <%= run.dailyCap %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </section>
+
       <section class="ocr-panel" aria-labelledby="ocr-datasets-heading">
         <h2 id="ocr-datasets-heading">Dataset snapshots</h2>
         <form method="POST" action="/admin/ocr-training/datasets" class="ocr-form-row">

@@ -9,7 +9,7 @@ const mongoose = require('mongoose');
 const logger = require('../../utils/logger');
 const User = require('../../models/User');
 const { getOcrAnalytics, buildResearchExportCsv, ALLOWED_WINDOWS, windowDays } = require('../../services/ocr/ocr-analytics.service');
-const { getOcrSettings, updateOcrSettings, buildSettingsUpdate } = require('../../services/ocr/ocr-settings.service');
+const { getOcrSettings, updateOcrSettings, buildSettingsUpdate, validateTrainingBasis } = require('../../services/ocr/ocr-settings.service');
 const notifications = require('../../services/ocr/ocr-notification.service');
 const { getDigestSchedule } = require('../../utils/ocr/digest-schedule');
 const { isRemindersEnabled } = require('../../services/ocr/ocr-config');
@@ -91,7 +91,24 @@ exports.updateSettings = async (req, res) => {
     if (errors.length) return base._redirectWith(res, back, 'error', errors.join(' '));
     if (!Object.keys(set).length) return base._redirectWith(res, back, 'info', 'Nothing changed.');
     const before = await getOcrSettings({ fresh: true });
+    const basisChanging = set['training.basis'] !== undefined && set['training.basis'] !== (before.training?.basis || 'opt_in');
+    if (basisChanging && String(req.body?.basisConfirmation || '').trim() !== 'CHANGE BASIS') {
+      return base._redirectWith(res, back, 'error', 'Type CHANGE BASIS to confirm a change of training basis.');
+    }
+    const basisCheck = validateTrainingBasis(set, before);
+    if (basisCheck.errors.length) return base._redirectWith(res, back, 'error', basisCheck.errors.join(' '));
     await updateOcrSettings(set, req.session?.userId);
+    if (basisChanging || set['training.noticePublishedAt'] !== undefined || set['training.noticePolicyVersion'] !== undefined) {
+      await recordOcrAudit({
+        action: 'ocr.training_basis_updated',
+        targetType: 'ocr_settings',
+        targetId: 'global',
+        statusFrom: before.training?.basis || 'opt_in',
+        statusTo: basisCheck.merged.basis,
+        reason: `notice ${basisCheck.merged.noticePolicyVersion || '-'} published ${basisCheck.merged.noticePublishedAt ? new Date(basisCheck.merged.noticePublishedAt).toISOString().slice(0, 10) : '-'}; backfill not before ${basisCheck.merged.backfillNotBefore ? new Date(basisCheck.merged.backfillNotBefore).toISOString().slice(0, 10) : '-'}`,
+        req
+      });
+    }
     await recordOcrAudit({
       action: 'ocr.settings_updated',
       targetType: 'ocr_settings',

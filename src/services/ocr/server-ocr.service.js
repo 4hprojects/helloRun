@@ -159,7 +159,7 @@ function buildExtractionDocument(result, job) {
     ...extra
   } : null);
   return {
-    source: job.options?.reason === 'reprocess' ? 'reprocess' : 'submission',
+    source: ['reprocess', 'backfill'].includes(job.options?.reason) ? job.options.reason : 'submission',
     jobId: job._id,
     proofKey: job.proofKey,
     proofHash: job.proofHash,
@@ -276,16 +276,18 @@ async function processExtractionJob(job, deps = {}) {
   const extraction = await OcrExtraction.create({ ...buildExtractionDocument(result, job), revision, supersedesId });
 
   const runner = job.runnerId
-    ? await User.findById(job.runnerId).select('firstName lastName').lean()
+    ? await User.findById(job.runnerId).select('firstName lastName accountStatus dateOfBirth ocrTrainingOptOut').lean()
     : null;
   const accountName = `${String(runner?.firstName || '').trim()} ${String(runner?.lastName || '').trim()}`.trim();
   const completedAt = new Date();
   let consentingEntry = null;
+  const trainingSettings = deps.settings || await require('./ocr-settings.service').getOcrSettings().catch(() => null);
+  const { isEntryUsableForTraining } = require('./training-sample.service');
 
   for (const target of job.targets) {
     const Model = modelForKind(target.kind);
     const entry = await Model.findById(target.id)
-      .select('distanceKm elapsedMs runDate runLocation runType elevationGain steps status proof.key runnerId eventId submissionAttemptId ocrTrainingConsent')
+      .select('distanceKm elapsedMs runDate runLocation runType elevationGain steps status proof.key proof.mimeType runnerId eventId submissionAttemptId ocrTrainingConsent')
       .lean();
     if (!entry) {
       outcome.targets.push({ id: String(target.id), result: 'missing' });
@@ -366,23 +368,31 @@ async function processExtractionJob(job, deps = {}) {
       ).catch(() => {});
     }
     outcome.targets.push({ id: String(target.id), result: decision });
-    if (!consentingEntry && entry.ocrTrainingConsent?.granted && !entry.ocrTrainingConsent?.withdrawnAt) {
-      consentingEntry = { kind: target.kind, entry };
+    if (!consentingEntry) {
+      const eligibility = isEntryUsableForTraining(entry, runner, trainingSettings);
+      if (eligibility.usable) consentingEntry = { kind: target.kind, entry, consentBasis: eligibility.consentBasis };
     }
   }
 
-  // Runner opted in: cut pending ground-truth candidates. They need an OCR admin's literal
-  // transcription and approval before any dataset can use them. Never blocks the job.
+  // Entry usable for training (runner opted in, or the published notice basis applies and the
+  // runner has not objected): cut pending ground-truth candidates. They still need an OCR admin's
+  // literal transcription and approval before any dataset can use them. Never blocks the job.
   if (consentingEntry && result.status !== 'failed') {
     try {
       const createCandidates = deps.createTrainingCandidates || require('./training-sample.service').createCandidatesFromExtraction;
       const candidates = await createCandidates({
         extraction: extraction.toObject ? extraction.toObject() : extraction,
         buffer,
-        consentBasis: 'participant_opt_in',
-        consentRecordedAt: consentingEntry.entry.ocrTrainingConsent.recordedAt,
-        consentNoticeVersion: consentingEntry.entry.ocrTrainingConsent.noticeVersion,
-        source: 'submission_opt_in',
+        consentBasis: consentingEntry.consentBasis,
+        consentRecordedAt: consentingEntry.consentBasis === 'participant_opt_in'
+          ? consentingEntry.entry.ocrTrainingConsent?.recordedAt
+          : trainingSettings?.training?.noticePublishedAt,
+        consentNoticeVersion: consentingEntry.consentBasis === 'participant_opt_in'
+          ? consentingEntry.entry.ocrTrainingConsent?.noticeVersion
+          : trainingSettings?.training?.noticePolicyVersion,
+        source: consentingEntry.consentBasis === 'participant_opt_in'
+          ? 'submission_opt_in'
+          : (job.options?.reason === 'backfill' ? 'backfill' : 'submission_notice'),
         sourceEntry: { kind: consentingEntry.kind, id: consentingEntry.entry._id },
         eventId: consentingEntry.entry.eventId || null,
         runnerId: consentingEntry.entry.runnerId || null

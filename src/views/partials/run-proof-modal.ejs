@@ -294,7 +294,9 @@
               </div>
             <% } %>
 
-            <% if (locals.ocrTrainingConsentPromptEnabled) { %>
+            <% if (locals.ocrTrainingBasis === 'notice_opt_out') { %>
+              <p class="run-proof-field-help" data-field-wrapper="ocrTrainingNotice">Cropped text lines (distance, time, pace) from screenshots may be used to improve how HelloRun reads screenshots. Names, maps and photos are not used. You can object any time in your <a href="/runner/profile#ocr-training">profile</a>; it does not affect your review.</p>
+            <% } else if (locals.ocrTrainingConsentPromptEnabled) { %>
               <div class="run-proof-field" data-field-wrapper="ocrTrainingConsent">
                 <label class="run-proof-consent-checkbox">
                   <input type="checkbox" name="ocrTrainingConsent" value="1">

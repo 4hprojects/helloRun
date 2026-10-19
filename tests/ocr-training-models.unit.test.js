@@ -185,7 +185,8 @@ test('models and jobs pages render safely with and without deploy rights', () =>
   assert.match(support, /A full administrator approves and activates models/);
 
   const jobs = render('jobs', {
-    section: 'jobs', worker: { online: false, preflightPassed: false, row: null }, datasets: [], readyDatasets: [], jobs: [], active: null, trainingEnabled: false, idempotencyKey: 'k'.repeat(24)
+    section: 'jobs', worker: { online: false, preflightPassed: false, row: null }, datasets: [], readyDatasets: [], jobs: [], active: null, trainingEnabled: false, idempotencyKey: 'k'.repeat(24),
+    backfillRuns: [], backfillPlan: null, backfillGate: '', trainingBasis: 'opt_in', canDeploy: false
   });
   assert.match(jobs, /Training is disabled/);
   assert.match(jobs, /name="idempotencyKey" value="k{24}"/);

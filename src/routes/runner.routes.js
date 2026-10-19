@@ -90,6 +90,7 @@ router.post('/runner/profile/emergency', requireAuth, profileUpdateLimiter, runn
 router.post('/runner/profile/badges/featured', requireAuth, profileUpdateLimiter, runnerController.updateFeaturedBadge);
 router.post('/runner/security/password', requireAuth, profileUpdateLimiter, runnerController.updatePasswordSettings);
 router.post('/runner/profile/notifications', requireAuth, profileUpdateLimiter, runnerController.updateNotificationSettings);
+router.post('/runner/profile/ocr-training', requireAuth, profileUpdateLimiter, ocrConsentController.updateOcrTrainingPreference);
 router.post('/runner/auth/google/unlink', requireAuth, profileUpdateLimiter, runnerController.unlinkGoogleAuth);
 router.post('/runner/notifications/read-all', requireAuth, runnerController.markAllNotificationsRead);
 router.post('/runner/notifications/archive-read', requireAuth, runnerController.archiveReadRunnerNotifications);

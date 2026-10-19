@@ -124,6 +124,19 @@
             </div>
           </form>
         </details>
+        <article class="runner-profile-card" id="ocr-training" aria-labelledby="ocr-training-title">
+          <h3 id="ocr-training-title">Screenshot reader improvement</h3>
+          <% if (locals.ocrTrainingOptedOut) { %>
+            <p>You have asked HelloRun not to use your activity screenshots to improve how it reads screenshots. None of your screenshots, past or future, are used for this.</p>
+          <% } else { %>
+            <p>HelloRun may use cropped text lines (distance, time, pace) from your activity screenshots to improve how it reads screenshots, as explained in the <a href="/privacy">Privacy Policy</a>. Names, maps and photos are not used. Objecting does not affect your entries or results.</p>
+          <% } %>
+          <form method="POST" action="/runner/profile/ocr-training" class="inline-form">
+            <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+            <input type="hidden" name="optedOut" value="<%= locals.ocrTrainingOptedOut ? '0' : '1' %>">
+            <button type="submit" class="btn <%= locals.ocrTrainingOptedOut ? 'btn-outline' : 'btn-outline-danger' %>"><%= locals.ocrTrainingOptedOut ? 'Allow use again' : 'Don’t use my screenshots' %></button>
+          </form>
+        </article>
       </section>
 
       <div class="profile-account-grid">

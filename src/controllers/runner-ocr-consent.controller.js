@@ -48,3 +48,36 @@ exports.withdrawOcrTrainingConsent = async (req, res) => {
     return res.status(500).render('error', { title: 'Server Error', status: 500, message: 'Could not withdraw permission. Please try again.' });
   }
 };
+
+/**
+ * Account-level objection (opt-out) to OCR improvement use, for past and future entries.
+ * Opting out excludes every existing sample from this runner from future datasets.
+ */
+exports.updateOcrTrainingPreference = async (req, res) => {
+  const back = '/runner/profile?section=notifications#ocr-training';
+  try {
+    const User = require('../models/User');
+    const { excludeSamplesForRunner } = require('../services/ocr/training-sample.service');
+    const runnerId = req.session?.userId;
+    const optedOut = String(req.body?.optedOut || '') === '1';
+    const result = await User.updateOne(
+      { _id: runnerId },
+      { $set: { ocrTrainingOptOut: { optedOut, at: new Date() } } }
+    );
+    if (!result.matchedCount) return res.redirect('/login');
+    const excluded = optedOut ? await excludeSamplesForRunner(runnerId, 'participant_objected') : 0;
+    await recordOcrAudit({
+      action: optedOut ? 'ocr.training_objection_recorded' : 'ocr.training_objection_withdrawn',
+      targetType: 'user',
+      targetId: String(runnerId),
+      statusFrom: optedOut ? 'allowed' : 'objected',
+      statusTo: optedOut ? 'objected' : 'allowed',
+      details: { samplesExcluded: excluded },
+      req
+    });
+    return res.redirect(back);
+  } catch (error) {
+    logger.error('[ocr-consent] preference update failed', { error: error?.message });
+    return res.status(500).render('error', { title: 'Server Error', status: 500, message: 'Could not save your choice. Please try again.' });
+  }
+};
