@@ -6,6 +6,7 @@ const BlogLike = require('../models/BlogLike');
 const BlogReport = require('../models/BlogReport');
 const User = require('../models/User');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
+const { getClientIp } = require('../utils/client-ip');
 const {
   COMMENTS_PAGE_SIZE,
   BlogCommentError,
@@ -37,7 +38,7 @@ function recordBlogCommunityAudit(req, action, targetType, targetId, details = {
     targetId: String(targetId || ''),
     actorMongoUserId: req.session?.userId || '',
     notes: JSON.stringify(details).slice(0, 4000),
-    ipAddress: req.ip,
+    ipAddress: getClientIp(req),
     userAgent: req.get?.('user-agent') || '',
     occurredAt: new Date()
   });

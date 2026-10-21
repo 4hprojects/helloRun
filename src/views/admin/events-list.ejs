@@ -341,14 +341,14 @@
   </div>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">if (window.lucide) lucide.createIcons();</script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     window.helloRunAdminEventsList = {
       csrfToken: <%- JSON.stringify(locals.csrfToken || '').replace(/</g, '\\u003c') %>,
       testDataCascadeCounts: <%- JSON.stringify(testDataCascadeCounts || null).replace(/</g, '\\u003c') %>
     };
   </script>
-  <script src="/js/admin-events-list.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/admin-events-list.js"></script>
 </body>
 </html>

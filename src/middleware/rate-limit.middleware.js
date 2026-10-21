@@ -1,6 +1,7 @@
 const { getRedisClient } = require('../config/redis');
 const logger = require('../utils/logger');
 const { sendHttpError } = require('../utils/http-error-response');
+const { getClientIpKey } = require('../utils/client-ip');
 
 // In-memory fallback store (used when Redis is not configured or unavailable).
 // Keys are path|user|ip, so under real traffic the Map accumulates one entry per
@@ -66,7 +67,7 @@ function createRateLimiter({ windowMs, maxRequests, message, keyFn }) {
       rawKey = String(keyFn(req));
     } else {
       const sessionPart = req.session?.userId ? String(req.session.userId) : 'anon';
-      rawKey = `${req.path}|${sessionPart}|${req.ip || 'unknown-ip'}`;
+      rawKey = `${req.path}|${sessionPart}|${getClientIpKey(req)}`;
     }
 
     let allowed = true;

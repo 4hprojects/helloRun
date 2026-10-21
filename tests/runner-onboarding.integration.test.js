@@ -34,7 +34,7 @@ test.after(async () => {
 
 // ── Welcome Banner ────────────────────────────────────────────────────────────
 
-test('welcome banner appears on dashboard when ?welcome=1 is present', async () => {
+test('first-visit dashboard greeting appears when ?welcome=1 is present', async () => {
   const cookie = await login(seed.runner.email, seed.password);
   await waitForSessionReady('/runner/dashboard', cookie);
 
@@ -45,7 +45,7 @@ test('welcome banner appears on dashboard when ?welcome=1 is present', async () 
 
   assert.equal(res.status, 200);
   const html = await res.text();
-  assert.ok(html.includes('onboarding-welcome-banner'), 'Welcome banner should appear on first visit');
+  assert.ok(html.includes('Let’s get moving,'), 'First-visit greeting should appear');
   assert.ok(html.includes('/runner/profile'), 'Banner should link to profile');
   assert.ok(html.includes('/events'), 'Banner should link to events');
 });
@@ -66,7 +66,7 @@ test('welcome banner is absent on a plain dashboard visit', async () => {
 
 // ── Profile Completeness Nudge ────────────────────────────────────────────────
 
-test('profile completeness nudge appears for a runner with an incomplete profile', async () => {
+test('incomplete-profile runner retains a direct dashboard profile link', async () => {
   const cookie = await login(seed.incompleteRunner.email, seed.password);
   await waitForSessionReady('/runner/dashboard', cookie);
 
@@ -77,8 +77,8 @@ test('profile completeness nudge appears for a runner with an incomplete profile
 
   assert.equal(res.status, 200);
   const html = await res.text();
-  assert.ok(html.includes('dashboard-profile-nudge'), 'Nudge should appear when profile is incomplete');
-  assert.ok(html.includes('Complete Profile'), 'Nudge should have Complete Profile CTA');
+  assert.ok(html.includes('class="dashboard-profile-name"'), 'Dashboard identity should link to profile');
+  assert.ok(html.includes('/runner/profile'), 'Dashboard should retain a profile route');
 });
 
 test('profile completeness nudge is absent when profile is fully filled', async () => {

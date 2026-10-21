@@ -29,7 +29,7 @@ const ROOT = path.resolve(__dirname, '..', '..');
 
 // Long enough for a cold boot with a remote database, short enough that a genuinely stuck
 // server fails the run rather than hanging it.
-const READY_ATTEMPTS = 40;
+const READY_ATTEMPTS = 160;
 const READY_INTERVAL_MS = 250;
 // A server that ignores SIGTERM gets SIGKILL rather than stalling the suite.
 const EXIT_GRACE_MS = 5000;

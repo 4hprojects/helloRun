@@ -37,10 +37,46 @@ function buildEligiblePost(overrides = {}) {
     publishedAt: null,
     approvedAt: new Date('2026-08-02T12:00:00.000Z'),
     approvedBy: null,
-    saveCalls: 0,
-    async save() { this.saveCalls += 1; },
     ...payload,
     ...overrides
+  };
+}
+
+function createBlogModel(posts) {
+  function apply(post, update) {
+    Object.assign(post, update.$set || {});
+    for (const key of Object.keys(update.$unset || {})) delete post[key];
+    for (const [key, amount] of Object.entries(update.$inc || {})) {
+      post[key] = Number(post[key] || 0) + Number(amount);
+    }
+  }
+  return {
+    find: () => posts,
+    async findOneAndUpdate(query, update) {
+      if (typeof query._id === 'string') {
+        const post = posts.find((entry) => entry._id === query._id
+          && entry.status === query.status
+          && entry.scheduledPublishClaimedBy === query.scheduledPublishClaimedBy);
+        if (!post) return null;
+        apply(post, update);
+        return post;
+      }
+      const post = posts.find((entry) => entry.status === 'scheduled'
+        && !entry.isDeleted
+        && !entry.scheduledPublishClaimedAt
+        && !(query._id?.$nin || []).includes(entry._id));
+      if (!post) return null;
+      apply(post, update);
+      return post;
+    },
+    async updateOne(query, update) {
+      const post = posts.find((entry) => entry._id === query._id
+        && entry.status === query.status
+        && entry.scheduledPublishClaimedBy === query.scheduledPublishClaimedBy);
+      if (!post) return { modifiedCount: 0 };
+      apply(post, update);
+      return { modifiedCount: 1 };
+    }
   };
 }
 
@@ -75,13 +111,7 @@ test('scheduled publisher publishes only eligible due posts', async () => {
     title: 'Ineligible scheduled guide',
     contentEligibility: { eligible: false }
   });
-  const BlogModel = {
-    find(query) {
-      assert.equal(query.status, 'scheduled');
-      assert.deepEqual(query.isDeleted, { $ne: true });
-      return [eligible, ineligible];
-    }
-  };
+  const BlogModel = createBlogModel([eligible, ineligible]);
   const now = new Date('2026-08-03T11:03:00.000Z');
   const summary = await publishEligibleScheduledPosts({ BlogModel, now });
 
@@ -93,9 +123,8 @@ test('scheduled publisher publishes only eligible due posts', async () => {
   assert.equal(eligible.publishedAt, now);
   assert.equal(eligible.searchIndexingStatus, 'noindex');
   assert.equal(eligible.approvedAt.toISOString(), '2026-08-02T12:00:00.000Z');
-  assert.equal(eligible.saveCalls, 1);
   assert.equal(ineligible.status, 'scheduled');
-  assert.equal(ineligible.saveCalls, 0);
+  assert.equal(ineligible.scheduledPublishFailures, 1);
 });
 
 test('scheduled publisher publishes approved content while a revision remains pending', async () => {
@@ -104,7 +133,7 @@ test('scheduled publisher publishes approved content while a revision remains pe
     activeRevisionStatus: 'pending',
     activeRevisionSubmittedAt: new Date('2026-08-03T10:00:00.000Z')
   });
-  const BlogModel = { find: () => [eligible] };
+  const BlogModel = createBlogModel([eligible]);
   const now = new Date('2026-08-03T11:03:00.000Z');
 
   const summary = await publishEligibleScheduledPosts({ BlogModel, now });
@@ -127,5 +156,19 @@ test('scheduled publisher dry-run reports without changing records', async () =>
   assert.equal(summary.eligible, 1);
   assert.equal(summary.published, 0);
   assert.equal(eligible.status, 'scheduled');
-  assert.equal(eligible.saveCalls, 0);
+});
+
+test('concurrent publishers cannot claim the same scheduled post', async () => {
+  const eligible = buildEligiblePost();
+  const BlogModel = createBlogModel([eligible]);
+  const now = new Date('2026-08-03T11:03:00.000Z');
+
+  const [first, second] = await Promise.all([
+    publishEligibleScheduledPosts({ BlogModel, now }),
+    publishEligibleScheduledPosts({ BlogModel, now })
+  ]);
+
+  assert.equal(first.published + second.published, 1);
+  assert.equal(first.claimed + second.claimed, 1);
+  assert.equal(eligible.status, 'published');
 });

@@ -12,6 +12,7 @@ const {
   getRequestIpAddress, getRequestUserAgent, isFullAdminTier,
   getTestUserCounts, purgeTestUsers
 } = require('./_shared');
+const { getClientIp } = require('../../utils/client-ip');
 const {
   buildCsvContent,
   buildXlsxBuffer,
@@ -240,7 +241,7 @@ exports.deleteUsers = async (req, res) => {
         targetId: String(user._id),
         notes: `Deleted user ${user.email}. Reason: ${reason}`,
         actorMongoUserId: req.session.userId,
-        ipAddress: String(req.ip || ''),
+        ipAddress: getClientIp(req),
         userAgent: String(req.get('user-agent') || ''),
         occurredAt
       })));
@@ -404,13 +405,13 @@ exports.updateUser = async (req, res) => {
     await user.save();
 
     if (prevRole !== formData.role) {
-      recordCriticalAuditEventInBackground({ action: 'admin.user.role_changed', targetType: 'user', targetId: String(user._id), statusFrom: prevRole, statusTo: formData.role, actorMongoUserId: req.session.userId, ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+      recordCriticalAuditEventInBackground({ action: 'admin.user.role_changed', targetType: 'user', targetId: String(user._id), statusFrom: prevRole, statusTo: formData.role, actorMongoUserId: req.session.userId, ipAddress: getClientIp(req), userAgent: String(req.get('user-agent') || '') });
     }
     if (prevOrgStatus !== formData.organizerStatus) {
-      recordCriticalAuditEventInBackground({ action: 'admin.user.organiser_status_changed', targetType: 'user', targetId: String(user._id), statusFrom: prevOrgStatus, statusTo: formData.organizerStatus, actorMongoUserId: req.session.userId, ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+      recordCriticalAuditEventInBackground({ action: 'admin.user.organiser_status_changed', targetType: 'user', targetId: String(user._id), statusFrom: prevOrgStatus, statusTo: formData.organizerStatus, actorMongoUserId: req.session.userId, ipAddress: getClientIp(req), userAgent: String(req.get('user-agent') || '') });
     }
     if (prevAdminTier !== user.adminTier) {
-      recordCriticalAuditEventInBackground({ action: 'admin.user.admin_tier_changed', targetType: 'user', targetId: String(user._id), statusFrom: prevAdminTier, statusTo: user.adminTier, actorMongoUserId: req.session.userId, ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+      recordCriticalAuditEventInBackground({ action: 'admin.user.admin_tier_changed', targetType: 'user', targetId: String(user._id), statusFrom: prevAdminTier, statusTo: user.adminTier, actorMongoUserId: req.session.userId, ipAddress: getClientIp(req), userAgent: String(req.get('user-agent') || '') });
     }
 
     return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'success', 'User information updated.'));
@@ -546,7 +547,7 @@ exports.addAdminNote = async (req, res) => {
     user.adminNotes.push({ note, addedBy: req.session.userId, addedAt: new Date() });
     await user.save();
 
-    recordCriticalAuditEventInBackground({ action: 'admin.user.note_added', targetType: 'user', targetId: String(user._id), actorMongoUserId: req.session.userId, notes: 'Admin note added.', ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+    recordCriticalAuditEventInBackground({ action: 'admin.user.note_added', targetType: 'user', targetId: String(user._id), actorMongoUserId: req.session.userId, notes: 'Admin note added.', ipAddress: getClientIp(req), userAgent: String(req.get('user-agent') || '') });
 
     return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'success', 'Note added.') + '#admin-notes');
   } catch (error) {
@@ -591,7 +592,7 @@ exports.resendVerificationEmail = async (req, res) => {
       }
     });
 
-    recordCriticalAuditEventInBackground({ action: 'admin.user.verification_resent', targetType: 'user', targetId: String(user._id), actorMongoUserId: req.session.userId, notes: 'Admin resent verification email.', ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+    recordCriticalAuditEventInBackground({ action: 'admin.user.verification_resent', targetType: 'user', targetId: String(user._id), actorMongoUserId: req.session.userId, notes: 'Admin resent verification email.', ipAddress: getClientIp(req), userAgent: String(req.get('user-agent') || '') });
 
     return res.json({ success: true, message: 'Verification email sent.' });
   } catch (error) {
@@ -621,7 +622,7 @@ exports.overrideEmailVerification = async (req, res) => {
     user.emailVerificationExpires = undefined;
     await user.save();
 
-    recordCriticalAuditEventInBackground({ action: 'admin.user.email_verified_override', targetType: 'user', targetId: String(user._id), statusFrom: 'unverified', statusTo: 'verified', notes: reason, actorMongoUserId: req.session.userId, ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+    recordCriticalAuditEventInBackground({ action: 'admin.user.email_verified_override', targetType: 'user', targetId: String(user._id), statusFrom: 'unverified', statusTo: 'verified', notes: reason, actorMongoUserId: req.session.userId, ipAddress: getClientIp(req), userAgent: String(req.get('user-agent') || '') });
 
     return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'success', 'Email verification overridden successfully.'));
   } catch (error) {
@@ -656,7 +657,7 @@ exports.updateAccountStatus = async (req, res) => {
     user.accountStatusUpdatedBy = req.session.userId;
     await user.save();
 
-    recordCriticalAuditEventInBackground({ action: 'admin.user.account_status_changed', targetType: 'user', targetId: String(user._id), statusFrom: prevStatus, statusTo: newStatus, notes: reason || 'Status changed by admin.', actorMongoUserId: req.session.userId, ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+    recordCriticalAuditEventInBackground({ action: 'admin.user.account_status_changed', targetType: 'user', targetId: String(user._id), statusFrom: prevStatus, statusTo: newStatus, notes: reason || 'Status changed by admin.', actorMongoUserId: req.session.userId, ipAddress: getClientIp(req), userAgent: String(req.get('user-agent') || '') });
 
     return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'success', `Account status updated to "${newStatus}".`));
   } catch (error) {

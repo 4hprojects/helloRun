@@ -72,7 +72,7 @@ test('every page with the shared nav loads main.js, which drives the mobile menu
   for (const file of viewFiles()) {
     const source = fs.readFileSync(file, 'utf8');
     if (!source.includes("include('../layouts/nav')")) continue;
-    assert.match(source, /<script src="\/js\/main\.js"[^>]*><\/script>/, `${path.relative(root, file)} has no mobile menu script`);
+    assert.match(source, /<script[^\n]*\ssrc="\/js\/main\.js"[^\n]*><\/script>/, `${path.relative(root, file)} has no mobile menu script`);
   }
 });
 

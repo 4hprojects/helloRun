@@ -3,7 +3,7 @@
 <head>
   <%- include('../layouts/head', { title: title || 'Certificate Setup - HelloRun' }) %>
   <link rel="stylesheet" href="/css/certificate-setup.css">
-  <script src="/js/certificate-setup.js" defer></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/certificate-setup.js" defer></script>
 </head>
 <body>
   <%- include('../layouts/nav') %>
@@ -297,6 +297,6 @@
   </div>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 </body>
 </html>

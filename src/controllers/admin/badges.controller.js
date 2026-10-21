@@ -13,8 +13,9 @@ const {
   buildCommunicationLogHref, buildCommunicationRetryHref, buildCommunicationRetryActionHref,
   buildCommunicationFailureDetailHref, normalizeAdminReviewType, normalizeAdminReviewSort,
   buildReviewQueueParams, getCountMap, formatAdminReviewDate, formatAdminDateTime, appendAdminPageMessage,
-  canPublishFromMessage
+  canPublishFromMessage, getAdminActor, escapeRegex
 } = require('./_shared');
+const { getClientIp } = require('../../utils/client-ip');
 
 // Service functions renamed to avoid collision with controller export names
 const updateBadgeDefinitionStatus = updateBadgeDefinitionStatusSvc;
@@ -307,7 +308,7 @@ exports.retryCommunicationDelivery = async (req, res) => {
     const result = await retryCommunicationNow(req.params.retryId, {
       actor: {
         actorUserId: req.session?.userId || null,
-        ipAddress: String(req.ip || ''),
+        ipAddress: getClientIp(req),
         userAgent: String(req.get('user-agent') || '')
       }
     });

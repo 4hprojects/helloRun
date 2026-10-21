@@ -13,7 +13,7 @@
 <article class="my-reg-card my-reg-card-<%= item.stateTone %>" id="registration-<%= item.registrationId %>" tabindex="-1">
   <div class="my-reg-card-main">
     <a href="<%= item.eventHref || '/contact' %>" class="my-reg-event-image" aria-label="<%= item.eventHref ? 'View ' + item.eventTitle : 'Contact support about unavailable event' %>">
-      <img src="<%= item.imageUrl %>" alt="" loading="lazy" onerror="this.onerror=null;this.src='<%= item.fallbackImageUrl %>';">
+      <img src="<%= item.imageUrl %>" alt="" loading="lazy" data-fallback-src="<%= item.fallbackImageUrl %>">
     </a>
 
     <div class="my-reg-card-content">

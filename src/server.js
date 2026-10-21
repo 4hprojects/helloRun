@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: process.env.DOTENV_CONFIG_PATH || '.env' });
 
 // ===== SENTRY (initialise before anything else) =====
 let Sentry;
@@ -28,6 +28,7 @@ const express = require('express');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const path = require('path');
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const logger = require('./utils/logger');
 const { sendJsonServerError } = require('./utils/json-error-response');
@@ -96,6 +97,8 @@ function canEmbedSameOriginReviewPage(pathname) {
 }
 
 app.use((req, res, next) => {
+  const cspNonce = crypto.randomBytes(16).toString('base64');
+  res.locals.cspNonce = cspNonce;
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', canEmbedSameOriginReviewPage(req.path) ? 'SAMEORIGIN' : 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -104,11 +107,13 @@ app.use((req, res, next) => {
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://challenges.cloudflare.com blob:",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+      "script-src 'self' 'wasm-unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://challenges.cloudflare.com blob:",
+      `script-src-elem 'self' 'nonce-${cspNonce}' 'wasm-unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://challenges.cloudflare.com blob:`,
+      "script-src-attr 'none'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: https: blob:",
-      "connect-src 'self' data: https://www.google-analytics.com https://analytics.google.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://unpkg.com",
+      "connect-src 'self' data: https://www.google-analytics.com https://analytics.google.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
       "frame-src 'self' https://challenges.cloudflare.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
       "worker-src 'self' blob:",
       "object-src 'none'",
@@ -249,10 +254,20 @@ app.use(attachCsrfToken);
 
 // Admin-only sync health — must sit below the session middleware so req.session exists
 app.get('/healthz/sync', async (req, res) => {
-  if (req.session?.role !== 'admin') {
+  if (!req.session?.userId) {
     return res.status(403).json({ ok: false, error: 'Admin access required.' });
   }
   try {
+    const User = require('./models/User');
+    const user = await User.findById(req.session.userId)
+      .select('role accountStatus')
+      .lean();
+    if (!user || user.role !== 'admin' || ['suspended', 'closed'].includes(user.accountStatus)) {
+      if (user) req.session.role = user.role;
+      return res.status(403).json({ ok: false, error: 'Admin access required.' });
+    }
+    req.session.role = user.role;
+
     const { getRecentFailures, countUnresolvedFailures } = require('./services/sync-failure.service');
     const [byType, recent] = await Promise.all([
       countUnresolvedFailures(1440),

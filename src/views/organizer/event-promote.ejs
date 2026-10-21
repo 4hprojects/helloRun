@@ -208,8 +208,8 @@
 
   <%- include('../layouts/footer') %>
 
-  <script src="/js/main.js"></script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     (function () {
       const eventSelect = document.getElementById('eventId');
       const audienceRadios = document.querySelectorAll('input[name="audience"]');
@@ -217,6 +217,7 @@
       const labelEl = document.getElementById('recipient-label');
       const cappedEl = document.getElementById('recipient-capped');
       const submitBtn = document.getElementById('promote-submit');
+      const promoteForm = document.getElementById('promote-form');
       const quotaRemaining = <%= quotaRemaining %>;
 
       function getAudience() {
@@ -232,6 +233,7 @@
           labelEl.textContent = 'Select an event and audience to preview';
           cappedEl.style.display = 'none';
           submitBtn.disabled = true;
+          promoteForm.dataset.confirmTarget = 'Select an event and audience first';
           return;
         }
         countEl.textContent = '…';
@@ -242,6 +244,7 @@
           const count = data.count || 0;
           countEl.textContent = count;
           labelEl.textContent = count === 1 ? 'eligible runner' : 'eligible runners';
+          promoteForm.dataset.confirmTarget = `${count} eligible runner${count === 1 ? '' : 's'} for the selected event and audience`;
           if (data.rawCount > count) {
             cappedEl.textContent = `(${data.rawCount} matched, capped by daily quota)`;
             cappedEl.style.display = 'block';
@@ -253,6 +256,8 @@
           countEl.textContent = '?';
           labelEl.textContent = 'Preview unavailable';
           cappedEl.style.display = 'none';
+          submitBtn.disabled = true;
+          promoteForm.dataset.confirmTarget = 'Recipient preview unavailable';
         }
       }
 

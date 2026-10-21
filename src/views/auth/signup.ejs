@@ -219,11 +219,11 @@
   <%- include('../layouts/footer') %>
   
   <% if (locals.turnstile && locals.turnstile.enabled) { %>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script nonce="<%= locals.cspNonce || String() %>" src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <% } %>
-  <script src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     document.addEventListener('DOMContentLoaded', function() {
       lucide.createIcons();
       

@@ -4,7 +4,7 @@ const { assertTestDatabasesAreSafe } = require('./test-db-guard');
 // The suites read connection strings from .env the same way the app does, so the guard has
 // to see what they will see.
 try {
-  require('dotenv').config();
+  require('dotenv').config({ path: process.env.DOTENV_CONFIG_PATH || '.env' });
 } catch (_) {
   // dotenv is a dependency, but a missing .env is normal in CI.
 }
@@ -26,11 +26,17 @@ try {
 const startedAt = Date.now();
 
 const runnerFlags = parallel ? [] : ['--test-concurrency=1'];
+const databaseTouchingRun = patterns.some((pattern) => !pattern.includes('.unit.test.js'));
 const result = spawnSync(process.execPath, ['--test', ...runnerFlags, ...patterns], {
   stdio: 'inherit',
   env: {
     ...process.env,
-    CSRF_PROTECTION: process.env.CSRF_PROTECTION || '0'
+    CSRF_PROTECTION: process.env.CSRF_PROTECTION || '0',
+    ...(databaseTouchingRun ? {
+      NODE_ENV: 'test',
+      ALLOW_TEST_EVENT_VISIBILITY: '1',
+      TEST_UPLOAD_STORAGE: 'memory'
+    } : {})
   }
 });
 

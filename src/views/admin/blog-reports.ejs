@@ -83,6 +83,6 @@
     <% if (pagination.totalPages > 1) { const params = new URLSearchParams({status:selectedStatus,targetType:selectedTargetType,reason:selectedReason,dateFrom,dateTo}); %><nav class="blog-admin-pagination"><% if (pagination.page > 1) { params.set('page', pagination.page - 1); %><a class="btn btn-secondary" href="?<%= params %>">Previous</a><% } %><span>Page <%= pagination.page %> of <%= pagination.totalPages %></span><% if (pagination.page < pagination.totalPages) { params.set('page', pagination.page + 1); %><a class="btn btn-secondary" href="?<%= params %>">Next</a><% } %></nav><% } %>
   </main>
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 </body>
 </html>

@@ -342,6 +342,16 @@ const blogSchema = new mongoose.Schema(
       trim: true,
       maxlength: 500,
       default: ''
+    },
+    scheduledPublishClaimedAt: {
+      type: Date,
+      default: null
+    },
+    scheduledPublishClaimedBy: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+      default: ''
     }
   },
   {
@@ -351,6 +361,7 @@ const blogSchema = new mongoose.Schema(
 
 blogSchema.index({ status: 1, publishedAt: -1 });
 blogSchema.index({ status: 1, scheduledFor: 1, isDeleted: 1 });
+blogSchema.index({ status: 1, scheduledPublishClaimedAt: 1, scheduledFor: 1 });
 blogSchema.index({ isDeleted: 1, status: 1, activeRevisionStatus: 1, updatedAt: -1 });
 blogSchema.index({ status: 1, featured: 1, publishedAt: -1 });
 blogSchema.index({ status: 1, isDeleted: 1, publishedAt: -1 });

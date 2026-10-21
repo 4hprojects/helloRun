@@ -16,20 +16,13 @@
  * `npm run test:unit` the suite to reach for.
  */
 
-const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0']);
-
-// Every connection string the suites might pick up. Redis is included because a test that
-// flushes a shared cache is disruptive even though it destroys nothing permanent.
-const CONNECTION_ENV_VARS = [
-  'MONGODB_URI',
-  'MONGO_URI',
-  'MONGODB_URL',
-  'DATABASE_URL',
-  'SUPABASE_DB_URL',
-  'POSTGRES_URL',
-  'POSTGRES_URI',
-  'REDIS_URL'
-];
+const {
+  CONNECTION_ENV_VARS,
+  findRemoteTargets,
+  findUnsafeRemoteTargets,
+  hostnameOf,
+  isLocalHostname
+} = require('../config/database-safety');
 
 const OVERRIDE_ENV_VAR = 'ALLOW_REMOTE_TEST_DB';
 
@@ -39,23 +32,6 @@ const OVERRIDE_ENV_VAR = 'ALLOW_REMOTE_TEST_DB';
  * Never returns the URI itself: this ends up in terminal output and CI logs, and these
  * strings carry passwords.
  */
-function hostnameOf(uri) {
-  const value = String(uri || '').trim();
-  if (!value) return '';
-  try {
-    // mongodb+srv:// and postgres:// both parse; the protocol is irrelevant here.
-    return new URL(value).hostname.toLowerCase();
-  } catch (_) {
-    // Unparseable is not the same as absent. Treat it as unknown, which counts as remote.
-    return 'unparseable';
-  }
-}
-
-function isLocalHostname(hostname) {
-  if (!hostname) return true; // not configured at all — nothing to connect to
-  return LOCAL_HOSTNAMES.has(hostname) || hostname.endsWith('.localhost');
-}
-
 /**
  * Does this selection of test files include anything that may touch a database?
  *
@@ -74,11 +50,6 @@ function groupIsUnitOnly(testArgs) {
  *
  * @returns {Array<{ variable: string, hostname: string }>}
  */
-function findRemoteTargets(env = process.env) {
-  return CONNECTION_ENV_VARS.map((variable) => ({ variable, hostname: hostnameOf(env[variable]) }))
-    .filter((target) => target.hostname && !isLocalHostname(target.hostname));
-}
-
 /**
  * Throw unless it is safe to run this group.
  *
@@ -91,7 +62,8 @@ function assertTestDatabasesAreSafe(testArgs, env = process.env) {
   const remote = findRemoteTargets(env);
   if (remote.length === 0) return { checked: true, remote: [] };
 
-  if (String(env[OVERRIDE_ENV_VAR] || '') === '1') {
+  const unsafe = findUnsafeRemoteTargets(env);
+  if (String(env[OVERRIDE_ENV_VAR] || '') === '1' && unsafe.length === 0) {
     console.warn(
       `[run-test-group] ${OVERRIDE_ENV_VAR}=1 — running against non-local databases: ` +
         remote.map((target) => `${target.variable}@${target.hostname}`).join(', ')
@@ -99,17 +71,25 @@ function assertTestDatabasesAreSafe(testArgs, env = process.env) {
     return { checked: true, remote, overridden: true };
   }
 
+  const unsafeDetail = unsafe.length
+    ? [
+        '',
+        'The override cannot authorize an unnamed or production-looking remote database.',
+        'Remote database names must contain dev, test, testing, or staging; remote Redis is never allowed.'
+      ]
+    : [];
   const lines = [
     'Refusing to run: these tests can write to a database, and the configured databases are not local.',
     '',
     ...remote.map((target) => `  ${target.variable} -> ${target.hostname}`),
+    ...unsafeDetail,
     '',
     'This repository has no staging tier, so a local .env usually points at production.',
     '',
     'Choose one:',
     '  npm run test:unit                     # DB-free, always safe',
     '  point the variables above at a local database',
-    `  ${OVERRIDE_ENV_VAR}=1 npm test         # only when the target is verified non-production`
+    `  ${OVERRIDE_ENV_VAR}=1 npm test         # only for a remote database with a non-production name`
   ];
   const error = new Error(lines.join('\n'));
   error.code = 'REMOTE_TEST_DB';

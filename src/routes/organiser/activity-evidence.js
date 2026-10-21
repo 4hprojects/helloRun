@@ -7,12 +7,11 @@ const router = express.Router();
 const {
   logger,
   User,
-  requireAuth,
-  requireCsrfProtection,
   submissionReviewActionLimiter,
   canAccessRegistrantReview,
   getRegistrantAccessibleEventOrNull
 } = require('./_shared');
+const { protectEventReviewMutation } = require('./event-route-protection');
 const { recordManualUrlCheck } = require('../../services/ocr/activity-url-verification.service');
 
 function reviewPath(eventId, submissionId, type, message) {
@@ -22,8 +21,7 @@ function reviewPath(eventId, submissionId, type, message) {
 
 router.post(
   '/events/:id/submissions/:submissionId/activity-url-check',
-  requireAuth,
-  requireCsrfProtection,
+  protectEventReviewMutation,
   submissionReviewActionLimiter,
   async (req, res) => {
     const { id: eventId, submissionId } = req.params;

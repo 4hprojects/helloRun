@@ -10,6 +10,7 @@ const Event = require('../models/Event');
 const { notifyWithRetry } = require('../services/reliable-communication.service');
 const { evaluateRegistrationAchievementsInBackground } = require('../services/achievement.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
+const { getClientIp } = require('../utils/client-ip');
 
 function notLive(res, message) {
   return res.status(501).render('error', {
@@ -571,9 +572,7 @@ function extractRegistrationIdFromOrderNote(orderNote) {
 }
 
 function getRequestIpAddress(req) {
-  const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  const directIp = String(req.ip || '').trim();
-  return (forwardedFor || directIp).slice(0, 120);
+  return getClientIp(req).slice(0, 120);
 }
 
 function getRequestUserAgent(req) {

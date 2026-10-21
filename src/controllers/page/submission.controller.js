@@ -1,6 +1,7 @@
 'use strict';
 
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../../utils/challenge-metrics');
+const { getClientIp } = require('../../utils/client-ip');
 
 const {
   crypto,
@@ -360,7 +361,7 @@ exports.postUploadPaymentProof = async (req, res) => {
         statusFrom: String(registration.paymentStatus || ''),
         statusTo: 'proof_submitted',
         notes: `Payment receipt submitted for ${registration.confirmationCode || registration._id}.`,
-        ipAddress: String(req.ip || ''),
+        ipAddress: getClientIp(req),
         userAgent: String(req.get?.('user-agent') || ''),
         occurredAt: nextPaymentProof.uploadedAt
       });

@@ -42,10 +42,11 @@
     }
   }
 
-  root.addEventListener('click', (event) => {
+  root.addEventListener('click', async (event) => {
     const approve = event.target.closest('[data-transfer-approve]');
     if (approve) {
-      if (!window.confirm('Approve this transfer? The entry moves to the new person straight away.')) return;
+      const confirmed = await window.helloRunConfirm({ title: 'Approve transfer?', target: 'Selected registration transfer', impact: 'The entry moves to the new person immediately.', reversibility: 'A later correction requires another governed transfer.', privilege: 'Event organiser', confirmLabel: 'Approve transfer' }, approve);
+      if (!confirmed) return;
       return post(
         `/organizer/events/${eventId}/transfers/${approve.dataset.transferApprove}/approve`,
         {},
@@ -56,7 +57,7 @@
 
     const decline = event.target.closest('[data-transfer-decline]');
     if (decline) {
-      const reason = window.prompt('Why are you declining this transfer? (optional)');
+      const reason = await window.helloRunPrompt({ title: 'Decline transfer?', label: 'Reason (optional)', confirmLabel: 'Decline transfer' }, decline);
       if (reason === null) return; // cancelled the prompt
       return post(
         `/organizer/events/${eventId}/transfers/${decline.dataset.transferDecline}/decline`,

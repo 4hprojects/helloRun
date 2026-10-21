@@ -14,6 +14,7 @@ const Registration = require('../models/Registration');
 const logger = require('../utils/logger');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
+const { getClientIp, getClientIpKey } = require('../utils/client-ip');
 const {
   isTurnstileConfigured,
   getTurnstileSiteKey,
@@ -37,7 +38,7 @@ const guestRegistrationLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   maxRequests: 5,
   message: 'Too many registration attempts. Please wait a few minutes and try again.',
-  keyFn: (req) => `guest-register|${req.ip || 'unknown-ip'}|${req.params.slug || ''}`
+  keyFn: (req) => `guest-register|${getClientIpKey(req)}|${req.params.slug || ''}`
 });
 
 // Guessing a 64-hex token is not realistic, but a slow trickle should still not be free.
@@ -45,7 +46,7 @@ const guestLookupLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   maxRequests: 30,
   message: 'Too many attempts. Please wait a few minutes and try again.',
-  keyFn: (req) => `guest-lookup|${req.ip || 'unknown-ip'}`
+  keyFn: (req) => `guest-lookup|${getClientIpKey(req)}`
 });
 
 async function loadPublicEvent(slug) {
@@ -100,7 +101,7 @@ router.post(
       if (isTurnstileConfigured()) {
         const verified = await verifyTurnstileToken({
           token: req.body['cf-turnstile-response'],
-          remoteIp: req.ip
+          remoteIp: getClientIp(req)
         });
         if (!verified?.success) {
           errors.turnstile = 'Please complete the verification and try again.';
@@ -114,7 +115,7 @@ router.post(
       const { registration, manageToken, hasAccount } = await createGuestRegistration({
         event,
         form,
-        requestMeta: { ipAddress: req.ip, userAgent: req.get('user-agent') }
+        requestMeta: { ipAddress: getClientIp(req), userAgent: req.get('user-agent') }
       });
 
       // Rendered directly, never redirected to: a token in a URL ends up in browser

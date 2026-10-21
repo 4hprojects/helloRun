@@ -443,8 +443,8 @@
   <%- include('../layouts/footer') %>
 
   <!-- Scripts -->
-  <script src="/js/main.js"></script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     // Initialize Lucide icons
     if (window.lucide) {
       lucide.createIcons();

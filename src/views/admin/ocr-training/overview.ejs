@@ -107,6 +107,6 @@
     </section>
   </main>
   <%- include('../../layouts/footer') %>
-  <script src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 </body>
 </html>

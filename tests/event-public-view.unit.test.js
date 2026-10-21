@@ -8,7 +8,8 @@ const {
 } = require('../src/utils/event-public-view');
 const {
   getPublicEventVisibilityQuery,
-  isPublicEventVisible
+  isPublicEventVisible,
+  canExposeTestEvents
 } = require('../src/utils/public-event-visibility');
 
 test('renderEventDetailsContent preserves safe Quill HTML', () => {
@@ -80,6 +81,12 @@ test('public event visibility excludes smoke and legacy test events', () => {
     isPersonalRecord: false,
     isSmokeTest: false
   }, now), false);
+});
+
+test('test event visibility requires both explicit opt-in and test mode', () => {
+  assert.equal(canExposeTestEvents({ NODE_ENV: 'production', ALLOW_TEST_EVENT_VISIBILITY: '1' }), false);
+  assert.equal(canExposeTestEvents({ NODE_ENV: 'test', ALLOW_TEST_EVENT_VISIBILITY: '0' }), false);
+  assert.equal(canExposeTestEvents({ NODE_ENV: 'test', ALLOW_TEST_EVENT_VISIBILITY: '1' }), true);
 });
 
 test('renderEventDetailsContent still supports markdown input', () => {

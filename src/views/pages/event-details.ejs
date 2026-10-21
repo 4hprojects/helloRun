@@ -1064,10 +1064,10 @@
   <% } %>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <% if (!isPreviewMode) { %><script src="/js/event-share.js"></script><% } %>
-  <% if (locals.isAuthenticated) { %><script src="/js/event-save.js"></script><% } %>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <% if (!isPreviewMode) { %><script nonce="<%= locals.cspNonce || String() %>" src="/js/event-share.js"></script><% } %>
+  <% if (locals.isAuthenticated) { %><script nonce="<%= locals.cspNonce || String() %>" src="/js/event-save.js"></script><% } %>
+  <script nonce="<%= locals.cspNonce || String() %>">
     if (window.lucide) lucide.createIcons();
 
     (function initEventSectionJump() {

@@ -199,10 +199,10 @@
   <% } %>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script src="/js/runner-profile.js"></script>
-  <script src="/js/password-settings.js"></script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/runner-profile.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/password-settings.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     if (window.lucide) lucide.createIcons();
   </script>
 </body>

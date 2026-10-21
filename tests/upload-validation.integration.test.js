@@ -247,7 +247,7 @@ test('pending organizer application can be updated without re-uploading existing
 
   const form = new FormData();
   form.append('businessName', 'Updated Organizer');
-  form.append('businessType', 'sports_club');
+  form.append('businessType', 'individual');
   form.append('contactPhone', '09171234567');
   form.append('businessRegistrationNumber', 'REG-123');
   form.append('businessAddress', 'Updated Address');
@@ -269,7 +269,7 @@ test('pending organizer application can be updated without re-uploading existing
 
   const updated = await OrganiserApplication.findById(application._id).lean();
   assert.equal(updated.businessName, 'Updated Organizer');
-  assert.equal(updated.businessType, 'sports_club');
+  assert.equal(updated.businessType, 'individual');
   assert.equal(updated.idProofUrl, application.idProofUrl);
   assert.equal(updated.businessProofUrl, '');
   assert.equal(updated.status, 'pending');

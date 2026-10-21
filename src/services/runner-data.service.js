@@ -5,6 +5,12 @@ const { buildAccumulatedProgress } = require('./accumulated-activity.service');
 const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('./accumulated-target.service');
 const { getPlatformDateKey } = require('../utils/platform-date');
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
+const {
+  BUSINESS_TIME_ZONE,
+  formatCriticalTime,
+  formatInTimeZone,
+  normalizeTimeZone
+} = require('../utils/timezone');
 
 async function getRunnerRegistrations(userId) {
   return Registration.find({ userId })
@@ -230,7 +236,7 @@ function buildMyRegistrationsPresentation(registrations = [], sources = {}, opti
   const items = registrations.map((registration) => {
     const registrationId = String(registration?._id || '');
     const progressCard = progressByRegistrationId.get(registrationId) || buildUnavailableRegistrationCard(registration);
-    return buildMyRegistrationItem(registration, progressCard, now);
+    return buildMyRegistrationItem(registration, progressCard, now, options);
   });
   const groups = {
     nextActions: items.filter((item) => item.group === 'next_actions').sort(compareNextActionItems),
@@ -250,7 +256,7 @@ function buildMyRegistrationsPresentation(registrations = [], sources = {}, opti
   };
 }
 
-function buildMyRegistrationItem(registration = {}, card = {}, now = new Date()) {
+function buildMyRegistrationItem(registration = {}, card = {}, now = new Date(), options = {}) {
   const event = registration.eventId || null;
   const registrationStatus = String(registration.status || 'confirmed');
   const paymentStatus = String(registration.paymentStatus || 'unpaid');
@@ -264,6 +270,8 @@ function buildMyRegistrationItem(registration = {}, card = {}, now = new Date())
   const imageUrl = String(card.eventImageUrl || event?.logoUrl || '').trim() || '/images/helloRun-icon.webp';
   const fallbackImageUrl = '/images/helloRun-icon.webp';
   const isUnderReview = paymentStatus === 'proof_submitted' || state === 'submitted' || Number(card.progress?.pendingActivityCount || 0) > 0;
+  const confirmedTimeZone = options.timezoneConfirmedAt ? normalizeTimeZone(options.timezone) : '';
+  const displayTimeZone = confirmedTimeZone || BUSINESS_TIME_ZONE;
 
   return {
     registration,
@@ -281,10 +289,10 @@ function buildMyRegistrationItem(registration = {}, card = {}, now = new Date())
     selectedCategory,
     modeLabel: formatParticipationMode(registration.participationMode),
     eventDate,
-    eventDateLabel: formatRegistrationDate(eventDate, 'Date not listed'),
+    eventDateLabel: formatCriticalTime(eventDate, displayTimeZone) || 'Date not listed',
     submissionDeadline,
-    submissionDeadlineLabel: formatRegistrationDate(submissionDeadline, card.submissionDeadlineStatusLabel || 'Deadline not listed'),
-    registeredAtLabel: formatRegistrationDate(registration.registeredAt, 'Date not listed'),
+    submissionDeadlineLabel: formatCriticalTime(submissionDeadline, displayTimeZone) || card.submissionDeadlineStatusLabel || 'Deadline not listed',
+    registeredAtLabel: formatInTimeZone(registration.registeredAt, displayTimeZone) || 'Date not listed',
     state,
     stateLabel: card.stateLabel || (event ? 'Registration received' : 'Event unavailable'),
     stateTone: card.stateTone || (event ? 'neutral' : 'missed'),
@@ -391,12 +399,6 @@ function buildUnavailableRegistrationCard(registration = {}) {
     payment: { statusLabel: getPaymentStatusLabel(registration.paymentStatus) },
     nextAction: null
   };
-}
-
-function formatRegistrationDate(value, fallback) {
-  const date = parseDateSafe(value);
-  if (!date) return fallback;
-  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 function formatParticipationMode(value) {

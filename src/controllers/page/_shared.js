@@ -35,7 +35,11 @@ const { BLOG_CATEGORIES } = require('../../utils/blog');
 
 const { renderWaiverTemplate } = require('../../utils/waiver');
 
-const { assertRunDateNotFuture, parseRunDateOnly } = require('../../utils/platform-date');
+const {
+  assertRunDateNotFuture,
+  getDateOfBirthValidationError,
+  parseRunDateOnly
+} = require('../../utils/platform-date');
 
 const { isRunDateAlignedWithEvent } = require('../../utils/submission-window');
 
@@ -194,6 +198,7 @@ module.exports = {
   BLOG_CATEGORIES,
   renderWaiverTemplate,
   assertRunDateNotFuture,
+  getDateOfBirthValidationError,
   parseRunDateOnly,
   isRunDateAlignedWithEvent,
   canRunnerSubmitPaymentProof,

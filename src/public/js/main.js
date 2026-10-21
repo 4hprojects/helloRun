@@ -67,6 +67,7 @@ function initMainUi() {
 
   initSkipLinkTarget();
   initAccountMenu();
+  initDeclarativeBehaviors();
   initHighRiskConfirmations();
   initAdminPrivilegeAffordances();
   initOperationalFilterTools();
@@ -295,7 +296,7 @@ function initOnsiteFieldMode() {
   }));
 }
 
-function initWorkspaceDrafts() {
+async function initWorkspaceDrafts() {
   const form = document.querySelector('form.create-event-form, form.policy-editor-form');
   if (!form || !window.localStorage || !window.HelloRunPrivacy?.functional) return;
   const kind = form.classList.contains('policy-editor-form') ? 'policy' : 'event';
@@ -309,7 +310,17 @@ function initWorkspaceDrafts() {
   form.prepend(status);
   try {
     const draft = JSON.parse(window.localStorage.getItem(key) || 'null');
-    if (draft && Date.now() - Number(draft.savedAt || 0) < 7 * 24 * 60 * 60 * 1000 && window.confirm(`Restore your ${kind} workspace draft from ${new Date(draft.savedAt).toLocaleString()}?`)) {
+    const shouldRestore = draft && Date.now() - Number(draft.savedAt || 0) < 7 * 24 * 60 * 60 * 1000
+      ? await window.helloRunConfirm({
+        title: `Restore ${kind} draft?`,
+        target: `Draft saved ${new Date(draft.savedAt).toLocaleString()}`,
+        impact: 'Replaces the current unsaved field values with the local draft.',
+        reversibility: 'You can still edit every restored field before saving.',
+        privilege: 'This browser profile',
+        confirmLabel: 'Restore draft'
+      })
+      : false;
+    if (shouldRestore) {
       fields().forEach((field) => {
         const value = draft.values[field.name]; if (value === undefined) return;
         if (field.type === 'checkbox' || field.type === 'radio') field.checked = Array.isArray(value) ? value.includes(field.value) : value === field.value;
@@ -484,8 +495,6 @@ function initHighRiskConfirmations() {
     ...document.querySelectorAll('form[data-high-risk-confirm]'),
     ...Array.from(document.querySelectorAll('[type="submit"][data-high-risk-confirm]')).map((button) => button.form).filter(Boolean)
   ]));
-  if (!forms.length) return;
-
   let modal = document.getElementById('highRiskConfirmModal');
   if (!modal) {
     modal = document.createElement('div');
@@ -525,14 +534,32 @@ function initHighRiskConfirmations() {
   const proceed = modal.querySelector('[data-confirm-proceed]');
   let activeForm = null;
   let activeTrigger = null;
+  let activeResolve = null;
 
-  const close = () => {
+  const close = (confirmed = false) => {
     modal.hidden = true;
     document.body.classList.remove('high-risk-confirm-open');
     if (activeTrigger) activeTrigger.focus();
+    if (activeResolve) activeResolve(confirmed);
     activeForm = null;
     activeTrigger = null;
+    activeResolve = null;
   };
+
+  window.helloRunConfirm = (options = {}, trigger = document.activeElement) => new Promise((resolve) => {
+    activeResolve = resolve;
+    const source = { dataset: {
+      confirmTitle: options.title,
+      confirmTarget: options.target,
+      confirmImpact: options.impact || options.message,
+      confirmReversibility: options.reversibility,
+      confirmPrivilege: options.privilege,
+      confirmWarning: options.warning,
+      confirmButton: options.confirmLabel
+    } };
+    open(source, trigger);
+    activeForm = null;
+  });
 
   const open = (form, trigger) => {
     const source = trigger?.matches?.('[data-high-risk-confirm]') ? trigger : form;
@@ -565,21 +592,25 @@ function initHighRiskConfirmations() {
     });
   });
 
-  cancel.addEventListener('click', close);
+  cancel.addEventListener('click', () => close(false));
   proceed.addEventListener('click', () => {
-    if (!activeForm) return;
+    if (!activeForm) {
+      close(true);
+      return;
+    }
     const form = activeForm;
+    const submitter = activeTrigger?.matches?.('[type="submit"]') ? activeTrigger : null;
     form.dataset.highRiskConfirmed = '1';
     proceed.disabled = true;
     proceed.textContent = 'Submitting...';
-    close();
-    form.requestSubmit();
+    close(true);
+    form.requestSubmit(submitter || undefined);
   });
   modal.addEventListener('click', (event) => {
-    if (event.target === modal) close();
+    if (event.target === modal) close(false);
   });
   modal.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') close();
+    if (event.key === 'Escape') close(false);
     if (event.key === 'Tab') {
       const focusable = [cancel, proceed].filter((item) => !item.disabled);
       const first = focusable[0];
@@ -592,6 +623,93 @@ function initHighRiskConfirmations() {
         first.focus();
       }
     }
+  });
+}
+
+function initDeclarativeBehaviors() {
+  let toast = document.getElementById('globalActionToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'globalActionToast';
+    toast.className = 'inline-action-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    toast.hidden = true;
+    document.body.appendChild(toast);
+  }
+  let toastTimer;
+  window.helloRunToast = (message, tone = 'error') => {
+    window.clearTimeout(toastTimer);
+    toast.textContent = String(message || 'Action failed.');
+    toast.dataset.tone = tone;
+    toast.hidden = false;
+    toastTimer = window.setTimeout(() => { toast.hidden = true; }, 6000);
+  };
+
+  window.helloRunPrompt = (options = {}, trigger = document.activeElement) => new Promise((resolve) => {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'high-risk-confirm-backdrop';
+    backdrop.innerHTML = [
+      '<div class="high-risk-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="helloRunPromptTitle" tabindex="-1">',
+      '<h2 id="helloRunPromptTitle"></h2>',
+      '<label><span data-prompt-label></span><textarea rows="4" maxlength="500" data-prompt-input></textarea></label>',
+      '<div class="high-risk-confirm-actions">',
+      '<button type="button" class="btn btn-secondary" data-prompt-cancel>Cancel</button>',
+      '<button type="button" class="btn btn-primary" data-prompt-submit>Continue</button>',
+      '</div></div>'
+    ].join('');
+    document.body.appendChild(backdrop);
+    document.body.classList.add('high-risk-confirm-open');
+    const dialog = backdrop.querySelector('[role="dialog"]');
+    const input = backdrop.querySelector('[data-prompt-input]');
+    const cancel = backdrop.querySelector('[data-prompt-cancel]');
+    const submit = backdrop.querySelector('[data-prompt-submit]');
+    backdrop.querySelector('#helloRunPromptTitle').textContent = options.title || 'Add a note';
+    backdrop.querySelector('[data-prompt-label]').textContent = options.label || 'Optional note';
+    input.value = options.value || '';
+    input.required = options.required === true;
+    submit.textContent = options.confirmLabel || 'Continue';
+    const close = (value) => {
+      backdrop.remove();
+      document.body.classList.remove('high-risk-confirm-open');
+      trigger?.focus?.();
+      resolve(value);
+    };
+    cancel.addEventListener('click', () => close(null));
+    submit.addEventListener('click', () => {
+      if (!input.reportValidity()) return;
+      close(input.value.trim());
+    });
+    backdrop.addEventListener('click', (event) => { if (event.target === backdrop) close(null); });
+    dialog.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') close(null);
+      if (event.key === 'Tab') {
+        const focusable = [input, cancel, submit];
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    });
+    input.focus();
+  });
+
+  document.querySelectorAll('[data-auto-submit]').forEach((control) => {
+    if (control.dataset.autoSubmitInitialized === '1') return;
+    control.dataset.autoSubmitInitialized = '1';
+    control.addEventListener('change', () => control.form?.requestSubmit());
+  });
+  document.querySelectorAll('img[data-fallback-src], img[data-hide-on-error]').forEach((image) => {
+    if (image.dataset.errorFallbackInitialized === '1') return;
+    image.dataset.errorFallbackInitialized = '1';
+    image.addEventListener('error', () => {
+      const fallback = String(image.dataset.fallbackSrc || '').trim();
+      if (fallback && image.src !== new URL(fallback, window.location.href).href) {
+        image.src = fallback;
+      } else {
+        image.hidden = true;
+      }
+    });
   });
 }
 

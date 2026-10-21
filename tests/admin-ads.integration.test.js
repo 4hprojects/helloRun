@@ -21,7 +21,8 @@ test.before(async () => {
     cwd: ROOT,
     env: {
       ...process.env,
-      PORT: String(TEST_PORT)
+      PORT: String(TEST_PORT),
+      ADSENSE_MANUAL_PLACEMENTS_ENABLED: 'true'
     },
     stdio: ['ignore', 'ignore', 'ignore']
   });
@@ -71,8 +72,8 @@ test('admin ad settings page enforces access and updates manual placement settin
       scriptEnabled: 'on',
       publisherId: 'ca-pub-4537208011192461',
       group_home_enabled: 'on',
-      placement_home_after_features_enabled: 'on',
-      slot_home_after_features: '1234567890',
+      placement_home_before_cta_enabled: 'on',
+      slot_home_before_cta: '1234567890',
       group_blogPost_enabled: 'on',
       placement_blogPost_in_article_enabled: 'on',
       slot_blogPost_in_article: '9876543210'
@@ -86,8 +87,8 @@ test('admin ad settings page enforces access and updates manual placement settin
   assert.equal(setting.enabled, true);
   assert.equal(setting.scriptEnabled, true);
   assert.equal(setting.pageGroups.home.enabled, true);
-  assert.equal(setting.pageGroups.home.placements.after_features.enabled, true);
-  assert.equal(setting.pageGroups.home.placements.after_features.slotId, '1234567890');
+  assert.equal(setting.pageGroups.home.placements.before_cta.enabled, true);
+  assert.equal(setting.pageGroups.home.placements.before_cta.slotId, '1234567890');
   assert.equal(setting.pageGroups.blogPost.placements.in_article.slotId, '9876543210');
   assert.equal(setting.pageGroups.events.enabled, false);
 
@@ -95,7 +96,7 @@ test('admin ad settings page enforces access and updates manual placement settin
   assert.equal(homeResponse.status, 200);
   const homeHtml = await homeResponse.text();
   assert.match(homeHtml, /pagead2\.googlesyndication\.com\/pagead\/js\/adsbygoogle\.js\?client=ca-pub-4537208011192461/i);
-  assert.match(homeHtml, /data-ad-group="home" data-ad-placement="after_features"/i);
+  assert.match(homeHtml, /data-ad-group="home" data-ad-placement="before_cta"/i);
   assert.match(homeHtml, /data-ad-slot="1234567890"/i);
 
   const loginResponse = await fetch(`${BASE_URL}/login`, { redirect: 'manual' });

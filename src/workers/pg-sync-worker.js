@@ -15,14 +15,12 @@ const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const User = require('../models/User');
 const Blog = require('../models/Blog');
-const {
-  hasCurrentEligibleContent,
-  hasCurrentPublicationReview
-} = require('../utils/blog-content-eligibility');
+const { publishDueScheduledPosts } = require('../services/scheduled-blog-publisher.service');
 const { syncEventShadow } = require('../services/event-shadow.service');
 const { syncRegistrationPaymentShadow } = require('../services/registration-payment-shadow.service');
 const { syncSubmissionShadow } = require('../services/submission-shadow.service');
 const { syncPolicyConsentsForMongoUser } = require('../services/policy-consent.service');
+const { recordCriticalAuditEvent } = require('../services/critical-audit.service');
 const { getPostgresClient } = require('../db/postgres');
 const logger = require('../utils/logger');
 
@@ -65,17 +63,22 @@ async function retryFailure(failure) {
         break;
       }
       case 'critical_audit': {
-        // Context is too sparse to reconstruct the full audit event safely.
-        // Dead-letter immediately — the original was logged in sync_failure_log.
-        await sql`
-          UPDATE sync_failure_log
-          SET retry_count = ${DEAD_LETTER},
-              last_retry_at = now(),
-              error_message = '[DEAD_LETTER] critical_audit events cannot be reconstructed for retry'
-          WHERE id = ${id}
-        `;
-        logger.warn(`[pg-sync-worker] Dead-lettered critical_audit failure ${id} (not retryable)`);
-        return;
+        const auditEvent = failure.context?.auditEvent;
+        if (!auditEvent?.action || !auditEvent?.targetType || !auditEvent?.idempotencyKey) {
+          // Rows recorded before the retry payload was introduced cannot be
+          // reconstructed without inventing audit evidence.
+          await sql`
+            UPDATE sync_failure_log
+            SET retry_count = ${DEAD_LETTER},
+                last_retry_at = now(),
+                error_message = '[DEAD_LETTER] legacy critical_audit failure has no retry payload'
+            WHERE id = ${id}
+          `;
+          logger.warn(`[pg-sync-worker] Dead-lettered legacy critical_audit failure ${id} (missing retry payload)`);
+          return;
+        }
+        await recordCriticalAuditEvent(auditEvent, { sql });
+        break;
       }
       default:
         throw new Error(`Unknown sync_type: ${sync_type}`);
@@ -178,45 +181,15 @@ function startSyncRetryWorker() {
 
 async function publishScheduledBlogs() {
   const now = new Date();
-  const due = await Blog.find({
-    status: 'scheduled',
-    $or: [
-      { scheduledFor: { $lte: now } },
-      { scheduledFor: null, publishedAt: { $lte: now } }
-    ],
-    isDeleted: { $ne: true }
-  }).limit(20);
-
-  if (!due.length) return;
-
-  logger.info(`[blog-scheduler] Publishing ${due.length} scheduled post(s)`);
-  for (const post of due) {
-    try {
-      if (!hasCurrentEligibleContent(post) || !hasCurrentPublicationReview(post)) {
-        post.scheduledPublishFailures = Number(post.scheduledPublishFailures || 0) + 1;
-        post.scheduledPublishLastAttemptAt = now;
-        post.scheduledPublishLastError = 'Content eligibility or publication review is no longer current.';
-        await post.save();
-        logger.warn(`[blog-scheduler] Skipped ineligible scheduled post: "${post.title}" (${post._id})`);
-        continue;
-      }
-      post.status = 'published';
-      post.publishedAt = now;
-      post.scheduledFor = null;
-      post.scheduledPublishFailures = 0;
-      post.scheduledPublishLastAttemptAt = now;
-      post.scheduledPublishLastError = '';
-      if (!post.approvedAt) post.approvedAt = now;
-      await post.save();
-      logger.info(`[blog-scheduler] Published: "${post.title}" (${post._id})`);
-    } catch (err) {
-      await Blog.updateOne({ _id: post._id }, {
-        $inc: { scheduledPublishFailures: 1 },
-        $set: { scheduledPublishLastAttemptAt: now, scheduledPublishLastError: String(err?.message || err).slice(0, 500) }
-      }).catch(() => {});
-      logger.error(`[blog-scheduler] Failed to publish ${post._id}: ${err?.message || String(err)}`);
-    }
-  }
+  const summary = await publishDueScheduledPosts({
+    BlogModel: Blog,
+    now,
+    workerId: `in-process-${process.pid}`,
+    onPublished: (post) => logger.info(`[blog-scheduler] Published: "${post.title}" (${post._id})`),
+    onSkipped: (post) => logger.warn(`[blog-scheduler] Skipped ineligible scheduled post: "${post.title}" (${post._id})`),
+    onError: (post, error) => logger.error(`[blog-scheduler] Failed to publish ${post._id}: ${error?.message || String(error)}`)
+  });
+  if (summary.claimed) logger.info(`[blog-scheduler] Processed ${summary.claimed} scheduled post claim(s)`);
 }
 
 let blogSchedulerTimer = null;
@@ -251,4 +224,9 @@ function startBlogSchedulerWorker() {
   logger.info(`[blog-scheduler] Started — interval: ${interval}ms`);
 }
 
-module.exports = { startSyncRetryWorker, startBlogSchedulerWorker };
+module.exports = {
+  retryFailure,
+  runRetryBatch,
+  startSyncRetryWorker,
+  startBlogSchedulerWorker
+};

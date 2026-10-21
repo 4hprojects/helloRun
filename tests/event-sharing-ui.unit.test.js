@@ -46,7 +46,7 @@ test('event discovery exposes listing and per-card sharing to every visitor', ()
   assert.match(listing, /url: event\.share\.url/);
   assert.match(listing, /showTriggerText: false/);
   assert.match(listing, /instanceId: `eventCardShare-\$\{event\.slug\}`[\s\S]*?<% if \(locals\.isAuthenticated\) \{ %>/);
-  assert.match(listing, /<script src="\/js\/event-share\.js"><\/script>/);
+  assert.match(listing, /<script nonce="<%= locals\.cspNonce \|\| String\(\) %>" src="\/js\/event-share\.js"><\/script>/);
 });
 
 test('event-card share trigger is icon-only while keeping its accessible name', () => {
@@ -75,7 +75,7 @@ test('event detail sharing uses the public URL and stays out of organizer previe
   assert.ok(detail.indexOf('instanceId: `eventBottomShare-${details.slug}`') < detail.indexOf('event-related-section'));
   assert.match(detail, /url: share\.url/);
   assert.match(detail, /triggerLabel: 'Share event'/);
-  assert.match(detail, /if \(!isPreviewMode\) \{ %><script src="\/js\/event-share\.js"><\/script>/);
+  assert.match(detail, /if \(!isPreviewMode\) \{ %><script nonce="<%= locals\.cspNonce \|\| String\(\) %>" src="\/js\/event-share\.js"><\/script>/);
   assert.match(eventsCss, /\.event-share-options[\s\S]*z-index:\s*1001/);
   assert.match(read('src/public/css/event-details.css'), /@media \(max-width: 900px\)[\s\S]*\.event-bottom-share[\s\S]*flex-direction:\s*column/);
 });

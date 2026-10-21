@@ -76,7 +76,7 @@
                     <td>
                       <% if (job.logsKey) { %><a href="/admin/ocr-training/jobs/<%= job._id %>/log">Log</a><% } %>
                       <% if (['queued', 'preparing', 'training', 'evaluating'].includes(job.status) && !job.cancelRequested) { %>
-                        <form method="POST" action="/admin/ocr-training/jobs/<%= job._id %>/cancel" onsubmit="return confirm('Cancel this training job?');">
+                        <form method="POST" action="/admin/ocr-training/jobs/<%= job._id %>/cancel" data-high-risk-confirm data-confirm-title="Cancel training job?" data-confirm-target="Job <%= job._id %>" data-confirm-impact="Requests cancellation of the active training process." data-confirm-reversibility="A cancelled job must be started again as a new job." data-confirm-privilege="Full administrator" data-confirm-button="Cancel job">
                           <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                           <button type="submit" class="btn btn-secondary">Cancel</button>
                         </form>
@@ -118,7 +118,7 @@
               <% } else { %>
                 <form method="POST" action="/admin/ocr-training/backfill/<%= activeRun._id %>/resume"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><button type="submit" class="btn btn-secondary">Resume</button></form>
               <% } %>
-              <form method="POST" action="/admin/ocr-training/backfill/<%= activeRun._id %>/cancel" onsubmit="return confirm('Cancel this backfill? Samples already created stay for review.');"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><button type="submit" class="btn btn-secondary">Cancel</button></form>
+              <form method="POST" action="/admin/ocr-training/backfill/<%= activeRun._id %>/cancel" data-high-risk-confirm data-confirm-title="Cancel this backfill?" data-confirm-target="Backfill <%= activeRun._id %>" data-confirm-impact="Stops future backfill work; samples already created stay for review." data-confirm-reversibility="Restarting requires a new approved run." data-confirm-privilege="Full administrator" data-confirm-button="Cancel backfill"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><button type="submit" class="btn btn-secondary">Cancel</button></form>
             <% } %>
           </div>
         <% } else { %>
@@ -168,6 +168,6 @@
     </section>
   </main>
   <%- include('../../layouts/footer') %>
-  <script src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 </body>
 </html>

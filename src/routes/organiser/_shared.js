@@ -27,6 +27,8 @@ const { sanitizeHtml, htmlToPlainText } = require('../../utils/sanitize');
 const { markdownToHtml } = require('../../utils/markdown');
 const { generateUniqueReferenceCode } = require('../../utils/referenceCode');
 const { canOrganizerReviewPaymentProof } = require('../../utils/payment-workflow');
+const { getClientIp, getClientIpKey } = require('../../utils/client-ip');
+const { parseBusinessDateTime, formatDateTimeInput } = require('../../utils/timezone');
 const { buildSubmissionReviewSignal, REVIEW_REASON_LABELS } = require('../../utils/submission-review-labels');
 const {
   buildPublicEventView,
@@ -138,7 +140,7 @@ const directMessageLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000,
   maxRequests: 20,
   message: 'Too many messages sent. Please wait before messaging more runners.',
-  keyFn: (req) => `org-dm|${String(req.session?.userId || req.ip || 'anon')}`
+  keyFn: (req) => `org-dm|${String(req.session?.userId || getClientIpKey(req))}`
 });
 
 // ==========================================
@@ -196,9 +198,7 @@ function buildPreviewBackHref(source, eventId) {
 // Utility functions
 // ==========================================
 function getRequestIpAddress(req) {
-  const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  const directIp = String(req.ip || '').trim();
-  return (forwardedFor || directIp).slice(0, 120);
+  return getClientIp(req).slice(0, 120);
 }
 
 function getRequestUserAgent(req) {
@@ -1142,11 +1142,7 @@ function getCreateEventFormData(body = {}, options = {}) {
 }
 
 function formatDateForInput(value) {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+  return formatDateTimeInput(value);
 }
 
 function getCreateEventFormDataFromEvent(event) {
@@ -1154,9 +1150,7 @@ function getCreateEventFormDataFromEvent(event) {
 }
 
 function parseDateSafe(value) {
-  if (!value) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  return parseBusinessDateTime(value);
 }
 
 function addDays(date, days) {
@@ -1622,7 +1616,9 @@ async function getOwnedEventOrNull(eventId, userId) {
 function canAccessRegistrantReview(user) {
   if (!user) return false;
   if (user.role === 'admin') return true;
-  return !['suspended', 'closed', 'restricted'].includes(String(user.accountStatus || ''));
+  return user.role === 'organiser'
+    && user.organizerStatus === 'approved'
+    && !['suspended', 'closed', 'restricted'].includes(String(user.accountStatus || ''));
 }
 
 async function getRegistrantAccessibleEventOrNull(eventId, user) {

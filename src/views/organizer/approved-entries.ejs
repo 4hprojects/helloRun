@@ -133,6 +133,6 @@
   </main>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js" defer></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js" defer></script>
 </body>
 </html>

@@ -198,8 +198,8 @@
   </div>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     (function initCarouselSettingsConfirmations() {
       const form = document.querySelector('[data-carousel-settings-form]');
       const manageEventsLink = document.querySelector('[data-carousel-manage-events]');
@@ -278,6 +278,6 @@
       });
     })();
   </script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script nonce="<%= locals.cspNonce || String() %>">if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

@@ -144,6 +144,10 @@ const submissionSchema = new mongoose.Schema(
       default: '',
       maxlength: 1200
     },
+    honorSystemConfirmed: {
+      type: Boolean,
+      default: false
+    },
     source: {
       type: String,
       enum: ['manual_upload', 'strava'],
@@ -162,6 +166,7 @@ const submissionSchema = new mongoose.Schema(
       elapsedTimeSeconds: { type: Number, default: null },
       startDate: { type: Date, default: null },
       startDateLocal: { type: Date, default: null },
+      startDateLocalText: { type: String, trim: true, default: '', maxlength: 80 },
       timezone: { type: String, trim: true, default: '', maxlength: 120 },
       elevationGain: { type: Number, default: null },
       averageSpeed: { type: Number, default: null },
@@ -247,7 +252,7 @@ const submissionSchema = new mongoose.Schema(
       extractedRunLocation: { type: String, trim: true, default: '', maxlength: 200 },
       extractedRunType: {
         type: String,
-        enum: ['run', 'walk', 'hike', 'trail_run', ''],
+        enum: ['run', 'walk', 'hike', 'trail_run', 'treadmill', ''],
         default: ''
       },
       rawText: { type: String, default: '', maxlength: 2000 },

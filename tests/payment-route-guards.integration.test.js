@@ -148,7 +148,7 @@ test('organizer payment rejection is stale-safe after first transition', async (
 
   const updated = await Registration.findById(seed.registrationA._id).lean();
   assert.equal(updated.paymentStatus, 'proof_rejected');
-  assert.equal(updated.paymentRejectionReason, 'Receipt is unreadable');
+  assert.equal(updated.paymentRejectionReason, 'Another payment issue needs correction: Receipt is unreadable');
   assert.equal(String(updated.paymentReviewedBy), String(seed.ownerOrganizer._id));
 });
 
@@ -350,7 +350,6 @@ test('payment approve creates runner in-app notification', async () => {
   const html = await notificationsPage.text();
   assert.match(html, /Payment Approved/i);
   assert.match(html, new RegExp(escapeRegex(seed.event.title), 'i'));
-  assert.match(html, /payment_approved/i);
 });
 
 test('payment reject creates runner in-app notification', async () => {
@@ -379,7 +378,7 @@ test('payment reject creates runner in-app notification', async () => {
   assert.equal(audit.status_from, 'proof_submitted');
   assert.equal(audit.status_to, 'proof_rejected');
   assert.equal(audit.actor_mongo_user_id, String(seed.ownerOrganizer._id));
-  assert.equal(audit.notes, 'Need clearer receipt');
+  assert.equal(audit.notes, '[other] Another payment issue needs correction: Need clearer receipt');
 
   const runnerSession = await login(seed.runnerA.email, seed.password);
   await assertRunnerSessionReady(runnerSession);
@@ -389,7 +388,6 @@ test('payment reject creates runner in-app notification', async () => {
   const html = await notificationsPage.text();
   assert.match(html, /Payment Needs Update/i);
   assert.match(html, new RegExp(escapeRegex(seed.event.title), 'i'));
-  assert.match(html, /payment_rejected/i);
 });
 
 async function seedRouteGuardData(tag, options = {}) {

@@ -464,9 +464,9 @@ test('authenticated submit-result stores runType on successful submission', asyn
     distanceKm: '5',
     elapsedTime: '00:30:00',
     proofType: 'photo',
-    runLocation: 'BGC'
+    runLocation: 'BGC',
+    runType: 'walk'
   });
-  form.append('runType', 'walk');
 
   const response = await fetch(`${BASE_URL}/my-registrations/${seed.registration._id}/submit-result`, {
     method: 'POST',
@@ -499,7 +499,6 @@ test('authenticated submit-result creates submissions for every selected registr
     proofType: 'photo',
     runLocation: 'BGC'
   });
-  form.append('runType', 'run');
   form.append('selectedRegistrationIds', `${seed.registration._id},${second.registration._id}`);
 
   const response = await fetch(`${BASE_URL}/my-registrations/${seed.registration._id}/submit-result`, {
@@ -540,7 +539,6 @@ test('modal submission returns structured JSON and safely replays a completed at
       runLocation: 'BGC',
       proofVariant: 29
     });
-    form.append('runType', 'run');
     form.append('submissionAttemptId', attemptId);
     return fetch(`${BASE_URL}/my-registrations/${seed.registration._id}/submit-result`, {
       method: 'POST',
@@ -614,7 +612,7 @@ async function waitForServerReady() {
   throw new Error(`Server did not become ready at ${BASE_URL}`);
 }
 
-function buildResultProofForm({ distanceKm, elapsedTime, proofType, runDate, runLocation, proofVariant }) {
+function buildResultProofForm({ distanceKm, elapsedTime, proofType, runDate, runLocation, proofVariant, runType = 'run' }) {
   const form = new FormData();
   const bufferIndex = Number.isInteger(proofVariant)
     ? Math.max(0, Math.min(proofVariant, pngProofBuffers.length - 1))
@@ -623,6 +621,7 @@ function buildResultProofForm({ distanceKm, elapsedTime, proofType, runDate, run
   form.append('distanceKm', String(distanceKm || '5'));
   form.append('elapsedTime', String(elapsedTime || '00:30:00'));
   form.append('proofType', String(proofType || 'gps'));
+  form.append('runType', String(runType));
   if (runDate) form.append('runDate', String(runDate));
   if (runLocation) form.append('runLocation', String(runLocation));
   return form;

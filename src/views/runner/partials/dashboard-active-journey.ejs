@@ -10,7 +10,7 @@
     <article class="card runner-canonical-journey">
       <div class="runner-canonical-main">
         <div class="runner-canonical-identity">
-          <span class="runner-canonical-logo"><img src="<%= journey.eventImageUrl || '/images/helloRun-icon.webp' %>" alt="" width="52" height="52" onerror="this.onerror=null;this.src='/images/helloRun-icon.webp';"></span>
+          <span class="runner-canonical-logo"><img src="<%= journey.eventImageUrl || '/images/helloRun-icon.webp' %>" alt="" width="52" height="52" data-fallback-src="/images/helloRun-icon.webp"></span>
           <div><div class="runner-next-action-status-row"><span class="badge badge-<%= journey.stateTone %>"><%= journey.stateLabel %></span><span class="deadline-chip deadline-chip--<%= journey.deadlineTone %>"><i data-lucide="clock" aria-hidden="true"></i><%= journey.deadlineLabel %></span></div><h3><% if (journey.eventSlug) { %><a href="/events/<%= journey.eventSlug %>"><%= journey.eventTitle %></a><% } else { %><%= journey.eventTitle %><% } %></h3><p class="item-meta"><%= journey.raceDistance || 'Distance TBA' %> · <%= journey.eventType %> · <%= journey.participationMode || 'Mode TBA' %></p></div>
         </div>
         <p class="runner-canonical-help"><%= journey.helperText %></p>
@@ -33,7 +33,7 @@
 
   <% if (runnerDashboardPresentation.secondaryJourneys.length) { %>
     <div class="runner-secondary-journeys"><div class="runner-secondary-heading"><h3>Other active events</h3><a href="/my-registrations">Manage all</a></div><ul>
-      <% runnerDashboardPresentation.secondaryJourneys.forEach((item) => { %><li><span class="runner-secondary-logo"><img src="<%= item.eventImageUrl || '/images/helloRun-icon.webp' %>" alt="" width="40" height="40" loading="lazy" onerror="this.onerror=null;this.src='/images/helloRun-icon.webp';"></span><div><strong><%= item.eventTitle %></strong><span><%= item.raceDistance || 'Distance TBA' %> · <%= item.stateLabel %></span><% if (item.progress) { %><small><%= Math.round(Math.max(0, Math.min(100, Number(item.progress.percent || 0)))) %>% verified · <%= Number(item.progress.remainingDistanceKm || 0).toFixed(2) %> km remaining</small><% } else { %><small><%= item.deadlineLabel %></small><% } %></div><a href="<%= item.eventSlug ? '/events/' + item.eventSlug : '/my-registrations' %>" aria-label="View <%= item.eventTitle %>"><i data-lucide="chevron-right" aria-hidden="true"></i></a></li><% }) %>
+      <% runnerDashboardPresentation.secondaryJourneys.forEach((item) => { %><li><span class="runner-secondary-logo"><img src="<%= item.eventImageUrl || '/images/helloRun-icon.webp' %>" alt="" width="40" height="40" loading="lazy" data-fallback-src="/images/helloRun-icon.webp"></span><div><strong><%= item.eventTitle %></strong><span><%= item.raceDistance || 'Distance TBA' %> · <%= item.stateLabel %></span><% if (item.progress) { %><small><%= Math.round(Math.max(0, Math.min(100, Number(item.progress.percent || 0)))) %>% verified · <%= Number(item.progress.remainingDistanceKm || 0).toFixed(2) %> km remaining</small><% } else { %><small><%= item.deadlineLabel %></small><% } %></div><a href="<%= item.eventSlug ? '/events/' + item.eventSlug : '/my-registrations' %>" aria-label="View <%= item.eventTitle %>"><i data-lucide="chevron-right" aria-hidden="true"></i></a></li><% }) %>
     </ul></div>
   <% } %>
 </section>

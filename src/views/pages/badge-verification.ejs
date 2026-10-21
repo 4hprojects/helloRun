@@ -6,7 +6,7 @@
     <link rel="alternate" type="application/json" title="Open Badges metadata" href="<%= openBadgeUrl %>">
   <% } %>
   <% if (typeof openBadgeMetadata !== 'undefined' && openBadgeMetadata) { %>
-    <script type="application/ld+json"><%- JSON.stringify(openBadgeMetadata).replace(/</g, '\\u003c') %></script>
+    <script nonce="<%= locals.cspNonce || String() %>" type="application/ld+json"><%- JSON.stringify(openBadgeMetadata).replace(/</g, '\\u003c') %></script>
   <% } %>
   <link rel="stylesheet" href="/css/badge-verification.css">
 </head>
@@ -104,7 +104,7 @@
   </main>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>lucide.createIcons();</script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">lucide.createIcons();</script>
 </body>
 </html>

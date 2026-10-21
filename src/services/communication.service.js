@@ -711,7 +711,9 @@ async function sendEventEmail(eventKey, payload = {}) {
       email.eventStartAt,
       email.raceDistance,
       email.waiverVersion,
-      email.renderedWaiver
+      email.renderedWaiver,
+      email.recipientTimeZone,
+      email.recipientTimeZoneConfirmedAt
     );
   }
   if (eventKey === 'event.started_reminder' || eventKey === 'result.submission_reminder') {
@@ -839,7 +841,8 @@ async function sendEventEmail(eventKey, payload = {}) {
       email.eventTitle,
       email.posterUrl,
       email.eventUrl,
-      email.organiserName
+      email.organiserName,
+      email.recipientUserId
     );
   }
   throw new Error(`No email sender registered for ${eventKey}`);

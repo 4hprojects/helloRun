@@ -281,8 +281,8 @@
   </main>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     (function initBlogListing() {
       if (window.lucide) lucide.createIcons();
       const fallbackCover = '/images/helloRun-icon.webp';

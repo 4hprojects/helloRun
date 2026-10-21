@@ -11,7 +11,12 @@ const {
   formatUtcOffset,
   getTimeZoneOptions,
   suggestTimeZoneForCountry,
-  formatInTimeZone
+  formatInTimeZone,
+  parseWallClock,
+  parseExplicitInstant,
+  parseBusinessDateTime,
+  formatDateTimeInput,
+  buildCriticalTimeDisplay
 } = require('../src/utils/timezone');
 
 test('uses Asia/Manila as the business timezone', () => {
@@ -60,4 +65,28 @@ test('sorts timezone options by numeric offset then city', () => {
   for (let index = 1; index < numeric.length; index += 1) {
     assert.ok(numeric[index - 1].offsetMinutes <= numeric[index].offsetMinutes);
   }
+});
+
+test('parses Manila wall-clock input into one UTC instant', () => {
+  assert.equal(parseWallClock('2026-10-01T08:00', 'Asia/Manila').toISOString(), '2026-10-01T00:00:00.000Z');
+  assert.equal(parseBusinessDateTime('2026-10-01T08:00').toISOString(), '2026-10-01T00:00:00.000Z');
+  assert.equal(formatDateTimeInput('2026-10-01T00:00:00Z'), '2026-10-01T08:00');
+  assert.equal(parseWallClock('2026-02-30T08:00', 'Asia/Manila'), null);
+});
+
+test('requires an explicit offset for interchange instants', () => {
+  assert.equal(parseExplicitInstant('2026-10-01T08:00'), null);
+  assert.equal(parseExplicitInstant('2026-10-01T08:00+08:00').toISOString(), '2026-10-01T00:00:00.000Z');
+  assert.equal(parseExplicitInstant('2026-10-01T00:00:00Z').toISOString(), '2026-10-01T00:00:00.000Z');
+});
+
+test('builds paired critical-time labels and collapses the Manila duplicate', () => {
+  const instant = '2026-10-01T00:00:00Z';
+  const newYork = buildCriticalTimeDisplay(instant, 'America/New_York');
+  assert.equal(newYork.sameZone, false);
+  assert.equal(newYork.local.timeZone, 'America/New_York');
+  assert.equal(newYork.official.timeZone, 'Asia/Manila');
+  assert.match(newYork.local.label, /Sep 30, 2026/);
+  assert.match(newYork.official.label, /Oct 1, 2026/);
+  assert.equal(buildCriticalTimeDisplay(instant, 'Asia/Manila').sameZone, true);
 });

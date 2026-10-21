@@ -15,6 +15,7 @@ const TEST_PORT = 3112;
 const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
 
 let serverProc = null;
+const createdEmails = [];
 
 test.before(async () => {
   serverProc = spawn(process.execPath, ['src/server.js'], {
@@ -36,6 +37,11 @@ test.after(async () => {
   if (serverProc && !serverProc.killed) {
     serverProc.kill('SIGTERM');
   }
+  if (createdEmails.length > 0) {
+    await mongoose.connect(process.env.MONGODB_URI);
+    await User.deleteMany({ email: { $in: createdEmails } });
+    await mongoose.disconnect();
+  }
 });
 
 test('signup records accepted privacy policy version and organizer status', async () => {
@@ -45,6 +51,7 @@ test('signup records accepted privacy policy version and organizer status', asyn
   const { dataUsagePolicyId, dataUsageVersionNumber } = await ensureCurrentDataUsagePolicy();
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const email = `phase6.privacy.signup.${stamp}@example.com`;
+  createdEmails.push(email);
   const { csrfToken, cookie, signupStartedAt, signupFormToken } = await getCsrfSession('/signup');
 
   const response = await fetch(`${BASE_URL}/signup`, {
@@ -137,6 +144,7 @@ test('signup requires terms/privacy/cookie/data usage checkbox consent', async (
 test('verified organizer without application is sent to dashboard', async () => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const email = `phase6.verify.organizer.${stamp}@example.com`;
+  createdEmails.push(email);
   const rawToken = `verify-organizer-${stamp}`;
   const passwordHash = await bcrypt.hash('Pass1234', 10);
 
@@ -157,12 +165,17 @@ test('verified organizer without application is sent to dashboard', async () => 
     await mongoose.disconnect();
   }
 
+  const { cookie: anonymousCookie } = await getCsrfSession('/signup');
   const response = await fetch(`${BASE_URL}/verify-email/${encodeURIComponent(rawToken)}`, {
+    headers: { Cookie: anonymousCookie },
     redirect: 'manual'
   });
   assert.equal(response.status, 302);
   const location = response.headers.get('location') || '';
   assert.ok(location.includes('/organizer/dashboard'), `Expected redirect to organizer dashboard, got: ${location}`);
+  const authenticatedCookie = String(response.headers.get('set-cookie') || '').split(';')[0];
+  assert.match(authenticatedCookie, /hr\.sid=/i);
+  assert.notEqual(authenticatedCookie, anonymousCookie, 'email verification must rotate the anonymous session ID');
 
   await mongoose.connect(process.env.MONGODB_URI);
   try {

@@ -258,7 +258,7 @@
 
   <%- include('../layouts/footer') %>
 
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     (function () {
       const eventSelect = document.getElementById('eventId');
       const audienceRadios = document.querySelectorAll('input[name="audience"]');
@@ -268,6 +268,7 @@
       const submitBtn = document.getElementById('promote-submit');
       const selectedEmailPanel = document.getElementById('selected-email-panel');
       const selectedEmails = document.getElementById('selectedEmails');
+      const promoteForm = document.getElementById('promote-form');
 
       function getAudience() {
         const checked = document.querySelector('input[name="audience"]:checked');
@@ -286,6 +287,7 @@
           labelEl.textContent = 'Select an event and audience to preview';
           extraEl.style.display = 'none';
           submitBtn.disabled = true;
+          promoteForm.dataset.confirmTarget = 'Select an event and audience first';
           return;
         }
         if (audience === 'selected_emails' && !selectedEmailValue.trim()) {
@@ -293,6 +295,7 @@
           labelEl.textContent = 'Enter one or more recipient emails';
           extraEl.style.display = 'none';
           submitBtn.disabled = true;
+          promoteForm.dataset.confirmTarget = 'Enter one or more recipient emails';
           return;
         }
         countEl.textContent = '…';
@@ -306,19 +309,23 @@
           const count = data.count || 0;
           countEl.textContent = count;
           labelEl.textContent = count === 1 ? 'eligible runner' : 'eligible runners';
+          promoteForm.dataset.confirmTarget = `${count} eligible runner${count === 1 ? '' : 's'} for the selected event and audience`;
+          const details = [];
           if (audience === 'selected_emails') {
-            const details = [];
             if (data.invalidCount) details.push(`${data.invalidCount} invalid`);
             if (data.optedOutCount) details.push(`${data.optedOutCount} opted out`);
             if (data.capped) details.push(`capped at ${data.limit}`);
-            extraEl.textContent = details.join(' • ');
-            extraEl.style.display = details.length ? 'block' : 'none';
           }
+          if (data.platformCapped) details.push(`capped by platform quota (${data.platformRemaining} remaining)`);
+          extraEl.textContent = details.join(' • ');
+          extraEl.style.display = details.length ? 'block' : 'none';
           submitBtn.disabled = count === 0;
         } catch (_) {
           countEl.textContent = '?';
           labelEl.textContent = 'Preview unavailable';
           extraEl.style.display = 'none';
+          submitBtn.disabled = true;
+          promoteForm.dataset.confirmTarget = 'Recipient preview unavailable';
         }
       }
 
@@ -508,6 +515,6 @@
       poll();
     })();
   </script>
-  <script src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 </body>
 </html>

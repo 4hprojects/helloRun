@@ -14,6 +14,7 @@ const {
   buildXlsxBuffer,
   buildExportFilename
 } = require('../utils/tabular-export');
+const { getClientIp } = require('../utils/client-ip');
 
 const AUDIT_EXPORT_HEADERS = [
   'Action',
@@ -31,9 +32,7 @@ const AUDIT_EXPORT_HEADERS = [
 ];
 
 function getRequestIpAddress(req) {
-  const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  const directIp = String(req.ip || '').trim();
-  return (forwardedFor || directIp).slice(0, 120);
+  return getClientIp(req).slice(0, 120);
 }
 
 function getRequestUserAgent(req) {

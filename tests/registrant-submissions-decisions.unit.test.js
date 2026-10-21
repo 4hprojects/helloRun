@@ -59,7 +59,11 @@ const decisionRoute = route.slice(route.indexOf("'/events/:id/registrants/:regis
 test('the decision route is authenticated, CSRF-protected, rate-limited and shares the access guard', () => {
   assert.match(
     route,
-    /'\/events\/:id\/registrants\/:registrationId\/submissions\/:submissionId\/decision',\s*requireAuth,\s*requireCsrfProtection,\s*submissionReviewActionLimiter,/
+    /'\/events\/:id\/registrants\/:registrationId\/submissions\/:submissionId\/decision',\s*protectEventReviewMutation,\s*submissionReviewActionLimiter,/
+  );
+  assert.match(
+    read('src/routes/organiser/event-route-protection.js'),
+    /protectEventReviewMutation = \[requireAuth, requireCsrfProtection, requireOrganizerEventReviewAccess\]/
   );
   assert.match(decisionRoute, /await resolveAccess\(req, res, \{\s*failureMessage: 'Only approved organizers or admins can review submissions\.'/);
   assert.equal((route.match(/await resolveAccess\(/g) || []).length, 3, 'page, edit and decision all use the one guard');
@@ -227,7 +231,7 @@ test('every dialog control is labelled, and user-controlled text in the dialogs 
 test('the status buttons stay hidden until the script confirms dialog support, keeping Open Review as the fallback', () => {
   const html = render(entry());
   assert.match(html, /<div class="rs-decisions rs-action-group" data-rs-decisions hidden>/);
-  assert.match(html, /<script src="\/js\/registrant-submissions\.js" defer><\/script>/);
+  assert.match(html, /<script nonce="" src="\/js\/registrant-submissions\.js" defer><\/script>/);
   assert.match(html, /Open Review/);
 
   const js = read('src/public/js/registrant-submissions.js');

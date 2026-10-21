@@ -110,7 +110,7 @@
             <% leaderboard.cards.forEach((card, index) => { %>
               <article class="leaderboard-discovery-card">
                 <a class="leaderboard-card-image" href="<%= card.href %>" aria-label="View <%= card.title %> standings">
-                  <img src="<%= card.imageUrl %>" alt="" loading="lazy" onerror="this.onerror=null;this.src='/images/helloRun-icon.webp';">
+                  <img src="<%= card.imageUrl %>" alt="" loading="lazy" data-fallback-src="/images/helloRun-icon.webp">
                   <span class="leaderboard-card-type"><%= card.leaderboardTypeLabel %></span>
                 </a>
                 <div class="leaderboard-card-body">
@@ -152,7 +152,7 @@
   </main>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

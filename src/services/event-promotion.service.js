@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 const Event = require('../models/Event');
 const Registration = require('../models/Registration');
 const User = require('../models/User');
@@ -77,6 +78,15 @@ function parseSelectedPromotionEmails(input, { limit = ADMIN_SELECTED_EMAILS_CAP
     capped: seen.size >= limit,
     limit
   };
+}
+
+function buildPromotionDuplicateKey({ eventId, audience, recipients, dateKey } = {}) {
+  const identities = (Array.isArray(recipients) ? recipients : [])
+    .map((recipient) => String(recipient?._id || recipient?.email || '').trim().toLowerCase())
+    .filter(Boolean)
+    .sort();
+  const input = [String(dateKey || ''), String(eventId || ''), String(audience || ''), ...identities].join('|');
+  return crypto.createHash('sha256').update(input).digest('hex');
 }
 
 async function hydrateSelectedPromotionRecipients(input, options = {}) {
@@ -394,6 +404,7 @@ module.exports = {
   getOrganizerEventIds,
   filterEventPromotionOptOutRecipients,
   parseSelectedPromotionEmails,
+  buildPromotionDuplicateKey,
   hydrateSelectedPromotionRecipients,
   resolveOrganizerPromotionRecipients,
   resolveAdminPromotionRecipients,

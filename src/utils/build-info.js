@@ -13,6 +13,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const STARTED_AT = new Date();
+const BUILD_METADATA_PATH = path.resolve(__dirname, '..', '..', 'tmp', 'build-info.json');
 
 /**
  * Read the checked-out commit from `.git` without shelling out.
@@ -42,6 +43,21 @@ function readCommitFromGitDir() {
   }
 }
 
+function readBuildMetadataFile(filePath = BUILD_METADATA_PATH) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return {
+      commit: /^[0-9a-f]{7,40}$/i.test(String(parsed.commit || '').trim())
+        ? String(parsed.commit).trim()
+        : '',
+      branch: String(parsed.branch || '').trim(),
+      builtAt: String(parsed.builtAt || '').trim()
+    };
+  } catch (_) {
+    return { commit: '', branch: '', builtAt: '' };
+  }
+}
+
 function resolveCommit() {
   // RENDER_GIT_COMMIT is what production actually sets; the others cost nothing and keep
   // this honest anywhere else it runs.
@@ -51,16 +67,22 @@ function resolveCommit() {
     process.env.GIT_COMMIT ||
     process.env.COMMIT_SHA ||
     '';
-  return String(fromEnv || readCommitFromGitDir()).trim();
+  return String(fromEnv || readBuildMetadataFile().commit || readCommitFromGitDir()).trim();
 }
 
 const COMMIT = resolveCommit();
+const CAPTURED_BUILD = readBuildMetadataFile();
 
 const BUILD_INFO = Object.freeze({
   commit: COMMIT || 'unknown',
   // Enough to recognise at a glance, and what a git log shows.
   commitShort: COMMIT ? COMMIT.slice(0, 7) : 'unknown',
-  branch: process.env.RENDER_GIT_BRANCH || '',
+  branch:
+    process.env.HELLODEPLOY_GIT_BRANCH ||
+    process.env.RENDER_GIT_BRANCH ||
+    CAPTURED_BUILD.branch ||
+    '',
+  builtAt: CAPTURED_BUILD.builtAt || '',
   startedAt: STARTED_AT.toISOString()
 });
 
@@ -72,4 +94,4 @@ function getBuildInfo() {
   };
 }
 
-module.exports = { getBuildInfo, readCommitFromGitDir };
+module.exports = { getBuildInfo, readBuildMetadataFile, readCommitFromGitDir };

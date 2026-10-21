@@ -8,4 +8,4 @@
     <% } else if (!accountEligible) { %><p class="checkin-alert">Your account must be active and email verified before you can respond.</p>
     <% } else { %><form method="POST" action="<%= formAction %>" class="checkin-staff-form"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><button type="submit" name="decision" value="accept" class="nav-signup-btn">Accept invitation</button><button type="submit" name="decision" value="decline" class="nav-login-btn">Decline</button></form><% } %>
   <% } %>
-</section></div></main><%- include('../layouts/footer') %><script src="/js/main.js"></script></body></html>
+</section></div></main><%- include('../layouts/footer') %><script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script></body></html>

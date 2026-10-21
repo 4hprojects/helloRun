@@ -3,12 +3,13 @@ const router = express.Router();
 const certificateVerificationController = require('../controllers/certificateVerification.controller');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
+const { getClientIpKey } = require('../utils/client-ip');
 
 const verificationLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   maxRequests: 60,
   message: 'Too many certificate verification attempts. Please try again later.',
-  keyFn: (req) => `certificate-verify|${req.ip || 'unknown-ip'}`
+  keyFn: (req) => `certificate-verify|${getClientIpKey(req)}`
 });
 
 router.get('/certificates/verify', verificationLimiter, certificateVerificationController.getVerificationSearch);

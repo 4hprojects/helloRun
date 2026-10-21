@@ -46,6 +46,11 @@ const eventPromotionSchema = new mongoose.Schema(
       trim: true,
       default: null
     },
+    duplicateKey: {
+      type: String,
+      trim: true,
+      default: null
+    },
     sentAt: { type: Date }
   },
   { timestamps: true }
@@ -57,6 +62,10 @@ eventPromotionSchema.index({ status: 1, createdAt: -1 });
 eventPromotionSchema.index(
   { automaticKey: 1 },
   { unique: true, partialFilterExpression: { automaticKey: { $type: 'string' } } }
+);
+eventPromotionSchema.index(
+  { duplicateKey: 1 },
+  { unique: true, partialFilterExpression: { duplicateKey: { $type: 'string' } } }
 );
 
 module.exports = mongoose.model('EventPromotion', eventPromotionSchema);

@@ -75,9 +75,9 @@ test('July registration presentation exposes six configured free accumulated goa
   });
 
   assert.equal(presentation.event.formatLabel, 'Accumulated challenge');
-  assert.equal(presentation.event.registrationCloseLabel, 'Jul 22, 2026');
-  assert.equal(presentation.event.activityWindowLabel, 'Jul 1, 2026 – Jul 31, 2026');
-  assert.equal(presentation.event.submissionDeadlineLabel, 'Aug 14, 2026');
+  assert.equal(presentation.event.registrationCloseLabel, 'Jul 23, 2026, 7:59 AM (Asia/Manila)');
+  assert.equal(presentation.event.activityWindowLabel, 'Jul 1, 2026, 8:00 AM (Asia/Manila) – Aug 1, 2026, 7:59 AM (Asia/Manila)');
+  assert.equal(presentation.event.submissionDeadlineLabel, 'Aug 15, 2026, 7:59 AM (Asia/Manila)');
   assert.equal(presentation.event.locationLabel, 'Virtual participation');
   assert.equal(presentation.modes.kind, 'fixed');
   assert.equal(presentation.distances.kind, 'cards');
@@ -93,6 +93,24 @@ test('July registration presentation exposes six configured free accumulated goa
     requiredCount: 9,
     missingFields: ['Mobile', 'Timezone']
   });
+});
+
+test('confirmed international timezone shows runner-local and official Manila critical times', () => {
+  const presentation = buildRegistrationPagePresentation({
+    event: buildJulyEvent(),
+    profileSnapshot: {
+      firstName: 'Jamie',
+      lastName: 'Runner',
+      email: 'jamie@example.com',
+      timezone: 'America/New_York',
+      timezoneConfirmedAt: new Date('2026-01-01T00:00:00Z')
+    },
+    allowedModes: ['virtual'],
+    allowedRaceDistances: ['5K']
+  });
+  assert.match(presentation.event.registrationCloseLabel, /America\/New_York/);
+  assert.match(presentation.event.registrationCloseLabel, /Official: .*Asia\/Manila/);
+  assert.equal(presentation.event.hasConfirmedTimeZone, true);
 });
 
 test('CNS registration presentation fixes the single official 50 km goal', () => {
@@ -204,13 +222,17 @@ test('registration confirmation email includes the accepted waiver version and s
     eventStartAt: '2026-07-01T00:00:00.000Z',
     raceDistance: '200K JULY ULTRA QUEST',
     waiverVersion: 4,
-    renderedWaiver: '<div class="waiver-card"><p>Accepted waiver copy.</p><script>alert(1)</script></div>'
+    renderedWaiver: '<div class="waiver-card"><p>Accepted waiver copy.</p><script>alert(1)</script></div>',
+    recipientTimeZone: 'America/New_York',
+    recipientTimeZoneConfirmedAt: '2026-06-01T00:00:00.000Z'
   });
 
   assert.match(html, /Confirmation Code:<\/strong> HR-TEST123/);
   assert.match(html, /Accepted event waiver/);
   assert.match(html, /version 4/);
   assert.match(html, /Accepted waiver copy/);
+  assert.match(html, /America\/New_York/);
+  assert.match(html, /Official:.*Asia\/Manila/);
   assert.doesNotMatch(html, /<script>|alert\(1\)/);
 });
 

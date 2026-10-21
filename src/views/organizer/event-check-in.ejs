@@ -219,9 +219,9 @@
   </main>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script src="/js/organizer-check-in.js"></script>
-  <script src="/js/organizer-check-in-scan.js"></script>
-  <script src="/js/organizer-walk-in.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/organizer-check-in.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/organizer-check-in-scan.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/organizer-walk-in.js"></script>
 </body>
 </html>

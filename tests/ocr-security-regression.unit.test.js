@@ -101,7 +101,11 @@ test('every OCR admin mutation is behind admin auth and CSRF; deployment and set
 });
 
 test('new organiser and runner routes are CSRF-protected and scoped', () => {
-  assert.match(read('src/routes/organiser/activity-evidence.js'), /requireAuth,\s*requireCsrfProtection/);
+  assert.match(read('src/routes/organiser/activity-evidence.js'), /protectEventReviewMutation/);
+  assert.match(
+    read('src/routes/organiser/event-route-protection.js'),
+    /protectEventReviewMutation = \[requireAuth, requireCsrfProtection, requireOrganizerEventReviewAccess\]/
+  );
   const runnerRoutes = read('src/routes/runner.routes.js');
   assert.match(runnerRoutes, /if \(req\.method === 'POST'\)[\s\S]*requireCsrfProtection\(req, res, next\)/);
   assert.match(runnerRoutes, /ocr-training-consent\/withdraw/);
