@@ -199,8 +199,8 @@
 
   <%- include('../layouts/footer') %>
   <%- include('../partials/submission-link-modal') %>
-  <script src="/js/main.js"></script>
-  <script src="/js/submission-link-modal.js"></script>
-  <script src="/js/organizer-submissions.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/submission-link-modal.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/organizer-submissions.js"></script>
 </body>
 </html>

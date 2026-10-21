@@ -1,5 +1,9 @@
 # HelloRun November 2026 Blog Implementation Plan
 
+> **Production reconciliation (October 20, 2026):** all 15 planned slugs exist and are
+> scheduled on their canonical dates. See the canonical
+> [CONTENT-01 audit](../analysis/2026-10-20/editorial-calendar-audit.md).
+
 ## Month Theme
 
 Build Your Base, Improve Your Running
@@ -43,7 +47,7 @@ November should introduce more structured training concepts without making Hello
 
 ---
 
-# Final November 2026 Publishing Calendar
+## Final November 2026 Publishing Calendar
 
 | Date | Article | Primary SEO Keyword | Cluster | Search Intent |
 |---|---|---|---|---|
@@ -65,7 +69,7 @@ November should introduce more structured training concepts without making Hello
 
 ---
 
-# Why These Topics Were Selected
+## Why These Topics Were Selected
 
 Current search coverage confirms active interest around:
 
@@ -88,7 +92,7 @@ The November content should deepen those distances before expanding to marathon-
 
 ---
 
-# Article 1 — November 1
+## Article 1 — November 1
 
 ## What Is a Running Base? How Beginners Build One
 
@@ -177,7 +181,7 @@ Build a repeatable routine first, then choose a HelloRun event that gives the ro
 
 ---
 
-# Article 2 — November 3
+## Article 2 — November 3
 
 ## Running Form for Beginners: What Actually Matters
 
@@ -265,7 +269,7 @@ Focus first on relaxed, repeatable movement rather than trying to copy another r
 
 ---
 
-# Article 3 — November 5
+## Article 3 — November 5
 
 ## What Are Strides in Running? A Beginner’s Guide
 
@@ -347,7 +351,7 @@ Treat strides as controlled practice rather than a race against your watch.
 
 ---
 
-# Article 4 — November 7
+## Article 4 — November 7
 
 ## Tempo Run Explained: What Beginners Should Know
 
@@ -432,7 +436,7 @@ Add harder running only after you have enough easy running to support it.
 
 ---
 
-# Article 5 — November 9
+## Article 5 — November 9
 
 ## Interval Running for Beginners: How Faster and Easier Efforts Work
 
@@ -516,7 +520,7 @@ Do not add intervals simply because your easy runs feel “too slow.” Each typ
 
 ---
 
-# Article 6 — November 11
+## Article 6 — November 11
 
 ## Tempo Run vs Interval Run: What’s the Difference?
 
@@ -609,7 +613,7 @@ Choose a workout based on its purpose, not which one sounds more advanced.
 
 ---
 
-# Article 7 — November 13
+## Article 7 — November 13
 
 ## How to Train for a Faster 5K
 
@@ -689,7 +693,7 @@ Use a future HelloRun 5K as a controlled benchmark rather than testing your fast
 
 ---
 
-# Article 8 — November 15
+## Article 8 — November 15
 
 ## How to Train for a Faster 10K
 
@@ -769,7 +773,7 @@ Decide whether your next goal is a better 10K or a longer distance before changi
 
 ---
 
-# Article 9 — November 17
+## Article 9 — November 17
 
 ## Running Recovery Days Explained: Rest, Easy Movement, and Training Load
 
@@ -849,7 +853,7 @@ Treat recovery as part of training rather than empty space between workouts.
 
 ---
 
-# Article 10 — November 19
+## Article 10 — November 19
 
 ## How to Recover After a Long Run
 
@@ -926,7 +930,7 @@ Review the entire long-run experience, including recovery, before deciding how m
 
 ---
 
-# Article 11 — November 21
+## Article 11 — November 21
 
 ## Running in Cooler Weather: What Changes During the Philippine Ber Months?
 
@@ -1001,7 +1005,7 @@ Check actual local conditions rather than assuming every Ber-month run will be c
 
 ---
 
-# Article 12 — November 23
+## Article 12 — November 23
 
 ## How to Maintain Running Fitness During Busy Holiday Weeks
 
@@ -1077,7 +1081,7 @@ Keep the routine flexible enough that one busy week does not become a reason to 
 
 ---
 
-# Article 13 — November 25
+## Article 13 — November 25
 
 ## How to Turn First-Time Virtual Run Participants Into Returning Participants
 
@@ -1155,7 +1159,7 @@ Design the current event so participants have a reason to trust the next one.
 
 ---
 
-# Article 14 — November 27
+## Article 14 — November 27
 
 ## How to Plan an End-of-Year Virtual Running Challenge
 
@@ -1236,7 +1240,7 @@ Use HelloRun to turn the challenge concept into a structured event with publishe
 
 ---
 
-# Article 15 — November 29
+## Article 15 — November 29
 
 ## How to Review Your Running Year and Plan Your Next Goal
 
@@ -1321,7 +1325,7 @@ Use your actual year, not another runner's numbers, to decide what you want to w
 
 ---
 
-# November Internal Linking Architecture
+## November Internal Linking Architecture
 
 ## Training Foundation Cluster
 
@@ -1414,7 +1418,7 @@ Both should connect back to:
 
 ---
 
-# SEO Priority
+## SEO Priority
 
 ## Tier 1 — Strong evergreen opportunities
 
@@ -1444,7 +1448,7 @@ Tier 3 can have lower broad search volume while providing direct organizer acqui
 
 ---
 
-# November Content Strategy Rules
+## November Content Strategy Rules
 
 ## Do not make November too advanced
 
@@ -1462,7 +1466,7 @@ Those can become future content if HelloRun's audience and search performance ju
 
 ---
 
-# Health and Training Accuracy
+## Health and Training Accuracy
 
 For articles on:
 
@@ -1490,7 +1494,7 @@ Explain context and variability.
 
 ---
 
-# Internal-Linking Rules
+## Internal-Linking Rules
 
 Every November article should:
 
@@ -1503,7 +1507,7 @@ Every November article should:
 
 ---
 
-# Keyword Placement
+## Keyword Placement
 
 For each post:
 
@@ -1517,7 +1521,7 @@ For each post:
 
 ---
 
-# Conversion Strategy
+## Conversion Strategy
 
 ## General running articles
 
@@ -1549,7 +1553,7 @@ Search
 
 ---
 
-# November to December Bridge
+## November to December Bridge
 
 November deliberately prepares December content.
 
@@ -1575,7 +1579,7 @@ December should remain useful after the holidays by balancing seasonal posts wit
 
 ---
 
-# End-of-November Runner Architecture
+## End-of-November Runner Architecture
 
 By November 29, the main educational pathway should look like:
 
@@ -1599,7 +1603,7 @@ By November 29, the main educational pathway should look like:
 
 ---
 
-# End-of-November Organizer Architecture
+## End-of-November Organizer Architecture
 
 `understand virtual runs`
 → `organize`
@@ -1615,7 +1619,7 @@ By November 29, the main educational pathway should look like:
 
 ---
 
-# Editorial Objective
+## Editorial Objective
 
 November should mark the point where HelloRun moves beyond basic beginner education into a complete beginner-to-intermediate running knowledge path.
 

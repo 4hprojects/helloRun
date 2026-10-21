@@ -56,7 +56,8 @@ const {
 const {
   dispatchEventPromotionCampaignInBackground,
   resolveOrganizerPromotionRecipients,
-  toObjectId
+  toObjectId,
+  buildPromotionDuplicateKey
 } = require('../../services/event-promotion.service');
 const { synchronizeEventBadgeImages } = require('../../services/event-badge.service');
 const { listOrganizerEvents } = require('../../services/organizer-event-list.service');
@@ -1117,6 +1118,7 @@ router.post('/promote', requireOrganizerWorkspace, requireCsrfProtection, async 
       selectedCount: recipients.length,
       dateKey,
       status: 'sending',
+      duplicateKey: buildPromotionDuplicateKey({ eventId: event._id, audience, recipients, dateKey }),
       sentAt: new Date()
     });
 
@@ -1140,7 +1142,10 @@ router.post('/promote', requireOrganizerWorkspace, requireCsrfProtection, async 
     return res.redirect(`${redirectBase}?${q}`);
   } catch (error) {
     logger.error('Promote send error:', error);
-    const q = new URLSearchParams({ type: 'error', msg: 'An error occurred while sending the promotion.' });
+    const message = error?.code === 11000 && error?.keyPattern?.duplicateKey
+      ? 'This event promotion was already started for the same audience today.'
+      : 'An error occurred while sending the promotion.';
+    const q = new URLSearchParams({ type: 'error', msg: message });
     return res.redirect(`${redirectBase}?${q}`);
   }
 });

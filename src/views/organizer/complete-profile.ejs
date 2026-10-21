@@ -535,7 +535,7 @@
 
   <%- include('../layouts/footer') %>
 
-  <script src="/js/complete-profile.js"></script>
-  <script src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/complete-profile.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 </body>
 </html>

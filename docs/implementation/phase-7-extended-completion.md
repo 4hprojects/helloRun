@@ -228,7 +228,8 @@ curl http://localhost:3001/organizer/events/evt_001/check-in-dashboard/poll \
 - ✅ [src/services/result-import-validation.service.js](../../src/services/result-import-validation.service.js)
 - ✅ [src/routes/webhooks/timing-system.js](../../src/routes/webhooks/timing-system.js)
 - ✅ [src/routes/organiser/qr-and-dashboard.js](../../src/routes/organiser/qr-and-dashboard.js)
-- ✅ [tests/phase7-extended.unit.test.js](../../tests/phase7-extended.unit.test.js)
+- ✅ `tests/phase7-extended.unit.test.js` (historical; removed after its coverage
+  was replaced during the Phase 7 test cleanup)
 - ✅ [tests/phase7-endpoints-demo.js](../../tests/phase7-endpoints-demo.js)
 - ✅ [phase7-extended-features.md](phase7-extended-features.md)
 

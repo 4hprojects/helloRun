@@ -1,0 +1,41 @@
+name: hellorun-development
+
+services:
+  mongo:
+    image: mongo:7.0
+    restart: unless-stopped
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "127.0.0.1:27018:27017"
+    volumes:
+      - hellorun_dev_mongo:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "try { if (db.hello().isWritablePrimary) quit(0); rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}); quit(1); } catch (error) { quit(1); }"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hellorun_dev
+      POSTGRES_USER: hellorun_dev
+      POSTGRES_PASSWORD: hellorun_dev_local_only
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - hellorun_dev_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hellorun_dev -d hellorun_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  hellorun_dev_mongo:
+  hellorun_dev_postgres:

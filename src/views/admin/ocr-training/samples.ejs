@@ -150,7 +150,7 @@
       <section class="ocr-panel ocr-danger-zone" aria-labelledby="ocr-withdraw-heading">
         <h2 id="ocr-withdraw-heading">Exclude a participant's samples</h2>
         <p class="ocr-help">Use for a withdrawal request or authorised removal. Excluded samples never enter future datasets. Models already trained are not changed by this.</p>
-        <form method="POST" action="/admin/ocr-training/samples/participant-exclusion" class="ocr-form-row" onsubmit="return confirm('Exclude every sample from this participant from future datasets?');">
+        <form method="POST" action="/admin/ocr-training/samples/participant-exclusion" class="ocr-form-row" data-high-risk-confirm data-confirm-title="Exclude participant samples?" data-confirm-target="Every OCR sample for the entered participant" data-confirm-impact="Excludes those samples from every future training dataset." data-confirm-reversibility="Existing trained models are unchanged; future exclusion can be reviewed separately." data-confirm-privilege="Full administrator" data-confirm-button="Exclude samples">
           <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
           <label>Participant user id <input name="runnerId" pattern="[a-fA-F0-9]{24}" required></label>
           <label>Reason <input name="reason" minlength="5" maxlength="300" required></label>
@@ -160,6 +160,6 @@
     </section>
   </main>
   <%- include('../../layouts/footer') %>
-  <script src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 </body>
 </html>

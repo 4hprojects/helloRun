@@ -20,10 +20,10 @@ test('the router is mounted with the other organizer routers', () => {
 });
 
 test('the page is authenticated and the edit is CSRF-protected and rate-limited', () => {
-  assert.match(route, /router\.get\('\/events\/:id\/registrants\/:registrationId\/submissions', requireAuth,/);
+  assert.match(route, /router\.get\('\/events\/:id\/registrants\/:registrationId\/submissions', protectEventReviewRead,/);
   assert.match(
     route,
-    /'\/events\/:id\/registrants\/:registrationId\/submissions\/:submissionId\/edit',\s*requireAuth,\s*requireCsrfProtection,\s*submissionReviewActionLimiter,/
+    /'\/events\/:id\/registrants\/:registrationId\/submissions\/:submissionId\/edit',\s*protectEventReviewMutation,\s*submissionReviewActionLimiter,/
   );
 });
 

@@ -1,6 +1,12 @@
 # HelloRun Platform-Aware OCR and Activity Verification
 
-Status: APPROVED FUNCTIONAL PLAN. Phases 0–6 implemented on `feature/platform-aware-ocr-training`, not merged or deployed; data-dependent gates open. Progress: [IMPLEMENTATION-PROGRESS.md](IMPLEMENTATION-PROGRESS.md) · Deploy: [DEPLOYMENT-AND-ROLLBACK.md](DEPLOYMENT-AND-ROLLBACK.md)  
+Status: **Implemented and repository-verified on `main`; production/live
+verification pending.** Phases 0–6 and the notice-and-objection/backfill
+follow-up are merged at `0c1fd86`. Every feature flag defaults off; the legal,
+data, infrastructure, measurement, deployment, and rollback gates remain open.
+Progress: [IMPLEMENTATION-PROGRESS.md](IMPLEMENTATION-PROGRESS.md) · Deploy:
+[DEPLOYMENT-AND-ROLLBACK.md](DEPLOYMENT-AND-ROLLBACK.md) · Priority:
+[`DEC-06`, `REL-01`, and `REL-03`](../../ROADMAP.md)
 Plan version: 1.0  
 Approved: 2026-10-17  
 Audience: Claude Code, maintainers, reviewers, and research stakeholders
@@ -11,14 +17,15 @@ Extend the existing HelloRun application to process running-activity screenshots
 
 ## Start here
 
-1. Read `00-CLAUDE-CODE-INSTRUCTIONS.md` for operating rules and required reports.
-2. Execute `01-PHASE-0-DISCOVERY.md` before changing production code. Existing architecture is **not verified**.
-3. Reconcile discovery findings against `02-ARCHITECTURE-AND-DATA.md` and `03-API-UI-AND-WORKFLOWS.md`.
-4. Implement the independently reviewable phases in `04-IMPLEMENTATION-ROADMAP.md`.
-5. Use `05-SECURITY-PRIVACY-OPERATIONS.md` and `06-TESTING-AND-RESEARCH.md` as mandatory release gates.
-6. Follow `07-TRAINING-AND-PROFILE-SPEC.md` for OCR and fine-tuning particulars.
-7. Use `08-NOTIFICATIONS-AND-SCHEDULING.md` for admin email behaviors.
-9. Use `09-DECISION-LOG-AND-HANDOFF.md` for decisions, assumptions, and handoff checklists.
+1. Read [IMPLEMENTATION-PROGRESS.md](IMPLEMENTATION-PROGRESS.md) for the
+   implemented architecture, tests, measurements, and unresolved gates.
+2. Follow [DEPLOYMENT-AND-ROLLBACK.md](DEPLOYMENT-AND-ROLLBACK.md) for the
+   flags-off deploy, policy/data prerequisites, staged rollout, monitoring, and
+   rollback sequence.
+3. Use documents `02`–`09` as the approved design and acceptance reference.
+   `00` and `01` preserve the instructions and discovery work that produced the
+   implementation; do not restart those phases.
+4. Use [ROADMAP.md](../../ROADMAP.md) for priority and dependency decisions.
 
 ## Principles and non-goals
 
@@ -47,4 +54,7 @@ Phase 0: 2–4 developer-days; phase 1: 5–10; phase 2: 4–8; phase 3: 5–10;
 
 ## Approval boundaries
 
-User approval of this plan authorizes creation of the implementation specification, **not immediate deployment** or irreversible production changes. Work on a feature branch, commit in small reviewable units, and require a separate merge/deploy decision.
+The implementation has been merged. That merge does **not** authorize deployment,
+policy publication, production backfill, host package installation, feature-flag
+enablement, or model activation. Those actions retain the separate approvals and
+gates in the deployment runbook.

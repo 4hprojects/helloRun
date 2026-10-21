@@ -13,6 +13,8 @@ const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const DEFAULT_ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 const DEFAULT_RESULT_ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_UPLOAD_BYTES = parseInt(process.env.UPLOAD_MAX_SIZE, 10) || 5242880;
+const testObjectStore = new Map();
+const TEST_UPLOAD_BASE_URL = 'https://test-uploads.invalid';
 
 const configuredAllowedMimes = String(
   process.env.ALLOWED_FILE_TYPES || process.env.UPLOAD_ALLOWED_TYPES || ''
@@ -611,6 +613,11 @@ exports.uploadBufferToR2 = async ({ userId, buffer, contentType, category, fileN
   const scopedCategory = scopeCategoryForSmokeTests(baseCategory);
   const key = `${scopedCategory}/${String(userId || 'unknown')}/${uniqueSuffix}-${sanitizedBase}${extension}`;
 
+  if (usesTestObjectStore()) {
+    testObjectStore.set(key, Buffer.from(buffer));
+    return { key, url: buildPublicUrl(key) };
+  }
+
   await r2Client.send(
     new PutObjectCommand({
       Bucket: r2Config.bucket,
@@ -627,6 +634,10 @@ exports.uploadBufferToR2 = async ({ userId, buffer, contentType, category, fileN
 };
 
 exports.deleteObjects = async (keys = []) => {
+  if (usesTestObjectStore()) {
+    for (const key of keys) testObjectStore.delete(String(key || '').trim());
+    return;
+  }
   if (!r2Client || !r2Config.bucket) return;
 
   const validKeys = keys
@@ -650,6 +661,12 @@ exports.deleteObjects = async (keys = []) => {
 };
 
 exports.listObjectKeysByPrefix = async (prefix) => {
+  if (usesTestObjectStore()) {
+    const safePrefix = String(prefix || '').trim().replace(/^\/+/, '');
+    return safePrefix
+      ? [...testObjectStore.keys()].filter((key) => key.startsWith(safePrefix))
+      : [];
+  }
   if (!r2Client || !r2Config.bucket) return [];
 
   const safePrefix = String(prefix || '').trim().replace(/^\/+/, '');
@@ -683,6 +700,10 @@ exports.extractObjectKeyFromPublicUrl = (urlValue) => {
   const fullUrl = String(urlValue || '').trim();
   if (!fullUrl) return '';
 
+  if (usesTestObjectStore() && fullUrl.startsWith(`${TEST_UPLOAD_BASE_URL}/`)) {
+    return decodeURIComponent(fullUrl.slice(TEST_UPLOAD_BASE_URL.length + 1));
+  }
+
   const customBase = String(process.env.R2_PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '');
   if (customBase && fullUrl.startsWith(`${customBase}/`)) {
     return fullUrl.slice(customBase.length + 1);
@@ -704,6 +725,11 @@ exports.getSignedReadUrlFromR2 = async (key, options = {}) => {
   const safeKey = String(key || '').trim().replace(/^\/+/, '');
   if (!safeKey) {
     throw new Error('R2 object key is required.');
+  }
+
+  if (usesTestObjectStore()) {
+    if (!testObjectStore.has(safeKey)) throw createMissingTestObjectError(safeKey);
+    return `${TEST_UPLOAD_BASE_URL}/${encodeURI(safeKey)}`;
   }
 
   const commandInput = {
@@ -732,6 +758,16 @@ exports.getObjectBufferFromR2 = async (key, options = {}) => {
   const safeKey = String(key || '').trim().replace(/^\/+/, '');
   if (!safeKey) throw new Error('R2 object key is required.');
   const maxBytes = Number(options.maxBytes || MAX_UPLOAD_BYTES * 2);
+  if (usesTestObjectStore()) {
+    const stored = testObjectStore.get(safeKey);
+    if (!stored) throw createMissingTestObjectError(safeKey);
+    if (stored.length > maxBytes) {
+      const error = new Error('Stored object exceeds the allowed size.');
+      error.code = 'object_too_large';
+      throw error;
+    }
+    return Buffer.from(stored);
+  }
   const response = await r2Client.send(new GetObjectCommand({
     Bucket: String(options.bucket || r2Config.bucket),
     Key: safeKey
@@ -767,6 +803,10 @@ exports.putPrivateObjectToR2 = async ({ key, body, contentType }) => {
   assertR2Configured();
   const safeKey = String(key || '').trim().replace(/^\/+/, '');
   if (!safeKey || safeKey.includes('..')) throw new Error('A safe R2 object key is required.');
+  if (usesTestObjectStore()) {
+    testObjectStore.set(safeKey, Buffer.from(body));
+    return { key: safeKey, bucket: exports.getPrivateBucketName() };
+  }
   await r2Client.send(new PutObjectCommand({
     Bucket: exports.getPrivateBucketName(),
     Key: safeKey,
@@ -776,12 +816,18 @@ exports.putPrivateObjectToR2 = async ({ key, body, contentType }) => {
   return { key: safeKey, bucket: exports.getPrivateBucketName() };
 };
 
-exports.getPrivateBucketName = () => String(process.env.OCR_R2_BUCKET || r2Config.bucket || '').trim();
+exports.getPrivateBucketName = () => String(
+  process.env.OCR_R2_BUCKET || r2Config.bucket || (usesTestObjectStore() ? 'test-object-store' : '')
+).trim();
 
 exports.deletePrivateObjectFromR2 = async (key) => {
   assertR2Configured();
   const safeKey = String(key || '').trim().replace(/^\/+/, '');
   if (!safeKey) return;
+  if (usesTestObjectStore()) {
+    testObjectStore.delete(safeKey);
+    return;
+  }
   await r2Client.send(new DeleteObjectCommand({ Bucket: exports.getPrivateBucketName(), Key: safeKey }));
 };
 
@@ -824,6 +870,11 @@ async function uploadFileToR2({ userId, file, category, label, convertImagesToWe
   const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
   const scopedCategory = scopeCategoryForSmokeTests(String(category || 'misc/files'));
   const key = `${scopedCategory}/${String(userId || 'unknown')}/${uniqueSuffix}-${sanitizedBase}${extension}`;
+
+  if (usesTestObjectStore()) {
+    testObjectStore.set(key, Buffer.from(normalizedFile.buffer));
+    return { key, url: buildPublicUrl(key) };
+  }
 
   await r2Client.send(
     new PutObjectCommand({
@@ -892,6 +943,9 @@ async function normalizeFileForUpload(file, options = {}) {
 exports._normalizeFileForUpload = normalizeFileForUpload;
 
 function buildPublicUrl(key) {
+  if (usesTestObjectStore()) {
+    return `${TEST_UPLOAD_BASE_URL}/${encodeURI(key)}`;
+  }
   const customBase = String(process.env.R2_PUBLIC_BASE_URL || '').trim();
   if (customBase) {
     return `${customBase.replace(/\/+$/, '')}/${key}`;
@@ -947,8 +1001,18 @@ function isR2Configured() {
   );
 }
 
+function usesTestObjectStore() {
+  return process.env.NODE_ENV === 'test' && process.env.TEST_UPLOAD_STORAGE === 'memory';
+}
+
+function createMissingTestObjectError(key) {
+  const error = new Error(`Test object does not exist: ${key}`);
+  error.code = 'NoSuchKey';
+  return error;
+}
+
 function assertR2Configured() {
-  if (!isR2Configured()) {
+  if (!isR2Configured() && !usesTestObjectStore()) {
     throw new Error(
       'R2 is not fully configured. Set CLOUDFLARE_ACCOUNT_ID, R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_ENDPOINT.'
     );

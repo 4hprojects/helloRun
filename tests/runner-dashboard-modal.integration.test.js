@@ -63,13 +63,25 @@ class FakeElement {
 
 function createCertificateActionContext({ share, writeText, prompt = () => {} } = {}) {
   const listeners = new Map();
+  const messages = [];
+  let fallbackValue = '';
   const document = {
     readyState: 'loading',
     addEventListener(type, handler) { listeners.set(type, handler); },
     querySelector: () => null,
-    querySelectorAll: () => []
+    querySelectorAll: () => [],
+    createElement() {
+      return {
+        value: '',
+        style: {},
+        setAttribute: () => {},
+        select() { fallbackValue = this.value; },
+        remove: () => {}
+      };
+    },
+    execCommand: (command) => command === 'copy',
+    body: { appendChild: () => {} }
   };
-  const messages = [];
   const context = vm.createContext({
     document,
     navigator: {
@@ -79,13 +91,20 @@ function createCertificateActionContext({ share, writeText, prompt = () => {} } 
     window: {
       prompt,
       setTimeout: () => {},
-      showRunnerDashboardFlashMessage: (message) => messages.push(message)
+      showRunnerDashboardFlashMessage: (message) => messages.push(message),
+      helloRunToast: (message, type) => messages.push({ message, type })
     }
   });
   const source = fs.readFileSync(path.resolve(__dirname, '../src/public/js/runner-dashboard.js'), 'utf8');
   vm.runInContext(source, context, { filename: 'runner-dashboard.js' });
   context.setupCertificateActions();
-  return { click: listeners.get('click'), keydown: listeners.get('keydown'), messages, document };
+  return {
+    click: listeners.get('click'),
+    keydown: listeners.get('keydown'),
+    messages,
+    document,
+    getFallbackValue: () => fallbackValue
+  };
 }
 
 test('certificate More opens native sharing with the verification URL and social text', async () => {
@@ -146,9 +165,8 @@ test('certificate More confirms its clipboard fallback without scrolling the pag
   assert.equal(messages.length, 0);
 });
 
-test('certificate More uses the copy prompt when native share and clipboard are unavailable', async () => {
-  const prompts = [];
-  const { click } = createCertificateActionContext({ prompt: (message, value) => prompts.push({ message, value }) });
+test('certificate More uses the hidden-copy fallback when native share and clipboard are unavailable', async () => {
+  const { click, messages, getFallbackValue } = createCertificateActionContext();
   const button = {
     getAttribute(name) {
       return { 'data-native-cert-share-url': 'https://example.test/verify/abc', 'data-share-cert-title': 'July Quest' }[name] || null;
@@ -158,9 +176,8 @@ test('certificate More uses the copy prompt when native share and clipboard are 
   };
 
   await click({ target: { closest: (selector) => selector === '[data-native-cert-share-url]' ? button : null } });
-  assert.equal(prompts.length, 1);
-  assert.equal(prompts[0].message, 'Copy this verification link:');
-  assert.equal(prompts[0].value, 'https://example.test/verify/abc');
+  assert.equal(getFallbackValue(), 'https://example.test/verify/abc');
+  assert.deepEqual(messages, [{ message: 'Certificate link copied.', type: 'success' }]);
 });
 
 test('certificate social menu toggles and Escape closes it with focus restored', async () => {
@@ -195,7 +212,9 @@ test('certificate social menu toggles and Escape closes it with focus restored',
   const toggleAttributes = new Map([['aria-expanded', 'false']]);
   const toggle = {
     closest: () => wrapper,
+    getAttribute: (name) => toggleAttributes.get(name) || null,
     setAttribute: (name, value) => toggleAttributes.set(name, value),
+    removeAttribute: (name) => toggleAttributes.delete(name),
     focus: () => { toggleFocused = true; }
   };
   const wrapper = {

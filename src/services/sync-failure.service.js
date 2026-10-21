@@ -11,7 +11,7 @@ async function recordSyncFailure(syncType, entityId, error, context = {}) {
         ${String(entityId || '') || null},
         ${String(error?.message || error || '').slice(0, 2000)},
         ${String(error?.stack || '').slice(0, 5000) || null},
-        ${JSON.stringify(context)}
+        ${sql.json(context)}
       )
     `;
   } catch (logError) {

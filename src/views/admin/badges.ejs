@@ -128,7 +128,7 @@
         <form method="GET" action="/admin/badges" class="admin-badge-filter">
           <input type="hidden" name="status" value="<%= filters.status %>">
           <label for="definitionScope">Scope</label>
-          <select id="definitionScope" name="scope" onchange="this.form.submit()">
+          <select id="definitionScope" name="scope" data-auto-submit>
             <% badgeScopes.forEach((scopeOption) => { %>
               <option value="<%= scopeOption %>" <%= filters.scope === scopeOption ? 'selected' : '' %>><%= scopeOption.replace('_', ' ') %></option>
             <% }) %>
@@ -191,7 +191,7 @@
                       method="POST"
                       action="/admin/badge-definitions/<%= badgeDefinitionId %>/status"
                       class="admin-badge-definition-status-form"
-                      onsubmit="return confirm('<%= badgeIsActive ? 'Disable this badge definition? Future awards will pause, but existing awards remain.' : 'Enable this badge definition for future awards?' %>');"
+                      data-high-risk-confirm data-confirm-title="<%= badgeIsActive ? 'Disable badge definition?' : 'Enable badge definition?' %>" data-confirm-target="<%= badge.name %>" data-confirm-impact="<%= badgeIsActive ? 'Pauses future awards; existing awards remain.' : 'Allows future matching awards.' %>" data-confirm-reversibility="An administrator can change this status again." data-confirm-privilege="Administrator" data-confirm-button="<%= badgeIsActive ? 'Disable badge' : 'Enable badge' %>"
                     >
                       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                       <input type="hidden" name="scope" value="<%= filters.scope %>">
@@ -221,13 +221,13 @@
         <h3 class="dashboard-section-title">Earned Badge Awards</h3>
         <form method="GET" action="/admin/badges" class="admin-badge-filter">
           <label for="badgeScope">Scope</label>
-          <select id="badgeScope" name="scope" onchange="this.form.submit()">
+          <select id="badgeScope" name="scope" data-auto-submit>
             <% badgeScopes.forEach((scopeOption) => { %>
               <option value="<%= scopeOption %>" <%= filters.scope === scopeOption ? 'selected' : '' %>><%= scopeOption.replace('_', ' ') %></option>
             <% }) %>
           </select>
           <label for="badgeStatus">Status</label>
-          <select id="badgeStatus" name="status" onchange="this.form.submit()">
+          <select id="badgeStatus" name="status" data-auto-submit>
             <% badgeStatuses.forEach((statusOption) => { %>
               <option value="<%= statusOption %>" <%= filters.status === statusOption ? 'selected' : '' %>><%= statusOption.replace('_', ' ') %></option>
             <% }) %>
@@ -386,7 +386,7 @@
   </main>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

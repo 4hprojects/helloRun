@@ -172,7 +172,7 @@
             <% currentEvents.forEach((event) => { %>
               <article class="about-event-card">
                 <a href="<%= event.href %>" class="about-event-image-link" tabindex="-1" aria-hidden="true">
-                  <img src="<%= event.imageUrl %>" alt="" loading="lazy" onerror="this.onerror=null;this.src='<%= event.fallbackImageUrl %>';">
+                  <img src="<%= event.imageUrl %>" alt="" loading="lazy" data-fallback-src="<%= event.fallbackImageUrl %>">
                 </a>
                 <div class="about-event-body">
                   <div class="about-event-tags">
@@ -217,7 +217,7 @@
   </main>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

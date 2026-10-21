@@ -69,6 +69,7 @@ function assertEmailSafeBrandedHeader(html) {
 test('account and promotion emails use the shared email-safe branded header', async () => {
   const { emailService, sent } = loadEmailServiceWithCapture();
   process.env.APP_URL = 'https://hellorun.online';
+  process.env.SESSION_SECRET = 'unit-test-session-secret';
 
   await emailService.sendPasswordResetEmail('runner@example.com', 'reset-token', 'Ana');
   await emailService.sendEventPromotionEmail(
@@ -77,11 +78,33 @@ test('account and promotion emails use the shared email-safe branded header', as
     'Bayani Run 2026',
     '',
     'https://hellorun.online/events/bayani-run-2026',
-    'Bayani Running Club'
+    'Bayani Running Club',
+    '507f1f77bcf86cd799439011'
   );
 
   assert.equal(sent.length, 2);
   sent.forEach((payload) => assertEmailSafeBrandedHeader(payload.html));
+  assert.match(sent[1].html, /\/unsubscribe\?token=/);
+});
+
+test('promotion email rejects unsafe media URLs and escapes links and subject newlines', async () => {
+  const { emailService, sent } = loadEmailServiceWithCapture();
+  process.env.APP_URL = 'https://hellorun.online';
+  process.env.SESSION_SECRET = 'unit-test-session-secret';
+
+  await emailService.sendEventPromotionEmail(
+    'runner@example.com',
+    'Ana',
+    'Unsafe\r\nBcc: injected@example.com',
+    'javascript:alert(1)',
+    'https://hellorun.online/events/test?x=1&y=2',
+    'Organizer',
+    '507f1f77bcf86cd799439011'
+  );
+
+  assert.doesNotMatch(sent[0].subject, /[\r\n]/);
+  assert.doesNotMatch(sent[0].html, /javascript:/);
+  assert.match(sent[0].html, /x=1&amp;y=2/);
 });
 
 test('every registered communication event has an email sender', () => {

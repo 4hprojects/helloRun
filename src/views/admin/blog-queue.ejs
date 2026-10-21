@@ -27,4 +27,4 @@
     <% }) %>
   </div>
   <%if(!posts.length){%><div class="blog-admin-empty">No posts match these filters.</div><%}%><%if(pagination.totalPages>1){%><nav class="blog-admin-pagination" aria-label="Post pages"><%if(pagination.page>1){%><a class="btn btn-secondary" href="<%= buildHref({page:pagination.page-1}) %>">Previous</a><%}%><span>Page <%= pagination.page %> of <%= pagination.totalPages %></span><%if(pagination.page<pagination.totalPages){%><a class="btn btn-secondary" href="<%= buildHref({page:pagination.page+1}) %>">Next</a><%}%></nav><%}%>
-</main><%- include('../layouts/footer') %><script src="/js/main.js"></script><script>if(window.lucide)lucide.createIcons();</script></body></html>
+</main><%- include('../layouts/footer') %><script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script><script nonce="<%= locals.cspNonce || String() %>">if(window.lucide)lucide.createIcons();</script></body></html>

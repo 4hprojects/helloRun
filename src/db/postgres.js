@@ -1,4 +1,5 @@
 const postgres = require('postgres');
+const { hostnameOf, isLocalHostname } = require('../config/database-safety');
 
 let client = null;
 
@@ -11,7 +12,9 @@ function getPostgresClient() {
   }
 
   client = postgres(connectionString, {
-    ssl: 'require',
+    // Supabase requires TLS; the isolated loopback Postgres service does not
+    // expose TLS. Host-based selection avoids weakening remote connections.
+    ssl: isLocalHostname(hostnameOf(connectionString)) ? false : 'require',
     prepare: false,
     max: Number(process.env.POSTGRES_MAX_CONNECTIONS || 5),
     idle_timeout: Number(process.env.POSTGRES_IDLE_TIMEOUT || 20),

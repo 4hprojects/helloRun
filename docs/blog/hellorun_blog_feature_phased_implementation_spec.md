@@ -1268,7 +1268,7 @@ changeType + createdAt
 
 ---
 
-# 22. Comprehensive Phased Implementation Plan
+## 22. Comprehensive Phased Implementation Plan
 
 ## Phase 0 - Audit and Preparation
 
@@ -1832,7 +1832,7 @@ GET /blog/:slug
 
 ---
 
-# 23. Recommended Build Order for Codex
+## 23. Recommended Build Order for Codex
 
 Use this exact order to reduce risk.
 
@@ -1912,7 +1912,7 @@ Add reporting, gallery images, and growth features.
 
 ---
 
-# 24. MVP Acceptance Test Checklist
+## 24. MVP Acceptance Test Checklist
 
 ## Author Flow
 
@@ -1976,7 +1976,7 @@ Add reporting, gallery images, and growth features.
 
 ---
 
-# 25. Out of Scope for MVP
+## 25. Out of Scope for MVP
 
 Do not implement these in Phase A:
 
@@ -1996,7 +1996,7 @@ Do not implement these in Phase A:
 
 ---
 
-# 26. Future HelloUniversity Reuse Note
+## 26. Future HelloUniversity Reuse Note
 
 This spec focuses on HelloRun first.
 
@@ -2017,7 +2017,7 @@ Build HelloRun blog first, make it stable, then extract reusable patterns later.
 
 ---
 
-# 27. Recommended Codex Prompt
+## 27. Recommended Codex Prompt
 
 Use this prompt when asking Codex to begin implementation:
 

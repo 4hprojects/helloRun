@@ -3,6 +3,8 @@ const logger = require('../utils/logger');
 const { Resend } = require('resend');
 const { getResetTokenTtlMs } = require('./password.service');
 const { renderWaiverTemplate } = require('../utils/waiver');
+const { createEmailUnsubscribeToken } = require('../utils/email-unsubscribe-token');
+const { BUSINESS_TIME_ZONE, formatCriticalTime, normalizeTimeZone } = require('../utils/timezone');
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -1060,7 +1062,9 @@ exports.sendEventRegistrationConfirmationEmail = async (
   eventStartAt,
   raceDistance,
   waiverVersion,
-  renderedWaiver
+  renderedWaiver,
+  recipientTimeZone,
+  recipientTimeZoneConfirmedAt
 ) => {
   try {
     const { data, error } = await resend.emails.send({
@@ -1075,7 +1079,9 @@ exports.sendEventRegistrationConfirmationEmail = async (
         eventStartAt,
         raceDistance,
         waiverVersion,
-        renderedWaiver
+        renderedWaiver,
+        recipientTimeZone,
+        recipientTimeZoneConfirmedAt
       })
     });
 
@@ -2030,20 +2036,34 @@ exports.sendBasicTestEmail = async (to, subject, message) => {
   return data;
 };
 
-exports.sendEventPromotionEmail = async (to, firstName, eventTitle, posterUrl, eventUrl, organiserName) => {
+exports.sendEventPromotionEmail = async (to, firstName, eventTitle, posterUrl, eventUrl, organiserName, recipientUserId) => {
   const safeTitle = escapeHtml(eventTitle);
   const safeName = escapeHtml(firstName || 'Runner');
   const safeOrganiser = escapeHtml(organiserName || 'an organiser');
-  const posterBlock = posterUrl
+  const appUrl = normalizeHttpUrl(process.env.APP_URL, 'https://hellorun.online');
+  const safeAppUrl = escapeHtml(appUrl);
+  const safeEventUrl = escapeHtml(normalizeHttpUrl(eventUrl, appUrl));
+  const normalizedPosterUrl = normalizeHttpUrl(posterUrl, '', appUrl);
+  const safePosterUrl = escapeHtml(normalizedPosterUrl);
+  const unsubscribeToken = createEmailUnsubscribeToken({
+    userId: recipientUserId,
+    key: 'event.promotion'
+  });
+  const unsubscribeUrl = unsubscribeToken
+    ? `${appUrl}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`
+    : `${appUrl}/unsubscribe?key=event.promotion`;
+  const safeUnsubscribeUrl = escapeHtml(unsubscribeUrl);
+  const safeSubjectTitle = String(eventTitle || 'Event').replace(/[\r\n]+/g, ' ').trim().slice(0, 120);
+  const posterBlock = normalizedPosterUrl
     ? `<div style="text-align:center;margin:0 0 30px;">
-         <img src="${posterUrl}" alt="${safeTitle}" style="max-width:100%;height:auto;border-radius:8px;border:1px solid #e2e8f0;" />
+         <img src="${safePosterUrl}" alt="${safeTitle}" style="max-width:100%;height:auto;border-radius:8px;border:1px solid #e2e8f0;" />
        </div>`
     : '';
 
   const { data, error } = await resend.emails.send({
     from: process.env.EMAIL_FROM,
     to,
-    subject: `Don't miss it: ${eventTitle} — Register Now`,
+    subject: `Don't miss it: ${safeSubjectTitle} — Register Now`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -2077,23 +2097,23 @@ exports.sendEventPromotionEmail = async (to, firstName, eventTitle, posterUrl, e
               Don't miss your chance to register and be part of this exciting run!
             </p>
             <div class="button-container">
-              <a href="${eventUrl}" class="cta-button">Register Now</a>
+              <a href="${safeEventUrl}" class="cta-button">Register Now</a>
             </div>
             <p class="message" style="font-size:13px;color:#94a3b8;">
               Can't click the button? Copy and paste this link into your browser:<br>
-              <a href="${eventUrl}" style="color:#FA9A4B;word-break:break-all;">${eventUrl}</a>
+              <a href="${safeEventUrl}" style="color:#FA9A4B;word-break:break-all;">${safeEventUrl}</a>
             </p>
           </div>
           <div class="footer">
             <p><strong>HelloRun</strong></p>
             <p>Your running journey companion</p>
             <p style="margin-top:16px;">
-              <a href="${process.env.APP_URL}">Visit HelloRun</a> &bull;
-              <a href="${process.env.APP_URL}/contact">Support</a>
+              <a href="${safeAppUrl}">Visit HelloRun</a> &bull;
+              <a href="${safeAppUrl}/contact">Support</a>
             </p>
             <p class="unsubscribe">
               This promotional email was sent on behalf of ${safeOrganiser} via HelloRun.<br>
-              <a href="${process.env.APP_URL}/unsubscribe?key=event.promotion" style="color:#94a3b8;">Unsubscribe from event promotions</a>
+              <a href="${safeUnsubscribeUrl}" style="color:#94a3b8;">Unsubscribe from event promotions</a>
             </p>
           </div>
         </div>
@@ -2181,6 +2201,15 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+function normalizeHttpUrl(value, fallback = '', base = undefined) {
+  try {
+    const parsed = new URL(String(value || '').trim(), base);
+    return ['http:', 'https:'].includes(parsed.protocol) ? parsed.toString() : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
 function buildEventRegistrationConfirmationEmailHtml({
   firstName,
   eventTitle,
@@ -2189,20 +2218,15 @@ function buildEventRegistrationConfirmationEmailHtml({
   eventStartAt,
   raceDistance,
   waiverVersion,
-  renderedWaiver
+  renderedWaiver,
+  recipientTimeZone,
+  recipientTimeZoneConfirmedAt
 } = {}) {
   const safeWaiverHtml = renderedWaiver
     ? renderWaiverTemplate(String(renderedWaiver))
     : '<p>Waiver copy unavailable.</p>';
-  const eventDateText = eventStartAt
-    ? new Date(eventStartAt).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit'
-      })
-    : 'TBA';
+  const confirmedTimeZone = recipientTimeZoneConfirmedAt ? normalizeTimeZone(recipientTimeZone) : '';
+  const eventDateText = formatCriticalTime(eventStartAt, confirmedTimeZone || BUSINESS_TIME_ZONE) || 'TBA';
 
   return `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">

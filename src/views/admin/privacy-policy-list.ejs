@@ -107,7 +107,7 @@
                       </form>
                     <% } %>
                     <% if (!version.isCurrent && version.status !== 'archived') { %>
-                      <form method="POST" action="<%= `${managePath}/${version.id}/archive` %>" onsubmit="return confirm('Archive this version?');">
+                      <form method="POST" action="<%= `${managePath}/${version.id}/archive` %>" data-high-risk-confirm data-confirm-title="Archive policy version?" data-confirm-target="<%= documentName %> version <%= version.versionNumber %>" data-confirm-impact="Removes this non-current version from the active management list." data-confirm-reversibility="The archived historical record remains available to administrators." data-confirm-privilege="Full administrator" data-confirm-button="Archive version">
                         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                         <button type="submit" class="btn btn-danger btn-sm">Archive</button>
                       </form>
@@ -127,7 +127,7 @@
   </main>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

@@ -1,5 +1,7 @@
 'use strict';
 
+const { getClientIp } = require('../../utils/client-ip');
+
 const {
   getGuidesAndResources,
   FeedCtorPromise,
@@ -97,7 +99,7 @@ function recordBlogModerationAudit(req, input = {}) {
     statusTo: input.statusTo || '',
     actorMongoUserId: req.session?.userId || '',
     notes: JSON.stringify(input.details || {}).slice(0, 4000),
-    ipAddress: req.ip,
+    ipAddress: getClientIp(req),
     userAgent: req.get?.('user-agent') || '',
     occurredAt: new Date()
   });

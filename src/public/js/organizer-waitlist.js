@@ -44,7 +44,7 @@
     }
   }
 
-  root.addEventListener('click', (event) => {
+  root.addEventListener('click', async (event) => {
     const offer = event.target.closest('[data-waitlist-offer]');
     if (offer) {
       const categoryId = offer.dataset.waitlistOffer || '';
@@ -59,7 +59,8 @@
     const withdraw = event.target.closest('[data-waitlist-withdraw]');
     if (withdraw) {
       // Irreversible from this page: they would have to join again themselves.
-      if (!window.confirm('Remove this person from the waitlist?')) return;
+      const confirmed = await window.helloRunConfirm({ title: 'Remove from waitlist?', target: 'Selected waitlist entry', impact: 'Removes this person and releases their current queue position.', reversibility: 'They must join the waitlist again themselves.', privilege: 'Event organiser', confirmLabel: 'Remove entry' }, withdraw);
+      if (!confirmed) return;
       const entryId = withdraw.dataset.waitlistWithdraw;
       return post(
         `/organizer/events/${eventId}/waitlist/${entryId}/withdraw`,

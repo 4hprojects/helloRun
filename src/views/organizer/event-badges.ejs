@@ -134,8 +134,8 @@
   </main>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     if (window.lucide) lucide.createIcons();
 
     // Badge image upload handlers
@@ -161,10 +161,10 @@
           if (res.ok && data.success) {
             if (urlInput) urlInput.value = data.imageUrl;
           } else {
-            alert(data.message || 'Image upload failed.');
+            window.helloRunToast(data.message || 'Image upload failed.');
           }
         } catch {
-          alert('Network error — image upload failed.');
+          window.helloRunToast('Network error — image upload failed.');
         }
         input.value = '';
       });

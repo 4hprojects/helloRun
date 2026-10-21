@@ -1,7 +1,8 @@
 # September Active Run 2026 Event Brief
 
-Status: **Operational work pending**  
-Reconciled: August 29, 2026  
+Status: **Historical event brief; production execution was not established by
+the repository review and its unchecked publication list is not active work**
+Reconciled: October 19, 2026
 Intended route: `/organizer/create-event`
 
 This document is the publish-ready reference for encoding **September Active Run** in HelloRun. It defines the event's public copy, canonical schedule, category mapping, participation rules, recognition settings, media direction, and organizer checklist. It does not create or publish the event.

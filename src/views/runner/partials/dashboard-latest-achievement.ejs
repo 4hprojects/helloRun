@@ -7,7 +7,7 @@
     <article class="card latest-achievement-card">
       <div class="latest-achievement-icon">
         <i data-lucide="<%= latestAchievement.type === 'certificate' ? 'badge-check' : latestAchievement.type === 'badge' ? 'medal' : 'target' %>" aria-hidden="true"></i>
-        <% if (latestAchievement.imageUrl) { %><img src="<%= latestAchievement.imageUrl %>" alt="<%= latestAchievement.title %> badge" loading="lazy" onerror="this.hidden=true;"><% } %>
+        <% if (latestAchievement.imageUrl) { %><img src="<%= latestAchievement.imageUrl %>" alt="<%= latestAchievement.title %> badge" loading="lazy" data-hide-on-error><% } %>
       </div>
       <div class="latest-achievement-main">
         <span class="badge badge-approved"><%= latestAchievement.label %></span>

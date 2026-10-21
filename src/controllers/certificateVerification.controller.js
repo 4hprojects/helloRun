@@ -1,5 +1,6 @@
 const { verifyCertificateNumber, normalizeCertificateNumber } = require('../services/certificateVerification.service');
 const { logCertificateAuditInBackground } = require('../services/certificateAudit.service');
+const { getClientIp } = require('../utils/client-ip');
 
 async function getVerificationSearch(req, res) {
   return res.render('certificates/verify', {
@@ -93,8 +94,7 @@ function buildVerificationPagePresentation(result, canonicalUrl) {
 }
 
 function getRequestIpAddress(req) {
-  const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return (forwardedFor || String(req.ip || '').trim()).slice(0, 120);
+  return getClientIp(req).slice(0, 120);
 }
 
 function getRequestUserAgent(req) {

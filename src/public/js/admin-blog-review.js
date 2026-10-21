@@ -628,7 +628,7 @@
         const selected = Array.from(adminGalleryFiles.files || []);
         const remaining = Math.max(0, 3 - readGalleryUrls().length - pendingGalleryFiles.length);
         if (selected.length > remaining) {
-          window.alert("Only " + remaining + " gallery slot" + (remaining === 1 ? " is" : "s are") + " available.");
+          window.helloRunToast("Only " + remaining + " gallery slot" + (remaining === 1 ? " is" : "s are") + " available.");
         }
         pendingGalleryFiles.push(...selected.slice(0, remaining));
         adminGalleryFiles.value = "";
@@ -867,7 +867,7 @@
             if (scheduled) {
               const scheduledDate = new Date(localValue);
               if (!localValue || !Number.isFinite(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now()) {
-                window.alert("Choose a future publication date and time.");
+                window.helloRunToast("Choose a future publication date and time.");
                 return;
               }
               if (hidden) hidden.value = scheduledDate.toISOString();
@@ -877,7 +877,7 @@
             const localValue = String(document.getElementById("rescheduleForLocal")?.value || "");
             const scheduledDate = new Date(localValue);
             if (!localValue || !Number.isFinite(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now()) {
-              window.alert("Choose a future publication date and time.");
+              window.helloRunToast("Choose a future publication date and time.");
               return;
             }
             const hidden = document.getElementById("rescheduleFor");
@@ -897,13 +897,13 @@
             button.disabled = false;
             button.removeAttribute("aria-busy");
             if (button.dataset.originalText) button.textContent = button.dataset.originalText;
-            window.alert("The post could not be saved. Resolve the image or autosave error before continuing.");
+            window.helloRunToast("The post could not be saved. Resolve the image or autosave error before continuing.");
             return;
           }
           if (form.action.endsWith("/archive-form") && !["published", "scheduled"].includes(currentWorkflowStatus)) {
             button.disabled = false;
             button.removeAttribute("aria-busy");
-            window.alert("Content edits were staged for review. Reload before archiving the live post.");
+            window.helloRunToast("Content edits were staged for review. Reload before archiving the live post.");
             return;
           }
           form.submit();

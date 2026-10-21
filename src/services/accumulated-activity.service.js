@@ -91,7 +91,9 @@ async function reviewAccumulatedActivitySubmission({
 
   const activity = await AccumulatedActivitySubmission.findById(activityId);
   if (!activity) {
-    throw new Error('Activity submission not found.');
+    const error = new Error('Activity submission not found.');
+    error.code = 'activity_submission_not_found';
+    throw error;
   }
   if (safeAction === 'approve' && !APPROVABLE_STATUS.has(activity.status)) {
     throw new Error('Only submitted, rejected, or needs-clarification activities can be approved.');

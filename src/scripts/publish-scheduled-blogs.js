@@ -10,9 +10,20 @@ const {
   hasCurrentEligibleContent,
   hasCurrentPublicationReview,
 } = require('../utils/blog-content-eligibility');
+const { publishDueScheduledPosts } = require('../services/scheduled-blog-publisher.service');
 const MONGODB_URI = process.env.MONGODB_URI;
 
 async function publishEligibleScheduledPosts({ BlogModel = Blog, now = new Date(), dryRun = false } = {}) {
+  if (!dryRun) {
+    return publishDueScheduledPosts({
+      BlogModel,
+      now,
+      workerId: `cron-${process.pid}`,
+      onPublished: (post) => console.log(`Published scheduled post: ${post.title} (${post._id})`),
+      onSkipped: (post) => console.error(`Skipped ineligible scheduled post: ${post.title} (${post._id})`),
+      onError: (post, error) => console.error(`Failed scheduled post: ${post.title} (${post._id}): ${error.message}`)
+    });
+  }
   const scheduledPosts = await BlogModel.find({
     status: 'scheduled',
     $or: [
@@ -31,14 +42,6 @@ async function publishEligibleScheduledPosts({ BlogModel = Blog, now = new Date(
     summary.eligible += 1;
     summary.titles.push(post.title);
     if (dryRun) continue;
-    post.status = 'published';
-    post.publishedAt = now;
-    post.scheduledFor = null;
-    post.approvedAt = post.approvedAt || post.publicationReview?.reviewedAt || now;
-    post.approvedBy = post.approvedBy || null;
-    await post.save();
-    summary.published += 1;
-    console.log(`Published scheduled post: ${post.title} (${post._id})`);
   }
   return summary;
 }

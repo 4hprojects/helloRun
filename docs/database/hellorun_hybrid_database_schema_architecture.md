@@ -48,7 +48,7 @@ Application Services Layer
         |
         +-----------------------------+-----------------------------+-----------------------------+
         | MongoDB                     | Supabase / PostgreSQL       | Cloudflare R2               |
-        |-----------------------------|-----------------------------|-----------------------------| 
+        |-----------------------------|-----------------------------|-----------------------------|
         | users (auth)                | app_users (bridge)          | organiser documents         |
         | organiser_applications      | organisers                  | event logos                 |
         | events                      | events_core                 | event banners               |
@@ -1055,7 +1055,7 @@ Each phase includes rollback safety:
 
 ---
 
-# 1. High-Level Architecture
+## 1. High-Level Architecture
 
 ```text
 Runner / Organiser / Admin
@@ -1090,7 +1090,7 @@ Application Services Layer
 
 ---
 
-# 2. Core Storage Rule
+## 2. Core Storage Rule
 
 | Data Type | Storage |
 |---|---|
@@ -1104,7 +1104,7 @@ Application Services Layer
 
 ---
 
-# 3. Database Responsibilities
+## 3. Database Responsibilities
 
 ## 3.1 MongoDB Responsibilities
 
@@ -1172,7 +1172,7 @@ Use Cloudflare R2 for:
 
 ---
 
-# 4. Clean Storage List
+## 4. Clean Storage List
 
 ## 4.1 Supabase / PostgreSQL
 
@@ -1251,7 +1251,7 @@ Cloudflare R2
 
 ---
 
-# 5. Feature-Based Storage Plan
+## 5. Feature-Based Storage Plan
 
 ## 5.1 Authentication and Users
 
@@ -1999,7 +1999,7 @@ audit_critical
 
 ---
 
-# 6. Relationship Flows
+## 6. Relationship Flows
 
 ## 6.1 Main User Relationship Flow
 
@@ -2143,7 +2143,7 @@ orders
 
 ---
 
-# 7. Implementation Notes for Codex
+## 7. Implementation Notes for Codex
 
 ## 7.1 Do Not Migrate Users Immediately
 
@@ -2264,7 +2264,7 @@ ObjectId primary keys
 
 ---
 
-# 8. Recommended Build Order
+## 8. Recommended Build Order
 
 ## Phase 1: Bridge Foundation
 
@@ -2324,7 +2324,7 @@ ObjectId primary keys
 
 ---
 
-# 9. Suggested Directory Structure
+## 9. Suggested Directory Structure
 
 ```text
 src/
@@ -2381,7 +2381,7 @@ docs/
 
 ---
 
-# 10. Risks and Controls
+## 10. Risks and Controls
 
 | Risk | Control |
 |---|---|
@@ -2398,7 +2398,7 @@ docs/
 
 ---
 
-# 11. Index and Constraint Recommendations
+## 11. Index and Constraint Recommendations
 
 ## MongoDB Indexes
 
@@ -2431,13 +2431,13 @@ orders.order_number unique
 
 ---
 
-# 12. Pitch-Ready Explanation
+## 12. Pitch-Ready Explanation
 
 HelloRun will use a hybrid database architecture. MongoDB will remain the source of truth for authentication because the existing system already stores users, roles, password login, Google OAuth, account status, and policy acceptance there. Supabase/PostgreSQL will handle relational and transaction-heavy records such as organisers, core events, registrations, payments, submissions, rankings, certificates, reports, shop products, inventory, carts, orders, race kits, bibs, and check-ins. MongoDB will also store flexible document-based data such as event content, media metadata, OCR analysis, suspicious-entry details, blog posts, legal policy versions, notifications, product content, and activity feeds. Cloudflare R2 will store actual uploaded files such as proof images, run screenshots, event media, product images, result import files, and certificate files. This design keeps the current authentication system stable while giving the platform a stronger structure for transactions, reporting, commerce, and event operations.
 
 ---
 
-# 13. Final Recommendation
+## 13. Final Recommendation
 
 For the current HelloRun MVP:
 

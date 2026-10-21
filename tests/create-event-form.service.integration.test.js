@@ -43,6 +43,30 @@ test('create-event form maps legacy gps proof to running app sync', () => {
   assert.deepEqual(formData.proofTypesAllowed, ['running_app_sync', 'photo', 'manual']);
 });
 
+test('event schedule parsing and form restoration are independent of process timezone', () => {
+  const originalTimeZone = process.env.TZ;
+  try {
+    for (const timeZone of ['UTC', 'Asia/Manila', 'America/New_York']) {
+      process.env.TZ = timeZone;
+      const formData = getCreateEventFormData(buildPublishPayload({
+        registrationOpenAt: '2026-10-01T08:00',
+        registrationCloseAt: '2026-10-02T08:00',
+        eventStartAt: '2026-10-03T08:00',
+        eventEndAt: '2026-10-04T08:00',
+        virtualStartAt: '2026-10-03T08:00',
+        virtualEndAt: '2026-10-04T08:00'
+      }));
+      const event = {};
+      applyEventFormData(event, formData);
+      assert.equal(event.registrationOpenAt.toISOString(), '2026-10-01T00:00:00.000Z');
+      assert.equal(event.eventStartAt.toISOString(), '2026-10-03T00:00:00.000Z');
+      assert.equal(getCreateEventFormDataFromEvent(event).eventStartAt, '2026-10-03T08:00');
+    }
+  } finally {
+    process.env.TZ = originalTimeZone;
+  }
+});
+
 test('create-event form derives accumulated target from distance labels and ignores manual targetDistanceKm', () => {
   const formData = getCreateEventFormData({
     eventType: 'virtual',
@@ -201,7 +225,7 @@ test('applyEventFormData persists public posting date', () => {
 
   applyEventFormData(event, formData, null);
 
-  assert.equal(event.publicListingAvailableAt.toISOString(), new Date('2026-06-02T09:15').toISOString());
+  assert.equal(event.publicListingAvailableAt.toISOString(), '2026-06-02T01:15:00.000Z');
 });
 
 test('automatic event promotion follows the public posting date and can be disabled before sending', () => {
@@ -216,7 +240,7 @@ test('automatic event promotion follows the public posting date and can be disab
   assert.equal(formData.autoEmailPromotionEnabled, true);
   assert.equal(event.autoEmailPromotionEnabled, true);
   assert.equal(event.autoEmailPromotionStatus, 'pending');
-  assert.equal(event.autoEmailPromotionScheduledAt.toISOString(), new Date(postingAt).toISOString());
+  assert.equal(event.autoEmailPromotionScheduledAt.toISOString(), '2026-08-09T16:00:00.000Z');
 
   applyEventFormData(event, { ...formData, autoEmailPromotionEnabled: false }, { firstName: 'HelloRun', lastName: 'Team' });
   assert.equal(event.autoEmailPromotionEnabled, false);

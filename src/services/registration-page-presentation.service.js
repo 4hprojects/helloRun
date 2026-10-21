@@ -1,10 +1,11 @@
 'use strict';
 
-const { formatPlatformDate, PLATFORM_TIME_ZONE } = require('../utils/platform-date');
+const { calculateAgeFromDateOnly, formatPlatformDate } = require('../utils/platform-date');
 const { getCountryName } = require('../utils/country');
 const { resolveRegistrationPrice } = require('./registration-price.service');
 const { categoryIsFull } = require('./waitlist.service');
 const { isAccumulatedChallenge } = require('../utils/challenge-metrics');
+const { BUSINESS_TIME_ZONE, normalizeTimeZone, formatCriticalTime } = require('../utils/timezone');
 
 function buildRegistrationPagePresentation({
   event = {},
@@ -37,6 +38,10 @@ function buildRegistrationPagePresentation({
     )
   });
   const profile = buildProfilePresentation(profileSnapshot, profileCompleteness);
+  const runnerTimeZone = profileSnapshot.timezoneConfirmedAt
+    ? normalizeTimeZone(profileSnapshot.timezone)
+    : '';
+  const displayTimeZone = runnerTimeZone || BUSINESS_TIME_ZONE;
   const reviewData = buildReviewData({
     event,
     formData,
@@ -54,11 +59,14 @@ function buildRegistrationPagePresentation({
       slug: String(event.slug || '').trim(),
       organiserName: String(event.organiserName || 'the event organiser').trim(),
       formatLabel: buildFormatLabel(event, allowedModes),
-      registrationCloseLabel: formatPlatformDate(event.registrationCloseAt),
-      activityWindowLabel: formatDateRange(event.virtualWindow?.startAt || event.eventStartAt, event.virtualWindow?.endAt || event.eventEndAt),
-      submissionDeadlineLabel: formatPlatformDate(event.finalSubmissionDeadlineAt || event.eventEndAt),
+      registrationCloseLabel: formatCriticalTime(event.registrationCloseAt, displayTimeZone) || formatPlatformDate(event.registrationCloseAt),
+      activityWindowLabel: formatCriticalDateRange(event.virtualWindow?.startAt || event.eventStartAt, event.virtualWindow?.endAt || event.eventEndAt, displayTimeZone),
+      submissionDeadlineLabel: formatCriticalTime(event.finalSubmissionDeadlineAt || event.eventEndAt, displayTimeZone) || formatPlatformDate(event.finalSubmissionDeadlineAt || event.eventEndAt),
       locationLabel: buildLocationLabel(event, allowedModes),
-      timeZoneLabel: PLATFORM_TIME_ZONE
+      timeZoneLabel: runnerTimeZone
+        ? (runnerTimeZone === BUSINESS_TIME_ZONE ? BUSINESS_TIME_ZONE : `${runnerTimeZone}; official schedule ${BUSINESS_TIME_ZONE}`)
+        : `${BUSINESS_TIME_ZONE} fallback; confirm your timezone in profile`,
+      hasConfirmedTimeZone: Boolean(runnerTimeZone)
     },
     isAccumulated: accumulated,
     usesFixedChallengeFacts: accumulated
@@ -359,9 +367,9 @@ function buildLocationLabel(event = {}, allowedModes = []) {
   return modes.includes('onsite') ? 'See event details for venue information' : 'Virtual participation';
 }
 
-function formatDateRange(startValue, endValue) {
-  const start = formatPlatformDate(startValue);
-  const end = formatPlatformDate(endValue);
+function formatCriticalDateRange(startValue, endValue, timeZone) {
+  const start = formatCriticalTime(startValue, timeZone) || formatPlatformDate(startValue);
+  const end = formatCriticalTime(endValue, timeZone) || formatPlatformDate(endValue);
   return start === end ? start : `${start} – ${end}`;
 }
 
@@ -386,14 +394,8 @@ function safeAmount(value) {
 }
 
 function formatAge(value) {
-  if (!value) return 'Not set';
-  const dob = new Date(value);
-  if (Number.isNaN(dob.getTime())) return 'Not set';
-  const now = new Date();
-  let age = now.getFullYear() - dob.getFullYear();
-  const monthDiff = now.getMonth() - dob.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < dob.getDate())) age -= 1;
-  return Number.isInteger(age) && age >= 0 && age <= 130 ? String(age) : 'Not set';
+  const age = calculateAgeFromDateOnly(value);
+  return age === null ? 'Not set' : String(age);
 }
 
 function formatGender(value) {

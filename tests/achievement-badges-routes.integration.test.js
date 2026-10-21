@@ -181,9 +181,9 @@ test('runner badge endpoints return own badges and featured badge update is owne
   assert.equal(profilePage.status, 200);
   const profileHtml = await profilePage.text();
   assert.match(profileHtml, /profile-badge-grid/);
-  assert.match(profileHtml, /Achievement Badges/);
-  assert.match(profileHtml, /Challenge Progress/);
-  assert.match(profileHtml, /Public Collection/);
+  assert.match(profileHtml, /Achievements/);
+  assert.match(profileHtml, /Current challenge goals/);
+  assert.match(profileHtml, /Public collection/);
   assert.match(profileHtml, /\/badges\/[0-9a-f-]+/i);
   assert.match(profileHtml, new RegExp(`/runners/${seed.runner.userId}/badges`));
 
@@ -192,9 +192,9 @@ test('runner badge endpoints return own badges and featured badge update is owne
   });
   assert.equal(dashboardPage.status, 200);
   const dashboardHtml = await dashboardPage.text();
-  assert.match(dashboardHtml, /Recent Badges/);
-  assert.match(dashboardHtml, /dashboard-badge-list/);
-  assert.match(dashboardHtml, /Challenge Progress/);
+  assert.match(dashboardHtml, /Latest Achievement/);
+  assert.match(dashboardHtml, /latest-achievement-card/);
+  assert.match(dashboardHtml, /View All Achievements/);
 
   const badgesResponse = await fetch(`${BASE_URL}/runner/profile/badges`, {
     headers: { Cookie: runnerCookie }

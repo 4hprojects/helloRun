@@ -22,11 +22,14 @@ test('runner notification settings expose event promotion opt-out', () => {
 
 test('email unsubscribe route handles event promotion preference', () => {
   const routes = read('src/routes/pageRoutes.js');
+  const email = read('src/services/email.service.js');
 
-  assert.match(routes, /router\.get\('\/unsubscribe', requireAuth/);
-  assert.match(routes, /new Set\(\['event\.promotion', 'event\.started_reminder', 'result\.submission_reminder'\]\)/);
-  assert.match(routes, /!allowedKeys\.has\(key\)/);
+  assert.match(routes, /router\.get\('\/unsubscribe', async/);
+  assert.match(routes, /verifyEmailUnsubscribeToken/);
+  assert.match(routes, /!EMAIL_UNSUBSCRIBE_KEYS\.has\(key\)/);
   assert.match(routes, /\$addToSet:\s*\{\s*'notificationPreferences\.emailOptOut': key\s*\}/);
+  assert.match(email, /createEmailUnsubscribeToken/);
+  assert.match(email, /recipientUserId/);
 });
 
 test('promotion recipient service filters event promotion opt-outs', () => {
@@ -80,6 +83,19 @@ test('promotion dispatch is throttled and campaigns count toward quota at creati
   // in-flight background campaigns.
   assert.match(adminController, /recipientCount: recipients\.length/);
   assert.match(organizerRoutes, /recipientCount: recipients\.length/);
+  assert.match(adminController, /buildPromotionDuplicateKey/);
+  assert.match(organizerRoutes, /buildPromotionDuplicateKey/);
+  assert.match(read('src/models/EventPromotion.js'), /duplicateKey/);
+});
+
+test('same-day duplicate keys are stable across recipient ordering and audience-specific', () => {
+  const { buildPromotionDuplicateKey } = require('../src/services/event-promotion.service');
+  const common = { eventId: 'event-1', audience: 'all_runners', dateKey: '2026-10-20' };
+  const first = buildPromotionDuplicateKey({ ...common, recipients: [{ _id: 'b' }, { _id: 'a' }] });
+  const reordered = buildPromotionDuplicateKey({ ...common, recipients: [{ _id: 'a' }, { _id: 'b' }] });
+  const otherAudience = buildPromotionDuplicateKey({ ...common, audience: 'non_participants', recipients: [{ _id: 'a' }, { _id: 'b' }] });
+  assert.equal(first, reordered);
+  assert.notEqual(first, otherAudience);
 });
 
 test('admin promotion supports selected pasted email recipients', () => {

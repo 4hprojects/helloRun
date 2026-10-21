@@ -14,6 +14,11 @@ const { listPolicyDocuments } = require('../services/policy-registry.service');
 const { markdownToHtml } = require('../utils/markdown');
 const { sanitizeHtml } = require('../utils/sanitize');
 const { buildPublicPolicyPresentation } = require('../services/public-policy-presentation.service');
+const { getClientIpKey } = require('../utils/client-ip');
+const {
+  ALLOWED_KEYS: EMAIL_UNSUBSCRIBE_KEYS,
+  verifyEmailUnsubscribeToken
+} = require('../utils/email-unsubscribe-token');
 const {
   COOKIE_NAME,
   cookieOptions,
@@ -30,13 +35,13 @@ const contactOrganiserLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000,
   maxRequests: 5,
   message: 'You have reached the hourly message limit for this event. Please wait up to one hour before contacting this organiser again.',
-  keyFn: (req) => `contact-organiser|${req.session?.userId || req.ip || 'anon'}|${req.params.slug || ''}`
+  keyFn: (req) => `contact-organiser|${req.session?.userId || getClientIpKey(req)}|${req.params.slug || ''}`
 });
 const resultSubmissionLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   maxRequests: 8,
   message: 'Too many result submissions. Please wait a few minutes and try again.',
-  keyFn: (req) => `result-submission|${req.session?.userId || req.ip || 'anon'}`
+  keyFn: (req) => `result-submission|${req.session?.userId || getClientIpKey(req)}`
 });
 // Claiming moves a registration between owners, so it is worth bounding.
 const claimLimiter = createRateLimiter({
@@ -70,20 +75,54 @@ router.post('/cookie-preferences', requireCsrfProtection, (req, res) => {
     : '/cookie-policy#cookie-choices';
   return res.redirect(returnTo);
 });
-router.get('/unsubscribe', requireAuth, async (req, res) => {
+router.get('/unsubscribe', async (req, res) => {
   try {
-    const key = String(req.query.key || '').trim();
-    const allowedKeys = new Set(['event.promotion', 'event.started_reminder', 'result.submission_reminder']);
-    if (!allowedKeys.has(key)) {
+    const signed = req.query.token
+      ? verifyEmailUnsubscribeToken(req.query.token, process.env.SESSION_SECRET)
+      : null;
+    if (req.query.token && !signed) {
+      return res.status(400).render('pages/unsubscribe-result', {
+        title: 'Unsubscribe link expired',
+        heading: 'This unsubscribe link is invalid or expired',
+        message: 'Sign in to update your email preferences from your runner profile.',
+        success: false
+      });
+    }
+
+    if (!signed && (!req.session || !req.session.userId)) {
+      if (req.session) req.session.returnTo = req.originalUrl;
+      return res.redirect('/login');
+    }
+
+    const key = signed?.key || String(req.query.key || '').trim();
+    const userId = signed?.userId || req.session.userId;
+    if (!EMAIL_UNSUBSCRIBE_KEYS.has(key)) {
       return res.redirect('/runner/profile?section=notifications&type=error&msg=Unknown+email+preference.');
     }
 
-    const user = await User.findById(req.session.userId).select('role').lean();
-    await User.updateOne(
-      { _id: req.session.userId },
+    const result = await User.updateOne(
+      { _id: userId },
       { $addToSet: { 'notificationPreferences.emailOptOut': key } }
     );
+    if (!result.matchedCount) {
+      return res.status(404).render('pages/unsubscribe-result', {
+        title: 'Account not found',
+        heading: 'We could not update that preference',
+        message: 'The account for this unsubscribe link is no longer available.',
+        success: false
+      });
+    }
 
+    if (signed) {
+      return res.render('pages/unsubscribe-result', {
+        title: 'Email preference updated',
+        heading: 'You are unsubscribed',
+        message: 'HelloRun will no longer send this category of email to your account. You can opt back in from notification settings after signing in.',
+        success: true
+      });
+    }
+
+    const user = await User.findById(userId).select('role').lean();
     if (user?.role !== 'runner') {
       return res.redirect('/');
     }
@@ -173,13 +212,13 @@ const commentEditLimiter = createRateLimiter({
   windowMs: 5 * 60 * 1000,
   maxRequests: 15,
   message: 'Too many comment edits. Please wait a few minutes and try again.',
-  keyFn: (req) => `blog-comment-edit|${req.session?.userId || req.ip || 'anon'}`
+  keyFn: (req) => `blog-comment-edit|${req.session?.userId || getClientIpKey(req)}`
 });
 const commentRevisionRedactionLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000,
   maxRequests: 10,
   message: 'Too many revision redactions. Please wait before trying again.',
-  keyFn: (req) => `blog-comment-redaction|${req.session?.userId || req.ip || 'anon'}`
+  keyFn: (req) => `blog-comment-redaction|${req.session?.userId || getClientIpKey(req)}`
 });
 const likeLimiter = createRateLimiter({
   windowMs: 60 * 1000,

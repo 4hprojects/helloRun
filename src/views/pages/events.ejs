@@ -187,7 +187,7 @@
                     src="<%= eventBannerImageUrl %>"
                     alt=""
                     loading="lazy"
-                    onerror="this.onerror=null;this.src='<%= defaultEventImageUrl %>';"
+                    data-fallback-src="<%= defaultEventImageUrl %>"
                   >
                 </a>
 
@@ -323,9 +323,9 @@
 
   <%- include('../layouts/footer') %>
   <div class="events-action-status" data-events-action-status role="status" aria-live="polite" aria-atomic="true"></div>
-  <script src="/js/main.js"></script>
-  <script src="/js/event-share.js"></script>
-  <% if (locals.isAuthenticated) { %><script src="/js/event-save.js"></script><% } %>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/event-share.js"></script>
+  <% if (locals.isAuthenticated) { %><script nonce="<%= locals.cspNonce || String() %>" src="/js/event-save.js"></script><% } %>
+  <script nonce="<%= locals.cspNonce || String() %>">if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

@@ -1,6 +1,15 @@
 # Phased implementation roadmap and review gates
 
-Work in a dedicated feature branch. Each phase produces code, tests, documentation and a completion report described in `00-CLAUDE-CODE-INSTRUCTIONS.md`. Do not merge/deploy without explicit approval. Estimates are preliminary developer-days.
+> **Historical implementation plan:** Phases 0–6 were implemented on the dedicated
+> feature branch and merged to `main` by October 19, 2026. The branch instructions and
+> phase gates below preserve the implementation record; they are not an active backlog.
+> Deployment, legal, data, and rollout work is tracked only in
+> [ROADMAP](../../ROADMAP.md) under `REL-01` and `REL-03`.
+
+The implementation required a dedicated feature branch. Each phase produced code,
+tests, documentation and a completion report described in
+`00-CLAUDE-CODE-INSTRUCTIONS.md`. Deployment still requires explicit approval.
+Estimates below are the original preliminary developer-days.
 
 ## Phase 0: repo inspection and baseline (2–4 days)
 

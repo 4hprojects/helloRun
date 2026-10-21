@@ -1019,7 +1019,7 @@ Decision outcome guidance:
 
 ---
 
-# PostgreSQL / Supabase Tables
+## PostgreSQL / Supabase Tables
 
 ## 1. `shop_products_core`
 
@@ -1302,7 +1302,7 @@ updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
 ---
 
-# MongoDB Collections
+## MongoDB Collections
 
 ## 1. `shop_product_content`
 
@@ -1413,7 +1413,7 @@ The exact route style should follow the existing HelloRun Express/EJS convention
 
 ---
 
-# Public / Runner Routes
+## Public / Runner Routes
 
 ```text
 GET    /events/:eventSlug/shop
@@ -1433,7 +1433,7 @@ POST   /orders/:orderNumber/cancel
 
 ---
 
-# Organiser Routes
+## Organiser Routes
 
 ```text
 GET    /organizer/events/:eventId/shop
@@ -1464,7 +1464,7 @@ GET    /organizer/events/:eventId/shop/reports/export.xlsx
 
 ---
 
-# Admin Routes
+## Admin Routes
 
 ```text
 GET    /admin/shop

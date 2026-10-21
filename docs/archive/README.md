@@ -12,3 +12,12 @@ historical evidence and must not be used as current delivery truth.
 
 Use [`../STATUS.md`](../STATUS.md), [`../ROADMAP.md`](../ROADMAP.md), and
 [`../PRD.md`](../PRD.md) for current information.
+
+Notable reconciled records:
+
+- [`reviews/full-app-review-and-improvement-backlog-2026-06-24.md`](reviews/full-app-review-and-improvement-backlog-2026-06-24.md)
+  is the completed June full-app review. Its two deferred refactors are owned by
+  `DEBT-01` in ROADMAP.
+- [`implemented-plans/hellorun-ui-pwa-implementation-pack/`](implemented-plans/hellorun-ui-pwa-implementation-pack/hellorun-ui-pwa-implementation/README.md)
+  preserves the generic PWA/navigation implementation pack. Current device and
+  responsive follow-ups are owned by `REL-05` and `UX-01` in ROADMAP.

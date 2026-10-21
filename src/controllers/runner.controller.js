@@ -5,10 +5,14 @@ const Event = require('../models/Event');
 const passwordService = require('../services/password.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode } = require('../utils/country');
 const {
+  BUSINESS_TIME_ZONE,
+  formatCriticalTime,
+  formatInTimeZone,
   getTimeZoneOptions,
   normalizeTimeZone
 } = require('../utils/timezone');
 const { getCloudflareCountrySuggestion } = require('../utils/location-suggestion');
+const { getDateOfBirthValidationError } = require('../utils/platform-date');
 const {
   getRunnerRegistrations,
   getRunnerEventProgressCards,
@@ -133,7 +137,7 @@ exports.getDashboardResultSubmissions = async (req, res) => {
     return res.render('runner/partials/result-submissions-card', {
       selectedResultStatus: dashboardFilters.resultStatus,
       preservedGroupQuery: groupQuery,
-      resultCards: formatRunnerEventProgressCards(resultCards, locale)
+      resultCards: formatRunnerEventProgressCards(resultCards, locale, user)
     });
   } catch (error) {
     logger.error('Runner result submissions partial load error:', error);
@@ -911,8 +915,8 @@ async function buildRunnerDashboardViewData(user, req) {
     recentGroupActivity,
     performanceSnapshot.recentActivity
   );
-  const formattedProgressCards = formatRunnerEventProgressCards(activeProgressCards, locale);
-  const allFormattedProgressCards = formatRunnerEventProgressCards(eventProgressCards, locale);
+  const formattedProgressCards = formatRunnerEventProgressCards(activeProgressCards, locale, user);
+  const allFormattedProgressCards = formatRunnerEventProgressCards(eventProgressCards, locale, user);
 
   const now = new Date();
   let savedEvents = [];
@@ -997,10 +1001,11 @@ async function buildRunnerDashboardViewData(user, req) {
       })),
       results: formatRunnerEventProgressCards(
         filterEventProgressCardsForResultsCard(sortEventProgressCardsByRecency(activeProgressCards), dashboardFilters.resultStatus),
-        locale
+        locale,
+        user
       ).slice(0, 8),
       eventProgress: formattedProgressCards,
-      missedSubmissions: formatRunnerEventProgressCards(missedProgressCards, locale),
+      missedSubmissions: formatRunnerEventProgressCards(missedProgressCards, locale, user),
       badges: recentBadges,
       badgeProgress
     },
@@ -1187,9 +1192,13 @@ function formatDateTime(value, locale = 'en-US') {
 function getRequestLocale(req) {
   const header = String(req.headers['accept-language'] || '').trim();
   if (!header) return 'en-US';
-  const primary = header.split(',')[0].trim();
-  if (!primary) return 'en-US';
-  return primary;
+  const primary = header.split(',')[0].split(';')[0].trim();
+  if (!primary || primary === '*') return 'en-US';
+  try {
+    return Intl.DateTimeFormat.supportedLocalesOf([primary]).length ? primary : 'en-US';
+  } catch (_) {
+    return 'en-US';
+  }
 }
 
 function checkPasswordUpdateThrottle(session) {
@@ -1297,12 +1306,8 @@ function validateRunnerProfileForm(formData) {
     errors.country = 'Select a valid country.';
   }
   if (formData.dateOfBirth) {
-    const dobDate = new Date(`${formData.dateOfBirth}T00:00:00.000Z`);
-    if (Number.isNaN(dobDate.getTime())) {
-      errors.dateOfBirth = 'Enter a valid date of birth.';
-    } else if (dobDate > new Date()) {
-      errors.dateOfBirth = 'Date of birth cannot be in the future.';
-    }
+    const dateOfBirthError = getDateOfBirthValidationError(formData.dateOfBirth);
+    if (dateOfBirthError) errors.dateOfBirth = dateOfBirthError;
   }
   if (!genderValues.has(formData.gender)) {
     errors.gender = 'Select a valid gender option.';
@@ -1339,12 +1344,8 @@ function validateRunnerProfileIdentityForm(formData) {
     errors.displayName = displayNameError;
   }
   if (formData.dateOfBirth) {
-    const dobDate = new Date(`${formData.dateOfBirth}T00:00:00.000Z`);
-    if (Number.isNaN(dobDate.getTime())) {
-      errors.dateOfBirth = 'Enter a valid date of birth.';
-    } else if (dobDate > new Date()) {
-      errors.dateOfBirth = 'Date of birth cannot be in the future.';
-    }
+    const dateOfBirthError = getDateOfBirthValidationError(formData.dateOfBirth);
+    if (dateOfBirthError) errors.dateOfBirth = dateOfBirthError;
   }
   if (!genderValues.has(formData.gender)) {
     errors.gender = 'Select a valid gender option.';
@@ -1415,14 +1416,20 @@ function filterEventProgressCardsForResultsCard(cards = [], resultStatus = '') {
   return (cards || []).filter((card) => RESULTS_CARD_STATES.has(card.state) && allowedStates.has(card.state));
 }
 
-function formatRunnerEventProgressCards(cards = [], locale) {
+function formatRunnerEventProgressCards(cards = [], locale, user = {}) {
+  const confirmedTimeZone = user?.timezoneConfirmedAt ? normalizeTimeZone(user.timezone) : '';
+  const displayTimeZone = confirmedTimeZone || BUSINESS_TIME_ZONE;
+  const formatActivityTime = (value) => {
+    if (!value) return 'TBA';
+    return formatInTimeZone(value, displayTimeZone, { locale });
+  };
   return (cards || []).map((item) => ({
     ...item,
-    eventStartAtLabel: formatDateTime(item.eventStartAt, locale),
-    eventEndAtLabel: formatDateTime(item.eventEndAt, locale),
-    submissionDeadlineLabel: formatDateTime(item.submissionDeadlineAt, locale),
-    submittedAtLabel: formatDateTime(item.submittedAt, locale),
-    reviewedAtLabel: formatDateTime(item.reviewedAt, locale),
+    eventStartAtLabel: formatCriticalTime(item.eventStartAt, displayTimeZone) || 'TBA',
+    eventEndAtLabel: formatCriticalTime(item.eventEndAt, displayTimeZone) || 'TBA',
+    submissionDeadlineLabel: formatCriticalTime(item.submissionDeadlineAt, displayTimeZone) || 'TBA',
+    submittedAtLabel: formatActivityTime(item.submittedAt),
+    reviewedAtLabel: formatActivityTime(item.reviewedAt),
     submittedAtRelativeLabel: formatRelativeTime(item.submittedAt),
     reviewedAtRelativeLabel: formatRelativeTime(item.reviewedAt)
   }));

@@ -33,6 +33,8 @@ const crypto = require('crypto');
 const { listRecentBadgeAuditLogs } = require('../../services/badge-audit.service');
 const { publishEvent } = require('../../services/event-approval.service');
 const { getPolicyByAdminPath } = require('../../services/policy-registry.service');
+const { getClientIp } = require('../../utils/client-ip');
+const { getDateOfBirthValidationError } = require('../../utils/platform-date');
 const {
   listBadgeDefinitions,
   listAdminUserBadges,
@@ -206,9 +208,7 @@ function canTransitionStatus(currentStatus, targetStatus) {
 }
 
 function getRequestIpAddress(req) {
-  const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  const directIp = String(req.ip || '').trim();
-  return (forwardedFor || directIp).slice(0, 120);
+  return getClientIp(req).slice(0, 120);
 }
 
 function getRequestUserAgent(req) {
@@ -550,12 +550,8 @@ function validateAdminUserEditForm(formData) {
     errors.country = 'Select a valid country.';
   }
   if (formData.dateOfBirth) {
-    const dob = new Date(`${formData.dateOfBirth}T00:00:00.000Z`);
-    if (Number.isNaN(dob.getTime())) {
-      errors.dateOfBirth = 'Enter a valid date of birth.';
-    } else if (dob > new Date()) {
-      errors.dateOfBirth = 'Date of birth cannot be in the future.';
-    }
+    const dateOfBirthError = getDateOfBirthValidationError(formData.dateOfBirth);
+    if (dateOfBirthError) errors.dateOfBirth = dateOfBirthError;
   }
   if (!validGenders.has(formData.gender)) {
     errors.gender = 'Select a valid gender option.';

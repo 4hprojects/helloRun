@@ -55,6 +55,33 @@ function parseRunDateOnly(value) {
   return parsed;
 }
 
+function getDateOfBirthValidationError(value, { now = new Date() } = {}) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    parseRunDateOnly(raw);
+  } catch (_) {
+    return 'Enter a valid date of birth.';
+  }
+  return raw > getPlatformDateKey(now) ? 'Date of birth cannot be in the future.' : '';
+}
+
+// Birth dates are stored as UTC-midnight Dates for schema compatibility but remain
+// calendar dates. Use UTC components for storage and the Manila calendar date for
+// "today" so neither process timezone nor the UTC/Manila midnight boundary shifts age.
+function calculateAgeFromDateOnly(value, { now = new Date() } = {}) {
+  if (!value) return null;
+  const birth = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(birth.getTime())) return null;
+  const [todayYear, todayMonth, todayDay] = getPlatformDateKey(now).split('-').map(Number);
+  const birthYear = birth.getUTCFullYear();
+  const birthMonth = birth.getUTCMonth() + 1;
+  const birthDay = birth.getUTCDate();
+  let age = todayYear - birthYear;
+  if (todayMonth < birthMonth || (todayMonth === birthMonth && todayDay < birthDay)) age -= 1;
+  return Number.isInteger(age) && age >= 0 && age <= 130 ? age : null;
+}
+
 function assertRunDateNotFuture(value, { now = new Date() } = {}) {
   const date = value instanceof Date ? value : parseRunDateOnly(value);
   if (Number.isNaN(date.getTime())) {
@@ -84,7 +111,9 @@ function isUtcEndOfDayTimestamp(date) {
 
 module.exports = {
   PLATFORM_TIME_ZONE,
+  calculateAgeFromDateOnly,
   formatPlatformDate,
+  getDateOfBirthValidationError,
   getPlatformDateKey,
   parseRunDateOnly,
   assertRunDateNotFuture

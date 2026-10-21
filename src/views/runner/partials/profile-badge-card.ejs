@@ -3,7 +3,7 @@
   <div class="profile-badge-card-top">
     <span class="profile-badge-icon badge-placeholder" data-badge-type="<%= badge.badgeType %>" aria-hidden="true">
       <i data-lucide="<%= badge.icon %>"></i>
-      <% if (badge.imageUrl) { %><img src="<%= badge.imageUrl %>" alt="" loading="lazy" onerror="this.hidden=true;"><% } %>
+      <% if (badge.imageUrl) { %><img src="<%= badge.imageUrl %>" alt="" loading="lazy" data-hide-on-error><% } %>
     </span>
     <% if (badge.isFeatured) { %><span class="profile-badge-state">Featured</span><% } %>
   </div>

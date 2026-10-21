@@ -464,8 +464,8 @@ test('owner and admin can view accumulated activity review page', async () => {
   const ownerHtml = await ownerResponse.text();
   assert.match(ownerHtml, /Accumulated Activity/i);
   assert.match(ownerHtml, /Accumulated Progress/i);
-  assert.match(ownerHtml, /submission-proof-image-link/i);
-  assert.match(ownerHtml, /Approve Run Result/i);
+  assert.match(ownerHtml, /submission-proof-zoom-button/i);
+  assert.match(ownerHtml, /Approve proof/i);
 
   const registrantsResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/registrants`, {
     headers: { Cookie: ownerCookie },
@@ -802,13 +802,13 @@ test('accumulated activity rejection is stale-safe after first transition', asyn
   assert.equal(second.status, 302);
   const secondLocation = second.headers.get('location') || '';
   assert.match(secondLocation, /type=error/i);
-  assert.match(secondLocation, /Only\+submitted\+activities\+can\+be\+rejected/i);
+  assert.match(secondLocation, /Only\+submitted%2C\+approved%2C\+or\+needs-clarification\+activities\+can\+be\+rejected/i);
 
   await mongoose.connect(process.env.MONGODB_URI);
   try {
     const updated = await AccumulatedActivitySubmission.findById(seed.activity._id).lean();
     assert.equal(updated.status, 'rejected');
-    assert.equal(updated.rejectionReason, 'Activity proof is unreadable');
+    assert.equal(updated.rejectionReason, 'Another activity issue needs correction: Activity proof is unreadable');
     assert.equal(String(updated.reviewedBy), String(seed.ownerOrganizer._id));
   } finally {
     await mongoose.disconnect();
@@ -1079,7 +1079,7 @@ test('organizer can reject submission with valid reason', async () => {
   assert.equal(audit.status_from, 'submitted');
   assert.equal(audit.status_to, 'rejected');
   assert.equal(audit.actor_mongo_user_id, String(seed.ownerOrganizer._id));
-  assert.equal(audit.notes, 'Proof image is unclear and unverifiable');
+  assert.equal(audit.notes, '[other] Another activity issue needs correction: Proof image is unclear and unverifiable');
 });
 
 test('organizer cannot reject submission with empty rejection reason', async () => {

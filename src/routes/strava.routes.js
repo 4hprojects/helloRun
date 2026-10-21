@@ -12,6 +12,7 @@ const stravaService = require('../services/strava.service');
 const stravaWebhookService = require('../services/strava-webhook.service');
 const corosStravaBridgeService = require('../services/coros-strava-bridge.service');
 const { isStravaPrivateViewerEnabled } = require('../utils/strava-private-viewer');
+const { getClientIpKey } = require('../utils/client-ip');
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
@@ -32,14 +33,14 @@ const stravaWebhookLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   maxRequests: 120,
   message: 'Too many webhook requests.',
-  keyFn: (req) => `strava:webhook:${req.ip || 'unknown'}`
+  keyFn: (req) => `strava:webhook:${getClientIpKey(req)}`
 });
 
 const corosStravaBridgeLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   maxRequests: 20,
   message: 'Too many connected-app setup changes. Please wait a few minutes and try again.',
-  keyFn: (req) => `coros-strava:${String(req.session?.userId || req.ip || 'unknown')}`
+  keyFn: (req) => `coros-strava:${String(req.session?.userId || getClientIpKey(req))}`
 });
 
 router.get('/integrations/strava/connect', requireAuth, requireRunnerWorkspace, requireStravaViewerPage, (req, res) => {

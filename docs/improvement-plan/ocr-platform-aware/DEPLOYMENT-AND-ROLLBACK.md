@@ -2,7 +2,8 @@
 
 **Audience:** whoever deploys HelloRun to the Ubuntu host (PM2 → nginx → Cloudflare Tunnel; see
 [../../operations/deployment-runbook.md](../../operations/deployment-runbook.md)).
-**Status:** not deployed. Merge and deployment each need explicit owner approval.
+**Status:** merged to `main` at `0c1fd86`, not deployed. Deployment and every
+production-changing rollout step still need their stated approval.
 
 Everything below is additive and behind flags that default off. Deploying the code with no new
 environment variables changes nothing that runners, organisers or admins see, apart from the new

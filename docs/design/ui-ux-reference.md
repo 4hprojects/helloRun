@@ -891,12 +891,16 @@ focused label: left: 10px
 
 ## 21. Pending UI/UX Work
 
+This is a supporting design checklist; [ROADMAP](../ROADMAP.md) owns priority
+and state. Checked items below are repository-complete but may still have a
+deployed verification gate in ROADMAP.
+
 ### Auth pages
 - [ ] Confirm final mobile stacking order and panel visibility on both pages
 - [ ] True-device browser matrix pass (iOS Safari, Android Chrome)
 
 ### Runner dashboard
-- [ ] Replace browser `confirm()` with inline modal for Google unlink confirmation
+- [x] Replace browser `confirm()` with inline modal for Google unlink confirmation
 - [ ] Compact card-density pass for mobile result/activity rows
 - [ ] Relative-time labels on non-dashboard list surfaces for consistency
 
@@ -914,13 +918,13 @@ focused label: left: 10px
 - [ ] Final UX polish pass: spacing/typography consistency, empty states, badges
 
 ### Waiver editor
-- [ ] Replace confirm/alert dialogs with inline modal/toast pattern
+- [x] Replace confirm/alert dialogs with inline modal/toast pattern
 
 ### Legal pages
 - [ ] Remove encoding artifacts from imported Privacy/Terms markdown before first live publish
 - [ ] Replace placeholder legal entity fields
 
 ### General
-- [ ] CSP rollout after inline-script refactor
-- [ ] Full CSRF token rollout for remaining state-changing form routes
+- [x] CSP nonce and inline-handler rollout (deployed report check remains in `SEC-03`)
+- [x] CSRF token inventory for same-origin POST forms (deployed checks remain in `SEC-05`)
 - [ ] Migrate remaining legacy pill/uppercase buttons to the project-wide `/login` button standard as each surface is touched.

@@ -154,11 +154,11 @@
   
   <!-- Scripts -->
   <% if (locals.turnstile && locals.turnstile.enabled) { %>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script nonce="<%= locals.cspNonce || String() %>" src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <% } %>
-  <script src="/js/main.js"></script>
-  <script src="/js/auth.js"></script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/auth.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     // Initialize Lucide icons
     lucide.createIcons();
 

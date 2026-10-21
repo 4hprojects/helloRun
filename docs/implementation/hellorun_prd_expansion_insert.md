@@ -8,7 +8,7 @@ This insert updates the development direction so the PRD clearly reflects HelloR
 
 ---
 
-# PRODUCT POSITIONING UPDATE
+## PRODUCT POSITIONING UPDATE
 
 ## Platform Positioning
 
@@ -42,7 +42,7 @@ HelloRun is not only a runner-facing app. It is an organiser-support platform th
 
 ---
 
-# EVENT MODE DEFINITIONS
+## EVENT MODE DEFINITIONS
 
 ## Supported Event Modes
 
@@ -224,7 +224,7 @@ HelloRun should support these result entry methods:
 
 ---
 
-# UPDATED DEVELOPMENT ROADMAP
+## UPDATED DEVELOPMENT ROADMAP
 
 ## Current Development Priority
 
@@ -257,7 +257,7 @@ Phase 16: [DRAFT] Race Kit, Bib, and Check-in Support
 
 ---
 
-# PHASE 11: SHOP / MERCHANDISE FEATURE [COMMERCE] DRAFT
+## PHASE 11: SHOP / MERCHANDISE FEATURE [COMMERCE] DRAFT
 
 ## Goal
 
@@ -425,7 +425,7 @@ Organiser routes, optional:
 
 ---
 
-# PHASE 12: OCR SMART ACTIVITY SUBMISSION [OCR] DRAFT / MVP HARDENING
+## PHASE 12: OCR SMART ACTIVITY SUBMISSION [OCR] DRAFT / MVP HARDENING
 
 ## Goal
 
@@ -580,7 +580,7 @@ Organiser/admin review views should show:
 
 ---
 
-# PHASE 13: ONSITE EVENT RESULT IMPORT [EVENT OPS] DRAFT
+## PHASE 13: ONSITE EVENT RESULT IMPORT [EVENT OPS] DRAFT
 
 ## Goal
 
@@ -769,7 +769,7 @@ Public routes:
 
 ---
 
-# PHASE 14: ORGANISER REPORTS AND EXPORT CENTRE [REPORTS] DRAFT
+## PHASE 14: ORGANISER REPORTS AND EXPORT CENTRE [REPORTS] DRAFT
 
 ## Goal
 
@@ -953,7 +953,7 @@ Reports should support filters for:
 
 ---
 
-# PHASE 15: PAYMENT GATEWAY INTEGRATION [PAYMENTS] DRAFT
+## PHASE 15: PAYMENT GATEWAY INTEGRATION [PAYMENTS] DRAFT
 
 ## Goal
 
@@ -1052,7 +1052,7 @@ Status values:
 
 ---
 
-# PHASE 16: RACE KIT, BIB, AND CHECK-IN SUPPORT [ONSITE OPS] DRAFT
+## PHASE 16: RACE KIT, BIB, AND CHECK-IN SUPPORT [ONSITE OPS] DRAFT
 
 ## Goal
 
@@ -1132,7 +1132,7 @@ Organiser routes:
 
 ---
 
-# CROSS-CUTTING DEVELOPMENT REQUIREMENTS
+## CROSS-CUTTING DEVELOPMENT REQUIREMENTS
 
 ## Terminology Rules
 
@@ -1248,7 +1248,7 @@ Audit coverage should apply to:
 
 ---
 
-# UPDATED ACCEPTANCE GATES
+## UPDATED ACCEPTANCE GATES
 
 ## Release Gate Before New Feature Expansion
 
@@ -1300,7 +1300,7 @@ Before launching direct payment:
 
 ---
 
-# UPDATED DEVELOPMENT NOTES
+## UPDATED DEVELOPMENT NOTES
 
 ## Recommended Immediate PRD Changes
 

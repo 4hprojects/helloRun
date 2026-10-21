@@ -1,5 +1,9 @@
 # HelloRun October 2026 Blog Implementation Plan
 
+> **Production reconciliation (October 20, 2026):** all 16 planned slugs exist; the ten
+> dates through October 19 are published and the remaining six are scheduled. See the
+> canonical [CONTENT-01 audit](../analysis/2026-10-20/editorial-calendar-audit.md).
+
 ## Month Theme
 
 Run Smarter, Go Farther
@@ -54,7 +58,7 @@ October should answer the next set of questions runners and organizers encounter
 
 ---
 
-# Final October 2026 Publishing Calendar
+## Final October 2026 Publishing Calendar
 
 | Date | Article | Primary SEO Keyword | Cluster | Search Intent |
 |---|---|---|---|---|
@@ -77,7 +81,7 @@ October should answer the next set of questions runners and organizers encounter
 
 ---
 
-# SEO Research Direction
+## SEO Research Direction
 
 Current search results strongly support the following October clusters:
 
@@ -96,7 +100,7 @@ Use Filipino examples where useful, but do not force `Philippines` into every pr
 
 ---
 
-# Article 1 — October 1
+## Article 1 — October 1
 
 ## What Is a Long Run? A Beginner’s Guide to Running Farther
 
@@ -183,7 +187,7 @@ If you are working toward a longer distance, browse HelloRun events and choose a
 
 ---
 
-# Article 2 — October 3
+## Article 2 — October 3
 
 ## How to Increase Running Distance Without Adding Too Much Too Soon
 
@@ -273,7 +277,7 @@ Choose your next distance goal based on what you can repeat consistently, not th
 
 ---
 
-# Article 3 — October 5
+## Article 3 — October 5
 
 ## How to Run Consistently With a Busy Schedule
 
@@ -362,7 +366,7 @@ Use a HelloRun goal as a reason to schedule your activity, not as a reason to ig
 
 ---
 
-# Article 4 — October 7
+## Article 4 — October 7
 
 ## Hill Running for Beginners: Uphill and Downhill Basics
 
@@ -443,7 +447,7 @@ When planning a HelloRun route, consider elevation as well as total distance.
 
 ---
 
-# Article 5 — October 9
+## Article 5 — October 9
 
 ## What Should You Eat Before a Run? A Beginner’s Guide
 
@@ -533,7 +537,7 @@ Use training runs to learn what familiar food and timing work comfortably for yo
 
 ---
 
-# Article 6 — October 11
+## Article 6 — October 11
 
 ## What Should You Eat After a Run? Recovery Food Basics
 
@@ -609,7 +613,7 @@ Treat food as part of your ordinary recovery routine rather than a reward you ha
 
 ---
 
-# Article 7 — October 13
+## Article 7 — October 13
 
 ## Hydration for Runners: Short Runs, Long Runs, and Hot Weather
 
@@ -696,7 +700,7 @@ Plan your route and fluid access before starting a longer HelloRun activity.
 
 ---
 
-# Article 8 — October 15
+## Article 8 — October 15
 
 ## Running Heart Rate Explained: What Beginners Should Know
 
@@ -777,7 +781,7 @@ Use heart rate alongside effort, breathing, pace, and context rather than lettin
 
 ---
 
-# Article 9 — October 17
+## Article 9 — October 17
 
 ## Easy Run Explained: Why Every Run Does Not Need to Be Fast
 
@@ -852,7 +856,7 @@ Try one run where your main target is controlled effort rather than a faster pac
 
 ---
 
-# Article 10 — October 19
+## Article 10 — October 19
 
 ## Strength Training for Runners: A Beginner-Friendly Introduction
 
@@ -934,7 +938,7 @@ Start simple and make strength work compatible with the running schedule you can
 
 ---
 
-# Article 11 — October 21
+## Article 11 — October 21
 
 ## How to Prepare for a Long Run: Route, Gear, Fuel, and Tracking
 
@@ -1018,7 +1022,7 @@ If the activity is part of a HelloRun event, check the event rules and proof req
 
 ---
 
-# Article 12 — October 23
+## Article 12 — October 23
 
 ## How to Use Strava for Running: A Beginner’s Guide
 
@@ -1102,7 +1106,7 @@ Test Strava on an ordinary activity before relying on it for an important virtua
 
 ---
 
-# Article 13 — October 25
+## Article 13 — October 25
 
 ## How to Create a Virtual Run Certificate Participants Will Value
 
@@ -1187,7 +1191,7 @@ Use recognition to confirm a real accomplishment defined by the event, not simpl
 
 ---
 
-# Article 14 — October 27
+## Article 14 — October 27
 
 ## How to Keep Virtual Run Participants Engaged Until the Finish
 
@@ -1263,7 +1267,7 @@ Design the participant journey before launch so communication, progress, proof, 
 
 ---
 
-# Article 15 — October 29
+## Article 15 — October 29
 
 ## What to Do After Your First 10K
 
@@ -1345,7 +1349,7 @@ Use what your first 10K taught you to choose the next goal, rather than automati
 
 ---
 
-# Article 16 — October 31
+## Article 16 — October 31
 
 ## 5K, 10K, or 21K: What Should Your Next Running Goal Be?
 
@@ -1443,7 +1447,7 @@ Browse current HelloRun events and choose the distance that matches the training
 
 ---
 
-# October Internal Linking Architecture
+## October Internal Linking Architecture
 
 ## Distance Progression Cluster
 
@@ -1467,7 +1471,7 @@ Browse current HelloRun events and choose the distance that matches the training
 
 ---
 
-# Training Fundamentals Cluster
+## Training Fundamentals Cluster
 
 `Beginner Running Pace`
 ↓
@@ -1483,7 +1487,7 @@ Browse current HelloRun events and choose the distance that matches the training
 
 ---
 
-# Fuel and Recovery Cluster
+## Fuel and Recovery Cluster
 
 `Post-Run Recovery Basics`
 ↓
@@ -1497,7 +1501,7 @@ Browse current HelloRun events and choose the distance that matches the training
 
 ---
 
-# Run Tracking Cluster
+## Run Tracking Cluster
 
 `Best Apps to Track Your Virtual Run`
 ↓
@@ -1515,7 +1519,7 @@ Browse current HelloRun events and choose the distance that matches the training
 
 ---
 
-# Organizer Growth Cluster
+## Organizer Growth Cluster
 
 `What Is a Virtual Run?`
 ↓
@@ -1533,7 +1537,7 @@ Browse current HelloRun events and choose the distance that matches the training
 
 ---
 
-# Priority Articles
+## Priority Articles
 
 ## Tier 1 — Strongest evergreen SEO opportunities
 
@@ -1564,7 +1568,7 @@ Tier 3 articles may have smaller direct search demand, but they support HelloRun
 
 ---
 
-# October Production Rules
+## October Production Rules
 
 ## SEO
 
@@ -1619,7 +1623,7 @@ Organizer articles:
 
 ---
 
-# Source Categories to Use During Writing
+## Source Categories to Use During Writing
 
 ## Running training
 
@@ -1673,7 +1677,7 @@ Use current HelloRun pages as the final authority for:
 
 ---
 
-# Suggested End-of-October Content Funnel
+## Suggested End-of-October Content Funnel
 
 ## Runner Discovery
 
@@ -1728,7 +1732,7 @@ Use current HelloRun pages as the final authority for:
 
 ---
 
-# October to November Bridge
+## October to November Bridge
 
 October should deliberately create entry points for November.
 
@@ -1751,7 +1755,7 @@ Do not finalize November until October articles are published and internal-link 
 
 ---
 
-# Final October Architecture
+## Final October Architecture
 
 By October 31, HelloRun should support this runner path:
 

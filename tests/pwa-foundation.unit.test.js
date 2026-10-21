@@ -10,7 +10,8 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const {
   VERSION_PLACEHOLDER,
   renderServiceWorker,
-  resolveServiceWorkerVersion
+  resolveServiceWorkerVersion,
+  serveServiceWorker
 } = require('../src/utils/service-worker');
 
 function pngSize(file) {
@@ -58,7 +59,7 @@ test('shared head links the manifest, theme colour, touch icon, and install modu
   assert.match(head, /<link rel="manifest" href="\/manifest\.webmanifest">/);
   assert.match(head, /<meta name="theme-color" content="#c2410c">/);
   assert.match(head, /<link rel="apple-touch-icon" sizes="180x180" href="\/images\/pwa\/apple-touch-icon-180\.png">/);
-  assert.match(head, /<script src="\/js\/pwa\.js" defer><\/script>/);
+  assert.match(head, /<script nonce="<%= locals\.cspNonce \|\| String\(\) %>" src="\/js\/pwa\.js" defer><\/script>/);
   assert.match(head, /<link rel="stylesheet" href="\/css\/pwa\.css">/);
   assert.doesNotMatch(head, /user-scalable=no|maximum-scale=1/);
 });
@@ -99,13 +100,37 @@ test('service worker version is stamped per deploy and sanitised', () => {
   );
 });
 
-test('server serves sw.js with no-cache ahead of the long-lived static cache', () => {
+test('server serves sw.js ahead of the long-lived static cache', () => {
   const server = read('src/server.js');
   const swRoute = server.indexOf("app.get('/sw.js'");
   const staticMount = server.indexOf('app.use(express.static(');
   assert.ok(swRoute > 0 && staticMount > swRoute, '/sw.js must be registered before express.static');
   assert.match(server, /\.webmanifest'\) \|\| filePath\.endsWith\('offline\.html'\)\) \{\s*res\.setHeader\('Cache-Control', 'no-cache'\)/);
   assert.match(server, /"worker-src 'self' blob:"/);
+});
+
+test('service worker response prevents browser and CDN storage', () => {
+  const headers = new Map();
+  let sentBody = '';
+  serveServiceWorker(
+    {},
+    {
+      setHeader(name, value) {
+        headers.set(name.toLowerCase(), value);
+      },
+      send(body) {
+        sentBody = body;
+        return this;
+      }
+    },
+    (error) => assert.fail(error)
+  );
+
+  assert.match(sentBody, /const SW_VERSION =/);
+  assert.equal(headers.get('cache-control'), 'no-store, max-age=0, must-revalidate');
+  assert.equal(headers.get('cdn-cache-control'), 'no-store');
+  assert.equal(headers.get('cloudflare-cdn-cache-control'), 'no-store');
+  assert.equal(headers.get('service-worker-allowed'), '/');
 });
 
 // ---- Behavioural checks: run the real worker against mocked browser APIs ----

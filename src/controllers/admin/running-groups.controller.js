@@ -16,6 +16,7 @@ const {
 const { acceptsJson, verifyAdminDeletionPassword } = require('./_shared');
 const { recordCriticalAuditEventInBackground } = require('../../services/critical-audit.service');
 const logger = require('../../utils/logger');
+const { getClientIp } = require('../../utils/client-ip');
 
 exports.listRunningGroups = async (req, res) => {
   try {
@@ -219,7 +220,7 @@ function audit(req, input) {
     statusFrom: input.statusFrom,
     statusTo: input.statusTo,
     notes: input.notes,
-    ipAddress: String(req.ip || '').slice(0, 120),
+    ipAddress: getClientIp(req).slice(0, 120),
     userAgent: String(req.get('user-agent') || '').slice(0, 500),
     occurredAt: new Date()
   });

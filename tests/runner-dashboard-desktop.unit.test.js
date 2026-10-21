@@ -22,7 +22,7 @@ test('dashboard renders one canonical journey before compact supporting content'
   assert.match(dashboard, /href="\/my-registrations"[^>]*aria-label="My Registrations"/);
   assert.match(dashboard, /dashboard-profile-avatar/);
   assert.match(dashboard, /dashboard-profile-initials/);
-  assert.match(dashboard, /onerror="this\.hidden=true;"/);
+  assert.match(dashboard, /data-hide-on-error/);
   assert.match(dashboard, /class="dashboard-profile-name" href="<%= dashboardIdentity\.profileUrl %>"/);
   assert.doesNotMatch(dashboard, /aria-label="My Profile" title="My Profile"/);
   assert.equal((dashboard.match(/<h1\b/g) || []).length, 1);
@@ -150,7 +150,7 @@ test('latest achievement supports balanced certificate, badge, milestone, and em
   assert.equal((certificate.match(/latest-achievement-action--secondary/g) || []).length, 2);
   assert.doesNotMatch(certificateWithoutVerification, /latest-achievement-actions--certificate|data-certificate-share/);
   assert.match(badge, /data-lucide="medal"/);
-  assert.match(badge, /onerror="this\.hidden=true;"/);
+  assert.match(badge, /data-hide-on-error/);
   assert.doesNotMatch(badge, /target="_blank"/);
   assert.match(milestone, /data-lucide="target"/);
   assert.match(empty, /latest-achievement-empty/);

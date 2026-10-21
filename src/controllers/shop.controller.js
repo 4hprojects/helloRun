@@ -13,6 +13,7 @@ const {
   buildPaymentProofIdempotencyKey
 } = require('../services/submission-idempotency.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
+const { getClientIp } = require('../utils/client-ip');
 
 exports.getEventShop = async (req, res, next) => {
   try {
@@ -608,7 +609,7 @@ exports.postOrderPaymentProof = async (req, res, next) => {
         statusFrom: String(order.payment_status || ''),
         statusTo: 'proof_submitted',
         notes: `Shop payment receipt submitted for order ${order.order_number || order.id}.`,
-        ipAddress: String(req.ip || ''),
+        ipAddress: getClientIp(req),
         userAgent: String(req.get?.('user-agent') || ''),
         occurredAt: new Date()
       });

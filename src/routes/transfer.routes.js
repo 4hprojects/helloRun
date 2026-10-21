@@ -19,12 +19,13 @@ const {
   getTransferBlock
 } = require('../services/registration-transfer.service');
 const { isTrackingSizes, isOfferedSize, normaliseSize } = require('../services/kit-inventory.service');
+const { getClientIpKey } = require('../utils/client-ip');
 
 const transferLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   maxRequests: 10,
   message: 'Too many attempts. Please wait a few minutes and try again.',
-  keyFn: (req) => `transfer|${req.ip || 'unknown-ip'}`
+  keyFn: (req) => `transfer|${getClientIpKey(req)}`
 });
 
 function unavailable(res, message, status) {

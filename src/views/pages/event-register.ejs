@@ -493,10 +493,10 @@
   </main>
 
   <% if (!existingRegistration) { %>
-    <script type="application/json" id="registrationReviewData"><%- JSON.stringify(presentation.reviewData || {}).replace(/</g, '\\u003c') %></script>
+    <script nonce="<%= locals.cspNonce || String() %>" type="application/json" id="registrationReviewData"><%- JSON.stringify(presentation.reviewData || {}).replace(/</g, '\\u003c') %></script>
   <% } %>
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script src="/js/event-register.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/event-register.js"></script>
 </body>
 </html>

@@ -1,5 +1,10 @@
 # Claude Code: execution contract
 
+> **Historical execution contract:** this governed the feature-branch implementation
+> merged to `main` by October 19, 2026. Do not restart these phases from this checklist.
+> Remaining deployment and rollout work is canonical in
+> [ROADMAP](../../ROADMAP.md) (`REL-01`, `REL-03`).
+
 ## Non-negotiable order of work
 
 1. Inspect the live checked-out HelloRun repository. Do not assume its language, framework, storage, auth, queue, hosting or existing OCR implementation.

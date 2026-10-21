@@ -1,7 +1,8 @@
 # Platform-Aware OCR — Implementation Progress
 
-**Branch:** `feature/platform-aware-ocr-training` (from `review-decision-history` @ 1753047)
-**Last updated:** October 18, 2026
+**Repository state:** merged to `main` through `0c1fd86`; original phase reports
+retain their feature-branch commit references for traceability
+**Last updated:** October 19, 2026
 **Delivery status owner:** [../../STATUS.md](../../STATUS.md). This file records phase reports and evidence.
 
 States: NOT STARTED · IN PROGRESS · COMPLETED · BLOCKED. "Completed" means implemented and tested
@@ -65,10 +66,10 @@ READY FOR REVIEW: yes
 | Area | Reality |
 |---|---|
 | Runtime | `engines.node >=22`. The dev box defaults to v20.20.2, and v22.23.1 is available through nvm; all results here use v22. Express 4.22, EJS, Mongoose 8.24, `postgres` (Supabase shadow), ioredis, Resend, sharp 0.35, tesseract.js 5.1.1, multer 2 |
-| Hosting | One PM2 fork process on the Ubuntu host behind a Cloudflare tunnel; Render is the backup. The repo has no ecosystem file, Dockerfile or CI, and no lint or typecheck. Redis is not configured in production |
-| Workers | Nine in-process `setInterval` workers started from `src/server.js`. No queue library. Only `event-promotion-worker.js` claims work atomically (`findOneAndUpdate` with a stale-claim retake) |
+| Hosting | HelloDeploy-managed Node container on the Ubuntu host behind nginx and a Cloudflare Tunnel; Render is the unverified backup. The earlier direct PM2 topology is historical. Repository CI and syntax/format/documentation gates were added October 20; there is still no ecosystem file or Dockerfile. Redis is not configured in production |
+| Workers | Nine in-process `setInterval` workers started from `src/server.js`. No queue library. Event promotion and both scheduled-blog publisher entry points now claim work atomically with stale-claim recovery |
 | Auth/RBAC | `User.role` is runner, organiser or admin. `adminTier` is full or support (`requireAdmin`, `requireFullAdmin` in `auth.middleware.js`). Event scope comes from `resolveEventAccess` (admin, owner, co_organizer). There is no OCR-admin or model-deploy permission |
-| Audit | Postgres `audit_critical` (`critical-audit.service.js`; fire-and-forget, and failures go to a dead letter without retry) plus the Mongo `ReviewDecision` (append-only) |
+| Audit | Postgres `audit_critical` (`critical-audit.service.js`; background failures recorded after October 20 retain an idempotent replay payload) plus the Mongo `ReviewDecision` (append-only). Older sparse failure rows cannot be reconstructed and remain dead letters |
 | Storage | R2. Proofs are stored at `results/proofs/<userId>/…webp`. JPEG and PNG are re-encoded with `sharp.rotate().webp(82)`, which removes EXIF. Proof URLs are public; only the runner's own viewer uses signed URLs |
 | Email | Resend through `communication.service.js` `notify()`: a 34-event registry, an email budget, opt-out, and `CommunicationRetry` idempotency keys with backoff. There are no admin-recipient resolver and no admin-audience events |
 | Tests | `node:test` through `run-test-group.js`: 315 unit, 60 integration and 6 smoke files. `test-db-guard.js` blocks non-unit groups against remote databases. The local `.env` points at production MongoDB and Supabase |
@@ -119,18 +120,21 @@ The only server-side Tesseract is `id-ocr.service.js` (organiser IDs, inside the
 - **C1 (high, existing):** auto-approval trusts client-sent OCR values. `isAutoApprovableOcrPayload` requires confidence ≥ 0.7 plus a distance and a time, and all three come from hidden form fields. Owner decision: a server worker re-reads the stored proof, and with `OCR_SERVER_AUTO_APPROVAL_ENABLED` on, auto-approval uses only the server values. (Phase 1)
 - **C2 (medium, existing):** proof URLs are public. OCR crops will go under a private prefix and be read through signed URLs. Making existing proofs private is a separate decision.
 - **C3:** URL verification is limited to `format_only` and `manual_open`. The server never fetches a submitted URL, so there is no SSRF surface. `authorized_api` stays a stub behind a disabled flag.
-- **C4:** training runs on the Ubuntu host as a separate PM2 process at low CPU and IO priority (owner decision). The host's resources still need a survey, and installing the training tools there is a production infrastructure change that needs approval at Phase 4.
+- **C4:** if approved, training runs on the Ubuntu host as a separate low-priority process with CPU and IO limits. The service manager must be reconciled with the current HelloDeploy host before installation. The host's resources still need a survey, and installing the training tools there is a production infrastructure change that needs approval at Phase 4.
 - **C5:** the model registry needs versioned tessdata paths, an active pointer and checksum verification.
 - **C6:** 13 real user screenshots are committed under `docs/image_test/`. The owner decided not to use them and to leave them in place; untracking them is still an open item.
 - **C7:** the current policies do not cover using screenshots to improve the model. Training-sample eligibility in Phase 3 depends on a consent and policy update.
 - **C8, observed:** source detection over-claims Strava. A synthetic, unbranded card containing only "Moving Time … Avg Pace" was detected as `strava`, because the Strava cue regex in `ocr-source-detector.js` matches generic metric labels. This breaks the requirement that unknown layouts must not get confident platform labels. Phase 1 will separate brand evidence from layout cues and add an `uncertain` outcome.
 - **C9:** tesseract.js in Node caches language data into the working directory by default: a 23 MB `eng.traineddata` written to the repo root. The benchmark disables this with `cacheMethod: 'none'`. `id-ocr.service.js` uses the default, so production may hold the same file in the app directory. Phase 1's server worker will set an explicit cache path.
-- Defects found outside this scope (logged only):
-  - `honorSystemConfirmed` is missing from the `Submission` schema, so it is dropped.
-  - `ocrData.extractedRunType` does not allow `treadmill`.
-  - Admin bulk-reject falls back on any error.
-  - `critical_audit` writes are never retried.
-  - Two scheduled blog publishers run without claiming posts.
+- Defects found outside this scope were resolved under `BUG-01` on October 20:
+  - `honorSystemConfirmed` now persists on standard submissions and resubmissions.
+  - `ocrData.extractedRunType` accepts and preserves `treadmill`.
+  - Admin bulk reject falls back to accumulated activity only for the explicit
+    standard-submission-not-found code.
+  - New `critical_audit` failures retain their original timestamp and
+    idempotency key for worker replay; legacy sparse rows remain unrecoverable.
+  - The in-process and cron scheduled-blog publishers share an atomic leased
+    claim with stale-claim recovery.
 
 ### 5. Revised approach and estimates
 
@@ -510,12 +514,12 @@ WORK DONE:
 | Admin email reminders opt-in/preferences, dedupe and failures tested | COMPLETED | Notification unit + integration suites |
 | Security, privacy, RBAC and data retention tested | COMPLETED | Security regression suite, e2e RBAC/CSRF, retention tests |
 | Research reports reproducible and privacy-minimised | COMPLETED | Identifier-free export test; metric rules versioned |
-| Owner grants separate authorization for merge/deployment | NOT STARTED | Awaiting owner review |
+| Owner grants separate authorization for deployment | NOT STARTED | Merge completed October 19; deployment remains separately gated |
 
 ## Owner actions before production use
 
-1. Review the branch (`feature/platform-aware-ocr-training`, based on `review-decision-history`).
-2. After deploying with flags off, run your own Strava/COROS/Garmin screenshots through
+1. Review the merged change and deploy with all OCR flags off under `REL-01`.
+2. After deploying with flags off, run authorized Strava/COROS/Garmin screenshots through
    *Platforms › Test OCR* in the live admin and report misreads; then set dataset and gate
    thresholds and approve them in Settings. (Decision 2026-10-18: no local folder; existing
    database entries are not used, because their runners did not consent. Training data comes only
@@ -528,7 +532,8 @@ WORK DONE:
    `install-training-tools.sh` (dry run), then apply with approval. Steps in DEPLOYMENT-AND-ROLLBACK.md §6.
 5. ~~Choose the weekly digest day and hour~~ — done: Friday 16:00 Asia/Manila (2026-10-18).
 6. ~~Untrack `docs/image_test/`~~ — done (5a59804); still present in git history.
-7. Approve merge, then deploy and roll out by flags (DEPLOYMENT-AND-ROLLBACK.md §4).
+7. Deploy and roll out by flags only after the applicable ROADMAP dependencies
+   and DEPLOYMENT-AND-ROLLBACK.md §4 gates are satisfied.
 
 ---
 
@@ -537,7 +542,7 @@ WORK DONE:
 ```text
 DECISION: Henz — use all run-proof entries (past and future, accepted and rejected) as OCR training
   material, under a published notice with a right to object, instead of opt-in only.
-STATE: COMPLETED on branch feature/ocr-training-notice-basis. Nothing is processed until the owner
+STATE: COMPLETED and merged to main in 0c1fd86. Nothing is processed until the owner
   records the legal prerequisites; the code enforces them.
 BEHAVIOR:
   - Settings: training basis opt_in (default) | notice_opt_out. Switching needs the notice date and

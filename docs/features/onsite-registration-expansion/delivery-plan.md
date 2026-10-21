@@ -1,12 +1,13 @@
 # Onsite Registration — Delivery Plan
 
-**Status:** Implemented in part; production/live verification pending
+**Status:** Implemented and repository-verified; production phone and
+weak-connectivity verification pending
 
-**Last reconciled:** August 7, 2026
+**Last reconciled:** October 19, 2026
 
 **Delivery state:** [STATUS.md](../../STATUS.md) · **Priorities:** [ROADMAP.md](../../ROADMAP.md)
 
-Sequencing for the remaining onsite work. The requirements source is the
+Historical delivery sequence and implementation evidence. The requirements source is the
 [implementation pack](README.md), whose architecture and data-model sections are
 superseded — read the preface there before using it.
 
@@ -37,12 +38,15 @@ The gap was that no organiser UI existed for any of it.
 | Real Phase 7 test coverage (placebo files removed) | Done, repository-verified |
 | QR token *revocation* | **Done, deployed August 7, 2026** — needed no migration |
 | Atomic capacity reservation | **Done, deployed August 7, 2026** — proven under concurrency |
-| Walk-in registration | **Blocked** — needs guest registration (see below) |
-| Guest registration, waitlist, inventory, transfers, form builder | Not started |
+| Walk-in and guest registration | Done, repository-verified and locally browser-verified |
+| Waitlist, inventory, transfers and imports | Done, repository-verified |
+| Organiser-defined registration questions | Useful subset done; full dynamic form builder deferred |
 
 Deployed to production on August 7, 2026, with migration `023` applied first. The onsite
-integration suite has now run against the real database (15/15). A hands-on organiser
-walkthrough on a draft event is still outstanding.
+integration suite ran against the real database (15/15). The organiser race-day chain was
+walked through its own interfaces against a local server on August 9. Production phone and
+weak-connectivity coverage remains under `REL-07` in
+[ROADMAP.md](../../ROADMAP.md).
 
 ## What's next — checklist
 
@@ -100,18 +104,25 @@ Both were blocked *only* by the account requirement, which is now gone.
 - [x] **Guard the live-DB test suites.** `npm test` still reaches production. Everything in
       this work had to be run by hand with that risk held in mind.
 
-### 4. Yours — verification and decisions I cannot make **Shipped August 8.** Any group that is not DB-free unit tests is refused unless the databases are local, with an explicit `ALLOW_REMOTE_TEST_DB=1` override.
-- [ ] **Hands-on walkthrough on a draft event.** Assign a bib, open the race pass, scan it,
-      release a kit, record and approve a result. Everything so far is automated tests and
-      synthetic probes; nobody has driven this in a browser.
+### 4. Verification and owner decisions
+
+The database-test guard shipped August 8. Any group that is not DB-free unit tests is
+refused unless the databases are local, with an explicit `ALLOW_REMOTE_TEST_DB=1` override.
+
+- [x] **Hands-on walkthrough on a draft event.** Completed August 9 against a local server:
+      walk-in, bib assignment, race pass/QR, check-in, kit release, result entry/approval,
+      ranking, and cancellation. Production and real-device conditions remain in ROADMAP.
 - [ ] **Step-competition smoke workflows.** `022` was applied because it blocked three
       subsystems, but its own audit and step-only/legacy runs were never done.
       `FEATURE_STEP_COMPETITIONS_ENABLED` stays off until they pass.
 - [ ] **Prune or keep orphaned data.** 48 of 108 onsite registrations reference
       hard-deleted events; 1,136 of 1,211 submissions reference deleted users or events.
       No backfill can resolve these.
-- [ ] **Accept the audit gap.** Every `audit_critical` write failed until August 7. Records
-      before then do not exist and cannot be reconstructed.
+- [ ] **Accept the audit gap.** The malformed service insert was fixed August 7, but 344
+      current ledger rows have earlier event dates and three known failures remain legacy
+      dead letters. Exact coverage is unknowable and missing evidence cannot be safely
+      reconstructed. Owner acceptance is canonical `DEC-02`; see the
+      [decision record](../../analysis/2026-10-20/critical-audit-history-gap.md).
 
 ### Deferred
 

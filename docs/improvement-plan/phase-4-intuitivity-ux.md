@@ -1,8 +1,11 @@
 # Phase 4 — Intuitivity and UX Follow-Up
 
-**Status:** Partially implemented; deployed usability validation pending
+**Status:** Repository foundation implemented; deployed and real-device
+usability validation pending
 
-**Last reconciled:** July 31, 2026
+**Last reconciled:** October 19, 2026 · **Current ownership:** `REL-05`,
+`REL-07`, and `UX-01` in [ROADMAP.md](../ROADMAP.md) · **Delivery state:**
+[STATUS.md](../STATUS.md)
 
 ## Completed in the Repository
 

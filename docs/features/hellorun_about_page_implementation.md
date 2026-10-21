@@ -109,7 +109,7 @@ Verified scenarios:
 
 ---
 
-# Full About Page Content
+## Full About Page Content
 
 ## Section 1: What HelloRun is
 
@@ -586,7 +586,7 @@ Become an Organiser
 
 ---
 
-# UI and layout recommendations
+## UI and layout recommendations
 
 ## Visual style
 
@@ -653,7 +653,7 @@ Final CTA
 
 ---
 
-# Suggested component names
+## Suggested component names
 
 Use any naming that fits the existing project structure.
 
@@ -674,7 +674,7 @@ AboutCTA
 
 ---
 
-# Data recommendations
+## Data recommendations
 
 ## Static content option
 
@@ -720,7 +720,7 @@ isOfficialHelloRunEvent: true
 
 ---
 
-# Copy rules
+## Copy rules
 
 Follow these rules when adding the content:
 
@@ -738,7 +738,7 @@ Follow these rules when adding the content:
 
 ---
 
-# SEO recommendations
+## SEO recommendations
 
 ## Suggested meta title
 
@@ -775,7 +775,7 @@ on-site races
 
 ---
 
-# Accessibility recommendations
+## Accessibility recommendations
 
 - Use only one H1.
 - Keep section headings as H2.
@@ -788,7 +788,7 @@ on-site races
 
 ---
 
-# Acceptance criteria
+## Acceptance criteria
 
 The implementation is complete when:
 
@@ -811,7 +811,7 @@ The implementation is complete when:
 
 ---
 
-# Suggested implementation prompt for Codex
+## Suggested implementation prompt for Codex
 
 ```text
 Improve the HelloRun `/about` page using the content and structure in this Markdown file.
@@ -832,7 +832,7 @@ Goals:
 
 ---
 
-# Suggested future improvement
+## Suggested future improvement
 
 Add a small trust badge or info row near the hero:
 

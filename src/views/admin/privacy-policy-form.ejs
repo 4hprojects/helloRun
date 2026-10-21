@@ -4,7 +4,7 @@
   <%- include('../layouts/head', { title: title }) %>
   <link rel="stylesheet" href="/css/admin.css">
   <% if (mode !== 'view') { %>
-    <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
+    <link href="/css/vendor/quill/quill.snow.css" rel="stylesheet">
   <% } %>
 </head>
 <body>
@@ -201,10 +201,10 @@
   </main>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
   <% if (mode !== 'view') { %>
-    <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
-    <script>
+    <script nonce="<%= locals.cspNonce || String() %>" src="/js/vendor/quill/quill.min.js"></script>
+    <script nonce="<%= locals.cspNonce || String() %>">
       (function initPrivacyPolicyEditor() {
         const form = document.getElementById('privacyPolicyForm');
         const markdownWrap = document.getElementById('markdownEditorWrap');
@@ -271,6 +271,6 @@
       })();
     </script>
   <% } %>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script nonce="<%= locals.cspNonce || String() %>">if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

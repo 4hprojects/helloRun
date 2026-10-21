@@ -7,7 +7,7 @@
     schemaVersion: 2
   };
 %>
-<script>
+<script nonce="<%= locals.cspNonce || String() %>">
   window.HelloRunPrivacy = Object.freeze({
     essential: true,
     functional: <%= privacyChoices.functional ? 'true' : 'false' %>,

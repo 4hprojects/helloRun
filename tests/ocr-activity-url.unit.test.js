@@ -213,7 +213,7 @@ test('a screenshot/link provider disagreement keeps an entry on review', async (
 
 test('organiser link-check route is event-scoped, CSRF-protected and mounted', () => {
   const route = fs.readFileSync(path.join(ROOT, 'src/routes/organiser/activity-evidence.js'), 'utf8');
-  assert.match(route, /requireAuth,\s*requireCsrfProtection,\s*submissionReviewActionLimiter/);
+  assert.match(route, /protectEventReviewMutation,\s*submissionReviewActionLimiter/);
   assert.match(route, /getRegistrantAccessibleEventOrNull\(eventId, user\)/);
   assert.match(route, /canAccessRegistrantReview\(user\)/);
   const barrel = fs.readFileSync(path.join(ROOT, 'src/routes/organizer.routes.js'), 'utf8');

@@ -188,7 +188,7 @@
 
   <%- include('../layouts/footer') %>
   <% if (result.found && result.certificate.status === 'valid' && shareUrls) { %>
-    <script>
+    <script nonce="<%= locals.cspNonce || String() %>">
       (() => {
         const button = document.querySelector('.cert-share-copy');
         const status = document.getElementById('certificate-copy-status');
@@ -225,6 +225,6 @@
       })();
     </script>
   <% } %>
-  <script src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 </body>
 </html>

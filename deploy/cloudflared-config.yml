@@ -1,17 +1,8 @@
 # Cloudflare Tunnel — the route from Cloudflare to this machine.
 #
-# Why a tunnel rather than a port forward.
-#
-# On August 10, 2026 the site returned 502 for over a day. The app was fine: it booted in
-# three seconds and served the homepage 200 against the production databases. What was
-# broken was the path. This machine is 192.168.1.19 — a private address behind NAT — and
-# the public IP's port 443 was answered by the *router's own admin page* (a ZTE web UI,
-# TLS subject CN=192.168.1.1). Cloudflare connected to the origin, got a router 404
-# instead of the app, and returned 502 to every visitor.
-#
-# A port forward can be restored, and will break again: the address is a residential
-# dynamic IP, and the forward is lost whenever the router resets. A tunnel dials *out* from
-# this machine, so it needs no forward, no open inbound port, and no stable public address.
+# A tunnel dials out from the production host, so it needs no inbound port or
+# stable public address. This is a sample for the HelloDeploy/nginx primary, not
+# a copy of the live configuration and not a Render failover mechanism.
 #
 # Setup, once:
 #   curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o /tmp/cloudflared.deb
@@ -42,10 +33,11 @@ originRequest:
   noTLSVerify: false
 
 ingress:
-  # The app, as started by deploy/hellorun.service, on the port from .env (PORT=3000).
+  # HelloDeploy generates the per-project nginx route. The tunnel terminates at
+  # nginx; do not point it at a release container's ephemeral loopback port.
   - hostname: hellorun.online
-    service: http://localhost:3000
+    service: http://localhost:80
   - hostname: www.hellorun.online
-    service: http://localhost:3000
+    service: http://localhost:80
   # Required: cloudflared refuses to start without a catch-all rule last.
   - service: http_status:404

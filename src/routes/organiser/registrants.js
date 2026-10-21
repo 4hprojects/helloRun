@@ -10,8 +10,6 @@ const {
   Submission,
   AccumulatedActivitySubmission,
   ExcelJS,
-  requireAuth,
-  requireCsrfProtection,
   registrantExportLimiter,
   registrantCancellationLimiter,
   registrantDetailsLimiter,
@@ -40,6 +38,10 @@ const {
   getRequestUserAgent,
   notifyWithRetryInBackground
 } = require('./_shared');
+const {
+  protectEventReviewRead,
+  protectEventReviewMutation
+} = require('./event-route-protection');
 const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('../../services/accumulated-target.service');
 const { cancelRegistration } = require('../../services/registration-cancellation.service');
 const {
@@ -75,7 +77,7 @@ function humanizeStatus(value) {
    GET: Event Registrants
    ========================================== */
 
-router.get('/events/:id/registrants', requireAuth, async (req, res) => {
+router.get('/events/:id/registrants', protectEventReviewRead, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -336,8 +338,7 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
 // registrations), voids the bib so it can be reissued, and stops any check-in counting.
 router.post(
   '/events/:id/registrants/:registrationId/cancel',
-  requireAuth,
-  requireCsrfProtection,
+  protectEventReviewMutation,
   registrantCancellationLimiter,
   async (req, res) => {
     const listPath = `/organizer/events/${req.params.id}/registrants`;
@@ -383,7 +384,7 @@ router.post(
   }
 );
 
-router.get('/events/:id/registrants/export', requireAuth, registrantExportLimiter, async (req, res) => {
+router.get('/events/:id/registrants/export', protectEventReviewRead, registrantExportLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -457,7 +458,7 @@ router.get('/events/:id/registrants/export', requireAuth, registrantExportLimite
    GET: Export Registrants (XLSX)
    ========================================== */
 
-router.get('/events/:id/registrants/export-xlsx', requireAuth, registrantExportLimiter, async (req, res) => {
+router.get('/events/:id/registrants/export-xlsx', protectEventReviewRead, registrantExportLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -548,8 +549,7 @@ router.get('/events/:id/registrants/export-xlsx', requireAuth, registrantExportL
 // writes an audit entry, and tells the runner what happened.
 router.post(
   '/events/:id/registrants/:registrationId/details',
-  requireAuth,
-  requireCsrfProtection,
+  protectEventReviewMutation,
   registrantDetailsLimiter,
   async (req, res) => {
     const listPath = `/organizer/events/${req.params.id}/registrants`;

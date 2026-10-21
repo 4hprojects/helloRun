@@ -6,15 +6,47 @@
 - **Date:** Jul 3, 2026
 - **Status:** Active follow-up list. The core feature and July 5 queue-delivery
   fix are implemented; only the residual risks below remain open.
+- **Priority owner:** `COM-01` in [ROADMAP.md](../ROADMAP.md)
+- **Delivery state:** [STATUS.md](../STATUS.md)
 - **Primary feature paths:** `/organizer/promote` and `/admin/promote`
+
+## Repository Update — October 20, 2026
+
+The residual repository work is implemented and `COM-01` is verification
+pending:
+
+- promotion emails carry a signed, 30-day unsubscribe link for known users, so
+  opting out no longer requires an existing login session; invalid or expired
+  links fail closed;
+- email subjects strip line breaks, HTML values are escaped, and event/poster
+  URLs accept only HTTP(S), resolving site-relative poster paths against the
+  configured application URL;
+- admin preview and send are capped to the current platform quota, while the
+  organiser quota remains enforced before campaign creation;
+- manual campaigns receive a unique same-day fingerprint derived from event,
+  audience, and normalized recipients, preventing concurrent or repeated
+  duplicate creation; and
+- confirmation copy uses the actual preview count. Four isolated route
+  scenarios plus 25 focused tests cover access, ownership, opt-outs, quotas,
+  duplicate rejection, signed unsubscribe, escaping, and outcome behavior.
+
+The existing audience meanings were not expanded or reinterpreted. Geographic
+or interest segmentation remains a future product decision, not an implicit
+recipient change. A supervised provider send remains required before closing
+`COM-01`; see ROADMAP for that acceptance gate.
 
 ---
 
 ## Executive Summary
 
-The event promotion feature is partially implemented and the main send pipeline is wired. Organisers and admins can open promotion pages, preview recipient counts, submit campaigns, create `EventPromotion` records, and enqueue `event.promotion` emails through the shared communication system.
+The event promotion feature is repository-complete and the main send pipeline is wired. Organisers and admins can open promotion pages, preview recipient counts, submit campaigns, create `EventPromotion` records, and enqueue `event.promotion` emails through the shared communication system.
 
-The feature has now had its highest-priority refinements applied: the email footer unsubscribe path is backed by a route, runner notification settings expose `event.promotion`, admin/organiser preview + send recipient resolution excludes users who opted out of event promotion emails, campaign history stores outcome counts for sent/skipped/suppressed/failed/queued sends, and admin promotion supports a selected pasted-email recipient mode. Remaining refinement work is mostly broader safety controls, signed one-click unsubscribe, and route-level integration coverage.
+The feature has now had its highest-priority refinements applied: signed
+email-context unsubscribe, visible preferences, opt-out-aware shared recipient
+resolution, quota-capped preview/send behavior, campaign outcome counts,
+selected pasted-email mode, atomic duplicate prevention, hardened email values,
+and route-level integration coverage. Remaining work is deployed verification
+and optional future segmentation/provider reconciliation.
 
 ---
 
@@ -108,7 +140,7 @@ Organiser capabilities:
 
 - Select own non-deleted, non-archived events.
 - Send to `previous_participants` or `non_participants`.
-- Daily cap: 20 selected recipients/day, tracked from `EventPromotion.recipientCount`.
+- Daily cap: 25 selected recipients/day, tracked from `EventPromotion.recipientCount`.
 - Non-participant audience is capped to 200 candidates before daily quota slicing.
 - View recent own campaigns.
 
@@ -153,15 +185,18 @@ Validation already run during this analysis:
 
 ### 1. Unsubscribe Link Is Backed By A Route
 
-The promotion email footer links to:
+For known HelloRun users, the promotion email footer links to a signed token:
 
 ```text
-/unsubscribe?key=event.promotion
+/unsubscribe?token=SIGNED_TOKEN
 ```
 
-This route now exists and adds `event.promotion` to `notificationPreferences.emailOptOut` for the logged-in user.
+The route adds `event.promotion` to the signed user's preferences without a
+login. The legacy keyed URL remains an authenticated fallback for manual email
+addresses with no user record.
 
-Remaining risk: medium. The route requires login via `requireAuth`; a one-click signed unsubscribe link would be better for email usability.
+Remaining risk: low. Signed links work without login for known users; manually
+entered addresses without a HelloRun user ID retain the authenticated fallback.
 
 ### 2. Runner Profile Exposes Event Promotion Opt-Out
 
@@ -178,15 +213,20 @@ Risk: low. The preference is now visible in the runner profile UI and accepted b
 
 ### 3. Preview Counts Now Exclude Event Promotion Opt-Outs
 
-Preview endpoints now use the same opt-out-aware recipient resolver as send endpoints. Suppression for global email settings, budget stops, and downstream delivery failures still occurs later in the communication system.
+Preview endpoints use the same opt-out-aware recipient resolver as send
+endpoints. Admin preview and send also slice to current platform quota;
+organiser preview and send slice to the organiser daily quota. Downstream
+provider failures can still differ from the preview.
 
 Effects:
 
-- Admin/organiser preview may still overstate actual provider sends when global budget or delivery errors intervene.
+- Preview may still overstate provider delivery when a concurrent campaign
+  consumes quota or the provider rejects a message after selection.
 - Campaign `recipientCount` may count selected/enqueued users, not delivered emails.
 - UI text says "eligible runners"; after the first refinement pass this means eligible after `event.promotion` opt-out filtering.
 
-Risk: medium. This can still confuse admins and organisers when email budget or delivery outcomes differ from selected recipients.
+Risk: low-medium. Selected and provider-delivered counts remain deliberately
+separate and campaign history records the dispatch outcome.
 
 ### 4. Campaign Status Reflects Dispatch Outcomes
 
@@ -205,43 +245,41 @@ Remaining risk: medium-low. Counts represent communication-service outcomes at s
 
 Since October 3, 2026, the dispatcher also writes progress per recipient (`processedCount`, live counters, `lastProgressAt` and a `deliveries` list capped at 1,000 entries), and `/admin/promote` shows it in the Live Send Status card through `GET /admin/promote/live`. Sends still run inside the web process. If the process restarts mid-campaign, the campaign stays `sending` and is shown as **stalled** after two minutes without progress; nothing resumes or finalises it automatically.
 
-### 5. Admin Platform Quota Display Is Advisory Only
+### 5. Admin Platform Quota Is Enforced
 
-The admin page displays `DailyEmailUsage`, and shared communication budget gating can skip emails when limits are reached. However, admin send does not pre-slice the recipient list by remaining platform quota.
+The admin page displays `DailyEmailUsage`; both preview and send pre-slice the
+recipient list to the current remaining quota, while the shared communication
+budget remains a second enforcement layer.
 
 Effects:
 
-- Admin may submit a campaign larger than remaining quota.
-- Some recipients may be skipped by communication budget rules.
-- Campaign history can show the full selected count rather than the sent count.
+- A concurrent campaign can consume quota after preview.
+- Provider or policy failures can still reduce the sent count.
+- Campaign history retains selected and outcome counts separately.
 
-Risk: medium. The shared budget protects the provider limit, but the UI can misrepresent outcome.
+Risk: low. The deployed provider smoke must still confirm account-side quota
+behavior.
 
-### 6. Missing Route-Level Tests
+### 6. Route-Level Tests
 
-No direct tests were found for:
+Direct isolated route tests now cover:
 
 - Admin promotion page render.
-- Admin preview recipient resolution.
-- Admin send campaign creation.
-- Organiser promotion page render.
-- Organiser preview quota capping.
-- Organiser send quota enforcement.
+- Admin selected-email preview, send, quota capping, and duplicate rejection.
+- Organiser previous-participant preview, ownership, and quota-aware send.
 - Opt-out exclusion for `event.promotion`.
-- Broken or missing unsubscribe behavior.
+- Signed unsubscribe success and tamper rejection.
 
-Risk: medium. The shared pieces are tested, but feature-level behavior is not locked.
+Risk: low. A deployed provider smoke remains because repository tests do not
+prove inbox delivery or account-side provider behavior.
 
-### 7. Email Template Escaping Is Incomplete
+### 7. Email Template Escaping
 
-The template escapes displayed `eventTitle`, `firstName`, and `organiserName`, but raw values are still used in some places:
+The template now escapes displayed values and URLs, rejects non-HTTP(S) media
+and event URLs, resolves safe relative poster paths, and strips subject line
+breaks before the provider payload is built.
 
-- Subject uses `eventTitle` directly.
-- `posterUrl` is interpolated into an image `src`.
-- `eventUrl` is interpolated into link `href` and link text.
-- `APP_URL` is interpolated into footer links.
-
-Risk: low-medium if event URLs and media URLs are trusted server-side values. Still worth hardening as part of refinement.
+Risk: low; deployed rendering remains part of the provider smoke.
 
 ### 8. Audience Semantics Need Product Confirmation
 
@@ -255,19 +293,23 @@ Potential issue: "previous participants" may include users already registered fo
 
 Risk: product/UX. The current broad audience model is simple but can feel spammy.
 
-### 9. Duplicate Campaign Prevention Is Missing
+### 9. Duplicate Campaign Prevention
 
-There is no cooldown or dedupe check for repeated sends to the same audience/event beyond:
+Manual campaigns now use an atomic unique fingerprint for the UTC date, event,
+audience, and normalized recipient set. A repeated or concurrent identical
+campaign is rejected with an explicit message. Existing route and provider
+limits remain layered controls.
 
 - Organiser daily cap.
 - Admin hourly route limiter.
 - Platform email budget.
 
-Risk: medium. Admins can repeatedly send campaigns to the same recipients, and organisers can re-send until daily quota is consumed.
+Risk: low. A materially different recipient set is intentionally a distinct
+campaign; broader cooldown policy remains a product decision.
 
 ---
 
-## Recommended Refinement Plan
+## Supporting Refinement Plan
 
 ### Phase 1: Consent And Unsubscribe Correctness
 
@@ -399,19 +441,24 @@ Tests to add or expand:
 
 - Should organisers only promote published/upcoming events?
 - Should "previous participants" exclude users already registered for the promoted event?
-- Should admin "all runners" be capped by remaining platform quota before submit?
+- Admin audiences are capped by remaining platform quota before submit.
 - Should promotions support geographic or event-type targeting before broad rollout?
-- Should campaigns require a preview/confirmation step with exact audience counts?
-- Should campaign history show delivery metrics or only dispatch metrics?
-- Should unsubscribe require login, or should email links include a signed token for one-click unsubscribe?
+- Campaigns require preview and exact-count confirmation.
+- Campaign history currently shows dispatch metrics; provider-event
+  reconciliation is a future option.
+- Known users receive a signed email-context unsubscribe link; unknown manual
+  addresses use the authenticated fallback.
 
 ---
 
 ## Current Verdict
 
-The feature is operational at the route and dispatch level, but it is not fully refined. The highest-priority fixes before broader use are:
+The feature is repository-complete and awaits a supervised deployed provider
+send. Remaining future refinements are:
 
-1. Add route-level tests for admin and organiser promotion flows.
-2. Consider signed one-click unsubscribe links that do not require login.
-3. Add duplicate-send guardrails and stronger confirmation UX.
-4. Consider provider webhook reconciliation for bounces or delayed delivery failures.
+1. Confirm the signed unsubscribe and quota-capped send in the deployed email
+   provider path.
+2. Decide whether current audience definitions should gain geographic or
+   interest segmentation.
+3. Consider provider webhook reconciliation for bounces or delayed delivery
+   failures.

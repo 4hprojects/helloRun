@@ -204,8 +204,8 @@
   <% }) %>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     (function () {
       const csrfToken = <%- JSON.stringify(locals.csrfToken || '').replace(/</g, '\\u003c') %>;
       const eventId = <%- JSON.stringify(String(event._id)).replace(/</g, '\\u003c') %>;
@@ -246,6 +246,6 @@
       });
     })();
   </script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script nonce="<%= locals.cspNonce || String() %>">if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

@@ -2,13 +2,15 @@
 
 ## Document Role
 
-This file is the developer and Codex implementation guide for the HelloRun create-event wizard.
+This file is a non-canonical implementation record and developer reference for
+the HelloRun create-event wizard. Current priorities belong only in
+[ROADMAP](../ROADMAP.md), and delivery state belongs in [STATUS](../STATUS.md).
 
 Use this file to guide code changes, UI updates, validation behaviour, responsive wizard behaviour, and implementation sequencing.
 
 This file is not the master PRD.
 
-Use the following files for broader planning and tracking:
+Use the following files for product context:
 
 ```text
 docs/PRD.md
@@ -596,7 +598,7 @@ Already implemented:
 - The browser-only Step 12 checklist remains as a network-failure fallback, not the primary source of truth.
 - Package pricing has a focused implementation plan in `docs/codex/package_pricing_update.md`.
 
-Still not implemented:
+Known constraint (not an active task in this record):
 
 - Unsaved local file selections still cannot appear in public preview until they are uploaded or saved.
 

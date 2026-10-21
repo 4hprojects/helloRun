@@ -116,7 +116,7 @@
                   <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                   <button type="submit" class="dash-btn dash-btn-primary dash-btn-sm">Submit for Review</button>
                 </form>
-                <form method="POST" action="/blogs/me/<%= post._id %>/delete-form" style="display: inline;" data-delete-post-form data-post-title="<%= post.title %>" onsubmit="return confirm('Delete this post permanently?');">
+                <form method="POST" action="/blogs/me/<%= post._id %>/delete-form" style="display: inline;" data-delete-post-form data-post-title="<%= post.title %>">
                   <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                   <button type="submit" class="dash-btn dash-btn-danger dash-btn-sm">Delete</button>
                 </form>
@@ -125,7 +125,7 @@
                 <a href="/blogs/me/<%= post._id %>/edit" class="dash-btn dash-btn-secondary dash-btn-sm">Update Published Post</a>
                 <a href="/blog/<%= post.slug %>" class="dash-btn dash-btn-secondary dash-btn-sm" target="_blank" rel="noopener noreferrer">View Public Post</a>
                 <% if (post.activeRevisionStatus === 'draft' || post.activeRevisionStatus === 'rejected') { %>
-                  <form method="POST" action="/blogs/me/<%= post._id %>/revision/discard-form" style="display: inline;" onsubmit="return confirm('Discard the saved revision draft?');">
+                  <form method="POST" action="/blogs/me/<%= post._id %>/revision/discard-form" style="display: inline;" data-high-risk-confirm data-confirm-title="Discard revision draft?" data-confirm-target="<%= post.title %>" data-confirm-impact="Deletes the saved revision text." data-confirm-reversibility="This draft cannot be restored." data-confirm-privilege="Post author" data-confirm-button="Discard revision">
                     <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                     <button type="submit" class="dash-btn dash-btn-danger dash-btn-sm">Discard Revision</button>
                   </form>
@@ -134,7 +134,7 @@
               <% if (post.status === 'scheduled') { %>
                 <a href="/blogs/me/<%= post._id %>/edit" class="dash-btn dash-btn-secondary dash-btn-sm">Propose Update</a>
                 <% if (post.activeRevisionStatus === 'draft' || post.activeRevisionStatus === 'rejected') { %>
-                  <form method="POST" action="/blogs/me/<%= post._id %>/revision/discard-form" style="display: inline;" onsubmit="return confirm('Discard the proposed update?');">
+                  <form method="POST" action="/blogs/me/<%= post._id %>/revision/discard-form" style="display: inline;" data-high-risk-confirm data-confirm-title="Discard proposed update?" data-confirm-target="<%= post.title %>" data-confirm-impact="Deletes the proposed revision text." data-confirm-reversibility="This proposal cannot be restored." data-confirm-privilege="Post author" data-confirm-button="Discard update">
                     <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                     <button type="submit" class="dash-btn dash-btn-danger dash-btn-sm">Discard Proposed Update</button>
                   </form>
@@ -164,8 +164,8 @@
     </div>
   </dialog>
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     (function setupBlogDeleteConfirmation() {
       if (window.lucide) lucide.createIcons();
       const dialog = document.getElementById('blogDeleteDialog');
@@ -176,12 +176,13 @@
       let activeTrigger = null;
       document.querySelectorAll('[data-delete-post-form]').forEach((form) => {
         form.removeAttribute('onsubmit');
-        form.addEventListener('submit', (event) => {
+        form.addEventListener('submit', async (event) => {
           event.preventDefault();
           activeForm = form;
           activeTrigger = form.querySelector('button[type="submit"]');
           if (!dialog?.showModal) {
-            if (window.confirm('Delete this post permanently?')) form.submit();
+            const confirmed = await window.helloRunConfirm({ title: 'Delete this post?', target: form.dataset.postTitle || 'Untitled post', impact: 'Permanently removes this draft.', reversibility: 'This action cannot be undone.', privilege: 'Post author', confirmLabel: 'Delete post' }, activeTrigger);
+            if (confirmed) form.submit();
             return;
           }
           if (title) title.textContent = form.dataset.postTitle || 'Untitled post';

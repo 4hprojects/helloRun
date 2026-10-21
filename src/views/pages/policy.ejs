@@ -98,7 +98,7 @@
   <% } %>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <% if (policyPresentation.isPrivacy || policyPresentation.isTerms || policyPresentation.isDataUsage || policyPresentation.isAcceptableUse || policyPresentation.isOrganiserTerms || policyPresentation.isCommunityGuidelines || policyPresentation.isRefundPolicy || policyPresentation.isCookiePolicy) { %><script src="/js/terms-page.js"></script><% } %>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <% if (policyPresentation.isPrivacy || policyPresentation.isTerms || policyPresentation.isDataUsage || policyPresentation.isAcceptableUse || policyPresentation.isOrganiserTerms || policyPresentation.isCommunityGuidelines || policyPresentation.isRefundPolicy || policyPresentation.isCookiePolicy) { %><script nonce="<%= locals.cspNonce || String() %>" src="/js/terms-page.js"></script><% } %>
 </body>
 </html>

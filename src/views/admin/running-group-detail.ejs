@@ -57,6 +57,6 @@
 
   <div class="admin-group-confirm-backdrop" data-admin-group-modal hidden aria-hidden="true"><div class="admin-group-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="adminGroupConfirmTitle" aria-describedby="adminGroupConfirmCopy" tabindex="-1"><i data-lucide="triangle-alert" aria-hidden="true"></i><h3 id="adminGroupConfirmTitle" data-admin-group-modal-title>Confirm action</h3><p id="adminGroupConfirmCopy" data-admin-group-modal-copy></p><div class="admin-group-confirm-actions"><button type="button" class="btn btn-secondary" data-admin-group-modal-cancel>Cancel</button><button type="button" class="btn btn-danger" data-admin-group-modal-confirm>Confirm</button></div></div></div>
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script><script src="/js/admin-running-groups.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script><script nonce="<%= locals.cspNonce || String() %>" src="/js/admin-running-groups.js"></script>
 </body>
 </html>

@@ -3,9 +3,9 @@
 //
 // Static files get a 1-day max-age in production, which is wrong for a service worker:
 // browsers would keep installed users on an old worker (and its caches) after a deploy.
-// The worker is therefore served by its own route with `no-cache`, and its cache name is
-// tied to the deployed commit so each deploy activates a fresh worker that deletes the
-// previous caches.
+// The worker is therefore served by its own route with browser- and CDN-specific
+// `no-store` directives, and its cache name is tied to the deployed commit so each
+// deploy activates a fresh worker that deletes the previous caches.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -40,7 +40,13 @@ function serveServiceWorker(req, res, next) {
     return next(error);
   }
   res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-cache');
+  // The worker controls deployment activation and must never sit behind a browser or
+  // edge TTL. Cloudflare-CDN-Cache-Control is intentionally specific: Cloudflare can
+  // otherwise apply a generic static-asset TTL to /sw.js. A dashboard Edge Cache TTL
+  // rule may still override this header, so the deployed response is also monitored.
+  res.setHeader('Cache-Control', 'no-store, max-age=0, must-revalidate');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  res.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
   res.setHeader('Service-Worker-Allowed', '/');
   return res.send(cachedBody);
 }
