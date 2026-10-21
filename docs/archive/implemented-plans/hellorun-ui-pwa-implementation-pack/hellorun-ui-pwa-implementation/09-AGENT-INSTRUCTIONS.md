@@ -1,5 +1,7 @@
 # 09 - Instructions for Codex / Claude Code
 
+> **Archived instructions:** retained for history and no longer authoritative.
+
 ## Mission
 
 Implement the HelloRun navigation, responsive UI, and PWA improvements defined in this folder.

@@ -1,5 +1,7 @@
 # 07 - Testing and Acceptance Criteria
 
+> **Archived checklist:** historical implementation guidance, not active work.
+
 ## Goal
 
 Do not mark the work complete based only on one desktop screenshot.

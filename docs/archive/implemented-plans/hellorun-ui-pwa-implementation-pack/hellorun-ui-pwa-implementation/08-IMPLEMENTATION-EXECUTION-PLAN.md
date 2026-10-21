@@ -1,5 +1,7 @@
 # 08 - Implementation Execution Plan
 
+> **Archived checklist:** historical implementation guidance, not active work.
+
 ## Goal
 
 Deliver the changes incrementally with small, reviewable phases.

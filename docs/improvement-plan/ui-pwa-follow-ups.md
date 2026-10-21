@@ -2,6 +2,12 @@
 
 **Created:** October 3, 2026
 
+**Status:** Installation and responsive foundation implemented; real-device,
+staging-only coverage, Cloudflare worker-cache correction, and dialog consolidation remain
+**Last reconciled:** October 20, 2026 · **Priority owner:** `REL-05` and
+`UX-01` in [ROADMAP.md](../ROADMAP.md) · **Delivery state:**
+[STATUS.md](../STATUS.md)
+
 **Source:** a repository audit against the external "HelloRun Responsive Navigation and
 PWA Implementation Pack", which was supplied as generic, framework-agnostic guidance. The
 audit found that the pack assumes a component framework, with hooks, providers and SPA
@@ -23,6 +29,7 @@ verification is listed in [STATUS.md](../STATUS.md).
 | Breakpoints and tokens | 59 distinct `@media` widths across 61 stylesheets, and two overlapping token sets with conflicting radii. Shared spacing, z-index and reference breakpoints now exist in `design-system.css` (October 4); existing rules have not been migrated to them. | Medium (long tail) |
 | Tables | 55 tables across 34 views. About 31 are inside `*-table-wrap` scrollers. The policy-page tables are not wrapped. | Medium |
 | Dialogs | 16 native `<dialog>` elements and 42 custom `role="dialog"` implementations. | Medium (defer) |
+| Service-worker delivery | Public `/sw.js` is HTTP 200 but Cloudflare rewrites it to `Cache-Control: max-age=14400` and returns `CF-Cache-Status: REVALIDATED`. The origin now sends browser and CDN `no-store`. | Exclude `/sw.js` from Cloudflare Browser/Edge Cache TTL rules, purge the URL, and verify the deployed response before update testing. |
 
 Already sound, so keep it:
 - `aria-current` and `is-active` on the current page, now computed in `src/config/navigation.js`.

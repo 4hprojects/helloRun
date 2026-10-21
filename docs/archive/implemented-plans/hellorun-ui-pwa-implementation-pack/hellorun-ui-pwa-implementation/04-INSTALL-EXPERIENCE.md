@@ -1,5 +1,7 @@
 # 04 - Install HelloRun Experience
 
+> **Archived checklist:** historical implementation guidance, not active work.
+
 ## Goal
 
 Give users an obvious but non-intrusive way to install HelloRun.

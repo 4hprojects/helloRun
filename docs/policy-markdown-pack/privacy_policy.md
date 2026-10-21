@@ -265,7 +265,7 @@ History Table:
 > - `[Privacy Contact Email]`
 > - `[Support Email]`
 
-# Privacy Policy
+## Privacy Policy
 
 **Effective Date:** March 9, 2026  
 **Last Updated:** March 9, 2026  

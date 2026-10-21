@@ -1,90 +1,125 @@
 # Deployment, Verification and Rollback Runbook
 
-**Status: Implemented and repository-verified — the restore drill is untested**
+**Status: In progress — HelloDeploy path and repository metadata capture are ready;
+live metadata verification and the Render failover drill remain incomplete**
 
-**Last reconciled:** August 10, 2026 · **Delivery state:** [../STATUS.md](../STATUS.md) · **Priorities:** [../ROADMAP.md](../ROADMAP.md)
+**Last reconciled:** October 20, 2026 · **Delivery state:** [../STATUS.md](../STATUS.md) · **Priorities:** [../ROADMAP.md](../ROADMAP.md)
 
 Written after a week in which a deploy was reported as verified when it had not
 shipped, and a second stretch where sixteen commits sat unlive for a day without
 anyone being able to say why. Both were avoidable with a procedure. This is it.
 
-Everything here has been run against production except the restore drill, which
-is called out as untested rather than described as if it works.
+Commands marked as production evidence were run read-only on October 20. The
+Render cutover and restore drills have not been run and are not described as if
+they work.
 
 ---
 
 ## 1. How a deploy happens
 
-**Corrected August 10, 2026.** Every previous version of this section said
-Render auto-deploys from GitHub `main`. That was wrong — Render is at most a
-backup (see below). Production runs on a single
-host via PM2, discovered by tracing an actual outage rather than trusting the
-prior text:
+**Corrected October 20, 2026.** The August record described HelloRun as a PM2
+process running directly from this checkout. That is no longer the live release
+path. October release records and the public response header agree that
+HelloDeploy now builds and activates HelloRun as a managed container:
 
 ```
-Cloudflare Tunnel (systemd service `cloudflared`, /etc/cloudflared/config.yml)
+Cloudflare Tunnel
   hellorun.online → http://localhost:80
-    nginx (/etc/nginx/sites-enabled/hellorun)
-      proxy_pass → http://127.0.0.1:${PORT}   (PORT read from this repo's .env)
-        PM2 process "hellorun" → node src/server.js, run directly from this
-        checkout (confirm with `pm2 describe hellorun`: cwd and script path
-        point at this exact directory)
+    nginx + HelloDeploy generated route
+      proxy_pass → active HelloDeploy container on a loopback host port
+        node src/server.js
 ```
 
-What that means in practice:
+The public response currently includes `x-hellodeploy-route: hellorun.online`.
+That is the reliable discriminator for the primary origin. The earlier
+PM2/port-3002 incident remains useful history, but its commands must not be used
+as the current release procedure unless host inspection proves the old topology
+has been restored.
 
-- **A `git push` to `main` does not deploy anything by itself.** Nothing
-  watches this repository. The checkout PM2 runs from *is* production —
-  getting new code live means pulling it into this exact directory and
-  restarting the PM2 process. **The precise pull/install/restart procedure
-  is not written down anywhere** — treat that as an open gap, not an assumed
-  `git pull && pm2 restart hellorun`, until someone confirms it.
-- **`PORT` in `.env` must match nginx's `proxy_pass` target for `hellorun`**
-  (currently `3002`). Nothing checks this automatically. They drifted out of
-  sync on August 10 and took the site down — see item 5 in §3.
-- **PM2 supervises the process, not a platform.** It restarts on crash and
-  logs to `~/.pm2/logs/hellorun-{error,out}.log`. `pm2 describe hellorun`
-  shows the live script path, restart count, and the Node version actually
-  running — trust that over anything in this repo.
-- **`engines.node` in `package.json` is not enforced here.** PM2 launches
-  whatever `node` is already on `PATH` on this host. The field only matters
-  if some install step runs with `engine-strict` set, which nothing in this
-  chain does.
-- **Render is a backup origin, not the deploy path.** Henz keeps a Render
-  service as a fallback (an `x-render-origin-server` header was seen in July).
-  It does not normally serve traffic, and **how to cut Cloudflare over to it and
-  back is not recorded** — a backup nobody has failed over to is a plan, not a
-  capability. If you revert or ship a fix, update Render too so the fallback is
-  not left on old code.
+### Production release procedure
 
-What still holds regardless of host:
+1. Record the full target SHA and confirm it is on `origin/main`:
 
-| | |
+   ```bash
+   git rev-parse <target-ref>
+   git ls-remote origin refs/heads/main
+   ```
+
+2. Confirm migrations, destructive scripts, and feature-flag changes are
+   separately approved. A HelloDeploy release must not implicitly authorize any
+   of them.
+3. In HelloDeploy, open the HelloRun project and select **Deployments**. Use
+   **Deploy a Specific Commit**, paste the full 40-character SHA, then select
+   **Deploy Commit**. Do not use **Deploy Latest** when the release record names
+   a specific SHA.
+4. Open the new deployment immediately. Confirm the displayed SHA is the target
+   and follow its event/log stream through `QUEUED`, `VALIDATING`, `BUILDING`,
+   and `DEPLOYING` to `HEALTHY`. A `FAILED` or `CANCELLED` record is not a
+   release. HelloDeploy preserves the prior active route when the candidate
+   fails its health check.
+5. Confirm the new release is marked active and the former release remains an
+   eligible retained rollback target. Record the HelloDeploy release number,
+   full SHA, activation time, operator, and feature-flag state in the delivery
+   record.
+6. Run the public checks in §2. Do not declare success from the HelloDeploy
+   `HEALTHY` state alone.
+
+HelloDeploy itself may be supervised by PM2 or systemd on the host depending on
+the installed platform release. That host-level detail affects platform outage
+recovery, not the project release steps above. Before a host maintenance window,
+record the actual service manager and service names from the host; do not infer
+them from this application repository.
+
+| HelloRun release property | Current contract |
 |---|---|
-| Start command | `node src/server.js`, launched by PM2 (not `npm start`) |
-| Build | none; `postinstall` does the work when `npm install` is run |
-| `postinstall` | `setup` → `copy-tesseract-assets` → `download-tessdata` |
+| Source | Full commit on the configured production branch |
+| Runtime | HelloDeploy-managed Node container |
+| Application start | `node src/server.js` |
+| Install hook | `capture-build-info` → `setup` → `copy-tesseract-assets` → `download-tessdata` |
+| Activation | Candidate health check succeeds, then HelloDeploy switches nginx route |
+| Failed candidate | Existing active release remains routed |
 
 `download-tessdata` fetches from a third-party host on every install. It cannot
 fail or hang the install — every path exits 0 and it has request and overall
 timeouts — but it is the one step that depends on somebody else's uptime.
 
-Other apps share this host and can interact with `hellorun` in ways a
-Render-style isolated service never would — see §3 item 5.
+Other environments can still interact with production infrastructure: see the
+shared-queue failure in §3 item 3.
+
+The install hook now begins with `capture-build-info`. It prefers a platform commit
+environment variable, otherwise reads `git rev-parse HEAD` while the build checkout is
+still available, and writes `tmp/build-info.json` into the image. Runtime `/healthz`
+resolves environment → captured artifact → development `.git`, so stripping `.git` from
+the final container no longer loses the served revision. If the install log says no
+commit metadata was available, stop and repair the HelloDeploy checkout/build context
+before activation.
 
 ## 2. Verifying a deploy actually landed
 
-**Ask the app which commit it is running. Do not infer it.**
+**Ask both the route and the app what is serving. Do not infer it from a
+dashboard.**
 
 ```bash
-curl -s https://hellorun.online/healthz
+curl -fsSI https://hellorun.online/healthz | grep -i '^x-hellodeploy-route:'
+curl -fsS https://hellorun.online/healthz
 # {"ok":true,"build":{"commitShort":"a1b2c3d","startedAt":"…","uptimeSeconds":…}}
 ```
 
-- `commitShort` must equal the commit you pushed. If it does not, **the deploy has
+- `x-hellodeploy-route: hellorun.online` proves the request used the current
+  HelloDeploy route. It does not prove which commit the container runs.
+- `commitShort` must equal the target SHA. If it does not, **the deploy has
   not landed** — regardless of what any dashboard says.
 - `uptimeSeconds` climbing across checks with an unchanged `commitShort` means the
   service has not restarted. That is a stalled deploy, not a slow one.
+
+**Deployment gate recorded October 20:** production currently returns
+`commit: "unknown"` and `commitShort: "unknown"`. Therefore the served commit
+cannot presently be verified from the application, and `OPS-01` / `REL-01`
+cannot be completed. The repository capture fix is ready but not deployed; deploy this
+revision, confirm `[build-info] captured <sha>` in the install log, then repeat this
+section. Until then,
+match the active HelloDeploy release SHA and activation time to `startedAt`, and
+record that this is weaker evidence rather than calling it commit verification.
 
 This endpoint exists because a deploy was once "verified" from `/organizer/*`
 returning 302 — a mount that answers 302 whether or not the code shipped. Static
@@ -100,40 +135,63 @@ curl -s https://hellorun.online/readyz     # mongo + redis
 Redis is **not configured in production**, so `redis: "not_configured"` is
 expected and the shared rate limiters run on their documented in-memory fallback.
 
+### Client-IP trust boundary
+
+All abuse limits, consent records, and audit writers use the canonical
+`src/utils/client-ip.js` resolver. It ignores raw `X-Forwarded-For` and rejects
+malformed or multi-value IP strings. `CF-Connecting-IP` is accepted only when
+`TRUST_CLOUDFLARE_IP_HEADER=1`.
+
+Keep that flag at `0` until host inspection proves the application origin cannot
+be reached around Cloudflare (for example, the application binds only to the
+HelloDeploy/nginx loopback route and no public host port reaches it). Then:
+
+1. send a request through `https://hellorun.online` from a known public IP;
+2. confirm the resolved audit/rate-limit IP equals that client, not an nginx,
+   cloudflared, or Cloudflare edge address;
+3. attempt the approved direct-origin probe with a forged
+   `CF-Connecting-IP` header and prove it cannot reach the application; and
+4. record the host rule, flag value, observed IPs, and time in the release
+   record.
+
+Do not enable the flag merely because Cloudflare normally sends the header. A
+client can forge it whenever the origin is directly reachable. This deployed
+verification is shared by `SEC-02` and `OPS-05` in ROADMAP.
+
 ## 3. When a deploy does not land
 
-Work down this list. Each has actually happened.
+Work down this list.
 
 1. **Is the commit on the remote?** `git ls-remote origin -h refs/heads/main`.
    A push can fail on credentials and leave you believing it went. Note this
-   only confirms GitHub has the commit — see §1, nothing pulls it further
-   automatically.
-2. **Read `pm2 logs hellorun --lines 200 --nostream`, or
-   `~/.pm2/logs/hellorun-error.log` directly.** There is no separate platform
-   build log — PM2 restarting the same process, over and over, in the same log
-   file *is* the failure signal. A climbing restart count
-   (`pm2 describe hellorun`) with the same stack trace repeating is a
-   crash-on-boot; check the timestamp of the first occurrence to find what
-   changed.
-3. **Did the previous instance refuse to stop?** Until August 8 the app ignored
+   only confirms GitHub has the commit; HelloDeploy still has to fetch, build,
+   and activate it.
+2. **Open the HelloDeploy deployment detail.** Find the first failed stage and
+   preserve its sanitized build/runtime logs and correlation ID. Do not queue
+   repeated releases until the cause is known.
+3. **Check the HelloDeploy worker that claimed the job.** Release 10 was claimed
+   by a development worker connected to the production queue and failed because
+   that machine lacked Docker permission. Ensure only the intended production
+   worker can consume production jobs before retrying.
+4. **Did the previous instance refuse to stop?** Until August 8 the app ignored
    `SIGTERM` entirely — four workers registered a `SIGTERM` listener to clear
    their intervals, which replaces Node's default disposition to terminate, so
    the process cleared four timers and carried on serving. The host then waited
    out its whole shutdown grace period and killed it. Fixed in `76f50e6`; if you
    ever see slow restarts again, re-check `installGracefulShutdown` in
    `src/server.js` is still installed and still calls `process.exit`.
-4. **Did `postinstall` hang?** The tessdata download has timeouts now, but a
+5. **Did `postinstall` hang?** The tessdata download has timeouts now, but a
    build that stops with no error is the shape that failure took.
-5. **Is something else already bound to the port nginx proxies to?** On
-   August 10 the site returned `502` on every route because `hellorun`'s
-   `.env` had drifted to `PORT=3000` — nginx doesn't proxy there (it proxies
-   to `3002`), and `3000` was already held by an unrelated app (`hellotasks`)
-   running on the same host. `hellorun` crash-looped over 600 times on
-   `EADDRINUSE` while nginx correctly 502'd a port nothing was listening on.
-   `ss -ltn` shows what's actually bound; diff that against `.env`'s `PORT`
-   and `/etc/nginx/sites-enabled/hellorun`'s `proxy_pass`. This is a real risk
-   specific to sharing a host with other apps — nothing in this repository
-   would ever surface it.
+6. **Did route activation fail?** Inspect the HelloDeploy deployment event and
+   platform nginx-helper/worker logs on the production host. Confirm the
+   candidate container is healthy and its loopback port is listening before
+   changing nginx manually.
+
+The August 10 `PORT=3000` versus nginx `3002` PM2 outage belongs to the retired
+direct-process topology and remains preserved in Git history. If the public
+`x-hellodeploy-route` header disappears and the host has intentionally reverted
+to that topology, recover its incident procedure from history; do not mix the
+direct-PM2 repair with the current container route.
 
 ### A different shape: the origin is gone
 
@@ -151,12 +209,12 @@ edge error, meaning it could not get a response from the origin. Nothing in the
 repository can fix that and no push will route around it (see the correction in
 §1). Work in this order:
 
-1. **Which origin should be live?** `x-render-origin-server` present means the
-   Render backup is serving; absent means the PM2 host in §1 is.
-2. **Walk the chain in §1 from the bottom up on the production host:**
-   `pm2 describe hellorun` (online? restart count climbing?), `ss -ltn` against
-   `.env`'s `PORT` and nginx's `proxy_pass` (item 5 above — the cause on August
-   10), then `systemctl status cloudflared`.
+1. **Which origin should be live?** `x-hellodeploy-route` means the HelloDeploy
+   primary is serving. `x-render-origin-server` means the Render backup is
+   serving. Record all response headers before changing anything.
+2. **Walk the primary chain from the bottom up on the production host:** active
+   HelloRun container and its loopback port, HelloDeploy-generated nginx route,
+   nginx configuration/reload state, then the Cloudflare Tunnel service.
 3. **If that will take a while, fail over to the Render backup.** Restoring
    service beats diagnosing it.
 
@@ -164,11 +222,32 @@ Before assuming the code is at fault, check whether the commit boots:
 `PORT=3211 node src/server.js` and curl `/healthz` locally. A clean local boot on
 the same commit points at the host configuration, not at the build.
 
+### Render failover and restore-primary hold point
+
+The repository still does not contain the Render service hostname or the exact
+Cloudflare control used to switch origins. Do not guess, create a new tunnel, or
+change public DNS from this workstation. Before the first drill, the owner must
+record these non-secret values here:
+
+- Render service name and canonical `*.onrender.com` hostname;
+- Cloudflare zone/record or load-balancer pool changed during cutover;
+- current primary and backup record values, TTL/proxy mode, and account owner;
+- whether Render tracks `main` automatically or requires a manual deployment;
+- the last SHA verified on Render.
+
+Once recorded, the drill is: verify Render directly; capture the current
+Cloudflare value; switch only the documented origin control; poll public
+`/healthz` until `x-render-origin-server` appears; run the §7 checks; repair the
+primary; verify it directly; restore the captured Cloudflare value; poll until
+`x-hellodeploy-route` returns; run §7 again. Record timestamps, DNS/route
+propagation, served SHA on each origin, and the rollback point. Until that drill
+has evidence, Render is an unverified recovery option, not a tested failover.
+
 **Diagnose on the production host, not a development machine.** During the
 August 9–10 outage a parallel investigation ran on a development workstation,
 found no tunnel and its router's admin page on port 443, and concluded the route
 was missing. That workstation was never the origin; the real cause was the
-`PORT` drift in item 5. Do not install a tunnel or run
+historical direct-PM2 `PORT` drift described above. Do not install a tunnel or run
 `cloudflared tunnel route dns` from anywhere but the production host — it would
 repoint `hellorun.online` at that machine.
 
@@ -201,25 +280,24 @@ schema rejects and fills `sync_failures` with work the retry worker cannot do.
 
 ## 5. Rolling back
 
-There is no one-button rollback. In order of preference:
+For a release-only failure, use HelloDeploy's retained-release rollback:
 
-1. **Revert the commit, push, then pull it into the production checkout and
-   restart PM2.** `git revert <sha> && git push origin main` leaves history
-   honest; `/healthz` tells you when the revert is live once it's actually
-   pulled and `pm2 restart hellorun` has run — pushing alone does not deploy
-   it, per §1.
-2. **Check out a previous commit directly in the production checkout and
-   `pm2 restart hellorun`.** Faster, but riskier than it sounds: this
-   directory *is* what's running, so `git checkout` here changes production
-   the moment PM2 next restarts, and the repository and GitHub `main` disagree
-   until you also revert there.
-3. **A migration cannot be rolled back by redeploying.** Every migration this
-   codebase has taken is additive (relaxing `NOT NULL`, adding columns, dropping
-   an unused view), so reverting the *code* is safe and leaves the schema ahead.
-   A destructive migration would need a restore — see below, and note it is
-   untested.
+1. Open the HelloRun project's **Deployments** page.
+2. Under **Rollback**, select the intended retained `HEALTHY` deployment by
+   release number and SHA, select **Roll Back**, and confirm.
+3. Follow the rollback deployment to `HEALTHY`. HelloDeploy reuses the retained
+   image, health-checks the candidate, and switches the route only on success.
+4. Verify the public route and application with §2 and §7, then record the new
+   rollback deployment number and restored SHA.
+5. Separately revert or fix `main` so the next normal deployment does not
+   reintroduce the failed change. Keep the Render backup aligned after its
+   release method is documented.
 
-After any rollback, re-check `/healthz` for the commit you expect.
+**A migration cannot be rolled back by redeploying.** Every migration this
+codebase has taken is additive (relaxing `NOT NULL`, adding columns, dropping
+an unused view), so reverting the *code* is safe and leaves the schema ahead.
+A destructive migration would need a restore — see below, and note it is
+untested.
 
 ## 6. Backups and restore
 

@@ -1,5 +1,7 @@
 # 02 - Responsive Design System
 
+> **Archived checklist:** historical implementation guidance, not active work.
+
 ## Goal
 
 Make HelloRun usable from 320 CSS px through large desktop screens using reusable layout rules rather than one-off page fixes.

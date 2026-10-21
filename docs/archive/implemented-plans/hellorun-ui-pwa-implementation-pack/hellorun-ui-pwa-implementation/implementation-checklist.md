@@ -1,5 +1,8 @@
 # HelloRun Implementation Checklist
 
+> **Archived checklist:** these unchecked boxes are historical acceptance
+> examples, not current tasks. See [`../../../../ROADMAP.md`](../../../../ROADMAP.md).
+
 ## Audit
 
 - [ ] framework identified

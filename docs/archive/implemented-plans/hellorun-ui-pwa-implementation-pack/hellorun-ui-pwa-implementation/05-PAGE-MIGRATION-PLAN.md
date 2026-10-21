@@ -1,5 +1,7 @@
 # 05 - Page Migration Plan
 
+> **Archived checklist:** historical implementation guidance, not active work.
+
 ## Goal
 
 Refactor high-value HelloRun workflows to the shared responsive system without changing business behavior.

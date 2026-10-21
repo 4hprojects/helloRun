@@ -2,9 +2,10 @@
 
 **Source of truth for delivery status**
 
-**Last reconciled:** October 9, 2026
+**Last reconciled:** October 22, 2026
 
-**Evidence window:** repository history through October 9, 2026
+**Evidence window:** working-tree verification through October 22, 2026, based
+on `main` at `0c1fd86`
 
 **Forward priorities and the tracked checklist:** [ROADMAP.md](ROADMAP.md)
 
@@ -16,13 +17,53 @@ The repository contains implementation and focused automated coverage for the
 core platform:
 
 - authentication, account recovery, role-aware access, abuse protection, and
-  administrator permission tiers;
+  administrator permission tiers. Password, Google, and email-verification
+  auto-login now regenerate the session ID before authenticated state is set;
+  focused tests also prove a demoted administrator immediately loses sync-health
+  access;
+- one validated client-IP resolver now supplies all abuse, rate-limit, consent,
+  provider-metadata, blog-view, and audit paths. Raw forwarded-header parsing is
+  gone and Cloudflare header trust defaults off pending the deployed origin
+  spoof check;
+- Lucide and Quill browser assets are pinned and served locally, their former
+  CDN origins are removed from CSP, and all 336 view script elements carry a
+  response nonce. All legacy event-handler attributes are migrated and
+  `script-src-attr 'none'` is enforced; deployed CSP-console verification is
+  still pending;
+- shared accessible confirm, prompt, and toast primitives replace native
+  browser dialogs; declarative handlers replace inline attributes. A static
+  inventory covers all 171 same-origin POST forms and caught the repaired
+  payment-proof CSRF omission. Deployed keyboard, assistive-technology, and
+  no-JavaScript checks remain pending;
+- repository CI, Dependabot, syntax/template, non-rewriting format, and
+  Markdown-link gates are defined. Local gates pass; GitHub required-check and
+  deployment enforcement remain unverified;
+- the five BUG-01 persistence/worker defects are repository-fixed: standard
+  honor confirmation and treadmill OCR persist, bulk rejection uses a narrow
+  not-found fallback, new critical-audit failures replay idempotently, and both
+  scheduled blog publishers share an atomic lease claim. Legacy audit failures
+  without a payload remain unrecoverable; the owner accepted the documented
+  non-reconstruction controls under DEC-02 on October 22;
 - event creation and management for virtual, onsite, and hybrid workflows;
 - runner registration, payment proof, run-proof and accumulated-activity
   submission, organiser review, results, leaderboards, certificates, and
   achievement badges;
 - organiser dashboards, registrant/review queues, bulk actions, event
   promotion, analytics, audit workflows, and running groups;
+- event promotion now includes signed email-context unsubscribe, opt-out-aware
+  and platform-quota-capped recipient previews, exact-count confirmation,
+  atomic same-day duplicate prevention, hardened email URLs/subjects, and
+  direct admin/organizer route coverage. A supervised deployed provider send
+  remains pending;
+- event scheduling now interprets organizer wall-clock input in Asia/Manila
+  independently of the Node process timezone. Critical registration, dashboard,
+  history, and confirmation-email times show confirmed runner-local and official
+  Manila equivalents; Strava keeps authoritative UTC and source-local evidence
+  separately. Historical production timestamp sampling remains pending;
+- the Submitted Entries workspace has its completed responsive polish: compact
+  summary/filter controls, clear standard/personal-record/challenge identity,
+  touch-safe entry actions, distinct empty states, and accessible progressive
+  feedback, with ownership and action contracts unchanged;
 - organiser onsite operations surfaces added August 7 — race-day check-in
   console, live check-in board, bib assignment with previewed sequential ranges,
   race-kit release, bib scanning, and onsite results entry/approval — built over
@@ -135,17 +176,48 @@ Repository verification means the implementation and its recorded focused
 tests exist. It does not imply that every workflow has been exercised against
 production services.
 
+- The October–December editorial calendar was reconciled read-only against production
+  on October 20. All 47 planned slugs exist: ten due records are published and 37 are
+  scheduled on their canonical future dates. All are publication-eligible, every one of
+  the 38 health/safety records passes its review gates, metadata is present, and the
+  101-article/1,041-link repository audit has zero failures. All remain deliberately
+  `noindex` pending separate expert/value indexing review. See the
+  [calendar audit](analysis/2026-10-20/editorial-calendar-audit.md); final scheduler
+  confirmation remains time-gated through December 31 under `CONTENT-01`.
+
+- The October 20 production time audit compared five Mongo/Postgres instants for every
+  active non-personal event. Ten events match completely; CNS Move More has stale shadow
+  values for registration open, registration close, and final submission deadline. No
+  value was changed pending organiser confirmation. The same review fixed Manila-midnight
+  birth-date validation and server-local age calculation, with 29 new/related focused
+  cases passing. See the [timezone audit](analysis/2026-10-20/production-timezone-audit.md).
+
 ## Implemented, Production or Live Verification Pending
+
+- Platform-aware OCR, optional activity-link review, immutable extraction history,
+  reviewer-labelled training samples, dataset snapshots, manually initiated training,
+  model activation/rollback, reminders, analytics, and research export are merged into
+  `main` as of October 19. The follow-up notice-and-objection training basis and guarded
+  historical backfill are also merged. Every feature flag remains off by default, no
+  production rollout has occurred, no real-screenshot accuracy baseline exists, the
+  policy drafts still need legal review/publication, and native training tools have not
+  been installed on the host. Repository completion must not be read as accuracy or
+  deployment evidence. See
+  [`improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md`](improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md)
+  and the canonical rollout task `REL-03` in [ROADMAP.md](ROADMAP.md).
 
 - Review decision history is repository-complete (October 15): an append-only
   `ReviewDecision` collection records every run-proof, accumulated-activity and
   payment-proof decision with its evidence snapshot, and run-proof `rejectionCode` /
-  `manualReviewChecklist` are now actually persisted. Not deployed; verified only by
-  DB-free unit tests. Decisions made before deployment have no history rows.
+  `manualReviewChecklist` are now actually persisted. On October 20 an isolated MongoDB
+  integration wrote and read the decision evidence and persisted a rejected submission's
+  code and reason. Not deployed; decisions made before deployment have no history rows.
 - Linked-entry review is repository-complete (October 15): a manual approve or reject on
   one entry of a multi-event submission applies to every linked entry still awaiting
   review, across organisers and accumulated challenges, and is recorded with
-  `ReviewDecision.linkedFrom`. Not deployed; verified only by DB-free unit tests.
+  `ReviewDecision.linkedFrom`. The October 20 isolated integration wrote a source decision
+  plus linked standard and accumulated decisions, verified both references, and confirmed
+  that the source stayed independent. A supervised deployed workflow remains pending.
 - The private Strava viewer launch implementation is repository-complete behind
   `STRAVA_PRIVATE_VIEWER_ENABLED=false`: owner-only on-demand activity viewing,
   production readiness checks, explicit consent copy, official connection branding,
@@ -167,7 +239,11 @@ production services.
   [`implementation/private-strava-viewer-launch.md`](implementation/private-strava-viewer-launch.md).
 
 - Verify the installable PWA added October 3 after deploy:
-  - `/manifest.webmanifest` and `/sw.js` load over HTTPS with `no-cache`.
+  - `/manifest.webmanifest`, `/sw.js`, and `/offline.html` load over HTTPS. The
+    first and third return `no-cache`, but Cloudflare currently rewrites
+    `/sw.js` to `max-age=14400` and serves it as `REVALIDATED`. The repository
+    now sends browser/CDN `no-store`; the Cloudflare TTL rule must exclude and
+    purge `/sw.js` before the update behavior can pass.
   - Chrome on Android shows **Install HelloRun** and installs the app.
   - iPhone Safari shows Add to Home Screen guidance and no native prompt.
   - The installed app hides the install control.
@@ -186,9 +262,11 @@ those remain open below.
   tablet, and desktop layouts, including weak-connectivity onsite behavior.
 - Verify organiser onboarding with a real ID OCR upload, restricted paid-event
   gating, and trusted-organiser auto-publishing.
-- Run the administrator export, mutation-limit, permission-tier, and
-  submission-smarts integration suites only after a safe non-production
-  database environment exists.
+- The isolated administrator export, mutation-limit, permission-tier,
+  submission, and OCR gates are complete. The final results were 527/527
+  integration tests, 46/46 guarded OCR tests, and 2,486/2,486 unit tests. The
+  named-volume reset/reseed left zero sync-failure or dead-letter rows. See the
+  [baseline report](analysis/2026-10-20/isolated-integration-baseline.md).
 - Confirm certificate, accumulated-challenge reconciliation, upload, policy,
   email, queue, Redis, and worker behavior in the deployed environment.
 - Confirm the July public, runner, organiser, policy, blog, running-group, and
@@ -196,34 +274,75 @@ those remain open below.
 - Apply and audit the additive step-competition migration and legacy backfill,
   run the step-only and legacy accumulated-distance smoke workflows, then
   enable `FEATURE_STEP_COMPETITIONS_ENABLED`. The repository implementation is
-  complete and the flag is off by default — but see the correction below: the
-  flag hides the organiser controls rather than disabling the feature.
+  complete and the flag is off by default. The write boundary now also rejects
+  attempts to introduce step settings while disabled; existing step events retain
+  their stored configuration when edited.
 
 
 ## Operational Work Pending
 
-- **Critical audit history has a gap.** Every `audit_critical` write failed until the
-  insert was fixed on August 7 — postgres.js was building a select rather than an
-  insert, and the background caller only logged it. Payment approvals, submission
-  reviews, cancellations and staff changes made before that date were not recorded and
-  cannot be reconstructed.
+- **Production Supabase Data API lockdown is urgent and unapplied.** The October 20
+  read-only preflight found migration 027 absent, RLS disabled on all 36 public tables,
+  broad `anon`/`authenticated` grants across 49 table/view objects, and no
+  `security_invoker` setting on any of 13 views. The application `postgres` role passes
+  the migration's RLS-bypass guard. No SQL was applied because a recoverable backup and
+  rollback decision have not been approved; see the
+  [preflight record](analysis/2026-10-20/production-rls-preflight.md).
 
-- **Residual shadow gaps are orphaned data, not sync faults.** After repairing users,
-  events, registrations and submissions on August 7, what remains points at records
-  hard-deleted from Mongo: 48 of 108 onsite registrations reference deleted events, and
-  1,136 of 1,211 submissions reference deleted users or events. Decide whether to prune
-  those Mongo rows or leave them; no backfill can resolve them.
-- **Step-competition verification is still outstanding.** Migration `022` was applied on
-  August 7 because it was blocking the event and submission shadows, but its own audit,
-  legacy backfill, and step-only/legacy accumulated-distance smoke workflows have not
-  been run.
-- **`FEATURE_STEP_COMPETITIONS_ENABLED` does less than this document previously implied.**
-  Verified August 8: it is read only when building organiser form data, so it hides the
-  Competition Metrics controls on the create/edit event forms. `applyEventFormData` still
-  normalises and writes `challengeMetrics`, `primaryChallengeMetric` and `targetSteps`
-  from any posted body, with no flag check. "The flag is off" therefore means the controls
-  are hidden, not that the feature is disabled. Tracked as a fix in
-  [ROADMAP.md](ROADMAP.md).
+- **October Active Run artwork remains unapplied.** The October 20 production dry run
+  found the intended event, certificate template, and existing four CDN assets without
+  mutating them. Dimension-normalized pixel comparisons show the live banner, poster,
+  logo, and badge are not the committed replacements. `REL-09` therefore still requires
+  an approved apply followed by public event, badge, and certificate visual checks.
+- **Approved-organiser role reconciliation is complete.** The October 20 production
+  dry run found zero accounts with `role: runner` and `organizerStatus: approved`, so no
+  role writes or audit events were needed. All three focused role-transition cases pass.
+
+- **PostgreSQL removal candidates are inventoried but not approved.** Production has 13
+  public views: two are runtime onsite dependencies and 11 have no repository runtime
+  consumer. The 11 candidates have no database dependents or retained statement calls;
+  `shop_platform_fees` is empty with no foreign keys or runtime source reference. This
+  cannot rule out dormant saved SQL, BI, dashboard, or ad-hoc consumers. `DEC-05` remains
+  blocked on that owner inventory; no object was dropped. See the
+  [consumer inventory](analysis/2026-10-20/postgres-object-consumer-inventory.md).
+
+- **The broader fixture-account impact is now bounded.** The 99 non-admin
+  `@example.com` accounts own 37 events, all soft-deleted and marked test data. Their
+  event registrations contain no non-fixture or guest participants and no submissions;
+  PostgreSQL has no matching shadow or dependent rows. Five non-deleted blogs remain,
+  including one published, with five referenced assets. `DEC-07` remains blocked on
+  blog/R2 disposition, recoverable backup, and explicit retain/quarantine/delete
+  approval. No account or record was changed; see the
+  [fixture audit](analysis/2026-10-20/production-placeholder-user-audit.md).
+
+- **Critical audit history has an unrecoverable coverage gap.** The malformed service
+  insert was fixed on August 7, but the production ledger is not simply empty before
+  then: 344 of 908 current rows carry earlier event dates. Three known legacy failures
+  remain dead letters, and the total missing population is unknowable because neither
+  deployment history nor every failed attempt was durably retained. Synthesizing actor,
+  before-state, or timestamps would invent evidence. The October 20 review also fixed
+  string-encoded retry context and verified the real failure-writer-to-worker path in
+  isolation. On October 22 the owner accepted the prepared
+  [decision record](analysis/2026-10-20/critical-audit-history-gap.md): no synthetic
+  history, retention of the three dead letters, continued disclosure of the gap, and
+  incident handling for new unresolved failures. Deployment remains tracked separately.
+
+- **Residual shadow gaps are orphaned data, not sync faults.** The October 20 read-only
+  refresh found 88 current onsite registrations; all reference unavailable events (48
+  hard-missing and 40 soft-deleted). Across 1,076 single-activity and 1,325 accumulated
+  submissions, 1,116 have an unavailable runner, event, or registration reference;
+  every submission still resolves to a registration. The older August population has
+  therefore been superseded by the [current count audit](analysis/2026-10-20/production-mongo-orphan-audit.md).
+  No row was changed. `DEC-01` remains blocked on an approved retention scope and
+  recoverable backup; a backfill cannot recreate hard-deleted source records.
+- **Step-competition production verification is still outstanding.** On October 20 the
+  isolated database was audited: migration `022` is recorded, every expected PostgreSQL
+  column has the intended nullability, and a real MongoDB legacy row passed dry-run,
+  explicit apply, and repeat-apply idempotence checks. The operator command now defaults
+  to dry-run and requires the separate `:apply` command to mutate. Seventy isolated
+  form/backfill/submission cases and 87 step/UI cases pass. Production backfill output,
+  supervised step-only and legacy browser workflows, flag enablement, and monitoring
+  remain pending under `REL-06`.
 
 
 - ~~Deploy `b70b50d` (guest event-page 500).~~ **Resolved August 7.** It shipped with
@@ -238,8 +357,29 @@ those remain open below.
   of public pages verified live afterward. This also corrected a standing
   documentation error: this document and
   [the deployment runbook](operations/deployment-runbook.md) previously described
-  Render hosting — production runs via PM2 + nginx + a Cloudflare Tunnel on a
-  single host, not Render.
+  Render hosting. That August topology was later replaced by a HelloDeploy-managed
+  container behind nginx and the Cloudflare Tunnel; Render remains the unverified
+  backup origin.
+- **Current deployment evidence is incomplete (October 20).** Public `/healthz`
+  and `/readyz` return HTTP 200, Mongo is ready, Redis is not configured, and the
+  Strava viewer is disabled. The response includes
+  `x-hellodeploy-route: hellorun.online`, confirming the HelloDeploy primary, but
+  `/healthz` reports both `commit` and `commitShort` as `unknown`. The currently
+  served revision therefore cannot be verified from the application until build
+  metadata is supplied to the container and a new release is checked. See
+  [the deployment runbook](operations/deployment-runbook.md#2-verifying-a-deploy-actually-landed).
+- **Served-commit capture is repository-complete.** The install hook now records the
+  checked-out SHA, branch, and build time into an ignored image artifact before runtime
+  `.git` can disappear. `/healthz` reads environment metadata first, then that captured
+  artifact, then development `.git`. Seventeen deploy-hygiene cases and a local capture
+  of `0c1fd86` pass. Production remains `unknown` until this revision is deployed and
+  verified, so `OPS-01` is still in progress rather than complete.
+- **The October 20 public deployment fingerprint still predates the repository
+  hardening.** The homepage loads Lucide from `unpkg`, CSP still permits the
+  legacy CDN/inline behavior, and the new vendored Lucide/Quill URLs return 404.
+  This confirms the unpublished revision has not landed; it is the baseline for
+  the post-deployment `SEC-03` comparison. See the
+  [public smoke record](analysis/2026-10-20/public-deployment-smoke.md).
 - **October Active Run 2026 artwork swap.** The event went live on October 3 with a
   banner and poster derived from the September artwork. Replacement artwork is
   committed; run `npm run event:update-october-active-run-2026-artwork -- --apply` to
@@ -247,28 +387,38 @@ those remain open below.
 - Deploy the current revision and complete the AdSense crawl/review procedure.
 - Configure and verify production Redis plus Cloudflare Tunnel/nginx client-IP
   handling.
-- Create an isolated development or staging data environment and enforce a
-  live-database test guard.
-- Remove the two narrowly identified placeholder users from the earlier purge
-  incident with an explicitly approved production operation.
+- The isolated loopback MongoDB/PostgreSQL development tier, deterministic seed,
+  reset workflow, and strengthened boot/test guards were completed October 20.
+  See the [environment runbook](operations/isolated-development.md). `OPS-06`
+  is complete; provider-backed restore and deployed verification remain separate
+  blocked or verification-pending tasks.
+- The two narrowly identified `purge.runner` / `purge.organizer` placeholder users are
+  already absent from both production stores; `DEC-04` closed without mutation. A
+  separate read-only preview found 99 active non-admin `@example.com` fixture accounts
+  owning 37 events and related records. Their disposition is a new, explicitly scoped
+  owner/backup decision under `DEC-07`; see the
+  [placeholder audit](analysis/2026-10-20/production-placeholder-user-audit.md).
 - Verify backup/restore and graceful-deployment procedures.
 
 ## Active Engineering Follow-Up
 
-The canonical active plan is [`improvement-plan/README.md`](improvement-plan/README.md).
+The canonical backlog is [ROADMAP.md](ROADMAP.md). Detailed engineering and
+rollout context is indexed by
+[`improvement-plan/README.md`](improvement-plan/README.md).
 Open themes include:
 
 - remaining process and environment safety-net checks;
-- CQ-3 organiser authorization-chain unification, which needs supervised
-  runtime verification;
+- CQ-3 organiser authorization-chain unification is repository-complete across
+  event-scoped participant and proof-review routes; supervised deployed
+  200/403/404 runtime verification remains;
 - request-path and asset efficiency work that depends on measurement;
 - server-spawning test open-handle investigation;
-- platform-aware OCR, activity verification and training: Phases 0–6
-  implemented and repository-verified on `feature/platform-aware-ocr-training`
-  (not merged, not deployed; every feature flag defaults off). No accuracy has
-  been measured on real screenshots (0 consented labelled samples), no real
-  Tesseract training run has happened (tools not installed; host change needs
-  approval), and rollback has not been rehearsed in staging (none exists). See
+- platform-aware OCR, activity verification and training: Phases 0–6 plus the
+  notice-and-objection/backfill follow-up are merged and repository-verified on
+  `main` (not deployed; every feature flag defaults off). No accuracy has been
+  measured on labelled real screenshots, no real Tesseract training run has
+  happened (tools not installed; host change needs approval), and rollback has
+  not been rehearsed in staging (none exists). See
   [`improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md`](improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md);
 - residual event-promotion delivery/unsubscribe refinements listed in
   [`improvement-plan/event-promotion-follow-ups.md`](improvement-plan/event-promotion-follow-ups.md).
@@ -287,6 +437,47 @@ Implementation history after that date is summarized in
 [`changelog/2026-07-july.md`](changelog/2026-07-july.md).
 
 ## Documentation Reconciliation Verification
+
+On October 19, 2026:
+
+- all 262 Markdown files were reviewed under the canonical ownership rules;
+- ROADMAP became the sole detailed backlog, with every incomplete task assigned
+  a priority, phase, dependency, state, and completion-evidence requirement;
+- every file containing unchecked task boxes was classified as active,
+  verification-only, deferred, historical, or an acceptance example;
+- the superseded June review and PWA pack moved into the existing archive
+  taxonomy, and `docs/to do/` was removed; and
+- the repository-wide Markdown audit found zero broken relative links, files
+  without exactly one H1, unbalanced code fences, or heading-level jumps.
+
+Application tests were not rerun for the October 19 documentation-only
+reconciliation; no application code, route, schema, or runtime policy source
+changed in that reconciliation. On October 20, the new isolated tier ran the
+focused guard tests, the final 527/527 integration gate, the 46/46 OCR gate,
+and the 2,486/2,486 unit gate described above.
+
+After the October 20 implementation and audit follow-ups, the expanded DB-free
+unit gate passed 2,524/2,524 in 720.1 seconds. The final October 22 candidate
+also passed 545/545 isolated integration tests in 1,014.8 seconds and 46/46
+isolated OCR tests in 58.0 seconds. The eight files whose source assertions were
+synchronized with the nonce, shared-middleware, status-copy, image-fallback,
+and client-IP changes also pass as a focused 134/134 group. The earlier 2,486
+unit and 527 integration totals remain the evidence for the original
+isolated-environment baseline at the time it was recorded. The final reset
+left only deterministic seed data, zero registrations/submissions or sync
+failures, and no OCR collections.
+
+The October 20 read-only GitHub audit found that `main` is unprotected, the
+repository has no rulesets, and the baseline head has no status checks or
+Actions runs. The workflow, controlled failure/recovery proof, and required
+branch check therefore remain `PRC-01` verification work after publication.
+See the [GitHub controls audit](analysis/2026-10-20/github-delivery-controls-audit.md).
+
+After adding the isolated-environment runbook, test evidence, and calendar audit on October 20,
+the same Markdown audit passed across all 265 Markdown files: one H1 per file,
+balanced fences, no heading-level jumps, and zero broken relative links. Root-
+relative application routes were checked as web paths rather than filesystem
+links.
 
 On July 31, 2026:
 

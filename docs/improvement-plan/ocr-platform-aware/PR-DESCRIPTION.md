@@ -1,7 +1,8 @@
 # PR: Platform-aware OCR, activity verification and manual training
 
-**Branch:** `feature/platform-aware-ocr-training` → `main` (based on `review-decision-history`, so
-merge that first or include it). **Do not deploy without the owner's separate approval.**
+**Historical PR description:** merged to `main` through `0c1fd86` on October 19,
+2026. **Do not deploy or enable flags without the separate approvals in
+`DEPLOYMENT-AND-ROLLBACK.md`.**
 
 ## Why
 

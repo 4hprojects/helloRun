@@ -1,7 +1,7 @@
 # Step-Based Competition Events
 
 **Status:** Repository implemented behind disabled feature flag; rollout pending  
-**Reconciliation date:** 2026-08-03
+**Reconciliation date:** 2026-10-20
 
 ## Purpose
 
@@ -149,7 +149,7 @@ Application implementation starts only after this document is accepted.
 
 - [x] P6.1 Add focused form, model, migration, shadow, submission, progress,
   leaderboard, certificate, badge, and UI tests.
-- [ ] P6.2 Run focused suites and the complete regression suite.
+- [x] P6.2 Run focused suites and the complete regression suite.
 - [ ] P6.3 Apply additive database migrations.
 - [ ] P6.4 Deploy compatibility support with the feature flag off.
 - [ ] P6.5 Dry-run, run, and audit the legacy backfill.
@@ -160,14 +160,18 @@ Application implementation starts only after this document is accepted.
 
 ### Repository verification evidence
 
-- Focused step-competition, organizer-form, progress, certificate, badge,
-  ranking, and shadow tests pass.
+- On October 20, 70/70 isolated form, backfill, and submission cases plus 87/87
+  step/UI cases passed. The broader isolated baseline remains 527/527 integration,
+  46/46 guarded OCR, and 2,486/2,486 DB-free unit tests.
+- Isolated PostgreSQL records migration `022`; the event, submission, ranking, and
+  certificate columns and their intended nullability were queried directly.
+- The legacy MongoDB backfill now defaults to dry-run, requires an explicit `--apply`,
+  and passed a real-database dry-run/apply/repeat-apply idempotence integration. Use
+  `npm run backfill:step-competition-defaults` to inspect and the separate
+  `npm run backfill:step-competition-defaults:apply` only after approving the output.
 - JavaScript syntax/module-load checks and `git diff --check` pass.
-- The public leaderboard integration fixture remains blocked by an existing
-  test-data visibility mismatch: it marks seeded events `isTestData: true`
-  while the production visibility query excludes test data.
-- PostgreSQL migration application, live backfill, browser smoke tests,
-  deployment, and feature-flag enablement remain intentionally pending.
+- Production PostgreSQL audit, live backfill, supervised browser smoke tests,
+  deployment, feature-flag enablement, and monitoring remain intentionally pending.
 
 ## Publish Validation
 

@@ -47,9 +47,40 @@ migration       refused: Refusing to enable RLS: role app_owner does not bypass 
 
 This is not production evidence. The live inventory and the live proof below still have to be run against the project.
 
+## Production read-only preflight (October 20)
+
+The live preflight is now recorded in
+[`2026-10-20/production-rls-preflight.md`](../2026-10-20/production-rls-preflight.md).
+Migration 027 is absent: all 36 public tables have RLS disabled, both Data API roles
+retain broad grants across 49 public table/view objects, and none of 13 public views is
+`security_invoker`. The application role satisfies the bypass guard. No mutation was
+performed; backup approval, apply, denial checks, application smoke tests, and Security
+Advisor review remain open.
+
+## Repository-owned isolated rehearsal (October 20)
+
+Migration `027` was also applied after migrations `001`–`026` to the Docker
+PostgreSQL 16 service described in the
+[isolated-environment runbook](../../operations/isolated-development.md). A
+second pass used temporary Supabase-like `anon` and `authenticated` roles with
+table grants present before the migration:
+
+- all 36 public tables reported `relrowsecurity=true`;
+- the application/owner role read the five seeded `app_users` rows;
+- `anon` and `authenticated` both received `permission denied` for
+  `public.app_users`; and
+- a table created after the migration remained unreadable to `anon`.
+
+The temporary roles and probe were removed afterward. The application had
+already booted against the migrated isolated database and returned HTTP 200 from
+`/healthz` and `/readyz`. This satisfies the staging rehearsal dependency but
+does not satisfy the production Data API, application-workflow, Security
+Advisor, backup, or rollback-decision evidence below.
+
 ## Applying to production (`qkjxiolvxxgyfwlpbkdj`)
 
-1. **Pre-flight**, read-only, in the SQL editor. The second query gives the "tables with RLS disabled" list; save it.
+1. **Pre-flight**, read-only, with `npm run supabase:audit:public-schema` or in the SQL
+   editor. The second query gives the "tables with RLS disabled" list; save it.
    ```sql
    select rolname, rolbypassrls, rolsuper from pg_roles where rolname = current_user;
    select c.relname, c.relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace

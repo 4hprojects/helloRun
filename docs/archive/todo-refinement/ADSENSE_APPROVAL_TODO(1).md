@@ -32,7 +32,7 @@ If a page cannot answer that, improve it, noindex it, or remove it from public c
 
 ---
 
-# Phase 1: Crawl and index foundation
+## Phase 1: Crawl and index foundation
 
 ## 1.1 Confirm public indexable pages
 
@@ -188,7 +188,7 @@ Acceptance criteria:
 
 ---
 
-# Phase 2: Public content quality
+## Phase 2: Public content quality
 
 ## 2.1 Improve homepage content
 
@@ -370,7 +370,7 @@ Acceptance criteria:
 
 ---
 
-# Phase 3: Blog approval content
+## Phase 3: Blog approval content
 
 ## 3.1 Minimum blog inventory before review
 
@@ -460,7 +460,7 @@ Acceptance criteria:
 
 ---
 
-# Phase 4: Policy and trust pages
+## Phase 4: Policy and trust pages
 
 ## 4.1 Verify all policy pages render real content
 
@@ -523,7 +523,7 @@ Acceptance criteria:
 
 ---
 
-# Phase 5: Ads placement cleanup
+## Phase 5: Ads placement cleanup
 
 ## 5.1 Define ad-safe pages
 
@@ -586,7 +586,7 @@ Acceptance criteria:
 
 ---
 
-# Phase 6: Technical SEO and metadata
+## Phase 6: Technical SEO and metadata
 
 ## 6.1 Canonical URLs
 
@@ -655,7 +655,7 @@ Acceptance criteria:
 
 ---
 
-# Phase 7: UX and navigation
+## Phase 7: UX and navigation
 
 ## 7.1 Footer completeness
 
@@ -721,7 +721,7 @@ Acceptance criteria:
 
 ---
 
-# Phase 8: Live-site verification checklist
+## Phase 8: Live-site verification checklist
 
 Run these checks against production before requesting review.
 
@@ -785,7 +785,7 @@ Better before review:
 
 ---
 
-# Phase 9: Suggested implementation order
+## Phase 9: Suggested implementation order
 
 Use this order for Codex tasks.
 
@@ -852,7 +852,7 @@ Use this order for Codex tasks.
 
 ---
 
-# Phase 10: Definition of done
+## Phase 10: Definition of done
 
 Do not request AdSense review until all of these are true:
 
@@ -877,7 +877,7 @@ Do not request AdSense review until all of these are true:
 
 ---
 
-# Final review question
+## Final review question
 
 Before clicking Request review in AdSense, open the site as a first-time public visitor and answer:
 
@@ -886,7 +886,7 @@ Can someone learn enough from HelloRun without logging in to trust it, use it, a
 If the answer is not clearly yes, continue improving public content before requesting review.
 ---
 
-# Phase 11: Content writing prompts for AdSense-quality articles
+## Phase 11: Content writing prompts for AdSense-quality articles
 
 Use these prompts when drafting or improving HelloRun blog posts, event pages, and public guide pages.
 

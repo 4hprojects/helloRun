@@ -1,12 +1,22 @@
 # Phase 2 — Environments & Data Safety
 
+**Current ownership:** `DEC-01`, `DEC-04`, `DEC-07`, `OPS-02`–`OPS-06` in
+[ROADMAP.md](../ROADMAP.md) · **Delivery state:** [STATUS.md](../STATUS.md)
+**Reconciled:** October 20, 2026
+
 **Priority:** P1–P2 · **Effort:** ~1–2 days ops + a supervised verification session · **When:** immediately after the production/AdSense deploy.
 
 **Why this phase exists:** "no staging environment" is currently listed as a permanent fact, and it is the root cause of the largest open liability: **three shipped feature sets (admin improvements 1–2, permission tiers, submission smarts) plus the whole onboarding rework are running in production without ever having been exercised against a real database.** The July 2 incident (integration test wrote fixtures into prod) came from the same root. This phase removes the root cause instead of managing around it.
 
 ---
 
-## PRC-8 · Separate dev/test data from production (P1)
+## PRC-8 · Separate dev/test data from production (complete)
+
+Implemented October 20 as the repository-owned, loopback-only environment in
+[`operations/isolated-development.md`](../operations/isolated-development.md).
+The implementation uses Docker MongoDB/PostgreSQL services, explicit environment
+loading, boot and test guards, a deterministic seed, and a volume-scoped reset.
+The full integration command now runs without production credentials.
 
 Cheapest viable ladder — pick the rung that fits the budget, in order of preference:
 
@@ -16,7 +26,7 @@ Cheapest viable ladder — pick the rung that fits the budget, in order of prefe
 
 **Deliverable ordering matters:** do the env split *first*, then the live-verification backlog below runs against the dev DB instead of production.
 
-## VERIFY-1 · Burn down the live-verification backlog (P1)
+## VERIFY-1 · Burn down the live-verification backlog (in progress)
 
 Once a safe DB target exists, run in one supervised session:
 - `ALLOW_LIVE_DB=1 npm run test:admin` (admin improvements Phases 1–2, permission tiers)
@@ -27,14 +37,37 @@ Once a safe DB target exists, run in one supervised session:
   `docs/implementation/verification-pending/` with the approved environment,
   results, and completion date.
 
+The first complete isolated baseline ran October 20 at 451 of 527 passing. The
+identified failures were repaired and the final guarded rerun passed 527 of 527,
+with zero fixture, sync-failure, or dead-letter residue after reset. The investigation
+and final evidence are recorded in
+[`analysis/2026-10-20/isolated-integration-baseline.md`](../analysis/2026-10-20/isolated-integration-baseline.md).
+No production database was used. Provider and supervised browser checks remain under
+their individual ROADMAP tasks rather than this completed repository baseline.
+
 ## OPS-1 · Redis in production (P2)
 
 Rate limiters currently run on the in-memory fallback in prod (no `REDIS_URL`): counters reset on every deploy, and the moment the service scales to 2 instances, every limit doubles and the login-abuse thresholds stop being global. Sessions are fine (Mongo-backed).
 **Action:** provision a small managed Redis (Render Key Value free tier / Upstash), set `REDIS_URL`, confirm `redis: "ready"` in `/readyz`. Until then, document "single instance only" as a hard constraint on the Render service.
 
-## CLEAN-1 · Delete the 2 placeholder users (P2)
+## CLEAN-1 · Verify the 2 placeholder users (complete)
 
-`purge.runner.*@example.com` / `purge.organizer.*@example.com` — leftover from July 2. Narrow, explicit, supervised delete (they're Users; `purgeTestData()` intentionally doesn't touch Users). One-off script with an email-regex allowlist and a dry-run flag, run once, delete the script or park it in `src/scripts/`.
+The October 20 production audit found zero users matching
+`purge.runner.*@example.com` or `purge.organizer.*@example.com`, and no matching
+PostgreSQL shadows. No deletion was necessary. The separately discovered 99-account
+fixture footprint is not part of this completed narrow task; it is governed by `DEC-07`
+and the [placeholder audit](../analysis/2026-10-20/production-placeholder-user-audit.md).
+
+## DATA-1 · Decide orphan-record retention (blocked)
+
+The October 20 read-only production refresh supersedes the August counts. All 88
+current onsite registrations reference unavailable events, and 1,116 of 2,401 current
+submissions across both collections have an unavailable runner, event, or registration
+reference. No deletion was attempted. Exact definitions and overlapping counts are in
+the [orphan audit](../analysis/2026-10-20/production-mongo-orphan-audit.md).
+
+`DEC-01` requires an owner-approved retain/quarantine/delete scope and recoverable
+backup before any cross-store or R2 mutation.
 
 ## PRC-7 · Ops runbook (P2)
 
@@ -48,9 +81,9 @@ Create `docs/RUNBOOK.md` — one page, checklists only:
 ---
 
 ## Exit criteria
-- [ ] `npm run dev` and integration tests physically cannot write to production (boot guard)
+- [x] `npm run dev:isolated` and guarded integration tests refuse unsafe remote targets
 - [ ] Seeded dev DB; verification backlog executed; verification-pending
   records updated with evidence
 - [ ] Redis live in prod (or single-instance constraint documented)
-- [ ] Placeholder users gone
+- [x] Original two placeholder patterns verified absent
 - [ ] RUNBOOK.md exists with a tested restore path

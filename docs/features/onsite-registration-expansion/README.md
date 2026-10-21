@@ -1,8 +1,9 @@
 # HelloRun Onsite Event Registration Implementation Pack
 
-**Status:** Not implemented
+**Status:** Core lifecycle implemented and repository-verified; deployed and
+locally browser-verified, with production phone/weak-connectivity verification pending
 
-**Last reconciled:** August 7, 2026
+**Last reconciled:** October 19, 2026
 
 **Delivery state:** [STATUS.md](../../STATUS.md) · **Priorities:** [ROADMAP.md](../../ROADMAP.md)
 
@@ -21,8 +22,9 @@ data design are superseded:
   `Registration.participationMode` is already `virtual | onsite`. Event creation already
   validates onsite venue fields and publish readiness.
 - Bib assignment, check-in, race kits, result imports, QR generation and a timing-system
-  webhook already ship, with integration and smoke coverage. What is missing is the
-  **organiser UI** for them, not the backend.
+  webhook already ship, with integration and smoke coverage. The organiser UI
+  and the participant-side race pass described by this pack were added August
+  7–8 and walked through locally on August 9.
 - `02-architecture-refactor.md` is superseded. Its `src/modules/` tree conflicts with the
   established `src/{controllers,routes,services,models,middleware}` layout, and the scattered
   event-type conditionals it targets do not exist — the registration controller has 18
@@ -38,15 +40,15 @@ data design are superseded:
   **does not exist in this repository**. Registration fields are a fixed Mongoose
   sub-document. This is deferred.
 
-**Sequencing for the remaining work lives in [delivery-plan.md](delivery-plan.md).**
+Historical sequencing and implementation evidence live in
+[delivery-plan.md](delivery-plan.md). Current remaining work is owned by
+`DEC-01`, `DEC-02`, `REL-06`, and `REL-07` in
+[ROADMAP.md](../../ROADMAP.md).
 
-Genuinely missing and still worth building: organiser onsite UI, guest registration
-(blocked by the `required` `userId` and the unique `{eventId, userId}` index on
-`Registration`), staff roles, waitlist, inventory, transfers and CSV import.
-
-The pack also correctly identifies two real defects: the registration capacity check is a
-non-atomic count-then-insert, and QR codes encode raw MongoDB event IDs without signing or
-revocation.
+The organiser onsite UI, guest and walk-in registration, scoped staff roles,
+waitlist, kit inventory, transfers, imports, atomic capacity, and revocable
+opaque QR tokens are implemented. The full dynamic form-builder proposal remains
+deliberately deferred; the useful organiser-question subset shipped instead.
 
 ## Original pack
 

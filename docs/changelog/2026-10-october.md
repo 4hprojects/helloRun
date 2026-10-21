@@ -1,9 +1,426 @@
 # HelloRun Changelog — October 2026
 
+## October 22 — P0/P1 release-hardening candidate
+
+- Consolidated the repository-complete security, delivery, isolated-environment,
+  authorization, timezone, promotion, worker, CSP, and service-worker changes on
+  `codex/p0-p1-release-hardening`; no deployment or production mutation is implied.
+- The final candidate passes 2,524/2,524 DB-free unit tests in 720.1 seconds,
+  545/545 isolated integration tests in 1,014.8 seconds, and 46/46 isolated OCR
+  tests in 58.0 seconds, plus the syntax/template, format, documentation/link,
+  and whitespace gates.
+- Updated the certificate-sharing integration harness to cover the accessible
+  hidden-copy/toast fallback instead of the retired native prompt, and corrected
+  the shared test-server readiness budget from ten seconds to its documented
+  forty seconds for cold OCR-enabled boots.
+- A final named-volume reset reapplied migrations `001`–`027` and deterministic
+  seed data. Verification found five Mongo users, three Mongo events, no
+  registrations or submissions, five PostgreSQL app users, two organisers,
+  three events, zero sync failures, and no OCR collections.
+
+## October 22 — DEC-02 owner acceptance
+
+- The owner accepted the pre-August critical-audit gap as an unrecoverable
+  historical limitation. No historical events will be synthesized; the three
+  known legacy dead letters remain incident evidence; the limitation stays
+  documented; and every new unresolved critical-audit failure is an incident.
+- Marked `DEC-02` complete. Deployment verification of the corrected structured
+  retry path remains tracked separately and does not imply reconstructed history.
+
+## October 22 — release-candidate integration isolation
+
+- Added an explicit process-local upload backend for integration tests. It is
+  accepted only when both `NODE_ENV=test` and `TEST_UPLOAD_STORAGE=memory` are
+  set, uses a non-routable public URL, and supports upload/read/list/delete
+  behavior without Cloudflare credentials or network access.
+- Fixed request-locale handling for clients that send the valid wildcard
+  `Accept-Language: *`; dashboard date formatting now falls back to `en-US`
+  instead of raising an `Intl.DateTimeFormat` range error.
+- The previously failing 36-case upload/admin/submission integration group now
+  passes completely. Final full-suite totals are recorded after the clean gate.
+
+## October 20 — OPS-01 container build metadata capture
+
+- Added a first-step postinstall capture that resolves the full commit and branch from
+  HelloDeploy/common platform variables or the build checkout, then stores them in the
+  image before runtime `.git` may be removed.
+- `/healthz` now resolves environment metadata first, the captured artifact second, and
+  development `.git` last; it also reports `builtAt`. A local capture correctly reports
+  `0c1fd86` from a fresh process without relying on the runtime resolver's Git fallback.
+- All 17 deploy-hygiene cases pass. Production still reports `unknown` until this revision
+  is deployed; Render failover/restore remains an external supervised drill.
+- Refreshed the public read-only baseline: `/healthz` and `/readyz` return 200,
+  Mongo is ready, Redis is unconfigured, Strava is disabled, and HelloDeploy
+  still reports an unknown commit. The homepage retains the old `unpkg`/inline
+  CSP fingerprint and the new vendor URLs return 404, independently confirming
+  the repository revision is not yet deployed.
+
+## October 20 — REL-05 service-worker cache boundary
+
+- Verified the public core routes, manifest, service worker, and offline page
+  return HTTP 200, then found that Cloudflare rewrites `/sw.js` to a four-hour
+  `max-age` and serves it as `REVALIDATED`.
+- Hardened the service-worker origin response with browser `no-store`, generic
+  CDN `no-store`, and Cloudflare-specific CDN `no-store`. Eleven focused PWA
+  cases pass.
+- A Cloudflare Cache Rule may override every origin directive, so excluding and
+  purging `/sw.js` remains an explicit deployment gate before device update
+  behavior can pass.
+
+## October 20 — DEC-07 fixture downstream-impact audit
+
+- Added a reusable read-only fixture-impact command covering Mongo participant/event
+  dependencies, asset references, and the PostgreSQL cleanup inventory.
+- All 37 fixture-owned events are soft-deleted test data. Their 69 registrations belong
+  only to fixture accounts, with no guest/real participants, submissions, or review and
+  onsite-adjacent records. The one outside registration also points to soft-deleted test
+  data. PostgreSQL contains no matching shadows or dependent rows.
+- Five non-deleted fixture-authored blogs remain, including one published, with five
+  asset references. No deletion was attempted; their content/R2 disposition, backup,
+  exact operation manifest, and explicit owner approval still gate `DEC-07`.
+
+## October 20 — DEC-02 audit-gap record and retry-path correction
+
+- Reconciled the historical claim against production: 344 of 908 current critical-audit
+  rows carry pre-fix event dates, while three known pre-fix failure rows are dead letters.
+  Exact coverage remains unknowable; the decision record recommends acknowledging the
+  gap without synthesizing evidence and awaits explicit owner acceptance.
+- Found that the shared sync-failure writer stored context as a JSON string although the
+  retry worker expects an object. Changed it to structured `sql.json(context)` storage and
+  changed the integration test to exercise the real writer rather than a direct insert.
+- Five focused unit cases and both real-database BUG-01 cases pass, including successful
+  idempotent replay and resolution of a newly failed critical-audit event.
+
+## October 20 — DEC-05 PostgreSQL consumer inventory
+
+- Corrected the old ten-view estimate: production has 13 public views, two used by
+  runtime onsite code and 11 removal candidates with no application runtime reference.
+- Read-only catalog inspection found no dependent view or stored function for any view.
+  Retained statement statistics since September 9 contain no calls naming them.
+- `shop_platform_fees` is empty with no foreign key, stored-function, or runtime source
+  consumer. No object was dropped; saved SQL, dashboards, BI, automation, and ad-hoc
+  consumers still require explicit owner confirmation under `DEC-05`.
+
+## October 20 — DEC-01 orphan-record count refresh
+
+- Added a reusable read-only MongoDB orphan audit and refreshed the superseded August
+  figures without exposing record identifiers or changing data.
+- Production currently has 88 onsite registrations, all tied to unavailable events:
+  48 hard-missing and 40 soft-deleted. Across 2,401 single and accumulated submissions,
+  1,116 have an unavailable runner, event, or registration reference; all still resolve
+  to a registration.
+- No deletion was attempted. Retention scope, cross-store/R2 handling, a recoverable
+  backup, and explicit owner approval remain required under `DEC-01`.
+
+## October 20 — DEC-04 placeholder verification and DEC-07 fixture discovery
+
+- Verified read-only that the two documented `purge.runner` / `purge.organizer`
+  placeholder patterns match zero Mongo users and zero PostgreSQL app-user shadows.
+  `DEC-04` is complete without mutation.
+- The broader cleanup preview separately found 99 active non-admin `@example.com`
+  fixture accounts with 37 events, 70 registrations, and related communication records.
+  No records were deleted; classification, downstream analysis, backup, and owner
+  approval are tracked independently under `DEC-07`.
+
+## October 20 — TIME-01 production shadow and date-only audit
+
+- Compared the five event schedule instants across production MongoDB and PostgreSQL.
+  Ten active non-personal events match completely; CNS Move More has three stale shadow
+  values. No historical value was changed pending organiser confirmation.
+- Fixed a Manila-midnight boundary where today's birth date could be rejected while UTC
+  was still on the prior day, and made age calculation independent of process timezone.
+- Three explicit boundary cases, 34 related timezone/presentation cases, all 13 runner
+  profile integrations, and all 13 admin/onboarding integrations pass.
+
+## October 20 — OPS-04 production RLS preflight
+
+- Added a reusable, read-only public-schema audit command and ran it against production
+  and the isolated control without exposing credentials.
+- Production has not applied migration 027: all 36 public tables have RLS disabled,
+  both Data API roles retain broad grants across 49 objects, and zero of 13 views use
+  `security_invoker`. The application role passes the migration guard.
+- The isolated control reports migration 027, 36/36 RLS tables, no Data API table grants,
+  and 13/13 invoker views. Production apply remains gated on recoverable backup/rollback
+  approval and project-side denial, smoke, and Security Advisor checks.
+
+## October 20 — CONTENT-01 production calendar reconciliation
+
+- Reconciled all 47 October–December planned slugs against production without mutation:
+  ten due articles are published and 37 future articles are scheduled correctly, with
+  no missing records or scheduler errors.
+- Confirmed publication eligibility for all 47 records, complete review gates for all 38
+  health/safety articles, and required cover, alt, and SEO metadata. The content-link
+  audit validates 101 articles and 1,041 links with zero failures.
+- Preserved deliberate `noindex` state pending separate expert/value indexing review.
+  Final publication confirmation remains time-gated through December 31.
+
+## October 20 — REL-09/REL-10 production dry-run reconciliation
+
+- The approved-organiser repair queried production in dry-run mode and found zero
+  runner/approved mismatches (`matched: 0`, `modified: 0`). No apply or audit rows were
+  necessary; the three focused transition guards pass, so `REL-10` is complete.
+- The October Active Run artwork dry run resolved the event, certificate template, and
+  four current CDN assets without mutation. Dimension-normalized image comparisons show
+  those assets do not match the committed replacements; `REL-09` remains pending an
+  approved apply and public visual confirmation.
+
+## October 20 — REL-06 isolated step-competition rollout rehearsal
+
+- Changed the legacy event backfill to dry-run by default and added an explicit apply
+  command, conflicting-argument rejection, environment-path support, and a reusable
+  test boundary.
+- Proved on isolated MongoDB that dry-run makes no change, explicit apply repairs only
+  the legacy distance event, modern step configuration is untouched, and repeat apply
+  is a no-op. Direct PostgreSQL inspection confirmed migration 022 and all expected
+  step-competition columns.
+- Seventy isolated form/backfill/submission cases and 87 step/UI cases pass. Production
+  backfill, browser workflows, flag enablement, and monitoring remain rollout gates.
+
+## October 20 — REL-02 isolated review-history verification
+
+- Added a guarded real-MongoDB integration for review history rather than relying only on
+  schema and mocked-service assertions. It writes and reads the evidence snapshot and
+  verifies that a rejected submission retains its structured code and reason.
+- Recorded one source decision and linked decisions for both a standard submission and an
+  accumulated activity. Both linked rows retained `linkedFrom`, while the source decision
+  remained independent. The isolated case passes; a supervised deployed review still
+  gates completion.
+
+## October 20 — TIME-01 deterministic schedules and runner-local critical times
+
+- Centralized Manila wall-clock parsing and event-form restoration so schedule
+  values resolve to the same UTC instant under UTC, Manila, and New York process
+  timezones.
+- Added paired confirmed-runner/official-Manila critical times to registration
+  review, runner dashboard journeys, registration history, and confirmation
+  email, with an explicitly labeled Manila fallback for unconfirmed profiles.
+- Preserved Strava authoritative UTC and source-local evidence separately and
+  prevented auto-acceptance when the exact activity instant is absent. Sixty
+  focused cases pass; historical production sampling and deployed checks remain.
+
+## October 20 — UX-02 Submitted Entries workspace polish
+
+- Completed the compact summary/search/filter layout and responsive entry-card
+  hierarchy for standard event submissions, personal records, and accumulated
+  challenge activities without changing ownership, status, resubmission, proof,
+  or certificate contracts.
+- Added touch-safe actions, distinct filtered/unfiltered empty states, visible
+  focus treatment, reduced-motion support, and busy/copy/unsaved-change feedback.
+- Twenty-one presentation/template tests and all 28 isolated route scenarios
+  pass across authentication, ownership, filters, detail/proof access, correction,
+  and certificate paths.
+
+## October 20 — BUG-01 persistence and worker defect set
+
+- Added the missing standard-submission honor-confirmation field and carried it
+  through create, resubmit, and personal-record payloads. Added `treadmill` to
+  both stored OCR enums and the sanitizer allowlist.
+- Narrowed admin bulk-reject fallback: accumulated review is attempted only
+  when the standard service returns its explicit not-found code; authorization,
+  stale-state, validation, and infrastructure errors no longer change paths.
+- Made new background critical-audit failures retryable by recording the
+  complete original event, timestamp, and idempotency key. The sync worker now
+  replays that payload and resolves it; older sparse rows remain explicit dead
+  letters because reconstructing them would invent audit evidence.
+- Replaced the two independent scheduled-blog scans with one shared atomic
+  claim/lease service, including stale-claim recovery and conditional publish,
+  failure, and release updates.
+- Passed ten focused unit/integration regressions, including two competing
+  publishers against isolated MongoDB and a real PostgreSQL audit replay.
+
+## October 20 — SEC-04 organiser event authorization chain
+
+- Added canonical event read/mutation and participant-review middleware for
+  both `:eventId` and legacy `:id` routes. The guard reloads current account
+  state, rejects restricted/suspended/closed accounts, and retains owner,
+  active co-organiser, full-admin, and support-admin access semantics.
+- Applied the shared chain across event-scoped registrant lists and exports,
+  participant messaging/cancellation/correction, payment review, run-proof
+  review, activity-link checks, and submission decisions. Existing handler
+  checks remain as defense in depth while the middleware provides one route
+  boundary.
+- Passed 16 focused guard/source cases and the existing 25-test submission
+  review route suite in the isolated environment. Supervised deployed
+  200/403/404 checks remain, so `SEC-04` is verification pending.
+
+## October 20 — PRC-01 repository delivery gate
+
+- Added a read-only GitHub Actions workflow for pushes to `main` and pull
+  requests: locked install without lifecycle network calls, JS/EJS syntax,
+  non-rewriting format, documentation, and the complete DB-free unit suite.
+  Explicit unreachable-loopback/blank data-service variables prevent accidental
+  production access.
+- Added weekly grouped npm Dependabot updates and monthly GitHub Actions updates;
+  major dependency upgrades remain manual.
+- Added reusable repository commands: `lint:check`, `format:check`, and
+  `docs:check`. The final October 20 rerun covers 1,061 JavaScript files, 181 EJS
+  templates, 90 automation files, and 265 Markdown files.
+- The first syntax run correctly failed on a duplicated invalid tail in
+  `backfill-missing-references.js`; removed the duplicate and passed the rerun.
+- After the later security, audit, and deploy-metadata follow-ups, synchronized
+  the affected static assertions and passed their focused 134/134 group. The
+  expanded complete DB-free unit gate then passed 2,524/2,524 in 720.1 seconds. Final local
+  checks covered 1,068 JavaScript files, 181 EJS templates, 95 automation files,
+  and, after adding the public deployment baseline, 273 Markdown files without an
+  error.
+- Audited GitHub delivery controls without changing them. `main` is currently
+  unprotected, the repository ruleset collection is empty, and the baseline
+  head has no checks or Actions runs. Added the exact post-publication
+  pass/fail/recovery and required-check sequence to the evidence record.
+  GitHub required-check/deployment enforcement remains, so `PRC-01` is
+  verification pending.
+
+## October 20 — SEC-03 vendored assets and CSP nonce rollout
+
+- Vendored Lucide 0.468.0 and Quill 1.3.7 JS/CSS with third-party license
+  notices, changed every view to local asset URLs, and removed `unpkg` and
+  `jsdelivr` from script, style, and connection CSP directives.
+- Added a cryptographically random response nonce and applied it to all 336
+  script elements across 180 EJS templates. `script-src-elem` now enforces the
+  nonce. Migrated all 29 inventoried legacy event-handler attributes to
+  declarative listeners and changed `script-src-attr` to `'none'`.
+- Passed 31 focused asset/editor/PWA tests, three vendoring/CSP regressions, the
+  live response-nonce integration check, an all-template compile audit, and
+  local HTTP delivery checks for all three assets. The handler inventory and
+  repository syntax/template gate also pass. Deployed icon/editor and CSP
+  report checks remain, so `SEC-03` is verification pending.
+
+## October 20 — SEC-05 interaction and CSRF inventory
+
+- Replaced first-party native browser dialogs with shared keyboard-accessible
+  confirm/prompt surfaces and live-region toasts. Declarative auto-submit and
+  image-fallback behavior replaced the final inline handlers while preserving
+  original submit-button `name` and `formaction` semantics.
+- Audited 171 same-origin POST forms and fixed the missing CSRF field on the
+  multipart payment-proof flow. External `mailto:` composition remains outside
+  the application boundary by design.
+- Four static interaction/CSRF regressions, 20 focused CSP/UI tests, 13 CSRF
+  route checks, and 12 payment-route guard cases pass. Deployed keyboard,
+  assistive-technology, and no-JavaScript checks remain, so `SEC-05` is
+  verification pending.
+
+## October 20 — COM-01 event-promotion safety completion
+
+- Added signed 30-day unsubscribe links for known recipients, with a public
+  success result and fail-closed invalid/expired handling. Unknown manually
+  entered addresses retain the authenticated preference fallback.
+- Hardened promotion subjects and HTML URLs, capped admin preview/send to the
+  live platform quota, showed the exact preview count in confirmation, and
+  added an atomic same-day event/audience/recipient duplicate key.
+- Added four isolated route scenarios for full-admin access, opt-outs, platform
+  and organiser quotas, ownership, duplicate rejection, and signed-link
+  behavior. Together with focused service/source/email cases, 29 promotion
+  checks pass. One supervised deployed provider send remains, so `COM-01` is
+  verification pending.
+
+## October 20 — SEC-02 canonical client-IP handling
+
+- Added one validated client-IP resolver and migrated rate limits, auth abuse
+  controls, consents, blog views, provider metadata, and critical/OCR/admin
+  audits to it. Application source no longer reads raw `X-Forwarded-For` or
+  directly consumes `req.ip` outside the resolver.
+- Rejected malformed and multi-value addresses, normalized IPv4-mapped values,
+  and made unknown-address rate-limit keys deterministic.
+- Added `TRUST_CLOUDFLARE_IP_HEADER`, defaulting off. The Cloudflare header is
+  used only after an operator explicitly records that direct-origin spoofing is
+  blocked.
+- Passed five focused resolver unit tests plus the rate-limit enforcement and
+  local-auth integration checks. The deployed known-IP/origin probe remains, so
+  `SEC-02` is verification pending alongside `OPS-05`.
+
+## October 20 — SEC-01 session fixation and stale-role hardening
+
+- Regenerated the session before establishing authenticated state for password
+  login, Google OAuth callback, and email-verification auto-login.
+- Preserved the validated Google return path and first-login signal across the
+  rotation, and limited local OAuth endpoint overrides to `NODE_ENV=test` for
+  deterministic callback coverage.
+- Changed `/healthz/sync` to reload the current user role/account state rather
+  than trusting the cached session role. A demoted administrator is denied on
+  the next request.
+- Passed 16 focused integration tests covering all three auth paths, cookie
+  hardening, Google return-state preservation, and stale-role denial. Deployed
+  supervised smoke verification remains, so `SEC-01` is verification pending.
+
+## October 20 — OPS-02 isolated development and test tier
+
+- Added loopback-only MongoDB 7 and PostgreSQL 16 services, an ignored local
+  development environment template, migrations, an idempotent five-user/
+  three-event seed, and a volume-scoped reset workflow.
+- Strengthened non-production boot and test guards: remote data services are
+  refused by default, explicit exceptions require visibly non-production
+  database names, and remote Redis remains forbidden. The seed accepts only
+  loopback, non-production targets.
+- Applied migrations `001`–`027`, verified two repeat seed runs, passed 27
+  focused environment/guard tests, and booted the application with healthy
+  `/healthz` and `/readyz` responses.
+- Rehearsed migration `027` with temporary Supabase-like Data API roles: all 36
+  public tables had RLS enabled, application access remained available, and
+  `anon`/`authenticated` plus a future-table probe were denied. Production
+  application remains `OPS-04` work requiring backup and project access.
+- Ran the full isolated integration baseline: 527 tests in 1,137.4 seconds,
+  with 451 passing and 76 failing. Recorded the failure clusters and residual
+  shadow/dead-letter cleanup as active `OPS-06` work; no production credentials
+  were used.
+- A second complete checkpoint passed 491 of 527 tests and reduced the active
+  failure set from 76 to 36. The repair pass kept production test-data
+  visibility disabled by default.
+- Completed the repair set: the final isolated integration gate passed 527/527
+  in 1,217.8 seconds, the guarded Mongo-only OCR gate passed 46/46 in 75.1
+  seconds, and the DB-free unit gate passed 2,486/2,486 in 927.2 seconds.
+- Raised the isolated MongoDB service's file-descriptor limit from 1,024 to
+  65,536 after the first OCR invocation exposed handle exhaustion. The clean
+  rerun completed with zero container restarts.
+- Converted the local MongoDB service to a single-node replica set so
+  transaction-backed workflows, including scheduled blog revision approval,
+  execute in the isolated tier.
+- Re-ran the documentation audit after adding the environment evidence: all
+  264 Markdown files retain one H1, balanced fences, valid heading progression,
+  and zero broken relative links.
+- Removed and recreated only the named development volumes after the baseline,
+  then reapplied all migrations and the seed successfully. Final checks found
+  five Mongo users, three events, no registrations/submissions, an empty OCR
+  database, and zero Postgres sync-failure or dead-letter rows. `OPS-06` is
+  complete.
+
+## October 20 — OPS-01 HelloDeploy runbook reconciliation
+
+- Confirmed read-only that production is healthy through the HelloDeploy route:
+  `/healthz` and `/readyz` return HTTP 200 and responses include
+  `x-hellodeploy-route: hellorun.online`.
+- Replaced the obsolete direct-PM2 deployment instructions with the current
+  HelloDeploy specific-commit release, health-gated activation, retained-release
+  rollback, and failure-triage procedure.
+- Corrected the Cloudflare Tunnel sample to terminate at nginx on port 80 rather
+  than a nonexistent service on port 3000.
+- Recorded two remaining blockers rather than claiming completion: public build
+  metadata is currently `unknown`, and the repository does not contain the
+  Render hostname or exact Cloudflare failover control. `OPS-01` is now in
+  progress and `REL-01` is blocked on trustworthy served-commit evidence.
+
+## October 19 — Documentation reconciliation and canonical backlog
+
+- Rebuilt `docs/ROADMAP.md` as the sole detailed backlog: 43 tasks across six
+  ordered phases, each with an allowed state, relative size, dependency,
+  completion evidence, and supporting source.
+- Reconciled STATUS and OCR documentation with `main` at `0c1fd86`: OCR phases
+  0–6 and notice/objection backfill support are merged, flags-off by default,
+  and still undeployed with legal, data, infrastructure, measurement, and
+  rollout gates open.
+- Archived the completed June full-app review and generic PWA implementation
+  pack; removed the remaining `docs/to do/` tree and labelled archived
+  checklists as non-canonical.
+- Classified every source file with unchecked task boxes so historical and
+  acceptance-example boxes no longer compete with ROADMAP.
+- Normalized Markdown structure across 262 files. The final audit reports one
+  H1 per file, balanced fences, no heading-level jumps, and zero broken relative
+  links.
+
 ## October 17–18 — Platform-aware OCR, activity verification and training (feature branch)
 
-Implemented on `feature/platform-aware-ocr-training`, not merged or deployed. Every feature
-flag defaults off; with them off, behaviour is unchanged. Details and evidence:
+Implemented originally on `feature/platform-aware-ocr-training` and merged to
+`main` through PR #17 and PR #18 by October 19; not deployed. Every feature flag
+defaults off, and with them off behavior is unchanged. Details and evidence:
 `docs/improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md`.
 
 - **Server OCR** re-reads stored run proofs in a background worker (`OCR_SERVER_PIPELINE_ENABLED`)

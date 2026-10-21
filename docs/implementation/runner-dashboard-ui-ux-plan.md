@@ -22,7 +22,7 @@ Supporting runner pages may be adjusted only when required to complete a dashboa
 
 ---
 
-# 1. Product Vision
+## 1. Product Vision
 
 The runner dashboard must behave like a **race-progress assistant**, not a general account summary.
 
@@ -45,7 +45,7 @@ Account settings, login details, old event history, and secondary statistics mus
 
 ---
 
-# 2. Core UX Principle
+## 2. Core UX Principle
 
 Every active registration must have one clear runner-facing next action.
 
@@ -69,7 +69,7 @@ The dashboard must never force the runner to interpret raw system states.
 
 ---
 
-# 3. Existing Dashboard Capabilities to Preserve
+## 3. Existing Dashboard Capabilities to Preserve
 
 The current dashboard already supports:
 
@@ -110,7 +110,7 @@ Preserve:
 
 ---
 
-# 4. Main Problem
+## 4. Main Problem
 
 The current dashboard displays too many sections with similar visual weight.
 
@@ -145,7 +145,7 @@ This creates three problems:
 
 ---
 
-# 5. Required Information Hierarchy
+## 5. Required Information Hierarchy
 
 The dashboard should follow this order.
 
@@ -298,7 +298,7 @@ The following should be below the main runner journey or moved to dedicated page
 
 ---
 
-# 6. Recommended Desktop Layout
+## 6. Recommended Desktop Layout
 
 ```text
 Welcome back, Runner                         [Primary Action]
@@ -336,7 +336,7 @@ Discover More Events
 
 ---
 
-# 7. Recommended Mobile Layout
+## 7. Recommended Mobile Layout
 
 ```text
 Welcome back, Runner
@@ -373,7 +373,7 @@ The mobile page must prioritize:
 
 ---
 
-# 8. Event Progress Card Requirements
+## 8. Event Progress Card Requirements
 
 Each active registration must show:
 
@@ -448,7 +448,7 @@ Include the reviewer reason when available.
 
 ---
 
-# 9. Accumulated Challenge Progress
+## 9. Accumulated Challenge Progress
 
 The accumulated challenge card must clearly separate:
 
@@ -495,7 +495,7 @@ Label this as guidance, not a requirement.
 
 ---
 
-# 10. Deadline Visibility
+## 10. Deadline Visibility
 
 The dashboard must display relevant dates without requiring the runner to open the event page.
 
@@ -528,7 +528,7 @@ Include text and icons.
 
 ---
 
-# 11. Payment UX
+## 11. Payment UX
 
 When payment is required, show:
 
@@ -556,7 +556,7 @@ Payment status: Proof required
 
 ---
 
-# 12. Submit Run UX
+## 12. Submit Run UX
 
 The main submission action must be context-aware.
 
@@ -580,7 +580,7 @@ Rules:
 
 ---
 
-# 13. Recent Activity
+## 13. Recent Activity
 
 Show the latest three activity items.
 
@@ -619,7 +619,7 @@ Do not show the full activity history on the dashboard.
 
 ---
 
-# 14. KPI Redesign
+## 14. KPI Redesign
 
 ## 14.1 Primary Metrics
 
@@ -652,7 +652,7 @@ Cards must have clear hover, focus, and active states.
 
 ---
 
-# 15. Achievements
+## 15. Achievements
 
 Combine overlapping achievement content into one dashboard section.
 
@@ -695,7 +695,7 @@ Fallback:
 
 ---
 
-# 16. Leaderboard Context
+## 16. Leaderboard Context
 
 When leaderboard data is available, show runner-specific context.
 
@@ -719,7 +719,7 @@ Do not show public rank when:
 
 ---
 
-# 17. Account Information
+## 17. Account Information
 
 The current dashboard account card should be reduced or removed.
 
@@ -744,7 +744,7 @@ When the profile is complete, hide the profile reminder.
 
 ---
 
-# 18. Empty States
+## 18. Empty States
 
 Every empty state must explain:
 
@@ -782,7 +782,7 @@ Once your event starts, upload an activity screenshot or sync Strava.
 
 ---
 
-# 19. Mobile Bottom Navigation
+## 19. Mobile Bottom Navigation
 
 Add a fixed bottom navigation for authenticated runner pages on screens below 768 pixels.
 
@@ -818,7 +818,7 @@ Suggested routes:
 
 ---
 
-# 20. Accessibility Requirements
+## 20. Accessibility Requirements
 
 Preserve and improve:
 
@@ -846,7 +846,7 @@ Use icon, text, and color together.
 
 ---
 
-# 21. Visual Design Rules
+## 21. Visual Design Rules
 
 The redesign should remain consistent with the existing HelloRun brand and design system.
 
@@ -876,7 +876,7 @@ Avoid:
 
 ---
 
-# 22. Content Rules
+## 22. Content Rules
 
 Use direct runner-facing language.
 
@@ -907,7 +907,7 @@ Status messages should explain:
 
 ---
 
-# 23. Data Requirements
+## 23. Data Requirements
 
 The dashboard service may need to provide:
 
@@ -939,7 +939,7 @@ Avoid complex state resolution inside templates.
 
 ---
 
-# 24. Suggested Data Contract
+## 24. Suggested Data Contract
 
 Each active event card should receive:
 
@@ -1017,7 +1017,7 @@ Only include fields that apply to the registration.
 
 ---
 
-# 25. Implementation Phases
+## 25. Implementation Phases
 
 ## Phase 1: Information Hierarchy
 
@@ -1122,7 +1122,7 @@ Acceptance:
 
 ---
 
-# 26. File Targets
+## 26. File Targets
 
 Primary files:
 
@@ -1151,7 +1151,7 @@ Before adding a new file, confirm an equivalent shared component does not alread
 
 ---
 
-# 27. Non-Goals
+## 27. Non-Goals
 
 Do not include the following in this implementation unless separately approved:
 
@@ -1171,7 +1171,7 @@ Do not include the following in this implementation unless separately approved:
 
 ---
 
-# 28. Testing Scenarios
+## 28. Testing Scenarios
 
 Test with the following runner states.
 
@@ -1270,7 +1270,7 @@ Expected:
 
 ---
 
-# 29. Usability Validation Tasks
+## 29. Usability Validation Tasks
 
 Ask test users to complete these tasks:
 
@@ -1299,7 +1299,7 @@ Measure:
 
 ---
 
-# 30. Acceptance Criteria
+## 30. Acceptance Criteria
 
 The improved runner dashboard is complete when:
 
@@ -1324,7 +1324,7 @@ The improved runner dashboard is complete when:
 
 ---
 
-# 31. Codex Execution Rules
+## 31. Codex Execution Rules
 
 Codex must:
 
@@ -1353,7 +1353,7 @@ Codex must not:
 
 ---
 
-# 32. Suggested Verification Commands
+## 32. Suggested Verification Commands
 
 Use the project's actual available test files.
 
@@ -1392,7 +1392,7 @@ Also perform manual browser validation:
 
 ---
 
-# 33. Final Product Direction
+## 33. Final Product Direction
 
 The runner dashboard should help the runner answer:
 
@@ -1412,7 +1412,7 @@ The target experience is:
 
 ---
 
-# 34. Implementation Log
+## 34. Implementation Log
 
 Times below use the Asia/Manila timezone.
 
@@ -1473,7 +1473,7 @@ Times below use the Asia/Manila timezone.
 
 ---
 
-# 35. Active Countdown and Progress List Correction
+## 35. Active Countdown and Progress List Correction
 
 **Specified:** 2026-07-15 14:20:23 PST  
 **Completed:** 2026-07-15 14:23:26 PST  
@@ -1511,7 +1511,7 @@ The July Active Quest Virtual Run ends on July 31, 2026, but accepts final submi
 
 ---
 
-# 36. Event Icon Layout Stability
+## 36. Event Icon Layout Stability
 
 **Completed:** 2026-07-15 17:00:29 PST
 **Status:** Implemented and verified
@@ -1524,7 +1524,7 @@ The July Active Quest Virtual Run ends on July 31, 2026, but accepts final submi
 
 ---
 
-# 37. Latest Achievement Social Sharing
+## 37. Latest Achievement Social Sharing
 
 **Completed:** 2026-07-15 17:46:57 PST
 **Status:** Implemented and verified

@@ -1,5 +1,7 @@
 # 01 - Information Architecture and Navigation
 
+> **Archived checklist:** historical implementation guidance, not active work.
+
 ## Goal
 
 Create a simple, predictable, reusable navigation system.

@@ -10,7 +10,7 @@ They should show that HelloRun is an active virtual-run platform with its own ve
 
 ---
 
-# Primary Goal
+## Primary Goal
 
 Publish a focused cluster of HelloRun-first articles that:
 
@@ -27,7 +27,7 @@ Publish a focused cluster of HelloRun-first articles that:
 
 ---
 
-# Important Content Rules
+## Important Content Rules
 
 ## Do
 
@@ -71,7 +71,7 @@ Use this format:
 
 ---
 
-# Recommended Publishing Schedule
+## Recommended Publishing Schedule
 
 | Date | Article |
 |---|---|
@@ -87,7 +87,7 @@ These are additional HelloRun experience articles intended to fill non-posting d
 
 ---
 
-# Article 1
+## Article 1
 
 ## Title
 
@@ -236,7 +236,7 @@ Do not include any metric that cannot be verified.
 
 ---
 
-# Article 2
+## Article 2
 
 ## Title
 
@@ -328,7 +328,7 @@ Before publishing:
 
 ---
 
-# Article 3
+## Article 3
 
 ## Title
 
@@ -448,7 +448,7 @@ This should be one of the strongest and most complete HelloRun articles.
 
 ---
 
-# Article 4
+## Article 4
 
 ## Title
 
@@ -546,7 +546,7 @@ Adjust this table to actual HelloRun rules.
 
 ---
 
-# Article 5
+## Article 5
 
 ## Title
 
@@ -639,7 +639,7 @@ Do not present planned features as already deployed.
 
 ---
 
-# Content Cluster Internal Linking
+## Content Cluster Internal Linking
 
 These five articles should link to one another where contextually relevant.
 
@@ -683,7 +683,7 @@ Link to all four supporting articles where appropriate.
 
 ---
 
-# Existing HelloRun Article Integration
+## Existing HelloRun Article Integration
 
 Do not treat these as isolated articles.
 
@@ -711,7 +711,7 @@ An organizer article can link to:
 
 ---
 
-# Originality Requirements
+## Originality Requirements
 
 Each article should contain a meaningful amount of content that cannot be produced from generic web research alone.
 
@@ -732,7 +732,7 @@ The strongest articles should contain 4 to 6.
 
 ---
 
-# Suggested Word Count
+## Suggested Word Count
 
 Use only as a guideline.
 
@@ -748,7 +748,7 @@ Do not add filler merely to reach these ranges.
 
 ---
 
-# SEO Requirements
+## SEO Requirements
 
 For each article:
 
@@ -775,7 +775,7 @@ Approximately 140 to 160 characters when practical.
 
 ---
 
-# Trust and Experience Signals
+## Trust and Experience Signals
 
 Where appropriate, include:
 
@@ -798,7 +798,7 @@ Do not make unsupported claims such as:
 
 ---
 
-# Screenshot Implementation
+## Screenshot Implementation
 
 Screenshots should be treated as content evidence, not decoration.
 
@@ -824,7 +824,7 @@ Recommended file naming:
 
 ---
 
-# Data Integrity Rules
+## Data Integrity Rules
 
 Any statistic included in an article must have a traceable source.
 
@@ -849,7 +849,7 @@ If unavailable:
 
 ---
 
-# Codex Implementation Workflow
+## Codex Implementation Workflow
 
 Before writing:
 
@@ -878,7 +878,7 @@ For each article:
 
 ---
 
-# Required Placeholder Convention
+## Required Placeholder Convention
 
 Use the exact format below when real evidence is not available:
 
@@ -898,7 +898,7 @@ Do not silently invent replacement content.
 
 ---
 
-# Article Quality Gate
+## Article Quality Gate
 
 An article is not ready to publish unless all applicable items pass.
 
@@ -949,7 +949,7 @@ An article is not ready to publish unless all applicable items pass.
 
 ---
 
-# Stop Conditions
+## Stop Conditions
 
 Stop implementation and request clarification if:
 
@@ -966,7 +966,7 @@ Do not resolve these issues by guessing.
 
 ---
 
-# Deliverables
+## Deliverables
 
 For this implementation, produce:
 
@@ -980,7 +980,7 @@ For this implementation, produce:
 
 ---
 
-# Final Editorial Standard
+## Final Editorial Standard
 
 The target is not simply "five more articles."
 

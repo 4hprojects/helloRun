@@ -1,5 +1,9 @@
 # HelloRun — Full App Review & Improvement Backlog
 
+> **Historical or superseded.** This June 24 review is preserved as evidence,
+> not as an active backlog. The two deferred module refactors are tracked by
+> `DEBT-01` in [`../../ROADMAP.md`](../../ROADMAP.md).
+
 **Reviewed:** June 24, 2026  
 **Scope:** Security, UX/Workflows (runners, organisers, admin), Performance, Infrastructure, Technical Debt  
 **Status:** ✅ All 26 items resolved — P0 through P5 complete as of June 24, 2026  

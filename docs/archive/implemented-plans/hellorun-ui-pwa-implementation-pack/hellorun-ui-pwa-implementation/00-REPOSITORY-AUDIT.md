@@ -1,5 +1,7 @@
 # 00 - Mandatory Repository Audit
 
+> **Archived checklist:** historical implementation guidance, not active work.
+
 ## Objective
 
 Before changing code, determine how HelloRun is currently built.

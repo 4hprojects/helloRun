@@ -1,5 +1,10 @@
 # HelloRun Responsive Navigation and PWA Implementation Pack
 
+> **Historical or superseded.** The repository-specific navigation, responsive
+> foundation, and PWA implementation shipped in October 2026. Unchecked items in
+> this generic pack are not active work; see `REL-05` and `UX-01` in
+> [`../../../../ROADMAP.md`](../../../../ROADMAP.md).
+
 ## Purpose
 
 This implementation pack defines how to refactor HelloRun into a consistent, mobile-first, installable web application without rewriting working business logic.

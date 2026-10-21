@@ -1,5 +1,10 @@
 # Decisions, unresolved details and handoff
 
+> **Historical decision record:** the implementation handoff below predates the merged
+> Phases 0–6. Its open questions preserve context rather than define current tasks;
+> unresolved owner, legal, deployment, and rollout gates are canonical in
+> [ROADMAP](../../ROADMAP.md).
+
 ## Approved product decisions (2026-10-17)
 
 - Keep the activity screenshot submission workflow.

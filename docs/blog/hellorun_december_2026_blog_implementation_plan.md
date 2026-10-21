@@ -1,5 +1,9 @@
 # HelloRun December 2026 Blog Implementation Plan
 
+> **Production reconciliation (October 20, 2026):** all 16 planned slugs exist and are
+> scheduled on their canonical dates. See the canonical
+> [CONTENT-01 audit](../analysis/2026-10-20/editorial-calendar-audit.md).
+
 ## Month Theme
 
 Finish Strong, Start Smart
@@ -20,7 +24,7 @@ It should combine:
 
 ---
 
-# Content Progression From Previous Months
+## Content Progression From Previous Months
 
 ## August
 
@@ -78,7 +82,7 @@ It should combine:
 
 ---
 
-# Final December 2026 Publishing Calendar
+## Final December 2026 Publishing Calendar
 
 | Date | Article | Primary SEO Keyword | Cluster | Search Intent |
 |---|---|---|---|---|
@@ -101,7 +105,7 @@ It should combine:
 
 ---
 
-# Strategic Notes
+## Strategic Notes
 
 December intentionally contains 16 posts because the every-other-day schedule covers all odd-numbered dates from December 1 through December 31.
 
@@ -125,7 +129,7 @@ December 25 to 31 covers challenge design, themes, metrics, and post-event revie
 
 ---
 
-# Article 1 — December 1
+## Article 1 — December 1
 
 ## December Running Challenge for Beginners: A Flexible 30-Day Plan
 
@@ -220,7 +224,7 @@ Choose a December goal that fits your actual schedule, then use a HelloRun event
 
 ---
 
-# Article 2 — December 3
+## Article 2 — December 3
 
 ## Running Streaks: Are They a Good Idea for Beginners?
 
@@ -302,7 +306,7 @@ Choose the type of consistency that you can repeat safely instead of chasing an 
 
 ---
 
-# Article 3 — December 5
+## Article 3 — December 5
 
 ## How Much Running Is Enough to Stay Consistent?
 
@@ -378,7 +382,7 @@ Build the smallest weekly routine you can repeat, then add frequency only when i
 
 ---
 
-# Article 4 — December 7
+## Article 4 — December 7
 
 ## Running Motivation vs Running Habits: What Keeps You Consistent?
 
@@ -460,7 +464,7 @@ Use motivation to choose a goal, then use a repeatable routine to keep working t
 
 ---
 
-# Article 5 — December 9
+## Article 5 — December 9
 
 ## How to Keep Running While Traveling During the Holidays
 
@@ -542,7 +546,7 @@ If you are completing a HelloRun activity while traveling, confirm the event rul
 
 ---
 
-# Article 6 — December 11
+## Article 6 — December 11
 
 ## Treadmill vs Outdoor Running: Which Should Beginners Choose?
 
@@ -627,7 +631,7 @@ Use the environment that supports the day's purpose, then check the event rules 
 
 ---
 
-# Article 7 — December 13
+## Article 7 — December 13
 
 ## How to Finish an Accumulated-Distance Running Challenge Before the Deadline
 
@@ -722,7 +726,7 @@ Check your approved HelloRun total and the event's published deadlines before pl
 
 ---
 
-# Article 8 — December 15
+## Article 8 — December 15
 
 ## How to Plan a Year-End 5K Without Turning It Into an All-Out Race
 
@@ -803,7 +807,7 @@ Use your year-end activity to learn what you want from running next year.
 
 ---
 
-# Article 9 — December 17
+## Article 9 — December 17
 
 ## How to Set Running Goals for 2027
 
@@ -887,7 +891,7 @@ Choose one primary running goal for early 2027, then use smaller checkpoints to 
 
 ---
 
-# Article 10 — December 19
+## Article 10 — December 19
 
 ## New Year Running Plan for Beginners: Your First Four Weeks
 
@@ -966,7 +970,7 @@ Start with a schedule you can repeat through February rather than trying to prov
 
 ---
 
-# Article 11 — December 21
+## Article 11 — December 21
 
 ## How to Restart Running After a Holiday Break
 
@@ -1057,7 +1061,7 @@ Resume from your current condition, not from the calendar date where the old pla
 
 ---
 
-# Article 12 — December 23
+## Article 12 — December 23
 
 ## Running Log for Beginners: What Should You Actually Track?
 
@@ -1138,7 +1142,7 @@ Track enough information to make better decisions, not so much that logging beco
 
 ---
 
-# Article 13 — December 25
+## Article 13 — December 25
 
 ## How to Plan a January Virtual Running Challenge
 
@@ -1218,7 +1222,7 @@ Design the January challenge around a behavior participants can realistically su
 
 ---
 
-# Article 14 — December 27
+## Article 14 — December 27
 
 ## New Year Virtual Run Theme Ideas for Schools, Offices, and Communities
 
@@ -1296,7 +1300,7 @@ Choose the theme after defining the event purpose, participants, activity window
 
 ---
 
-# Article 15 — December 29
+## Article 15 — December 29
 
 ## Virtual Run Metrics Organizers Should Track
 
@@ -1412,7 +1416,7 @@ Choose a small set of metrics before launch so the event can answer the question
 
 ---
 
-# Article 16 — December 31
+## Article 16 — December 31
 
 ## How to Review a Virtual Run After It Ends
 
@@ -1511,7 +1515,7 @@ Carry the lessons into the next event instead of rebuilding the process from mem
 
 ---
 
-# December Internal Linking Architecture
+## December Internal Linking Architecture
 
 ## Running Habit Cluster
 
@@ -1531,7 +1535,7 @@ Carry the lessons into the next event instead of rebuilding the process from mem
 
 ---
 
-# Holiday Adaptation Cluster
+## Holiday Adaptation Cluster
 
 `Busy Schedule Guide`
 ↓
@@ -1545,7 +1549,7 @@ Carry the lessons into the next event instead of rebuilding the process from mem
 
 ---
 
-# Year-End Goal Cluster
+## Year-End Goal Cluster
 
 `Running Year Review`
 ↓
@@ -1559,7 +1563,7 @@ Carry the lessons into the next event instead of rebuilding the process from mem
 
 ---
 
-# Virtual Challenge Completion Cluster
+## Virtual Challenge Completion Cluster
 
 `What Is a Virtual Run?`
 ↓
@@ -1575,7 +1579,7 @@ Carry the lessons into the next event instead of rebuilding the process from mem
 
 ---
 
-# Organizer January Planning Cluster
+## Organizer January Planning Cluster
 
 `End-of-Year Running Challenge`
 ↓
@@ -1593,7 +1597,7 @@ Carry the lessons into the next event instead of rebuilding the process from mem
 
 ---
 
-# SEO Priority
+## SEO Priority
 
 ## Tier 1 — Evergreen search opportunities
 
@@ -1624,7 +1628,7 @@ Tier 3 articles are valuable even when their direct keyword volume is smaller be
 
 ---
 
-# December SEO Implementation Rules
+## December SEO Implementation Rules
 
 ## Seasonal keywords
 
@@ -1643,7 +1647,7 @@ Do not force `2027` into evergreen articles such as treadmill running or running
 
 ---
 
-# Content Freshness
+## Content Freshness
 
 Before publication:
 
@@ -1671,7 +1675,7 @@ Do not copy deadlines from this planning file without checking the live event pa
 
 ---
 
-# Health and Training Accuracy
+## Health and Training Accuracy
 
 For running streak, running frequency, restarting, or training-plan articles:
 
@@ -1686,7 +1690,7 @@ Use current credible sports-health or training sources when making physiological
 
 ---
 
-# Article Production Checklist
+## Article Production Checklist
 
 ## SEO
 
@@ -1728,7 +1732,7 @@ Use current credible sports-health or training sources when making physiological
 
 ---
 
-# December Conversion Funnel
+## December Conversion Funnel
 
 ## Beginner discovery
 
@@ -1765,7 +1769,7 @@ Use current credible sports-health or training sources when making physiological
 
 ---
 
-# Organizer Funnel
+## Organizer Funnel
 
 `year-end event`
 ↓
@@ -1783,7 +1787,7 @@ Use current credible sports-health or training sources when making physiological
 
 ---
 
-# December to January 2027 Bridge
+## December to January 2027 Bridge
 
 December should deliberately leave several strong January follow-ups.
 
@@ -1814,7 +1818,7 @@ January should be finalized only after:
 
 ---
 
-# End-of-Year Runner Architecture
+## End-of-Year Runner Architecture
 
 By December 31, the HelloRun knowledge path should support:
 
@@ -1843,7 +1847,7 @@ By December 31, the HelloRun knowledge path should support:
 
 ---
 
-# End-of-Year Organizer Architecture
+## End-of-Year Organizer Architecture
 
 By December 31, the organizer path should support:
 
@@ -1865,7 +1869,7 @@ By December 31, the organizer path should support:
 
 ---
 
-# Editorial Objective
+## Editorial Objective
 
 December should complete the first major HelloRun content cycle.
 

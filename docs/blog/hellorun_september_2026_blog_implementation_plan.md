@@ -37,7 +37,7 @@ September moves readers toward measurable goals:
 
 ---
 
-# September Publishing Calendar
+## September Publishing Calendar
 
 | Date | Article | Cluster | Primary SEO Keyword | Intent |
 |---|---|---|---|---|
@@ -58,7 +58,7 @@ September moves readers toward measurable goals:
 
 ---
 
-# Existing HelloRun Articles to Reuse for Internal Links
+## Existing HelloRun Articles to Reuse for Internal Links
 
 These August articles should serve as recurring internal-link targets:
 
@@ -83,7 +83,7 @@ Also reuse evergreen HelloRun guides where appropriate:
 
 ---
 
-# Article 1 — September 1
+## Article 1 — September 1
 
 ## September Running Reset: A 30-Day Beginner Running Challenge
 
@@ -193,7 +193,7 @@ Move general running-search visitors toward:
 
 ---
 
-# Article 2 — September 3
+## Article 2 — September 3
 
 ## How to Train for Your First 10K
 
@@ -291,7 +291,7 @@ Find a HelloRun 10K event and use it as a target for your training block.
 
 ---
 
-# Article 3 — September 5
+## Article 3 — September 5
 
 ## How to Breathe While Running
 
@@ -366,7 +366,7 @@ Try the technique during your next easy run or run-walk session, then track the 
 
 ---
 
-# Article 4 — September 8
+## Article 4 — September 8
 
 ## How Long Does It Take to Run 5K, 10K, and 21K?
 
@@ -461,7 +461,7 @@ Choose your distance first, then use HelloRun events to give your training a cle
 
 ---
 
-# Article 5 — September 10
+## Article 5 — September 10
 
 ## How to Choose Running Shoes for Beginners
 
@@ -542,7 +542,7 @@ Once your basic gear is ready, choose a HelloRun event and start with a manageab
 
 ---
 
-# Article 6 — September 12
+## Article 6 — September 12
 
 ## Running Cadence Explained
 
@@ -620,7 +620,7 @@ Use cadence as one data point, not your entire definition of a successful run.
 
 ---
 
-# Article 7 — September 15
+## Article 7 — September 15
 
 ## How Accurate Is Phone GPS for Running?
 
@@ -700,7 +700,7 @@ This article directly connects general running-tech SEO to HelloRun's proof and 
 
 ---
 
-# Article 8 — September 17
+## Article 8 — September 17
 
 ## Can Walking Count Toward a Virtual Run?
 
@@ -786,7 +786,7 @@ Browse HelloRun events and check each event's accepted activities before registe
 
 ---
 
-# Article 9 — September 19
+## Article 9 — September 19
 
 ## How to Run Your First 10K Virtual Run
 
@@ -876,7 +876,7 @@ The surrounding SEO articles should feed readers toward this page.
 
 ---
 
-# Article 10 — September 22
+## Article 10 — September 22
 
 ## GPS Watch vs Running App
 
@@ -967,7 +967,7 @@ Use the device you can operate reliably. Test it before an important HelloRun ac
 
 ---
 
-# Article 11 — September 24
+## Article 11 — September 24
 
 ## How to Promote a Virtual Run and Get More Participants
 
@@ -1050,7 +1050,7 @@ Organizer acquisition article.
 
 ---
 
-# Article 12 — September 26
+## Article 12 — September 26
 
 ## How Much Should You Charge for a Virtual Run?
 
@@ -1136,7 +1136,7 @@ Before publishing, calculate your event costs and decide whether your HelloRun e
 
 ---
 
-# Article 13 — September 28
+## Article 13 — September 28
 
 ## 21K for Beginners
 
@@ -1227,7 +1227,7 @@ Build toward 21K gradually and use a HelloRun event as a future goal when the di
 
 ---
 
-# Article 14 — September 30
+## Article 14 — September 30
 
 ## How to Set a Running Goal for the Last Four Months of the Year
 
@@ -1311,7 +1311,7 @@ Choose one goal for the rest of 2026, then find a HelloRun event that gives the 
 
 ---
 
-# Internal Linking Map
+## Internal Linking Map
 
 ## Beginner Running Journey
 
@@ -1367,7 +1367,7 @@ Choose one goal for the rest of 2026, then find a HelloRun event that gives the 
 
 ---
 
-# Recommended Cross-Linking Rules
+## Recommended Cross-Linking Rules
 
 For each September article:
 
@@ -1381,7 +1381,7 @@ For each September article:
 
 ---
 
-# Suggested Anchor Text Examples
+## Suggested Anchor Text Examples
 
 Instead of repeatedly using:
 
@@ -1400,7 +1400,7 @@ Use descriptive anchors such as:
 
 ---
 
-# September Content Funnel
+## September Content Funnel
 
 ## Discovery
 
@@ -1445,7 +1445,7 @@ Calls to:
 
 ---
 
-# Organizer Funnel
+## Organizer Funnel
 
 Search:
 
@@ -1471,7 +1471,7 @@ Action:
 
 ---
 
-# Article Production Checklist
+## Article Production Checklist
 
 Use this checklist for every September post.
 
@@ -1518,7 +1518,7 @@ Use this checklist for every September post.
 
 ---
 
-# Recommended Implementation Order
+## Recommended Implementation Order
 
 Follow publication order because later articles depend on earlier cluster pages.
 
@@ -1541,7 +1541,7 @@ After each new post is published, update the relevant earlier posts with recipro
 
 ---
 
-# End-of-Month Target Structure
+## End-of-Month Target Structure
 
 By September 30, HelloRun should have a clearly connected beginner-running path:
 

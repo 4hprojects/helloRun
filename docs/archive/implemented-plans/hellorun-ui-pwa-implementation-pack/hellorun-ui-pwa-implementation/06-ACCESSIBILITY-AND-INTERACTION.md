@@ -1,5 +1,7 @@
 # 06 - Accessibility and Interaction
 
+> **Archived checklist:** historical implementation guidance, not active work.
+
 ## Goal
 
 Responsive changes must improve usability without reducing keyboard, screen-reader, or touch accessibility.

@@ -1,5 +1,10 @@
 # Phase 3 — Efficiency
 
+**Current ownership:** `EFF-01` and `EFF-02` in
+[ROADMAP.md](../ROADMAP.md) · **Delivery state:** [STATUS.md](../STATUS.md)
+**Reconciliation note (October 19, 2026):** the cost observations below are a
+July baseline and must be re-measured before implementation.
+
 **Priority:** P2–P3 · **Effort:** ~1 day · **When:** after Phase 2 (some items want live measurement first).
 
 **Context:** the DB layer is already disciplined (July 5 review validated indexes, pagination, aggregate facets, Redis-cached leaderboards). What's left is *request-path* and *asset-pipeline* cost. On a single small Render instance, request-path CPU is the scarce resource — items are ordered by that.

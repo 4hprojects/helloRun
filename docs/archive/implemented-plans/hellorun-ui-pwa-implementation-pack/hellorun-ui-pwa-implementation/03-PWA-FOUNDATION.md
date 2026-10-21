@@ -1,5 +1,7 @@
 # 03 - PWA Foundation
 
+> **Archived checklist:** historical implementation guidance, not active work.
+
 ## Goal
 
 Make HelloRun installable and provide a reliable app-like experience while protecting current data accuracy and authenticated workflows.

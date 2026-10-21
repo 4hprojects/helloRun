@@ -10,7 +10,7 @@ This combined file contains all proposed policy markdown documents.
 
 <!-- File: privacy-policy.md -->
 
-# HelloRun Privacy Policy
+## HelloRun Privacy Policy
 
 **Last Updated:** May 23, 2026  
 **Platform:** HelloRun  
@@ -462,7 +462,7 @@ For privacy questions, data subject requests, or complaints, contact:
 
 <!-- File: data-usage-policy.md -->
 
-# HelloRun Data Usage Policy
+## HelloRun Data Usage Policy
 
 **Last Updated:** May 23, 2026  
 **Platform:** HelloRun  
@@ -801,7 +801,7 @@ Some data may not be immediately deleted if it is needed for legal, financial, s
 
 <!-- File: terms-and-conditions.md -->
 
-# HelloRun Terms and Conditions
+## HelloRun Terms and Conditions
 
 **Last Updated:** May 23, 2026  
 **Platform:** HelloRun  
@@ -1085,7 +1085,7 @@ For questions about these Terms, contact:
 
 <!-- File: cookie-policy.md -->
 
-# HelloRun Cookie Policy
+## HelloRun Cookie Policy
 
 **Last Updated:** May 23, 2026  
 **Platform:** HelloRun  
@@ -1239,7 +1239,7 @@ For questions about this Cookie Policy, contact:
 
 <!-- File: refund-and-cancellation-policy.md -->
 
-# HelloRun Refund and Cancellation Policy
+## HelloRun Refund and Cancellation Policy
 
 **Last Updated:** May 23, 2026  
 **Platform:** HelloRun  
@@ -1375,7 +1375,7 @@ Refund and cancellation concerns may be sent to:
 
 <!-- File: organiser-terms.md -->
 
-# HelloRun Organiser Terms
+## HelloRun Organiser Terms
 
 **Last Updated:** May 23, 2026  
 **Platform:** HelloRun  
@@ -1559,7 +1559,7 @@ Organiser concerns may be sent to:
 
 <!-- File: community-guidelines.md -->
 
-# HelloRun Community Guidelines
+## HelloRun Community Guidelines
 
 **Last Updated:** May 23, 2026  
 **Platform:** HelloRun  
@@ -1685,7 +1685,7 @@ Reports should include:
 
 <!-- File: acceptable-use-policy.md -->
 
-# HelloRun Acceptable Use Policy
+## HelloRun Acceptable Use Policy
 
 **Last Updated:** May 23, 2026  
 **Platform:** HelloRun  
@@ -1788,7 +1788,7 @@ Abuse reports may be sent to:
 
 <!-- File: implementation-notes.md -->
 
-# HelloRun Policy Implementation Notes
+## HelloRun Policy Implementation Notes
 
 **Purpose:** Internal implementation checklist for deploying the updated policy set.
 
