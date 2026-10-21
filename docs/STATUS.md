@@ -467,11 +467,12 @@ isolated-environment baseline at the time it was recorded. The final reset
 left only deterministic seed data, zero registrations/submissions or sync
 failures, and no OCR collections.
 
-The October 20 read-only GitHub audit found that `main` is unprotected, the
-repository has no rulesets, and the baseline head has no status checks or
-Actions runs. The workflow, controlled failure/recovery proof, and required
-branch check therefore remain `PRC-01` verification work after publication.
-See the [GitHub controls audit](analysis/2026-10-20/github-delivery-controls-audit.md).
+The October 20 read-only GitHub audit found that `main` is unprotected and the
+repository has no rulesets. PR #19 supplied the first failure/recovery evidence:
+its initial check caught two ignored vendor assets, commit `928825d` added them,
+and the replacement workflow passed. Making that recovered check required via
+branch or ruleset protection remains `PRC-01` verification work. See the
+[GitHub controls audit](analysis/2026-10-20/github-delivery-controls-audit.md).
 
 After adding the isolated-environment runbook, test evidence, and calendar audit on October 20,
 the same Markdown audit passed across all 265 Markdown files: one H1 per file,

@@ -17,6 +17,11 @@
   seed data. Verification found five Mongo users, three Mongo events, no
   registrations or submissions, five PostgreSQL app users, two organisers,
   three events, zero sync failures, and no OCR collections.
+- PR #19's first workflow exposed that the pinned Lucide and Quill JavaScript
+  files were present locally but excluded by the historical vendor ignore rule.
+  Commit `928825d` added only those two browser assets; the replacement GitHub
+  Actions run then passed every repository check. `PRC-01` remains verification
+  pending until branch or ruleset protection makes the recovered check required.
 
 ## October 22 — DEC-02 owner acceptance
 
