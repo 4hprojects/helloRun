@@ -1,8 +1,9 @@
 # GitHub Delivery Controls Audit
 
 **Audited:** October 20, 2026
+**Completion verified:** October 27, 2026
 **Repository:** `4hprojects/helloRun`
-**Canonical task:** `PRC-01` in [ROADMAP](../../ROADMAP.md)
+**Canonical task:** `PRC-01` — complete
 
 ## Read-only findings
 
@@ -41,3 +42,25 @@ are published. After publication:
    branch/ruleset configuration.
 
 No controlled failing revision should be placed directly on `main`.
+
+## Completion evidence
+
+PR #19 merged as `817ed8755f7654233d70d535119028d067be12d3` on October 27.
+The resulting `main` push run `40373193463` passed `Repository checks / verify`.
+
+The effective `main` protection requires a pull request and a strict, current
+`verify` check. It applies to administrators, requires resolved conversations,
+and disables force pushes and deletion. The required approval count is zero for
+the single-maintainer repository. Emergency administrator recovery requires an
+explicit, auditable protection change before bypassing normal delivery.
+
+Controlled PR #27 supplied the enforcement proof without touching `main`:
+
+1. commit `5e18c86` added one deliberate syntax error;
+2. run `40375415475` failed `verify`, and GitHub reported the PR `BLOCKED`;
+3. commit `3660f5f` removed the proof file;
+4. run `40375618857` passed in 1m54s, and GitHub reported the PR `CLEAN`; and
+5. the PR closed without merge and its temporary remote branch was deleted.
+
+These results complete `PRC-01`. Deployment gating remains separate under
+`OPS-01`.

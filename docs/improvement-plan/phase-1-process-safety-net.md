@@ -1,20 +1,22 @@
 # Phase 1 — Process Safety Net
 
-**Current ownership:** `PRC-01` in [ROADMAP.md](../ROADMAP.md) · **Delivery
-state:** [STATUS.md](../STATUS.md)
+**Current ownership:** historical `PRC-01` completion evidence; remaining
+deployment enforcement belongs to `OPS-01` in [ROADMAP.md](../ROADMAP.md) ·
+**Delivery state:** [STATUS.md](../STATUS.md)
 **Reconciliation note (October 19, 2026):** this is the July assessment.
 Remote-database guards, Node pinning, and graceful shutdown subsequently
 shipped. On October 20, CI, dependency automation, and non-rewriting
-lint/format/documentation gates were added; GitHub and deployment enforcement
-remain verification pending in `PRC-01`.
+lint/format/documentation gates were added. On October 27, protected `main` and
+controlled failure/recovery proof completed `PRC-01`; deployment enforcement
+remains separate under `OPS-01`.
 
 **Priority:** P0–P1 · **Effort:** ~1 day · **When:** same week as Phase 0.
 None of these touch runtime app behavior (except the shutdown handler), so they're low-risk and can be batched.
 
 **Why this phase exists:** the July review found no automated delivery process.
 Production topology later moved to HelloDeploy/nginx/Cloudflare with Render as
-an unverified backup. The repository automation described below now exists;
-account-side required-check and deployment gating still needs owner access.
+an unverified backup. Repository automation and the account-side required check
+now exist. Deployment gating still needs owner/provider access under `OPS-01`.
 
 ---
 
