@@ -1,6 +1,6 @@
 # Phase 2 — Environments & Data Safety
 
-**Current ownership:** `DEC-01`, `DEC-04`, `DEC-07`, `OPS-02`–`OPS-06` in
+**Current ownership:** `DEC-04`, `DEC-07`, `OPS-02`–`OPS-06` in
 [ROADMAP.md](../ROADMAP.md) · **Delivery state:** [STATUS.md](../STATUS.md)
 **Reconciled:** October 20, 2026
 
@@ -58,7 +58,7 @@ PostgreSQL shadows. No deletion was necessary. The separately discovered 99-acco
 fixture footprint is not part of this completed narrow task; it is governed by `DEC-07`
 and the [placeholder audit](../analysis/2026-10-20/production-placeholder-user-audit.md).
 
-## DATA-1 · Decide orphan-record retention (blocked)
+## DATA-1 · Decide orphan-record retention (complete)
 
 The October 20 read-only production refresh supersedes the August counts. All 88
 current onsite registrations reference unavailable events, and 1,116 of 2,401 current
@@ -66,8 +66,11 @@ submissions across both collections have an unavailable runner, event, or regist
 reference. No deletion was attempted. Exact definitions and overlapping counts are in
 the [orphan audit](../analysis/2026-10-20/production-mongo-orphan-audit.md).
 
-`DEC-01` requires an owner-approved retain/quarantine/delete scope and recoverable
-backup before any cross-store or R2 mutation.
+On October 27 the owner chose retain-in-place. No cross-store or R2 mutation is
+authorized. Operator queues already require accessible events; OCR, shadow, and
+step-default backfills now exclude unavailable references while retaining legitimate
+guest rows. Any future disposal requires a new decision, current exact manifest,
+cross-store/R2 plan, and recoverable backup.
 
 ## PRC-7 · Ops runbook (P2)
 

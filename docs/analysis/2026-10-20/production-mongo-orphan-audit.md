@@ -1,8 +1,9 @@
 # Production MongoDB Orphan Audit
 
 **Audit date:** October 20, 2026
+**Decision recorded:** October 27, 2026
 **Mode:** Read-only aggregation
-**Canonical task:** `DEC-01` in [ROADMAP](../../ROADMAP.md)
+**Canonical task:** `DEC-01` — complete
 
 ## Method and definitions
 
@@ -66,3 +67,25 @@ No record was modified. Before pruning, the owner must approve:
 If retention is chosen, the decision should also state how orphan rows are excluded from
 operator queues and future backfills. If deletion is chosen, the operation needs exact
 targets, an audit log, cross-store/R2 handling, and post-run unresolved counts.
+
+## Retention decision
+
+Retain the complete audited orphan footprint as historical and audit evidence. Do not
+delete, reconstruct, relink, or copy it into new PostgreSQL shadow rows. Retain associated
+proof objects and soft-deleted event history. No production mutation or backup is required
+for this retain-in-place decision.
+
+Unavailable records remain quarantined by access and processing boundaries:
+
+- shared administrator and organiser queues require resolvable, non-deleted events;
+- event routes reject missing and soft-deleted events;
+- reminder processing skips missing populated events and users;
+- OCR training backfill now excludes missing and soft-deleted events;
+- registration and submission shadow backfills now skip unavailable event, user, and
+  registration references while preserving legitimate guest rows; and
+- the step-competition legacy backfill now excludes soft-deleted events.
+
+Any future deletion, relinking, or proof-object disposal requires a new owner decision,
+current count-only audit, exact manifest, cross-store/R2 plan, and recoverable backup.
+Focused regression proof passed on October 27: three DB-free retention cases, seven OCR
+backfill integration cases, and the step-default dry-run/apply/idempotence case.

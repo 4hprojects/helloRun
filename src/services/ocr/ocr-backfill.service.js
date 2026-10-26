@@ -21,6 +21,7 @@ const OcrJob = require('../../models/OcrJob');
 const OcrExtraction = require('../../models/OcrExtraction');
 const TrainingSample = require('../../models/TrainingSample');
 const User = require('../../models/User');
+const Event = require('../../models/Event');
 const Submission = require('../../models/Submission');
 const AccumulatedActivitySubmission = require('../../models/AccumulatedActivitySubmission');
 const { getOcrSettings } = require('./ocr-settings.service');
@@ -68,6 +69,18 @@ async function loadRunners(entries) {
   return new Map(runners.map((runner) => [String(runner._id), runner]));
 }
 
+async function loadAvailableEvents(entries) {
+  const ids = [...new Set(entries.map((entry) => String(entry.eventId || '')).filter((id) => mongoose.isValidObjectId(id)))];
+  if (!ids.length) return new Set();
+  const events = await Event.find({ _id: { $in: ids }, isDeleted: { $ne: true } }).select('_id').lean();
+  return new Set(events.map((event) => String(event._id)));
+}
+
+function unavailableEventReason(entry, availableEvents) {
+  const eventId = String(entry.eventId || '');
+  return mongoose.isValidObjectId(eventId) && availableEvents.has(eventId) ? '' : 'event_unavailable';
+}
+
 /** Dry run: how many entries would be used, and why the rest would not. Read-only. */
 async function planBackfill({ now = new Date(), settingsOverride = null } = {}) {
   const settings = settingsOverride || await getOcrSettings({ fresh: true });
@@ -82,9 +95,15 @@ async function planBackfill({ now = new Date(), settingsOverride = null } = {}) 
       if (!batch.length) break;
       lastId = batch[batch.length - 1]._id;
       const runners = await loadRunners(batch);
+      const availableEvents = await loadAvailableEvents(batch);
       const sampled = new Set((await TrainingSample.find({ 'sourceEntry.id': { $in: batch.map((entry) => entry._id) } }).select('sourceEntry.id').lean()).map((row) => String(row.sourceEntry.id)));
       for (const entry of batch) {
         result.total += 1;
+        const eventReason = unavailableEventReason(entry, availableEvents);
+        if (eventReason) {
+          result.excluded[eventReason] = (result.excluded[eventReason] || 0) + 1;
+          continue;
+        }
         const verdict = isEntryUsableForTraining(entry, runners.get(String(entry.runnerId)), evaluateAs, now);
         if (!verdict.usable) {
           result.excluded[verdict.reason] = (result.excluded[verdict.reason] || 0) + 1;
@@ -208,10 +227,14 @@ async function stepBackfill({ now = new Date(), deps = {} } = {}) {
     return { ran: true, processed: 0, reason: 'completed' };
   }
   const runners = await loadRunners(batch.map((item) => item.entry));
+  const availableEvents = await loadAvailableEvents(batch.map((item) => item.entry));
   let processed = 0;
   for (const { source, entry } of batch) {
     const inc = { 'counts.scanned': 1 };
-    const verdict = isEntryUsableForTraining(entry, runners.get(String(entry.runnerId)), settings, now);
+    const eventReason = unavailableEventReason(entry, availableEvents);
+    const verdict = eventReason
+      ? { usable: false, reason: eventReason }
+      : isEntryUsableForTraining(entry, runners.get(String(entry.runnerId)), settings, now);
     if (!verdict.usable) {
       inc[`counts.excluded.${verdict.reason}`] = 1;
     } else if (await TrainingSample.exists({ 'sourceEntry.id': entry._id })) {
@@ -270,5 +293,6 @@ module.exports = {
   cancelBackfill,
   stepBackfill,
   listBackfillRuns,
-  manilaDateKey
+  manilaDateKey,
+  unavailableEventReason
 };

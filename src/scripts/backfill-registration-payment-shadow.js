@@ -2,6 +2,8 @@ require('dotenv').config();
 
 const mongoose = require('mongoose');
 const Registration = require('../models/Registration');
+const Event = require('../models/Event');
+const User = require('../models/User');
 const { getPostgresClient, closePostgresClient } = require('../db/postgres');
 const { syncRegistrationPaymentShadow } = require('../services/registration-payment-shadow.service');
 
@@ -28,6 +30,23 @@ async function loadAlreadySynced() {
   return new Set(rows.map((row) => row.mongo_registration_id));
 }
 
+const toIdSet = (rows) => new Set(rows.map((row) => String(row._id)));
+
+async function loadAvailableReferences(registrations) {
+  const eventIds = registrations.map((row) => row.eventId).filter(Boolean);
+  const userIds = registrations.map((row) => row.userId).filter(Boolean);
+  const [events, users] = await Promise.all([
+    Event.find({ _id: { $in: eventIds }, isDeleted: { $ne: true } }).select('_id').lean(),
+    User.find({ _id: { $in: userIds } }).select('_id').lean()
+  ]);
+  return { events: toIdSet(events), users: toIdSet(users) };
+}
+
+function hasAvailableReferences(registration, available) {
+  if (!registration.eventId || !available.events.has(String(registration.eventId))) return false;
+  return !registration.userId || available.users.has(String(registration.userId));
+}
+
 async function main() {
   await mongoose.connect(process.env.MONGODB_URI, {
     serverSelectionTimeoutMS: 10000,
@@ -47,12 +66,14 @@ async function main() {
   let synced = 0;
   let failed = 0;
   let skipped = 0;
+  let quarantined = 0;
   let lastId = null;
 
   for (;;) {
     const filter = lastId ? { _id: { $gt: lastId } } : {};
     const page = await Registration.find(filter).sort({ _id: 1 }).limit(PAGE_SIZE);
     if (page.length === 0) break;
+    const available = await loadAvailableReferences(page);
 
     for (const registration of page) {
       total += 1;
@@ -60,6 +81,10 @@ async function main() {
 
       if (alreadySynced.has(String(registration._id))) {
         skipped += 1;
+        continue;
+      }
+      if (!hasAvailableReferences(registration, available)) {
+        quarantined += 1;
         continue;
       }
 
@@ -80,20 +105,24 @@ async function main() {
     }
 
     if (!quiet) {
-      console.log(`  processed ${total} (synced ${synced}, skipped ${skipped}, failed ${failed})`);
+      console.log(`  processed ${total} (synced ${synced}, skipped ${skipped}, quarantined ${quarantined}, failed ${failed})`);
     }
   }
 
-  console.log(JSON.stringify({ dryRun, total, synced, skipped, failed }, null, 2));
+  console.log(JSON.stringify({ dryRun, total, synced, skipped, quarantined, failed }, null, 2));
   if (failed > 0) process.exitCode = 1;
 }
 
-main()
-  .catch((error) => {
-    console.error(error.message);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await mongoose.disconnect();
-    await closePostgresClient();
-  });
+if (require.main === module) {
+  main()
+    .catch((error) => {
+      console.error(error.message);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await mongoose.disconnect();
+      await closePostgresClient();
+    });
+}
+
+module.exports = { hasAvailableReferences, loadAvailableReferences };

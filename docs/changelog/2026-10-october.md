@@ -1,5 +1,16 @@
 # HelloRun Changelog — October 2026
 
+## October 27 — DEC-01 orphan retention decision
+
+- Chose retain-in-place for the audited orphaned MongoDB footprint. No source row,
+  PostgreSQL shadow, or proof object was deleted, reconstructed, or relinked.
+- Confirmed administrator and organiser queues require accessible, non-deleted events.
+  Added missing exclusions to OCR training, registration/submission shadow, and legacy
+  step-default backfills. Legitimate guest rows remain eligible.
+- Passed three DB-free retention cases, seven isolated OCR backfill cases, and the
+  isolated step-default dry-run/apply/idempotence case. Closed `DEC-01`; any future
+  disposal requires a new decision, exact manifest, cross-store/R2 plan, and backup.
+
 ## October 27 — PRC-01 GitHub delivery controls complete
 
 - Merged PR #19 as `817ed87`; its `main` push run `40373193463` passed the
