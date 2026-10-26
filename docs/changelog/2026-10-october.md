@@ -1,5 +1,21 @@
 # HelloRun Changelog — October 2026
 
+## October 27 — PRC-01 GitHub delivery controls complete
+
+- Merged PR #19 as `817ed87`; its `main` push run `40373193463` passed the
+  complete `Repository checks / verify` gate.
+- Protected `main` with strict required `verify` status, pull-request delivery,
+  administrator enforcement, resolved-conversation enforcement, and disabled
+  force pushes and branch deletion. This single-maintainer repository requires
+  no approval count; an emergency administrator must explicitly change the
+  protection before bypassing it.
+- Opened controlled PR #27 with deliberate invalid syntax at `5e18c86`. Run
+  `40375415475` failed and GitHub reported the PR `BLOCKED`. Recovery commit
+  `3660f5f` removed the proof file; run `40375618857` passed in 1m54s and the PR
+  returned to `CLEAN`.
+- Closed PR #27 without merging and deleted its temporary remote branch. Marked
+  `PRC-01` complete; deployment enforcement remains separate under `OPS-01`.
+
 ## October 22 — P0/P1 release-hardening candidate
 
 - Consolidated the repository-complete security, delivery, isolated-environment,

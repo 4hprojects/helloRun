@@ -2,10 +2,10 @@
 
 **Source of truth for delivery status**
 
-**Last reconciled:** October 22, 2026
+**Last reconciled:** October 27, 2026
 
-**Evidence window:** working-tree verification through October 22, 2026, based
-on `main` at `0c1fd86`
+**Evidence window:** repository and GitHub delivery-control verification through
+October 27, 2026, based on `main` at `817ed87`
 
 **Forward priorities and the tracked checklist:** [ROADMAP.md](ROADMAP.md)
 
@@ -467,11 +467,13 @@ isolated-environment baseline at the time it was recorded. The final reset
 left only deterministic seed data, zero registrations/submissions or sync
 failures, and no OCR collections.
 
-The October 20 read-only GitHub audit found that `main` is unprotected and the
-repository has no rulesets. PR #19 supplied the first failure/recovery evidence:
-its initial check caught two ignored vendor assets, commit `928825d` added them,
-and the replacement workflow passed. Making that recovered check required via
-branch or ruleset protection remains `PRC-01` verification work. See the
+GitHub delivery controls are complete as of October 27. PR #19 merged the
+repository gate, and the resulting `main` run passed. Branch protection now
+requires an up-to-date `verify` check and a pull request, applies to
+administrators, blocks force pushes and deletion, and requires resolved
+conversations. Controlled PR #27 failed on deliberate invalid syntax at
+`5e18c86` and reported `BLOCKED`; recovery commit `3660f5f` passed and restored
+`CLEAN`. The proof PR closed without merging its temporary content. See the
 [GitHub controls audit](analysis/2026-10-20/github-delivery-controls-audit.md).
 
 After adding the isolated-environment runbook, test evidence, and calendar audit on October 20,
