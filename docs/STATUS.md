@@ -327,14 +327,17 @@ those remain open below.
   history, retention of the three dead letters, continued disclosure of the gap, and
   incident handling for new unresolved failures. Deployment remains tracked separately.
 
-- **Residual shadow gaps are orphaned data, not sync faults.** The October 20 read-only
+- **Residual shadow gaps are retained orphaned evidence, not sync faults.** The October 20 read-only
   refresh found 88 current onsite registrations; all reference unavailable events (48
   hard-missing and 40 soft-deleted). Across 1,076 single-activity and 1,325 accumulated
   submissions, 1,116 have an unavailable runner, event, or registration reference;
   every submission still resolves to a registration. The older August population has
   therefore been superseded by the [current count audit](analysis/2026-10-20/production-mongo-orphan-audit.md).
-  No row was changed. `DEC-01` remains blocked on an approved retention scope and
-  recoverable backup; a backfill cannot recreate hard-deleted source records.
+  On October 27 the owner chose retain-in-place: no source row, shadow row, or proof
+  object is deleted, reconstructed, or relinked. Operator queues already require
+  accessible events. OCR, shadow, and step-default backfills now exclude unavailable
+  references while retaining legitimate guest rows. A future disposal proposal requires
+  a new decision, current exact manifest, cross-store/R2 plan, and recoverable backup.
 - **Step-competition production verification is still outstanding.** On October 20 the
   isolated database was audited: migration `022` is recorded, every expected PostgreSQL
   column has the intended nullability, and a real MongoDB legacy row passed dry-run,

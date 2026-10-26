@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const Event = require('../models/Event');
 
 const LEGACY_FILTER = {
+  isDeleted: { $ne: true },
   virtualCompletionMode: 'accumulated_distance',
   $or: [
     { challengeMetrics: { $exists: false } },

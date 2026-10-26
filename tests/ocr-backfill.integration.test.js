@@ -16,6 +16,7 @@ const skip = !/^mongodb:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//.test(TEST_URI) ||
 
 const Submission = require('../src/models/Submission');
 const User = require('../src/models/User');
+const Event = require('../src/models/Event');
 const OcrJob = require('../src/models/OcrJob');
 const OcrExtraction = require('../src/models/OcrExtraction');
 const OcrBackfillRun = require('../src/models/OcrBackfillRun');
@@ -45,6 +46,7 @@ const engine = {
 };
 // A distinct image per proof key, so identical-crop deduplication does not hide entries.
 const imagesByKey = new Map();
+let defaultEventId;
 async function imageFor(key) {
   if (!imagesByKey.has(key)) {
     const width = 40 + (imagesByKey.size * 9) % 100;
@@ -69,7 +71,7 @@ async function addRunner(overrides = {}) {
 async function addEntry(runnerId, overrides = {}) {
   const id = new mongoose.Types.ObjectId();
   await Submission.collection.insertOne({
-    _id: id, registrationId: new mongoose.Types.ObjectId(), eventId: new mongoose.Types.ObjectId(), runnerId,
+    _id: id, registrationId: new mongoose.Types.ObjectId(), eventId: defaultEventId, runnerId,
     raceDistance: '5K', distanceKm: 5.02, elapsedMs: 1_710_000, runDate: new Date('2026-04-25'), status: 'approved',
     proof: { key: `results/proofs/${id}.webp`, mimeType: 'image/webp', hash: String(id).padEnd(64, '0') },
     ...overrides
@@ -96,6 +98,12 @@ test.describe('training backfill against local MongoDB', { skip }, () => {
     await mongoose.connection.db.dropDatabase();
     await Promise.all([Submission, OcrJob, OcrExtraction, OcrBackfillRun, OcrSettings, TrainingSample].map((Model) => Model.syncIndexes()));
     clearOcrSettingsCache();
+    defaultEventId = new mongoose.Types.ObjectId();
+    const deletedEventId = new mongoose.Types.ObjectId();
+    await Event.collection.insertMany([
+      { _id: defaultEventId, title: 'OCR backfill event', slug: `ocr-backfill-${defaultEventId}`, isDeleted: false },
+      { _id: deletedEventId, title: 'Deleted OCR event', slug: `ocr-backfill-deleted-${deletedEventId}`, isDeleted: true }
+    ]);
     people.adult = await addRunner({ dateOfBirth: new Date('1990-05-05') });
     people.objector = await addRunner({ ocrTrainingOptOut: { optedOut: true, at: new Date() } });
     people.minor = await addRunner({ dateOfBirth: new Date('2012-01-01') });
@@ -108,6 +116,8 @@ test.describe('training backfill against local MongoDB', { skip }, () => {
     await addEntry(people.closed);
     await addEntry(null); // guest / onsite entry
     await addEntry(people.adult, { proof: { key: 'results/proofs/x.pdf', mimeType: 'application/pdf' } });
+    await addEntry(people.adult, { eventId: new mongoose.Types.ObjectId() });
+    await addEntry(people.adult, { eventId: deletedEventId });
     people.lateEntry = await addEntry(people.late);
     process.env.OCR_SERVER_PIPELINE_ENABLED = 'true';
   });
@@ -129,10 +139,10 @@ test.describe('training backfill against local MongoDB', { skip }, () => {
 
   test('the dry run counts usable entries (approved and rejected) and explains the rest', async () => {
     const plan = await backfill.planBackfill({ now: NOW });
-    assert.equal(plan.total, 8);
+    assert.equal(plan.total, 10);
     assert.equal(plan.usable, 3, 'two adult entries plus the late runner');
     assert.deepEqual(plan.byStatus, { approved: 2, rejected: 1 });
-    assert.deepEqual(plan.excluded, { runner_objected: 1, known_minor: 1, account_inactive: 1, no_runner_account: 1, not_an_image: 1 });
+    assert.deepEqual(plan.excluded, { runner_objected: 1, known_minor: 1, account_inactive: 1, no_runner_account: 1, not_an_image: 1, event_unavailable: 2 });
     assert.equal(await TrainingSample.countDocuments({}), 0, 'a dry run writes nothing');
   });
 
@@ -156,9 +166,10 @@ test.describe('training backfill against local MongoDB', { skip }, () => {
     }
     run = await OcrBackfillRun.findById(run._id).lean();
     assert.equal(run.status, 'completed');
-    assert.equal(run.counts.scanned, 8);
+    assert.equal(run.counts.scanned, 10);
     assert.equal(run.counts.excluded.runner_objected, 1);
     assert.equal(run.counts.excluded.known_minor, 1);
+    assert.equal(run.counts.excluded.event_unavailable, 2);
     const samples = await TrainingSample.find({}).lean();
     const entries = new Set(samples.map((sample) => String(sample.sourceEntry.id)));
     assert.equal(entries.size, 3, 'samples only from the three usable entries');

@@ -5,6 +5,9 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const { syncSubmissionShadow } = require('../services/submission-shadow.service');
 const { getPostgresClient } = require('../db/postgres');
+const Event = require('../models/Event');
+const Registration = require('../models/Registration');
+const User = require('../models/User');
 
 const BATCH_SIZE = 50;
 
@@ -18,6 +21,26 @@ const BATCH_SIZE = 50;
 async function loadAlreadySynced(client) {
   const rows = await client`SELECT mongo_submission_id FROM submissions_core`;
   return new Set(rows.map((row) => row.mongo_submission_id));
+}
+
+const toIdSet = (rows) => new Set(rows.map((row) => String(row._id)));
+
+async function loadAvailableReferences(submissions) {
+  const eventIds = submissions.map((row) => row.eventId).filter(Boolean);
+  const registrationIds = submissions.map((row) => row.registrationId).filter(Boolean);
+  const runnerIds = submissions.map((row) => row.runnerId).filter(Boolean);
+  const [events, registrations, users] = await Promise.all([
+    Event.find({ _id: { $in: eventIds }, isDeleted: { $ne: true } }).select('_id').lean(),
+    Registration.find({ _id: { $in: registrationIds } }).select('_id').lean(),
+    User.find({ _id: { $in: runnerIds } }).select('_id').lean()
+  ]);
+  return { events: toIdSet(events), registrations: toIdSet(registrations), users: toIdSet(users) };
+}
+
+function hasAvailableReferences(submission, available) {
+  if (!submission.eventId || !available.events.has(String(submission.eventId))) return false;
+  if (!submission.registrationId || !available.registrations.has(String(submission.registrationId))) return false;
+  return !submission.runnerId || available.users.has(String(submission.runnerId));
 }
 
 async function backfillSubmissions() {
@@ -51,6 +74,7 @@ async function backfillSubmissions() {
     let synced = 0;
     let failed = 0;
     let skipped = 0;
+    let quarantined = 0;
     const failedIds = [];
 
     // Keyset pagination: a large .skip() gets slower the further in it goes, and this
@@ -63,6 +87,7 @@ async function backfillSubmissions() {
         .limit(BATCH_SIZE)
         .lean();
       if (submissions.length === 0) break;
+      const available = await loadAvailableReferences(submissions);
 
       for (const submission of submissions) {
         lastId = submission._id;
@@ -70,6 +95,10 @@ async function backfillSubmissions() {
 
         if (alreadySynced.has(String(submission._id))) {
           skipped++;
+          continue;
+        }
+        if (!hasAvailableReferences(submission, available)) {
+          quarantined++;
           continue;
         }
         if (dryRun) {
@@ -88,7 +117,7 @@ async function backfillSubmissions() {
       }
 
       if (processed % 200 === 0) {
-        console.log(`Progress: ${processed}/${totalCount} (${synced} synced, ${skipped} skipped, ${failed} failed)`);
+        console.log(`Progress: ${processed}/${totalCount} (${synced} synced, ${skipped} skipped, ${quarantined} quarantined, ${failed} failed)`);
       }
     }
 
@@ -104,6 +133,7 @@ async function backfillSubmissions() {
     console.log(`Total MongoDB submissions: ${totalCount}`);
     console.log(`Successfully synced: ${synced}`);
     console.log(`Skipped (already present): ${skipped}`);
+    console.log(`Quarantined (unavailable references): ${quarantined}`);
     console.log(`Failed: ${failed}`);
     console.log(`Supabase migration_records verified: ${syncedCount}`);
 
@@ -118,4 +148,6 @@ async function backfillSubmissions() {
   }
 }
 
-backfillSubmissions();
+if (require.main === module) backfillSubmissions();
+
+module.exports = { hasAvailableReferences, loadAvailableReferences };

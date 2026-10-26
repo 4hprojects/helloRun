@@ -25,7 +25,8 @@ test.after(async () => {
 test('legacy step-competition defaults are dry-run safe and idempotent', async () => {
   const legacyId = new mongoose.Types.ObjectId();
   const modernId = new mongoose.Types.ObjectId();
-  eventIds.push(legacyId, modernId);
+  const deletedLegacyId = new mongoose.Types.ObjectId();
+  eventIds.push(legacyId, modernId, deletedLegacyId);
 
   // Raw inserts preserve the exact pre-migration shape; schema defaults would hide the
   // missing fields this backfill is responsible for repairing.
@@ -44,6 +45,13 @@ test('legacy step-competition defaults are dry-run safe and idempotent', async (
       challengeMetrics: ['steps'],
       primaryChallengeMetric: 'steps',
       targetSteps: 100_000
+    },
+    {
+      _id: deletedLegacyId,
+      title: 'Deleted legacy accumulated event',
+      slug: `rel-06-deleted-${deletedLegacyId}`,
+      virtualCompletionMode: 'accumulated_distance',
+      isDeleted: true
     }
   ]);
 
@@ -58,6 +66,9 @@ test('legacy step-competition defaults are dry-run safe and idempotent', async (
   assert.deepEqual(repaired.challengeMetrics, ['distance']);
   assert.equal(repaired.primaryChallengeMetric, 'distance');
   assert.equal(repaired.targetSteps, null);
+
+  const deleted = await Event.collection.findOne({ _id: deletedLegacyId });
+  assert.equal(deleted.challengeMetrics, undefined);
 
   const modern = await Event.collection.findOne({ _id: modernId });
   assert.deepEqual(modern.challengeMetrics, ['steps']);

@@ -30,7 +30,6 @@ require an owner decision and must not be inferred by an implementation agent.
 
 | ID | State | Size | Task and dependency | Completion evidence | Source |
 |---|---|---:|---|---|---|
-| DEC-01 | blocked | M | Decide whether to prune, quarantine, or retain the current orphaned MongoDB footprint. The October 20 read-only refresh found all 88 onsite registrations tied to unavailable events (48 hard-missing, 40 soft-deleted) and 1,116 of 2,401 submissions across both collections with an unavailable runner, event, or registration reference. Depends on an approved retention decision and recoverable production backup. | Current count audit is complete. Closure requires a written scope/retention decision; if pruning is approved, exact cross-store/R2 dry run, operation log, and post-run unresolved counts. | [orphan audit](analysis/2026-10-20/production-mongo-orphan-audit.md) |
 | DEC-02 | complete | S | The owner accepted the pre-August `audit_critical` gap as unrecoverable on October 22. Do not synthesize history; retain the three legacy dead letters as evidence; preserve the documented limitation; and treat every new unresolved critical-audit failure as an incident. | Explicit owner acceptance recorded October 22, backed by the technical record distinguishing 344 existing pre-fix event-dated rows, three known legacy dead letters, and an unknown wider gap. Deployment verification of the forward retry fix remains separate. | [decision record](analysis/2026-10-20/critical-audit-history-gap.md) |
 | DEC-03 | blocked | S | Set retention and account-deletion rules for `ReviewDecision` evidence and proof files. Depends on privacy/legal review. | Approved retention table covering decision rows, referenced proof objects, deletion requests, and legal/audit holds. | [STATUS](STATUS.md#implemented-production-or-live-verification-pending) |
 | DEC-04 | complete | S | The two narrowly identified `purge.runner` / `purge.organizer` placeholder patterns now match zero production Mongo users and zero `app_users` rows. No deletion or owner decision remains. | October 20 read-only exact-pattern audit: matched `0`; modified `0`. | [placeholder audit](analysis/2026-10-20/production-placeholder-user-audit.md) |
@@ -126,7 +125,7 @@ they are actionable.
 | `design/ui-ux-reference.md` | Supporting UX/security recommendations | `SEC-05`, `UX-01` |
 | `create_event/step-competition-feature-plan.md` | Verification-only rollout checklist | `REL-06` |
 | `create_event/event_auto_approval_plan.md` | Verification-only evidence for the implemented trusted-organiser path | `REL-07` |
-| `features/onsite-registration-expansion/delivery-plan.md` | Owner decisions and verification-only checks | `DEC-01`, `DEC-02`, `REL-06`, `REL-07` |
+| `features/onsite-registration-expansion/delivery-plan.md` | Owner decisions and verification-only checks | `DEC-02`, `REL-06`, `REL-07` |
 | `implementation/verification-pending/*` and `implementation/smoke-test-cleanup-guide.md` | Verification-only implementation records | `OPS-06`, `REL-07` |
 | October, November, and December 2026 blog implementation plans | Production inventory and editorial acceptance checks | `CONTENT-01` |
 | September 2026 blog plan and `create_event/september-active-run-2026-event-brief.md` | Historical calendar/event checklists; no active task inferred | None |
