@@ -80,7 +80,7 @@
 
         <div class="rpr-field rpr-field-sort">
           <label for="sort">Sort</label>
-          <select id="sort" name="sort" onchange="this.form.submit()">
+          <select id="sort" name="sort" data-auto-submit>
             <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest first</option>
             <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest first</option>
           </select>
@@ -306,8 +306,8 @@
   </main>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     if (window.lucide) lucide.createIcons();
     (function () {
       var tabs = document.querySelector('.rpr-tabs');

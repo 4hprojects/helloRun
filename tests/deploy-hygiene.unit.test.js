@@ -9,9 +9,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
-const { getBuildInfo, readCommitFromGitDir } = require('../src/utils/build-info');
+const { getBuildInfo, readBuildMetadataFile, readCommitFromGitDir } = require('../src/utils/build-info');
+const { captureBuildInfo } = require('../src/scripts/capture-build-info');
 const {
   assertTestDatabasesAreSafe,
   findRemoteTargets,
@@ -19,6 +21,11 @@ const {
   hostnameOf,
   OVERRIDE_ENV_VAR
 } = require('../src/scripts/test-db-guard');
+const {
+  databaseNameOf,
+  findUnsafeRemoteTargets,
+  isSafeNonProductionDatabaseName
+} = require('../src/config/database-safety');
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -46,6 +53,27 @@ test('the commit resolves from the environment first, then from .git', () => {
 
   const fromGit = readCommitFromGitDir();
   assert.match(fromGit, /^[0-9a-f]{40}$/, 'this repository has a .git to read');
+});
+
+test('the install stage captures commit metadata for runtimes without .git', () => {
+  const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'hellorun-build-info-'));
+  const outputPath = path.join(tempDirectory, 'build-info.json');
+  const commit = 'a'.repeat(40);
+
+  try {
+    const captured = captureBuildInfo({
+      outputPath,
+      env: { COMMIT_SHA: commit, GIT_BRANCH: 'main' }
+    });
+    assert.equal(captured.commit, commit);
+    assert.equal(captured.branch, 'main');
+    assert.deepEqual(readBuildMetadataFile(outputPath), captured);
+
+    const packageJson = JSON.parse(read('package.json'));
+    assert.match(packageJson.scripts.postinstall, /^npm run capture-build-info/);
+  } finally {
+    fs.rmSync(tempDirectory, { recursive: true, force: true });
+  }
 });
 
 // --- The install path -------------------------------------------------------------------
@@ -118,15 +146,34 @@ test('the guard judges the target, not a list of known production hostnames', ()
   assert.deepEqual(findRemoteTargets({ DATABASE_URL: '' }), []);
 });
 
-test('the override is explicit and says what it is doing', () => {
+test('the override accepts only clearly named remote non-production databases', () => {
   const production = { MONGODB_URI: 'mongodb+srv://u:p@cluster0.11fgflq.mongodb.net/db' };
-  const result = assertTestDatabasesAreSafe(['tests/*.test.js'], {
+  assert.throws(() => assertTestDatabasesAreSafe(['tests/*.test.js'], {
     ...production,
+    [OVERRIDE_ENV_VAR]: '1'
+  }), /production-looking remote database/);
+
+  const result = assertTestDatabasesAreSafe(['tests/*.test.js'], {
+    MONGODB_URI: 'mongodb+srv://u:p@staging.example.test/hellorun_test',
+    DATABASE_URL: 'postgres://u:p@staging.example.test/hellorun_staging',
     [OVERRIDE_ENV_VAR]: '1'
   });
   assert.equal(result.overridden, true);
   // Not truthiness: a stray ALLOW_REMOTE_TEST_DB=0 must not disable the guard.
   assert.throws(() => assertTestDatabasesAreSafe(['tests/*.test.js'], { ...production, [OVERRIDE_ENV_VAR]: '0' }));
+});
+
+test('database safety parses names without exposing credentials', () => {
+  assert.equal(databaseNameOf('postgres://user:secret@example.test/hellorun_staging?sslmode=require'), 'hellorun_staging');
+  assert.equal(databaseNameOf('mongodb+srv://user:secret@example.test/hellorun_test'), 'hellorun_test');
+  assert.equal(isSafeNonProductionDatabaseName('hellorun_dev'), true);
+  assert.equal(isSafeNonProductionDatabaseName('hellorun'), false);
+  assert.equal(findUnsafeRemoteTargets({ REDIS_URL: 'redis://cache.example.test:6379/1' }).length, 1);
+});
+
+test('Postgres keeps TLS for remote hosts and disables it only for loopback', () => {
+  const source = read('src/db/postgres.js');
+  assert.match(source, /isLocalHostname\(hostnameOf\(connectionString\)\) \? false : 'require'/);
 });
 
 test('every test script routes through the guard', () => {

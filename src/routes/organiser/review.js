@@ -2,6 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const {
+  protectEventReviewRead,
+  protectEventReviewMutation
+} = require('./event-route-protection');
+const {
   getRejectionReasonOptions,
   resolveRejectionReason,
   formatRejectionAuditNote
@@ -127,7 +131,7 @@ async function redirectAfterRunProofDecision(res, eventId, message, queueContext
   return res.redirect(`${queuePath}${separator}${params.toString()}`);
 }
 
-router.get('/events/:id/submissions/export', requireAuth, registrantExportLimiter, async (req, res) => {
+router.get('/events/:id/submissions/export', protectEventReviewRead, registrantExportLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('role organizerStatus');
     if (!user || !canAccessRegistrantReview(user)) return res.status(403).send('Access denied.');
@@ -159,7 +163,7 @@ router.get('/events/:id/submissions/export', requireAuth, registrantExportLimite
   }
 });
 
-router.get('/events/:id/participant-totals/export', requireAuth, registrantExportLimiter, async (req, res) => {
+router.get('/events/:id/participant-totals/export', protectEventReviewRead, registrantExportLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('role organizerStatus');
     if (!user || !canAccessRegistrantReview(user)) return res.status(403).send('Access denied.');
@@ -768,7 +772,7 @@ function respondToSubmissionHubAction(req, res, { ok, status = 200, message, dat
    POST: Bulk Approve Payment Proofs
    ========================================== */
 
-router.post('/events/:id/payment-reviews/bulk-approve', requireAuth, requireCsrfProtection, async (req, res) => {
+router.post('/events/:id/payment-reviews/bulk-approve', protectEventReviewMutation, async (req, res) => {
   const returnFilters = normalizePaymentProofReviewFilters({
     status: req.body.returnStatus,
     q: req.body.returnQ,
@@ -861,7 +865,7 @@ router.post('/events/:id/payment-reviews/bulk-approve', requireAuth, requireCsrf
    POST: Send Direct Message to Registrant
    ========================================== */
 
-router.post('/events/:id/registrants/:registrationId/send-message', requireAuth, requireCsrfProtection, directMessageLimiter, async (req, res) => {
+router.post('/events/:id/registrants/:registrationId/send-message', protectEventReviewMutation, directMessageLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
     if (!user || !canAccessRegistrantReview(user)) {
@@ -926,7 +930,7 @@ router.post('/events/:id/registrants/:registrationId/send-message', requireAuth,
    POST: Email All Unpaid Registrants
    ========================================== */
 
-router.post('/events/:id/registrants/email-unpaid', requireAuth, requireCsrfProtection, async (req, res) => {
+router.post('/events/:id/registrants/email-unpaid', protectEventReviewMutation, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
     if (!user || !canAccessRegistrantReview(user)) {
@@ -1003,7 +1007,7 @@ router.post('/events/:id/registrants/email-unpaid', requireAuth, requireCsrfProt
    GET: Payment Proof Review
    ========================================== */
 
-router.get('/events/:eventId/payment-proofs/review', requireAuth, async (req, res) => {
+router.get('/events/:eventId/payment-proofs/review', protectEventReviewRead, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
     if (!user) {
@@ -1118,7 +1122,7 @@ router.get('/events/:eventId/payment-proofs/review', requireAuth, async (req, re
    GET: Run Proof Review
    ========================================== */
 
-router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) => {
+router.get('/events/:eventId/run-proofs/review', protectEventReviewRead, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
     if (!user) {
@@ -1262,7 +1266,7 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
    GET: Individual Submission Review
    ========================================== */
 
-router.get('/events/:id/submissions/:submissionId/review', requireAuth, async (req, res) => {
+router.get('/events/:id/submissions/:submissionId/review', protectEventReviewRead, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus adminTier');
     if (!user) {
@@ -1332,8 +1336,7 @@ router.get('/events/:id/submissions/:submissionId/review', requireAuth, async (r
 
 router.post(
   '/events/:id/registrants/:registrationId/payment/approve',
-  requireAuth,
-  requireCsrfProtection,
+  protectEventReviewMutation,
   paymentReviewActionLimiter,
   async (req, res) => {
     try {
@@ -1508,8 +1511,7 @@ router.post(
 
 router.post(
   '/events/:id/registrants/:registrationId/payment/reject',
-  requireAuth,
-  requireCsrfProtection,
+  protectEventReviewMutation,
   paymentReviewActionLimiter,
   async (req, res) => {
     try {
@@ -1677,8 +1679,7 @@ router.post(
 
 router.post(
   '/events/:id/submissions/:submissionId/approve',
-  requireAuth,
-  requireCsrfProtection,
+  protectEventReviewMutation,
   submissionReviewActionLimiter,
   async (req, res) => {
     try {
@@ -1774,8 +1775,7 @@ router.post(
 
 router.post(
   '/events/:id/submissions/:submissionId/reject',
-  requireAuth,
-  requireCsrfProtection,
+  protectEventReviewMutation,
   submissionReviewActionLimiter,
   async (req, res) => {
     try {
@@ -1873,8 +1873,7 @@ router.post(
 
 router.post(
   '/events/:id/submissions/:submissionId/clarify',
-  requireAuth,
-  requireCsrfProtection,
+  protectEventReviewMutation,
   submissionReviewActionLimiter,
   async (req, res) => {
     try {

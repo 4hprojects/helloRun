@@ -68,6 +68,7 @@ async function createSubmission({
   source,
   stravaActivity,
   submissionAttemptId,
+  honorSystemConfirmed,
   activityEvidence,
   ocrTrainingConsent
 }) {
@@ -90,6 +91,7 @@ async function createSubmission({
       source,
       stravaActivity,
       submissionAttemptId,
+      honorSystemConfirmed,
       activityEvidence,
       ocrTrainingConsent
     });
@@ -124,6 +126,7 @@ async function createSubmission({
       source,
       stravaActivity,
       submissionAttemptId,
+      honorSystemConfirmed,
       activityEvidence,
       ocrTrainingConsent
     }));
@@ -290,6 +293,7 @@ async function resubmitSubmission({
   source,
   stravaActivity,
   submissionAttemptId,
+  honorSystemConfirmed,
   activityEvidence,
   ocrTrainingConsent
 }) {
@@ -327,6 +331,7 @@ async function resubmitSubmission({
     source,
     stravaActivity,
     submissionAttemptId,
+    honorSystemConfirmed,
     activityEvidence,
     ocrTrainingConsent
   });
@@ -339,6 +344,7 @@ async function resubmitSubmission({
   existing.proofType = payload.proofType;
   existing.proof = payload.proof;
   existing.proofNotes = payload.proofNotes;
+  existing.honorSystemConfirmed = payload.honorSystemConfirmed;
   existing.ocrData = payload.ocrData;
   existing.validation = payload.validation;
   existing.source = payload.source;
@@ -405,7 +411,9 @@ async function reviewSubmission({
 
   const submission = await Submission.findById(submissionId);
   if (!submission) {
-    throw new Error('Submission not found.');
+    const error = new Error('Submission not found.');
+    error.code = 'submission_not_found';
+    throw error;
   }
   const isApprovalReversal = safeAction === 'reject'
     && submission.status === 'approved'
@@ -1027,6 +1035,7 @@ async function createPersonalRecordSubmission({
   source,
   stravaActivity,
   submissionAttemptId,
+  honorSystemConfirmed,
   activityEvidence,
   ocrTrainingConsent
 }) {
@@ -1107,6 +1116,7 @@ async function createPersonalRecordSubmission({
     source,
     stravaActivity,
     submissionAttemptId,
+    honorSystemConfirmed,
     activityEvidence,
     ocrTrainingConsent
   });
@@ -1325,6 +1335,7 @@ function sanitizeStravaActivity(value) {
       elapsedTimeSeconds: null,
       startDate: null,
       startDateLocal: null,
+      startDateLocalText: '',
       timezone: '',
       elevationGain: null,
       averageSpeed: null,
@@ -1345,6 +1356,7 @@ function sanitizeStravaActivity(value) {
     elapsedTimeSeconds: sanitizeOptionalNumber(value.elapsedTimeSeconds, 0, 7 * 24 * 60 * 60),
     startDate: sanitizeOptionalDate(value.startDate),
     startDateLocal: sanitizeOptionalDate(value.startDateLocal),
+    startDateLocalText: String(value.startDateLocalText || '').trim().slice(0, 80),
     timezone: String(value.timezone || '').trim().slice(0, 120),
     elevationGain: sanitizeOptionalNumber(value.elevationGain, 0, 20000),
     averageSpeed: sanitizeOptionalNumber(value.averageSpeed, 0, 100),

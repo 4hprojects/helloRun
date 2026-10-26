@@ -151,7 +151,7 @@
                       src="<%= event.imageUrl %>"
                       alt="<%= event.title %> banner"
                       loading="lazy"
-                      onerror="this.onerror=null;this.src='<%= event.fallbackImageUrl %>';">
+                      data-fallback-src="<%= event.fallbackImageUrl %>">
                   </a>
 
                   <div class="featured-event-body">
@@ -287,7 +287,7 @@
                     src="<%= post.coverImageUrl || '/images/helloRun-icon.webp' %>"
                     alt=""
                     loading="lazy"
-                    onerror="this.onerror=null;this.src='/images/helloRun-icon.webp';">
+                    data-fallback-src="/images/helloRun-icon.webp">
                 </a>
                 <div class="home-blog-body">
                   <div class="home-blog-meta">
@@ -329,7 +329,7 @@
 
   <%- include('../layouts/footer') %>
 
-  <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

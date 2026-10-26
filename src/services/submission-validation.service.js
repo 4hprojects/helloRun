@@ -54,7 +54,7 @@ function sanitizeOcrData(value) {
   const steps = sanitizeOptionalNumber(value.extractedSteps, 0, 200000);
   const ALLOWED_SOURCES = new Set(['strava', 'nike', 'garmin', 'apple', 'google', 'coros', 'unknown', '']);
   const ALLOWED_NAME_STATUSES = new Set(['matched', 'mismatched', 'not_detected', 'not_checked']);
-  const ALLOWED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run', '']);
+  const ALLOWED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run', 'treadmill', '']);
   const rawSource = String(value.detectedSource || '').trim().toLowerCase();
   const rawNameStatus = String(value.nameMatchStatus || '').trim().toLowerCase();
   const rawRunType = String(value.extractedRunType || '').trim().toLowerCase();

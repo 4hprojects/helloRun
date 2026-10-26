@@ -2,12 +2,13 @@
 
 const OcrAuditEvent = require('../../models/OcrAuditEvent');
 const { recordCriticalAuditEventInBackground } = require('../critical-audit.service');
+const { getClientIp } = require('../../utils/client-ip');
 
 function requestContext(req) {
   if (!req) return { actorId: null, ipAddress: '', userAgent: '' };
   return {
     actorId: req.session?.userId || null,
-    ipAddress: String(req.ip || '').slice(0, 64),
+    ipAddress: getClientIp(req).slice(0, 64),
     userAgent: String(req.get?.('user-agent') || '').slice(0, 300)
   };
 }

@@ -1,8 +1,9 @@
 # Runner Profile Location and Timezone Reminder
 
-**Status:** Initial profile and dashboard slice implemented
+**Status:** Core profile and critical-time presentation implemented; deployed verification pending
 
-**Last reconciled:** August 8, 2026 · **Delivery state:** [STATUS.md](../STATUS.md)
+**Last reconciled:** October 20, 2026 · **Priority owner:** `TIME-01` in
+[ROADMAP.md](../ROADMAP.md) · **Delivery state:** [STATUS.md](../STATUS.md)
 
 **Audience:** Product, design, and engineering
 
@@ -10,15 +11,20 @@
 
 ## Implementation progress
 
-Implemented in the first slice:
+Implemented:
 
 - Persisted timezone, confirmation timestamp, and selection source on runner profiles.
 - Editable IANA timezone selector in the profile contact/location section.
 - Browser recommendation, conservative Philippines country suggestion, privacy copy, and explicit confirmation.
 - Timezone in profile completeness and dashboard reminders linked to `/runner/profile#location`.
 - Dedicated Location & Timezone profile panel with a separate save action. Missing values are preselected from Cloudflare's country header and the browser timezone but are never persisted without confirmation.
+- Registration review, runner dashboard journeys, registration history, and confirmation email show the confirmed runner-local time beside the official Manila time; Manila is explicitly labeled when it is the fallback.
+- Strava imports preserve authoritative UTC, source-local text, and source timezone without allowing later profile changes to rewrite evidence.
 
-Registration review reminders, submission evidence comparison, mismatch dismissal state, and paired deadline displays remain to be implemented.
+The October 20 production ISO comparison and date-only boundary review are recorded in the
+[timezone audit](../analysis/2026-10-20/production-timezone-audit.md). CNS shadow repair,
+broader organiser confirmation, browser-mismatch dismissal state, and deployed
+accessibility checks remain under `TIME-01`.
 
 ## Goal
 

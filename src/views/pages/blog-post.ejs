@@ -13,7 +13,7 @@
     const _postPublished = post.publishedAt ? new Date(post.publishedAt).toISOString() : new Date(post.createdAt).toISOString();
     const _postModified = post.updatedAt ? new Date(post.updatedAt).toISOString() : _postPublished;
   %>
-  <script type="application/ld+json"><%- safeJson({
+  <script nonce="<%= locals.cspNonce || String() %>" type="application/ld+json"><%- safeJson({
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     "headline": post.title,
@@ -31,7 +31,7 @@
     "keywords": (post.tags || []).join(', '),
     "articleSection": post.category
   }) %></script>
-  <script type="application/ld+json"><%- safeJson({
+  <script nonce="<%= locals.cspNonce || String() %>" type="application/ld+json"><%- safeJson({
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
@@ -408,8 +408,8 @@
   </div>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     (function initBlogPostEnhancements() {
       // ---- DOM elements ----
       const content = document.getElementById('blogPostContent');
@@ -803,6 +803,6 @@
 
     })();
   </script>
-  <script src="/js/blog-comments.js" defer></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/blog-comments.js" defer></script>
 </body>
 </html>

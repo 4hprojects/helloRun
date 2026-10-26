@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main id="main-content" class="section" tabindex="-1">
+    <div class="container" style="max-width:42rem;padding-block:4rem;">
+      <section class="card" aria-labelledby="unsubscribeResultTitle" style="padding:clamp(1.5rem,5vw,3rem);text-align:center;">
+        <i data-lucide="<%= success ? 'mail-check' : 'mail-warning' %>" aria-hidden="true" style="width:3rem;height:3rem;color:<%= success ? '#15803d' : '#b45309' %>;"></i>
+        <h1 id="unsubscribeResultTitle"><%= heading %></h1>
+        <p><%= message %></p>
+        <a class="btn btn-primary" href="<%= success ? '/' : '/login' %>"><%= success ? 'Return to HelloRun' : 'Sign in' %></a>
+      </section>
+    </div>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+</body>
+</html>

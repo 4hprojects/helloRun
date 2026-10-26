@@ -4,6 +4,13 @@ const GOOGLE_AUTH_BASE_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
 
+function getServiceUrl(environmentName, productionUrl) {
+  if (process.env.NODE_ENV === 'test' && process.env[environmentName]) {
+    return process.env[environmentName];
+  }
+  return productionUrl;
+}
+
 function getConfig() {
   return {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
@@ -45,7 +52,7 @@ async function exchangeCodeForTokens({ code }) {
     grant_type: 'authorization_code'
   });
 
-  const response = await fetch(GOOGLE_TOKEN_URL, {
+  const response = await fetch(getServiceUrl('GOOGLE_TOKEN_URL', GOOGLE_TOKEN_URL), {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body
@@ -60,7 +67,7 @@ async function exchangeCodeForTokens({ code }) {
 }
 
 async function fetchUserInfo({ accessToken }) {
-  const response = await fetch(GOOGLE_USERINFO_URL, {
+  const response = await fetch(getServiceUrl('GOOGLE_USERINFO_URL', GOOGLE_USERINFO_URL), {
     headers: {
       Authorization: `Bearer ${accessToken}`
     }

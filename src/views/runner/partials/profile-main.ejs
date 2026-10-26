@@ -6,7 +6,7 @@
       <div class="profile-avatar-section">
         <div class="profile-avatar-wrap" id="js-avatar-wrap">
           <span class="profile-avatar-placeholder" id="js-avatar-placeholder" aria-hidden="true"><%= p.identity.initials %></span>
-          <% if (p.identity.avatarUrl) { %><img src="<%= p.identity.avatarUrl %>" alt="" class="profile-avatar-img" id="js-avatar-img" onerror="this.hidden=true;"><% } %>
+          <% if (p.identity.avatarUrl) { %><img src="<%= p.identity.avatarUrl %>" alt="" class="profile-avatar-img" id="js-avatar-img" data-hide-on-error><% } %>
           <label class="profile-avatar-upload-btn" title="Change profile photo">
             <span class="sr-only">Change profile photo</span>
             <input type="file" id="js-avatar-input" name="avatarImageFile" accept="image/jpeg,image/png,image/webp">

@@ -24,6 +24,7 @@ const {
   BLOG_CATEGORIES,
   renderWaiverTemplate,
   assertRunDateNotFuture,
+  getDateOfBirthValidationError,
   parseRunDateOnly,
   isRunDateAlignedWithEvent,
   canRunnerSubmitPaymentProof,
@@ -505,6 +506,8 @@ exports.postEventRegistration = async (req, res) => {
         raceDistance: formData.raceDistance,
         waiverVersion: Number(event.waiverVersion || 1),
         renderedWaiver,
+        recipientTimeZone: user.timezone,
+        recipientTimeZoneConfirmedAt: user.timezoneConfirmedAt,
         recipientUserId: user._id,
         metadata: {
           registrationId: String(registration._id),
@@ -669,6 +672,9 @@ exports.getMyRegistrations = async (req, res) => {
     const registrationPresentation = buildMyRegistrationsPresentation(enrichedRegistrations, {
       standardSubmissions: submissions,
       accumulatedActivities
+    }, {
+      timezone: user.timezone,
+      timezoneConfirmedAt: user.timezoneConfirmedAt
     });
 
     return res.render('pages/my-registrations', {
@@ -997,12 +1003,8 @@ function validateQuickProfileUpdatePayload(payload) {
   }
 
   if (payload.dateOfBirth) {
-    const dobDate = new Date(`${payload.dateOfBirth}T00:00:00.000Z`);
-    if (Number.isNaN(dobDate.getTime())) {
-      errors.dateOfBirth = 'Enter a valid date of birth.';
-    } else if (dobDate > new Date()) {
-      errors.dateOfBirth = 'Date of birth cannot be in the future.';
-    }
+    const dateOfBirthError = getDateOfBirthValidationError(payload.dateOfBirth);
+    if (dateOfBirthError) errors.dateOfBirth = dateOfBirthError;
   }
 
   if (payload.gender && !allowedGenderValues.has(payload.gender)) {
@@ -1472,12 +1474,8 @@ function validateRegistrationForm(
     errors.country = 'Select a valid country.';
   }
   if (formData.dateOfBirth) {
-    const dateOfBirth = new Date(`${formData.dateOfBirth}T00:00:00.000Z`);
-    if (Number.isNaN(dateOfBirth.getTime())) {
-      errors.dateOfBirth = 'Enter a valid date of birth.';
-    } else if (dateOfBirth > new Date()) {
-      errors.dateOfBirth = 'Date of birth cannot be in the future.';
-    }
+    const dateOfBirthError = getDateOfBirthValidationError(formData.dateOfBirth);
+    if (dateOfBirthError) errors.dateOfBirth = dateOfBirthError;
   }
   if (!allowedGenderValues.has(formData.gender)) {
     errors.gender = 'Select a valid gender option.';
@@ -1561,6 +1559,8 @@ function getRegistrationProfileSnapshot(user) {
     email: String(user.email || '').trim().toLowerCase(),
     mobile: String(user.mobile || '').trim(),
     country: normalizeCountryCode(user.country),
+    timezone: String(user.timezone || '').trim(),
+    timezoneConfirmedAt: user.timezoneConfirmedAt || null,
     dateOfBirth: formatDateForInput(user.dateOfBirth),
     gender: String(user.gender || '').trim(),
     emergencyContactName: String(user.emergencyContactName || '').trim(),

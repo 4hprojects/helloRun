@@ -1,4 +1,5 @@
 const logger = require('../utils/logger');
+const { findRemoteTargets, findUnsafeRemoteTargets } = require('./database-safety');
 
 // Boot-time environment validation. Centralises the checks that used to live
 // inline in server.js so a misconfigured env var fails loudly at startup
@@ -41,6 +42,10 @@ function validateEnv(env = process.env) {
   const missingRequired = REQUIRED_VARS.filter((name) => !String(env[name] || '').trim());
 
   const warnings = [];
+  const errors = [];
+  if (String(env.TEST_UPLOAD_STORAGE || '').trim() && String(env.NODE_ENV || '') !== 'test') {
+    errors.push('TEST_UPLOAD_STORAGE is test-only and must not be set outside NODE_ENV=test.');
+  }
   for (const name of RECOMMENDED_VARS) {
     if (!String(env[name] || '').trim()) {
       warnings.push(`${name} is not set — the feature depending on it will be degraded or disabled.`);
@@ -68,18 +73,34 @@ function validateEnv(env = process.env) {
     warnings.push('REDIS_URL is not set — rate limiters run on the per-process in-memory fallback.');
   }
 
-  return { missingRequired, warnings };
+  if (String(env.NODE_ENV || 'development') !== 'production') {
+    const remote = findRemoteTargets(env);
+    const unsafe = findUnsafeRemoteTargets(env);
+    const explicitlyAllowed = String(env.ALLOW_REMOTE_DEVELOPMENT_DB || '') === '1';
+
+    if (remote.length && (!explicitlyAllowed || unsafe.length)) {
+      errors.push(
+        'Non-production boot refused remote data services. Use the loopback development environment, or set ALLOW_REMOTE_DEVELOPMENT_DB=1 only with remote database names containing dev, test, testing, or staging. Remote Redis is never allowed.'
+      );
+    }
+  }
+
+  return { missingRequired, warnings, errors };
 }
 
 // Logs findings and exits the process when a required var is missing.
 function enforceEnvAtBoot(env = process.env) {
-  const { missingRequired, warnings } = validateEnv(env);
+  const { missingRequired, warnings, errors } = validateEnv(env);
 
   for (const warning of warnings) {
     logger.warn(`Env check: ${warning}`);
   }
-  if (missingRequired.length) {
-    logger.error(`FATAL: required environment variables are not set: ${missingRequired.join(', ')}. Refusing to start.`);
+  if (missingRequired.length || errors.length) {
+    if (missingRequired.length) {
+      logger.error(`FATAL: required environment variables are not set: ${missingRequired.join(', ')}.`);
+    }
+    for (const error of errors) logger.error(`FATAL: ${error}`);
+    logger.error('Refusing to start.');
     process.exit(1);
   }
 }

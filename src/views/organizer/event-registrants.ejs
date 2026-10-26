@@ -270,7 +270,7 @@
   <% if (capabilities.isPaidEvent && !isAdminViewer && (summary.unpaidCount || summary.proofRejectedCount)) { %><div class="organizer-roster-dialog-backdrop" data-reminder-dialog hidden><section class="organizer-roster-dialog" role="dialog" aria-modal="true" aria-labelledby="reminderDialogTitle" tabindex="-1"><h2 id="reminderDialogTitle">Send payment reminders?</h2><p data-reminder-description></p><div class="organizer-roster-message-preview">Your payment for <strong data-reminder-event></strong> is pending. Please upload your payment receipt to complete your registration.</div><form method="POST" action="<%= basePath %>/email-unpaid"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><div class="organizer-roster-dialog-actions"><button type="button" class="nav-login-btn" data-dialog-cancel>Cancel</button><button type="submit" class="nav-signup-btn">Send reminders</button></div></form></section></div><% } %>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script src="/js/organizer-registrants.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/organizer-registrants.js"></script>
 </body>
 </html>

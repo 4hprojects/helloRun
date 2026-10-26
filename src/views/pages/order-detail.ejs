@@ -93,8 +93,8 @@
   </main>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     if (window.lucide) lucide.createIcons();
 
     (function () {
@@ -102,7 +102,8 @@
       if (!cancelBtn) return;
 
       cancelBtn.addEventListener('click', async () => {
-        if (!window.confirm('Are you sure you want to cancel this order? This cannot be undone.')) return;
+        const confirmed = await window.helloRunConfirm({ title: 'Cancel this order?', target: 'Order <%= order.orderNumber || order._id %>', impact: 'Cancels the order and prevents further fulfillment.', reversibility: 'This action cannot be undone.', privilege: 'Order owner', confirmLabel: 'Cancel order' }, cancelBtn);
+        if (!confirmed) return;
 
         const csrfToken = cancelBtn.dataset.csrf || '';
         try {

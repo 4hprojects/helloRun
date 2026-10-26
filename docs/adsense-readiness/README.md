@@ -6,9 +6,13 @@ This folder tracks the AdSense readiness work for HelloRun.
 
 Status: **approval review on hold while the active roadmap is completed**.
 
+Priority owner: `REL-08` in [`../ROADMAP.md`](../ROADMAP.md). Delivery state:
+[`../STATUS.md`](../STATUS.md).
+
 The original implementation phases were completed and merged, and the July 31, 2026 production audit confirmed strong content and technical foundations. It also found remaining public-link, heading, metadata, consent, indexing, and account-verification work.
 
-Active tracker: [`approval-roadmap.md`](approval-roadmap.md)
+Supporting approval tracker: [`approval-roadmap.md`](approval-roadmap.md).
+Canonical priority and dependencies remain in `REL-08`.
 
 Only the active roadmap controls current sequencing. Work proceeds one priority at a time, and the AdSense review request must wait until Priorities 1-7 pass.
 

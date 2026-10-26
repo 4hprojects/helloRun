@@ -330,7 +330,7 @@ test('admin can list and inspect event management records', async () => {
   });
   assert.equal(detailResponse.status, 200);
   const detailHtml = await detailResponse.text();
-  assert.match(detailHtml, /Admin Actions/i);
+  assert.match(detailHtml, /Ready for a decision/i);
   assert.match(detailHtml, /Approve (?:&amp;|&) Publish/i);
   assert.match(detailHtml, /Registrations/i);
 

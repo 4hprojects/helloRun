@@ -72,7 +72,7 @@ async function publishEvent(event, options = {}) {
   generateDefaultEventBadgesInBackground(event, {
     performedBy: options.actorUserId || null
   });
-  evaluateOrganiserAchievementsInBackground(event.organizerId, {
+  evaluateOrganiserAchievementsInBackground(event.organizerId?._id || event.organizerId, {
     performedBy: options.actorUserId || null
   });
 

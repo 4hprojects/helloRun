@@ -149,7 +149,8 @@ test('avatar and form enhancements provide validation, live feedback, and unsave
   const main = read('src/views/runner/partials/profile-main.ejs');
   const script = read('src/public/js/runner-profile.js');
   assert.match(main, /id="js-avatar-status" role="status" aria-live="polite"/);
-  assert.match(main, /onerror="this\.hidden=true;"/);
+  assert.match(main, /id="js-avatar-img" data-hide-on-error/);
+  assert.match(read('src/public/js/main.js'), /img\[data-fallback-src\], img\[data-hide-on-error\]/);
   assert.match(script, /image\/jpeg.*image\/png.*image\/webp/);
   assert.match(script, /5 \* 1024 \* 1024/);
   assert.match(script, /beforeunload/);

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <%- include('../layouts/head', { title: title }) %>
-  <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
+  <link href="/css/vendor/quill/quill.snow.css" rel="stylesheet">
   <link rel="stylesheet" href="/css/create-event.css">
 </head>
 <body>
@@ -761,6 +761,7 @@
         <div id="schedule-step" class="form-section form-section-schedule" tabindex="-1" data-wizard-step="schedule-step" data-builder-group="basics">
           <div class="section-kicker">Basics</div>
           <div class="section-title">Schedule</div>
+          <p class="section-helper">All schedule inputs are interpreted as Asia/Manila (UTC+08:00), regardless of your device timezone.</p>
           <div class="form-grid">
             <div class="form-group form-group-full">
               <label for="publicListingAvailableAt">Public Posting Available At</label>
@@ -1474,10 +1475,10 @@
 
   <%- include('../layouts/footer') %>
 
-  <script src="/js/main.js"></script>
-  <script src="/js/organizer-pricing-step.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/organizer-pricing-step.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/vendor/quill/quill.min.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     (function() {
       lucide.createIcons();
 
@@ -1974,7 +1975,7 @@
       }
 
       function openActionDialog({ icon, variant, title, desc, cancelText, okText, okClass }) {
-        if (!actionOverlay) return Promise.resolve(window.confirm(title || 'Continue?'));
+        if (!actionOverlay) return window.helloRunConfirm({ title: title || 'Continue?', target: 'This event', impact: desc || 'Applies the selected event change.', reversibility: 'Review the result after submission.', privilege: 'Event organiser', confirmLabel: okText || 'Continue' });
         actionDialogTrigger = document.activeElement;
         if (actionIconWrap) {
           actionIconWrap.innerHTML = '<i data-lucide="' + (icon || 'help-circle') + '"></i>';
@@ -3103,7 +3104,7 @@
       function sanitizePreviewHtml(input) {
         const raw = String(input || '');
         let safe = raw;
-        safe = safe.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
+        safe = safe.replace(/<script nonce="<%= locals.cspNonce || String() %>"[\s\S]*?>[\s\S]*?<\/script>/gi, '');
         safe = safe.replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '');
         safe = safe.replace(/<iframe[\s\S]*?>[\s\S]*?<\/iframe>/gi, '');
         safe = safe.replace(/<object[\s\S]*?>[\s\S]*?<\/object>/gi, '');
@@ -3327,6 +3328,6 @@
       });
     })();
   </script>
-  <script src="/js/event-builder-groups.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/event-builder-groups.js"></script>
 </body>
 </html>

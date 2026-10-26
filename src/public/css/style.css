@@ -1297,6 +1297,38 @@ body.high-risk-confirm-open {
   overflow: hidden;
 }
 
+.inline-action-toast {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 2600;
+  width: min(calc(100% - 2rem), 28rem);
+  padding: 0.85rem 1rem;
+  border: 1px solid #fecaca;
+  border-radius: 0.75rem;
+  background: #fff7f7;
+  color: #991b1b;
+  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.2);
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.inline-action-toast[data-tone="success"] {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.inline-action-toast[data-tone="warning"] {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.inline-action-toast[hidden] {
+  display: none;
+}
+
 .full-admin-locked {
   cursor: not-allowed !important;
   opacity: 0.52 !important;

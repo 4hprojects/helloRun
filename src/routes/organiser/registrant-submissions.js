@@ -21,8 +21,6 @@ const {
   Registration,
   Submission,
   AccumulatedActivitySubmission,
-  requireAuth,
-  requireCsrfProtection,
   submissionReviewActionLimiter,
   reviewSubmission,
   reviewAccumulatedActivitySubmission,
@@ -35,6 +33,10 @@ const {
   getRequestUserAgent,
   formatDateTime
 } = require('./_shared');
+const {
+  protectEventReviewRead,
+  protectEventReviewMutation
+} = require('./event-route-protection');
 
 const QUEUE_CONTEXT = Object.freeze({ status: 'all', sort: 'newest', q: '', page: 1 });
 const ENTRY_POPULATE = [
@@ -134,7 +136,7 @@ function toCorrectionHistory(item) {
     });
 }
 
-router.get('/events/:id/registrants/:registrationId/submissions', requireAuth, async (req, res) => {
+router.get('/events/:id/registrants/:registrationId/submissions', protectEventReviewRead, async (req, res) => {
   try {
     const access = await resolveAccess(req, res, {
       failureMessage: 'Only approved organizers or admins can view submissions.'
@@ -230,8 +232,7 @@ function readElapsedMs(body) {
 
 router.post(
   '/events/:id/registrants/:registrationId/submissions/:submissionId/edit',
-  requireAuth,
-  requireCsrfProtection,
+  protectEventReviewMutation,
   submissionReviewActionLimiter,
   async (req, res) => {
     let access = null;
@@ -297,8 +298,7 @@ const decisionMessages = {
 
 router.post(
   '/events/:id/registrants/:registrationId/submissions/:submissionId/decision',
-  requireAuth,
-  requireCsrfProtection,
+  protectEventReviewMutation,
   submissionReviewActionLimiter,
   async (req, res) => {
     let access = null;

@@ -496,16 +496,21 @@ async function ensureCurrentPolicies() {
 }
 
 async function login(email, password) {
+  const { csrfToken, cookie } = await getCsrfSession('/login');
   const response = await fetch(`${BASE_URL}/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ email, password }),
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({ _csrf: csrfToken, email, password }),
     redirect: 'manual'
   });
   assert.equal(response.status, 302);
-  const setCookie = response.headers.get('set-cookie');
-  assert.ok(setCookie);
-  return setCookie.split(';')[0];
+  const sessionCookie = response.headers.getSetCookie()
+    .find((value) => value.startsWith('hr.sid='));
+  assert.ok(sessionCookie);
+  return sessionCookie.split(';')[0];
 }
 
 async function getCsrfSession(pathname) {

@@ -105,7 +105,7 @@
   </main>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script src="/js/organizer-onsite-results.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/organizer-onsite-results.js"></script>
 </body>
 </html>

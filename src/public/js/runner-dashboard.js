@@ -150,7 +150,16 @@ async function copyCertificateUrl(url, button) {
         button.setAttribute('aria-label', originalAriaLabel);
       }, 2000);
     } catch (_) {
-      window.prompt('Copy this verification link:', url);
+      const input = document.createElement('textarea');
+      input.value = url;
+      input.setAttribute('readonly', '');
+      input.style.position = 'fixed';
+      input.style.opacity = '0';
+      document.body.appendChild(input);
+      input.select();
+      const copied = document.execCommand('copy');
+      input.remove();
+      window.helloRunToast(copied ? 'Certificate link copied.' : 'Copy failed. Open the certificate and copy its address.', copied ? 'success' : 'error');
     }
 }
 

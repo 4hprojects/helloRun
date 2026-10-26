@@ -559,9 +559,9 @@
     </section>
   </main>
   <%- include('../layouts/footer', { minimalFooter: true }) %>
-  <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">if (window.lucide) lucide.createIcons();</script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     (function () {
       var searchDisclosure = document.querySelector('.admin-universal-search-disclosure');
       if (!searchDisclosure) return;

@@ -1,6 +1,9 @@
 # HelloRun Time and Timezone Policy
 
-**Status:** Adopted; Phase 1 implementation in progress
+**Status:** Adopted; phases 1–4 repository-implemented, production data verification pending
+
+**Last reconciled:** October 20, 2026 · **Priority:** `TIME-01` in
+[ROADMAP.md](../ROADMAP.md) · **Delivery state:** [STATUS.md](../STATUS.md)
 
 **Business timezone:** `Asia/Manila`
 
@@ -10,14 +13,23 @@
 
 ## Implementation progress
 
-The initial foundation is implemented:
+Repository implementation now includes:
 
 - Central `Asia/Manila` business-timezone constant, IANA validation, supported-zone listing, country suggestion, and explicit-zone formatting.
 - Runner timezone profile fields and profile-completeness integration.
 - Runner country/timezone suggestions use Cloudflare's country header and the browser-reported IANA timezone; saved values retain precedence and suggestions require explicit saving.
 - DB-free unit coverage for timezone validation, formatting, and completeness.
+- Runtime-IANA Manila wall-clock parsing and form restoration that produce the same UTC instants under UTC, Manila, and New York process timezones.
+- Paired confirmed-runner/official-Manila presentation for registration review, runner dashboard journeys, registration history, and confirmation email; unconfirmed profiles use an explicitly labeled Manila fallback.
+- Strava evidence keeps the authoritative UTC instant and source-local text separately, and cannot be auto-accepted when the authoritative instant is missing.
 
-Event form parsing, critical-time display conversion, activity eligibility, and existing-data verification remain future phases.
+Existing production timestamps have not been shifted. The October 20 Phase 5 audit found
+ten active non-personal events matching across all five shadow instants and three stale
+values on `cns-move-more-challenge-2026`; organiser confirmation is required before any
+repair. The date-only boundary review also corrected Manila-midnight birth-date validation
+and process-local age calculation. See the
+[production audit](../analysis/2026-10-20/production-timezone-audit.md). Organiser sampling,
+the approved CNS shadow repair, and deployed presentation checks remain under `TIME-01`.
 
 ## Purpose
 

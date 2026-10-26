@@ -116,6 +116,6 @@ test('the enforcement lives with the write, not only with the render', () => {
   const form = read('src/services/event-form.service.js');
   assert.match(form, /const stepsAllowed = isStepCompetitionsEnabled\(\)/);
   assert.match(form, /The feature flag is enforced here, not only on the form/);
-  // And STATUS.md no longer claims the flag disables the feature.
-  assert.match(read('docs/STATUS.md'), /hides the organiser controls rather than disabling the feature/);
+  // STATUS records both the disabled rollout state and the write-boundary enforcement.
+  assert.match(read('docs/STATUS.md'), /write boundary now also rejects[\s\S]*step settings while disabled/);
 });

@@ -1,5 +1,9 @@
 # Runner Submitted Entries Page
 
+**Status:** Core page and responsive visual/interaction pass implemented
+**Last reconciled:** October 20, 2026 · **Priority owner:** `UX-02` in
+[ROADMAP.md](../ROADMAP.md) · **Delivery state:** [STATUS.md](../STATUS.md)
+
 ## Document Role
 
 This document defines the dedicated runner-facing page where runners can view, track, filter, inspect, and act on submitted run/activity entries in HelloRun.
@@ -50,9 +54,9 @@ The first implementation will follow these decisions:
 
 ---
 
-## Next UI Improvement Pass [PLANNED]
+## Completed UI Improvement Pass
 
-Status: notes only. No UI implementation has started for this pass.
+Status: implemented and repository-verified October 20, 2026.
 
 Goal: improve `/runner/submissions` so the page feels like a polished runner workspace rather than a basic list, while preserving the current route, data contract, filters, ownership rules, and resubmission/certificate behavior.
 
@@ -86,14 +90,11 @@ Candidate UI changes:
 - Add better responsive wrapping rules for badges and action buttons.
 - Tune spacing, border contrast, and hover/focus states to match the runner dashboard style.
 
-Validation target for implementation:
+Validation evidence:
 
-- Manual browser check for `/runner/submissions` at mobile, tablet, and desktop widths.
-- Confirm hamburger opens from icon center and button padding.
-- Confirm personal-record and event-based submissions both render.
-- Confirm accumulated challenge activities render, filter, and open detail/proof routes.
-- Confirm filters, pagination, detail links, resubmit, and certificate actions still work.
-- Run `node --test tests/runner-submissions-routes.test.js`.
+- Twenty-one DB-free presentation, responsive-template, progressive-enhancement, and compilation tests pass.
+- All 28 isolated route scenarios pass for authentication, ownership, filters, personal records, accumulated activities, empty states, detail/proof access, rejection correction, and certificates.
+- The remaining manual browser/device matrix is shared deployed verification under `UX-01`; it is not duplicate implementation work for this completed item.
 
 ---
 

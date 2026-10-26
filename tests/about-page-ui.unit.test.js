@@ -78,7 +78,8 @@ test('about actions adapt to guest, runner, organizer, and admin states', () => 
 test('current events retain safe images, clear metadata, and a simple empty state', () => {
   assert.match(viewSource, /currentEvents && currentEvents\.length/);
   assert.match(viewSource, /loading="lazy"/);
-  assert.match(viewSource, /onerror="this\.onerror=null;this\.src=/);
+  assert.match(viewSource, /data-fallback-src="<%= event\.fallbackImageUrl %>"/);
+  assert.doesNotMatch(viewSource, /\sonerror=/);
   assert.match(viewSource, /event\.displayState\?\.label/);
   assert.match(viewSource, /class="about-event-distance"/);
   assert.match(viewSource, /No published events are available right now/);

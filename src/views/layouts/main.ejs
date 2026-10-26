@@ -17,16 +17,16 @@
     <% }); %>
   <% } %>
   <link rel="stylesheet" href="/css/project-buttons.css">
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/vendor/lucide/lucide.min.js"></script>
   <%- include('../partials/privacy-head') %>
   <% if (locals.ads && locals.ads.loadConsentScript && locals.ads.publisherId) { %>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<%= locals.ads.publisherId %>" crossorigin="anonymous"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<%= locals.ads.publisherId %>" crossorigin="anonymous"></script>
   <% } %>
   
   <!-- Google Analytics -->
   <% if (locals.canUseAnalytics && process.env.GA_MEASUREMENT_ID) { %>
-  <script async src="https://www.googletagmanager.com/gtag/js?id=<%= process.env.GA_MEASUREMENT_ID %>"></script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" async src="https://www.googletagmanager.com/gtag/js?id=<%= process.env.GA_MEASUREMENT_ID %>"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     gtag('js', new Date());
     gtag('config', '<%= process.env.GA_MEASUREMENT_ID %>');
   </script>
@@ -41,14 +41,14 @@
   
   <%- include('./footer') %>
   
-  <script src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
   <% if (locals.additionalJS) { %>
     <% additionalJS.forEach(js => { %>
-      <script src="<%= js %>"></script>
+      <script nonce="<%= locals.cspNonce || String() %>" src="<%= js %>"></script>
     <% }); %>
   <% } %>
   
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     lucide.createIcons();
   </script>
 </body>

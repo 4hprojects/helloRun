@@ -2,7 +2,7 @@
 
 const {
   mongoose, User, OrganiserApplication, Registration, Submission, Event, Blog, BlogComment, BlogReport,
-  logger, uploadService, publishEvent, recordCriticalAuditEventInBackground,
+  logger, uploadService, publishEvent, recordCriticalAuditEventInBackground, communicationService,
   ADMIN_EVENT_STATUSES,
   normalizeAdminEventFilters, buildAdminEventQuery, getEventCountsById, formatEventStatusLabel,
   getAdminPageMessage, renderServerError, findAdminEventOrNull, getPublishReadinessErrors,
@@ -23,7 +23,8 @@ const {
   dispatchEventPromotionCampaignInBackground,
   hydrateSelectedPromotionRecipients,
   resolveAdminPromotionRecipients,
-  isCampaignStalled
+  isCampaignStalled,
+  buildPromotionDuplicateKey
 } = require('../../services/event-promotion.service');
 const {
   normalizeAdminEventsReturnTo,
@@ -399,6 +400,9 @@ exports.approveEvent = async (req, res) => {
     if (event.status !== 'pending_review') {
       return res.status(409).json({ success: false, message: 'Only pending review events can be approved.' });
     }
+    // Saving the event can depopulate organizerId. Retain the populated recipient
+    // before publication so the approval communication is not silently skipped.
+    const organizer = event.organizerId;
     try {
       await publishEvent(event, {
         approvalSource: 'admin',
@@ -413,7 +417,6 @@ exports.approveEvent = async (req, res) => {
       }
       throw error;
     }
-    const organizer = event.organizerId;
     if (organizer?.email) {
       const appUrl = String(process.env.APP_URL || '').replace(/\/+$/, '');
       const eventUrl = appUrl && event.slug ? `${appUrl}/events/${event.slug}` : '';
@@ -1103,19 +1106,32 @@ exports.promotePreview = async (req, res) => {
     const event = await Event.findById(eventId).select('_id organizerId slug').lean();
     if (!event) return res.status(404).json({ error: 'Event not found.' });
 
+    const DailyEmailUsage = require('../../models/DailyEmailUsage');
+    const dateKey = new Date().toISOString().slice(0, 10);
+    const dailyUsage = await DailyEmailUsage.findOne({ dateKey }).lean();
+    const platformRemaining = Math.max(0, Number(dailyUsage?.totalLimit || 100) - Number(dailyUsage?.sentCount || 0));
+
     if (audience === 'selected_emails') {
       const parsed = await hydrateSelectedPromotionRecipients(selectedEmails);
       return res.json({
-        count: parsed.recipients.length,
+        count: Math.min(parsed.recipients.length, platformRemaining),
+        rawCount: parsed.recipients.length,
         invalidCount: parsed.invalid.length,
         optedOutCount: parsed.optedOutCount || 0,
         capped: parsed.capped,
-        limit: parsed.limit
+        limit: parsed.limit,
+        platformRemaining,
+        platformCapped: parsed.recipients.length > platformRemaining
       });
     }
 
     const recipients = await resolveAdminPromotionRecipients({ event, audience });
-    return res.json({ count: recipients.length });
+    return res.json({
+      count: Math.min(recipients.length, platformRemaining),
+      rawCount: recipients.length,
+      platformRemaining,
+      platformCapped: recipients.length > platformRemaining
+    });
   } catch (error) {
     logger.error('Admin promote preview error:', error);
     return res.status(500).json({ error: 'Preview failed.' });
@@ -1175,15 +1191,20 @@ exports.promoteSend = async (req, res) => {
       return res.redirect(`${redirectBase}?${q}`);
     }
 
-    const recipients = selectedEmailResult
+    const eligibleRecipients = selectedEmailResult
       ? selectedEmailResult.recipients
       : await resolveAdminPromotionRecipients({ event, audience });
+    const DailyEmailUsage = require('../../models/DailyEmailUsage');
+    const dateKey = new Date().toISOString().slice(0, 10);
+    const dailyUsage = await DailyEmailUsage.findOne({ dateKey }).lean();
+    const platformRemaining = Math.max(0, Number(dailyUsage?.totalLimit || 100) - Number(dailyUsage?.sentCount || 0));
+    const recipients = eligibleRecipients.slice(0, platformRemaining);
     if (!recipients.length) {
-      const q = new URLSearchParams({ type: 'error', msg: 'No eligible recipients found.' });
+      const message = eligibleRecipients.length ? 'The platform email quota is exhausted for today.' : 'No eligible recipients found.';
+      const q = new URLSearchParams({ type: 'error', msg: message });
       return res.redirect(`${redirectBase}?${q}`);
     }
 
-    const dateKey = new Date().toISOString().slice(0, 10);
     // recipientCount is set up front so daily-quota sums include in-flight campaigns.
     const campaign = await EventPromotion.create({
       organizerId: event.organizerId,
@@ -1194,6 +1215,7 @@ exports.promoteSend = async (req, res) => {
       dateKey,
       status: 'sending',
       adminTriggered: true,
+      duplicateKey: buildPromotionDuplicateKey({ eventId: event._id, audience, recipients, dateKey }),
       sentAt: new Date()
     });
 
@@ -1215,7 +1237,10 @@ exports.promoteSend = async (req, res) => {
     return res.redirect(`${redirectBase}?${q}`);
   } catch (error) {
     logger.error('Admin promote send error:', error);
-    const q = new URLSearchParams({ type: 'error', msg: 'An error occurred while sending the promotion.' });
+    const message = error?.code === 11000 && error?.keyPattern?.duplicateKey
+      ? 'This event promotion was already started for the same audience today.'
+      : 'An error occurred while sending the promotion.';
+    const q = new URLSearchParams({ type: 'error', msg: message });
     return res.redirect(`${redirectBase}?${q}`);
   }
 };

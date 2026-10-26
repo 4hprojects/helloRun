@@ -47,7 +47,7 @@ test('event leaderboard page and data endpoint render public-safe results', asyn
   assert.match(html, /Verified/);
   assert.match(html, /5K Rankings/);
   assert.match(html, /10K/);
-  assert.match(html, /0 verified/);
+  assert.match(html, /1 verified/);
 
   const dataResponse = await fetch(`${BASE_URL}/events/${seed.event.slug}/leaderboard/data?search=${encodeURIComponent(seed.registration.confirmationCode)}`);
   assert.equal(dataResponse.status, 200);
@@ -73,7 +73,7 @@ test('global leaderboard page renders event discovery cards', async () => {
   const html = await response.text();
   assert.match(html, /Find your leaderboard/i);
   assert.match(html, new RegExp(`/events/${seed.event.slug}/leaderboard`, 'i'));
-  assert.match(html, /View rankings/i);
+  assert.match(html, /View standings/i);
   assert.match(html, /verified result/i);
   assert.doesNotMatch(html, /<th>Runner<\/th>[\s\S]*<th>Event<\/th>[\s\S]*<th>Submitted<\/th>/i);
 });

@@ -94,8 +94,8 @@
   <dialog class="runner-group-community-dialog" data-group-community-dialog><form method="dialog"><h2 data-dialog-title>Confirm action</h2><div data-dialog-body></div><p role="status" data-dialog-status></p><div><button value="cancel" class="btn btn-outline">Cancel</button><button type="button" class="btn btn-primary" data-dialog-confirm>Continue</button></div></form></dialog>
   <%- include('partials/group-membership-confirmation') %>
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script src="/js/runner-groups.js"></script>
-  <script src="/js/runner-group-community.js" defer></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/runner-groups.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/runner-group-community.js" defer></script>
 </body>
 </html>

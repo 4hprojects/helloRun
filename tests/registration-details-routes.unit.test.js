@@ -17,7 +17,7 @@ test('the organiser edit route is authorized, CSRF-protected and rate limited', 
 
   assert.match(
     registrants,
-    /'\/events\/:id\/registrants\/:registrationId\/details',\s*\n\s*requireAuth,\s*\n\s*requireCsrfProtection,\s*\n\s*registrantDetailsLimiter/
+    /'\/events\/:id\/registrants\/:registrationId\/details',\s*\n\s*protectEventReviewMutation,\s*\n\s*registrantDetailsLimiter/
   );
   // Same pair the rest of the registrants routes use; co-organisers pass via resolveEventAccess.
   assert.match(registrants, /canAccessRegistrantReview\(user\)/);

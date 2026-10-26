@@ -248,7 +248,7 @@ test('a claim that cannot complete is answered, not 500d', () => {
   // A failure to mark the entry promoted must not fail a completed registration.
   assert.match(routes, /not marked promoted/);
   // The claim limiter keys on the token, not on a :slug this route does not have.
-  assert.match(routes, /waitlist-claim\|\$\{req\.ip \|\| 'unknown-ip'\}\|\$\{req\.params\.token/);
+  assert.match(routes, /waitlist-claim\|\$\{getClientIpKey\(req\)\}\|\$\{req\.params\.token/);
 });
 
 test('the offer belongs to one address and cannot be redirected', () => {

@@ -231,7 +231,7 @@ test('restricted user sees restriction banner on dashboard', async () => {
 
   assert.equal(res.status, 200);
   const html = await res.text();
-  assert.ok(html.includes('currently restricted'), 'Dashboard should show restriction banner');
+  assert.ok(html.includes('Your account is restricted'), 'Dashboard should show restriction banner');
 
   await User.findByIdAndUpdate(seed.runner.id, { accountStatus: 'active' });
 });

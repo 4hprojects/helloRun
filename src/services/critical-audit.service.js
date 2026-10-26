@@ -24,6 +24,13 @@ function buildAuditIdempotencyKey(input = {}) {
     .digest('hex');
 }
 
+function prepareCriticalAuditInput(input = {}, now = new Date()) {
+  const occurredAt = input.occurredAt ? new Date(input.occurredAt) : now;
+  const prepared = { ...input, occurredAt };
+  prepared.idempotencyKey = input.idempotencyKey || buildAuditIdempotencyKey(prepared);
+  return prepared;
+}
+
 async function recordCriticalAuditEvent(input = {}, options = {}) {
   const rows = await recordCriticalAuditEvents([input], options);
   return rows[0];
@@ -115,7 +122,8 @@ function recordCriticalAuditEventInBackground(input = {}) {
     return;
   }
 
-  recordCriticalAuditEvent(input)
+  const preparedInput = prepareCriticalAuditInput(input);
+  recordCriticalAuditEvent(preparedInput)
     .catch((error) => {
       logger.error('Supabase critical audit write failed:', {
         action: input.action,
@@ -124,8 +132,12 @@ function recordCriticalAuditEventInBackground(input = {}) {
         error: error.message
       });
       recordSyncFailureInBackground('critical_audit', String(input.targetId || ''), error, {
-        action: input.action,
-        targetType: input.targetType
+        action: preparedInput.action,
+        targetType: preparedInput.targetType,
+        auditEvent: {
+          ...preparedInput,
+          occurredAt: preparedInput.occurredAt.toISOString()
+        }
       });
     });
 }
@@ -142,6 +154,7 @@ function __setDisableCriticalAuditBackgroundWrites(value) {
 module.exports = {
   __setDisableCriticalAuditBackgroundWrites,
   buildAuditIdempotencyKey,
+  prepareCriticalAuditInput,
   recordCriticalAuditEvent,
   recordCriticalAuditEvents,
   recordCriticalAuditEventInBackground

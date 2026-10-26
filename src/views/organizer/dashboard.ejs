@@ -290,7 +290,7 @@
     </div>
   </div>
 
-  <script src="/js/main.js"></script>
-  <script src="/js/organizer-dashboard.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/organizer-dashboard.js"></script>
 </body>
 </html>

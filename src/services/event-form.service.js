@@ -11,6 +11,7 @@ const {
 } = require('../utils/challenge-metrics');
 const { parseQuestionsFromBody, parseQuestions } = require('./custom-questions.service');
 const { normalizeSubmissionReviewMode } = require('../utils/submission-review-mode');
+const { parseBusinessDateTime, formatDateTimeInput } = require('../utils/timezone');
 
 const countries = getCountries();
 const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K', '42K']);
@@ -1006,11 +1007,7 @@ function getCreateEventFormData(body = {}, options = {}) {
 }
 
 function formatDateForInput(value) {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+  return formatDateTimeInput(value);
 }
 
 function getCreateEventFormDataFromEvent(event) {
@@ -1232,9 +1229,7 @@ function getCreateEventFormDataFromEvent(event) {
 }
 
 function parseDateSafe(value) {
-  if (!value) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  return parseBusinessDateTime(value);
 }
 
 function isValidUrl(url) {
@@ -2018,7 +2013,7 @@ function applyEventFormData(event, formData, user) {
   event.kitSizeRequired = Boolean(formData.kitSizeRequired);
   event.transfersEnabled = Boolean(formData.transfersEnabled);
   event.transferRequiresApproval = Boolean(formData.transferRequiresApproval);
-  event.transferDeadlineAt = formData.transferDeadlineAt ? new Date(formData.transferDeadlineAt) : null;
+  event.transferDeadlineAt = parseDateSafe(formData.transferDeadlineAt);
   // Re-parsed from formData rather than from the body, which is not in scope here. The
   // existing questions are passed in so an id already carrying answers survives a rename.
   event.customQuestions = parseQuestions(formData.customQuestions, event.customQuestions);

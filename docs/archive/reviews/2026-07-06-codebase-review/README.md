@@ -3,7 +3,7 @@
 > Historical review. Its actionable work was consolidated into
 > [`../../../improvement-plan/README.md`](../../../improvement-plan/README.md).
 
-Scope: process, efficiency, intuitivity, and security across `src/` (~44k lines), test harness, and ops posture. This review deliberately **excludes** everything already resolved in `docs/review-backlog.md` (26 items, June 24), the June 24 Organizer Workflow / Runtime Stabilization phases, and the **July 5 analysis** (`docs/analysis/2026-07-05/`) whose P0/P1/P2 batches are confirmed fixed in source (blog-review XSS, healthz/sync ordering, guard try/catch, reset-expiry NaN, limiter Map leak, CSRF kill-switch fail-safe, webhook length guard). Everything below is **new** — found in areas the July 5 pass didn't flag: session lifecycle, proxy/IP topology, deploy pipeline, and error-surface UX.
+Scope: process, efficiency, intuitivity, and security across `src/` (~44k lines), test harness, and ops posture. This review deliberately **excludes** everything already resolved in the [June 24 full-app review](../full-app-review-and-improvement-backlog-2026-06-24.md) (26 items), the June 24 Organizer Workflow / Runtime Stabilization phases, and the **July 5 analysis** (`docs/analysis/2026-07-05/`) whose P0/P1/P2 batches are confirmed fixed in source (blog-review XSS, healthz/sync ordering, guard try/catch, reset-expiry NaN, limiter Map leak, CSRF kill-switch fail-safe, webhook length guard). Everything below is **new** — found in areas the July 5 pass didn't flag: session lifecycle, proxy/IP topology, deploy pipeline, and error-surface UX.
 
 ## Files in this review
 

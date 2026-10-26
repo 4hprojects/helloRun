@@ -126,7 +126,7 @@
 
   <%- include('partials/group-membership-confirmation') %>
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script src="/js/runner-groups.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/runner-groups.js"></script>
 </body>
 </html>

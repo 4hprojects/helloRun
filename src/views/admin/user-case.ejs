@@ -9,4 +9,4 @@
     ['Run submissions', submissions, (x) => x.eventId?.title || `Submission ${x._id}`, (x) => `${x.status}${x.rejectionReason ? ` · ${x.rejectionReason}` : ''}`, (x) => `/admin/submissions?search=${x._id}`]
   ]; %>
   <div class="admin-search-grid"><% groups.forEach(([label, items, primary, secondary, href]) => { %><section class="detail-card"><h3><%= label %> <span class="status-badge"><%= items.length %></span></h3><% if (items.length) { %><ul class="admin-search-results"><% items.forEach((item) => { %><li><div><strong><%= primary(item) %></strong><small><%= secondary(item) %></small></div><a class="btn btn-sm" href="<%= href(item) %>">Evidence</a></li><% }); %></ul><% } else { %><p class="text-muted">No records in this domain.</p><% } %></section><% }); %></div>
-</section></main><%- include('../layouts/footer') %><script src="/js/main.js"></script><script>if (window.lucide) lucide.createIcons();</script></body></html>
+</section></main><%- include('../layouts/footer') %><script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script><script nonce="<%= locals.cspNonce || String() %>">if (window.lucide) lucide.createIcons();</script></body></html>

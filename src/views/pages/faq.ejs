@@ -3,7 +3,7 @@
 <head>
   <%- include('../layouts/head', { title: title, seo: typeof seo !== 'undefined' ? seo : null }) %>
   <link rel="stylesheet" href="/css/faq-page.css">
-  <script type="application/ld+json"><%- faqPresentation.structuredDataJson %></script>
+  <script nonce="<%= locals.cspNonce || String() %>" type="application/ld+json"><%- faqPresentation.structuredDataJson %></script>
 </head>
 <body class="faq-body<%= locals.isAuthenticated && locals.isRunnerWorkspace ? ' has-runner-mobile-nav' : '' %>">
   <%- include('../layouts/nav') %>
@@ -144,7 +144,7 @@
   </main>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script src="/js/faq-page.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/faq-page.js"></script>
 </body>
 </html>

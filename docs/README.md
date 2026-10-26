@@ -1,7 +1,8 @@
 # HelloRun Documentation
 
 This index describes where each class of documentation belongs. Current
-delivery claims come only from [STATUS.md](STATUS.md).
+delivery claims come only from [STATUS.md](STATUS.md), and every incomplete
+priority is owned by [ROADMAP.md](ROADMAP.md).
 
 ## Start Here
 
@@ -16,17 +17,18 @@ delivery claims come only from [STATUS.md](STATUS.md).
 
 ## Current Work
 
-- [`improvement-plan/`](improvement-plan/) is the canonical cross-cutting
-  engineering and operational plan.
+- [ROADMAP.md](ROADMAP.md) is the canonical detailed backlog. Supporting
+  implementation and rollout plans live under [`improvement-plan/`](improvement-plan/)
+  and link back to the ROADMAP task that owns their remaining work.
 - [`implementation/verification-pending/`](implementation/verification-pending/)
   contains completed code records that still require approved live or
   production verification.
 - [`adsense-readiness/`](adsense-readiness/) contains the implementation and
   operational AdSense readiness sequence.
 
-The former `todo/` and `to-implement/` trees were emptied during reconciliation:
-implemented work moved to `implementation/` or `archive/`, and residual work
-moved to `improvement-plan/`.
+The former `todo/`, `to do/`, and `to-implement/` trees were emptied during
+reconciliation. Implemented or superseded plans moved to `archive/`; residual
+work is represented once in ROADMAP and may link to a supporting specification.
 
 ## Stable Reference
 
@@ -52,6 +54,7 @@ moved to `improvement-plan/`.
 | Directory | Contents |
 |---|---|
 | [`analysis/`](analysis/) | Dated engineering and UI/UX evidence |
+| [`operations/`](operations/) | Deployment and isolated-environment runbooks |
 | [`ux-analysis/`](ux-analysis/) | Feature-specific UI audits retained for traceability |
 | [`changelog/`](changelog/) | Monthly session and commit summaries |
 | [`done/`](done/) | Older completed-phase records retained at their historical paths |

@@ -51,10 +51,14 @@ test('login trims and lowercases email before credential lookup', async () => {
   const email = `auth.local.case.${stamp}@example.com`;
   const password = 'Pass1234.';
   await createUser({ email, password, emailVerified: true });
+  const anonymousCookie = await getSessionCookie('/login');
 
   const response = await fetch(`${BASE_URL}/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      Cookie: anonymousCookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
     body: new URLSearchParams({
       email: `  ${email.toUpperCase()}  `,
       password
@@ -64,7 +68,9 @@ test('login trims and lowercases email before credential lookup', async () => {
 
   assert.equal(response.status, 302);
   assert.equal(response.headers.get('location'), '/runner/dashboard');
-  assert.match(String(response.headers.get('set-cookie') || ''), /hr\.sid=/i);
+  const authenticatedCookie = String(response.headers.get('set-cookie') || '').split(';')[0];
+  assert.match(authenticatedCookie, /hr\.sid=/i);
+  assert.notEqual(authenticatedCookie, anonymousCookie, 'login must rotate the anonymous session ID');
 });
 
 test('unverified local login preserves email and offers verification resend', async () => {

@@ -206,6 +206,7 @@ function buildSubmissionInput({ registration, activity, connection }) {
       elapsedTimeSeconds: elapsedSeconds,
       startDate: activity.startDate ? new Date(activity.startDate) : null,
       startDateLocal: activity.startDateLocal ? new Date(activity.startDateLocal) : null,
+      startDateLocalText: String(activity.startDateLocal || '').trim(),
       timezone: activity.timezone || '',
       elevationGain: activity.elevationGain,
       averageSpeed: activity.averageSpeed,
@@ -246,9 +247,11 @@ function validateAgainstEvent(activity, event) {
   if (!event) {
     throw new Error('Event not found.');
   }
-  const activityDate = new Date(activity.startDateLocal || activity.startDate || '');
+  // Strava's startDate is an exact UTC instant. startDateLocal is explanatory
+  // wall-clock evidence only and must never decide event-window eligibility.
+  const activityDate = new Date(activity.startDate || '');
   if (Number.isNaN(activityDate.getTime())) {
-    throw new Error('Strava activity date is missing.');
+    throw new Error('Strava activity exact start time is missing.');
   }
 
   const windowStart = event.virtualWindow?.startAt || event.eventStartAt || null;

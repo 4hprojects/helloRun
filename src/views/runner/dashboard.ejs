@@ -15,7 +15,7 @@
             <div class="dashboard-welcome-identity">
               <span class="dashboard-profile-avatar" aria-hidden="true">
                 <span class="dashboard-profile-initials"><%= dashboardIdentity.initials %></span>
-                <% if (dashboardIdentity.avatarUrl) { %><img src="<%= dashboardIdentity.avatarUrl %>" alt="" width="60" height="60" onerror="this.hidden=true;"><% } %>
+                <% if (dashboardIdentity.avatarUrl) { %><img src="<%= dashboardIdentity.avatarUrl %>" alt="" width="60" height="60" data-hide-on-error><% } %>
               </span>
               <div class="dashboard-welcome-copy">
                 <span class="dashboard-eyebrow">Runner Dashboard</span>
@@ -80,6 +80,6 @@
   </main>
   <%- include('../layouts/footer') %>
   <div class="modal-backdrop" id="logoutModal" hidden><div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="logoutModalTitle" aria-describedby="logoutModalDesc" tabindex="-1"><h3 id="logoutModalTitle">Log out?</h3><p id="logoutModalDesc">Are you sure you want to log out of your account?</p><div class="modal-actions"><button type="button" class="btn btn-outline" data-cancel-logout>Cancel</button><button type="button" class="btn btn-danger" data-confirm-logout>Yes, log out</button></div></div></div>
-  <script src="/js/main.js"></script><script src="/js/event-save.js"></script><script src="/js/runner-dashboard.js"></script><script>lucide.createIcons();</script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script><script nonce="<%= locals.cspNonce || String() %>" src="/js/event-save.js"></script><script nonce="<%= locals.cspNonce || String() %>" src="/js/runner-dashboard.js"></script><script nonce="<%= locals.cspNonce || String() %>">lucide.createIcons();</script>
 </body>
 </html>

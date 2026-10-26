@@ -106,7 +106,7 @@ test('runner submissions page includes working shared nav scripts once', async (
   });
   assert.equal(res.status, 200);
   const html = await res.text();
-  assert.equal(countMatches(html, /<script src="\/js\/main\.js"><\/script>/g), 1);
+  assert.equal(countMatches(html, /<script nonce="[^"]+" src="\/js\/main\.js"><\/script>/g), 1);
   assert.equal(countMatches(html, /id="runProofModal"/g), 1);
   assert.match(html, /class="menu-toggle"/);
   assert.match(html, /id="nav-links"/);
@@ -193,7 +193,7 @@ test('runner with only accumulated activities does not see empty state', async (
   assert.equal(res.status, 200);
   const html = await res.text();
   assert.match(html, new RegExp(seed.eventTitleAccumulatedOnly));
-  assert.doesNotMatch(html, /No submitted entries yet/i);
+  assert.doesNotMatch(html, /No activity submitted yet/i);
 });
 
 test('empty state shown when runner has no submissions', async () => {
@@ -203,7 +203,7 @@ test('empty state shown when runner has no submissions', async () => {
   assert.equal(res.status, 200);
   const html = await res.text();
   // Should show empty state copy
-  assert.match(html, /No submitted entries yet/i);
+  assert.match(html, /No activity submitted yet/i);
 });
 
 // ─── Detail page tests ────────────────────────────────────────────────────────
@@ -237,7 +237,7 @@ test('runner submission detail page includes working shared nav scripts once', a
   });
   assert.equal(res.status, 200);
   const html = await res.text();
-  assert.equal(countMatches(html, /<script src="\/js\/main\.js"><\/script>/g), 1);
+  assert.equal(countMatches(html, /<script nonce="[^"]+" src="\/js\/main\.js"><\/script>/g), 1);
   assert.equal(countMatches(html, /id="runProofModal"/g), 1);
   assert.match(html, /class="menu-toggle"/);
   assert.match(html, /id="nav-links"/);

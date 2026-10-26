@@ -238,7 +238,7 @@ test('author dashboard replaces enhanced post deletion with a reusable confirmat
   const dashboard = fs.readFileSync(path.join(ROOT, 'src/views/blog/author-dashboard.ejs'), 'utf8');
   assert.doesNotThrow(() => ejs.compile(dashboard, { filename: path.join(ROOT, 'src/views/blog/author-dashboard.ejs') }));
   assert.match(dashboard, /data-delete-post-form/);
-  assert.match(dashboard, /onsubmit="return confirm\('Delete this post permanently\?'\);"/);
+  assert.doesNotMatch(dashboard, /onsubmit=|\bconfirm\(/);
   assert.match(dashboard, /id="blogDeleteDialog"[\s\S]*aria-labelledby="blogDeleteDialogTitle"/);
   assert.match(dashboard, /form\.removeAttribute\('onsubmit'\)/);
   assert.match(dashboard, /dialog\.showModal\(\)/);

@@ -1,8 +1,9 @@
 # Private Strava Viewer Launch
 
 **Status:** Implemented; production/live verification pending
-**Last reconciled:** October 9, 2026
-**Supersedes:** the former event-submission MVP and `docs/to do/HELLoRUN_STRAVA_INTEGRATION_PLAN.md`
+**Last reconciled:** October 19, 2026
+**Priority owner:** `REL-04` in [ROADMAP.md](../ROADMAP.md)
+**Supersedes:** the former event-submission MVP and historical Strava event-submission plan
 
 ## Delivered behavior
 

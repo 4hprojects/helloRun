@@ -1889,7 +1889,7 @@ It should support the platform’s shift from a runner-only system into a broade
 
 ---
 
-# Dedicated Frontend OCR JavaScript Strategy
+## Dedicated Frontend OCR JavaScript Strategy
 
 ## Purpose
 

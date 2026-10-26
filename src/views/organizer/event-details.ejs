@@ -308,7 +308,7 @@
   <% } %>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script src="/js/organizer-event-detail.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/organizer-event-detail.js"></script>
 </body>
 </html>

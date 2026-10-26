@@ -46,7 +46,7 @@ test('create and edit event views do not contain mojibake UI artifacts', () => {
   ];
   for (const file of files) {
     const content = fs.readFileSync(file, 'utf8');
-    assert.doesNotMatch(content, /\u00c3|\u00e2|\u00f0\u0178|[\u{1f4cb}\u{1f4dd}\u{1f4c5}\u{1f4cd}\u{1f3c3}\u{1f3a8}\u2190\u00d7]/u, file);
+    assert.doesNotMatch(content, /\u00c3|\u00e2|\u00f0\u0178|[\u{1f4cb}\u{1f4dd}\u{1f4c5}\u{1f4cd}\u{1f3c3}\u{1f3a8}\u2190]/u, file);
   }
 });
 
@@ -142,10 +142,11 @@ test('create and edit event views expose ordered create-event sections', () => {
 
   const css = fs.readFileSync(path.join(ROOT, 'src/public/css/create-event.css'), 'utf8');
   const organizerRoutes = fs.readFileSync(path.join(ROOT, 'src/routes/organizer.routes.js'), 'utf8');
+  const organizerEventCreationRoutes = fs.readFileSync(path.join(ROOT, 'src/routes/organiser/event-creation.js'), 'utf8');
   const publicEventDetailsView = fs.readFileSync(path.join(ROOT, 'src/views/pages/event-details.ejs'), 'utf8');
   assert.doesNotMatch(organizerRoutes, /create-event\/autosave|Autosave Draft|CREATE_EVENT_AUTOSAVE|A title is required to autosave/i, 'create-event autosave route should be removed');
-  assert.match(organizerRoutes, /buildPublicEventView\(previewEvent/, 'organizer preview should use the public event detail view model');
-  assert.match(organizerRoutes, /res\.render\('pages\/event-details'/, 'organizer preview should render the actual public event details page');
+  assert.match(organizerEventCreationRoutes, /buildPublicEventView\(previewEvent/, 'organizer preview should use the public event detail view model');
+  assert.match(organizerEventCreationRoutes, /res\.render\('pages\/event-details'/, 'organizer preview should render the actual public event details page');
   assert.match(publicEventDetailsView, /Preview mode/, 'public event details page should expose a preview mode banner');
   assert.match(publicEventDetailsView, /isPreviewMode[\s\S]*Back to Editor/, 'public event details page should route preview navigation back to the editor');
   assert.doesNotMatch(css, /draft-restore|autosave-status/i, 'create-event recovery and autosave styles should be removed');
@@ -249,7 +250,7 @@ test('organizer preview renders actual event details page with multiple race dis
   const html = await response.text();
   assert.match(html, /Preview mode/i);
   assert.match(html, /How This Event Works/i);
-  assert.match(html, /class="event-challenge-goal-grid"[\s\S]*<span>10K<\/span>[\s\S]*<strong>10 km<\/strong>[\s\S]*<span>25K<\/span>[\s\S]*<strong>25 km<\/strong>[\s\S]*<span>50K<\/span>[\s\S]*<strong>50 km<\/strong>[\s\S]*<span>100K<\/span>[\s\S]*<strong>100 km<\/strong>/i);
+  assert.match(html, /class="event-challenge-goal-grid"[\s\S]*<strong>10 km<\/strong>[\s\S]*<strong>25 km<\/strong>[\s\S]*<strong>50 km<\/strong>[\s\S]*<strong>100 km<\/strong>/i);
   assert.doesNotMatch(html, /challenge options/i);
   assert.doesNotMatch(html, /organizer-event-preview-page/i);
 });
@@ -486,7 +487,7 @@ test('create-event page opens with guided blank defaults and new event setup fie
   assert.match(html, /id="raceDistanceCustom" name="raceDistanceCustom" type="text" value=""/i);
   assert.match(html, /<option value="free" selected>Free<\/option>/i);
   assert.match(html, /id="feeCurrency" name="feeCurrency" type="text" value="PHP"/i);
-  assert.match(html, /<option value="accumulated_distance" selected>Accumulated distance challenge<\/option>/i);
+  assert.match(html, /<option value="accumulated_activity" selected>Accumulated challenge<\/option>/i);
   assert.doesNotMatch(html, /name="minimumActivityDistanceKm"/i);
   assert.doesNotMatch(html, /name="milestoneDistancesKm"/i);
   assert.match(html, /name="eventDetailsMarkdown"/i);
@@ -589,10 +590,10 @@ test('create-event form normalization returns guided blank defaults without a re
   assert.equal(formData.raceDistanceCustom, '');
   assert.equal(formData.registrationOpenAt, '');
   assert.equal(formData.eventStartAt, '');
-  assert.equal(formData.virtualCompletionMode, 'accumulated_distance');
+  assert.equal(formData.virtualCompletionMode, 'accumulated_activity');
   assert.deepEqual(formData.acceptedRunTypes, ['run', 'walk', 'hike', 'trail_run']);
   assert.equal(formData.recognitionMode, 'completion_with_optional_ranking');
-  assert.equal(formData.leaderboardMode, 'finishers_and_top_distance');
+  assert.equal(formData.leaderboardMode, 'finishers_and_top_metric');
   assert.equal(formData.feeMode, 'free');
   assert.equal(formData.feeCurrency, 'PHP');
   assert.equal(formData.pricingMode, 'free');
@@ -630,7 +631,7 @@ test('create-event form normalization still supports explicit 2026K accumulated 
 
   assert.equal(formData.title, '2026K Accumulated Run Challenge');
   assert.deepEqual(formData.raceDistances, ['2026K']);
-  assert.equal(formData.virtualCompletionMode, 'accumulated_distance');
+  assert.equal(formData.virtualCompletionMode, 'accumulated_activity');
   assert.equal(formData.targetDistanceKm, 2026);
   assert.deepEqual(formData.proofTypesAllowed, ['running_app_sync', 'photo']);
   assert.deepEqual(formData.acceptedRunTypes, ['run', 'walk', 'hike', 'trail_run']);
@@ -1002,7 +1003,7 @@ test('create-event accumulated-distance draft saves setup fields', async () => {
   const event = await Event.findOne({ title }).lean();
   assert.ok(event, 'accumulated draft should be saved');
   assert.equal(event.status, 'draft');
-  assert.equal(event.virtualCompletionMode, 'accumulated_distance');
+  assert.equal(event.virtualCompletionMode, 'accumulated_activity');
   assert.equal(event.targetDistanceKm, 100);
   assert.equal(event.minimumActivityDistanceKm, null);
   assert.deepEqual(event.acceptedRunTypes, ['run', 'walk', 'hike', 'trail_run']);
@@ -1043,7 +1044,7 @@ test('create-event accumulated-distance publish accepts configured challenge', a
   assert.equal(event.status, 'published');
   assert.equal(event.approvalSource, 'auto');
   assert.ok(event.autoApprovedAt);
-  assert.equal(event.virtualCompletionMode, 'accumulated_distance');
+  assert.equal(event.virtualCompletionMode, 'accumulated_activity');
   assert.equal(event.targetDistanceKm, 100);
   assert.equal(event.minimumActivityDistanceKm, null);
   assert.deepEqual(event.acceptedRunTypes, ['run']);

@@ -22,6 +22,7 @@ const {
   getPageMessage
 } = require('./_shared');
 const { hasOrganizerWorkspaceAccess, getActiveCoOrganizerEventIds } = require('../../services/event-access.service');
+const { getClientIp } = require('../../utils/client-ip');
 
 /* ==========================================
    GET: Organizer Dashboard
@@ -422,7 +423,7 @@ router.post('/acknowledge-event-creation', requireAuth, requireCsrfProtection, a
     user.organizerEventCreationAcknowledgement = {
       agreedAt: new Date(),
       signatureName: trimmedName,
-      ipAddress: String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim().slice(0, 120),
+      ipAddress: getClientIp(req).slice(0, 120),
       userAgent: String(req.headers['user-agent'] || '').slice(0, 500)
     };
     await user.save();

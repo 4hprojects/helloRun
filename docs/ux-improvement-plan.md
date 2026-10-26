@@ -1,9 +1,9 @@
 # HelloRun — UX Improvement and Efficiency Plan
 
-**Status: Specification — the recommendations stand; the progress narrative does not**
+**Status: Historical specification — non-canonical priorities and progress**
 
 **Created:** June 22, 2026
-**Last updated:** July 17, 2026 · **Header reconciled:** August 8, 2026
+**Last updated:** July 17, 2026 · **Header reconciled:** October 19, 2026
 **Based on:** Full codebase audit, user journey review, and session implementation history
 **See also:** `docs/ROADMAP.md` (priority list), `docs/STATUS.md` (current state)
 
@@ -17,7 +17,8 @@ and [`implementation/bulk-organiser-actions.md`](implementation/bulk-organiser-a
 out of date.** Everything in the August 7–8 run — guest registration, walk-in,
 waitlist, kit inventory, transfers, custom questions, category capacity — is
 absent from it. For what is built, read [`STATUS.md`](STATUS.md); for what is
-next, read [`ROADMAP.md`](ROADMAP.md). Both are reconciled to August 8.
+next, read [`ROADMAP.md`](ROADMAP.md). The old priority numbers and unchecked
+states below must not be used as current tasks.
 
 The header date is deliberately unchanged: the UX recommendations below have not
 been re-audited against the current system, and moving that date would say they
@@ -40,8 +41,9 @@ shop (backend + UI), and admin governance.
 - Badge system (profile bug fix, type-specific placeholders, upload, earned count)
 - Admin Governance (audit trail, notes, verification actions, account suspension)
 
-**What remains:** The backlog below is prioritized, estimated, and fully specified.
-Nothing is blocked by a missing dependency.
+**Historical planning note:** the backlog below records the June 2026 plan. Most
+items subsequently shipped, and its estimates and dependency claims have not
+been re-audited. ROADMAP is authoritative for remaining work.
 
 ---
 
@@ -623,7 +625,7 @@ Items completable in under 1 day with high visible value:
 
 ---
 
-## 7. Prioritized Backlog
+## 7. Historical Prioritized Backlog (Non-Canonical)
 
 | # | Feature | Category | Effort | Impact | Status |
 |---|---------|----------|--------|--------|--------|

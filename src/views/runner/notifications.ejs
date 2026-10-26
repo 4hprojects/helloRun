@@ -157,8 +157,8 @@
   </dialog>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script src="/js/runner-notifications.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/runner-notifications.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

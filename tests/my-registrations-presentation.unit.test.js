@@ -123,3 +123,16 @@ test('closed submission records move to history and do not offer an upload actio
   assert.equal(result.groups.history[0].action.label, 'View Event');
   assert.equal(result.groups.history[0].action.type, 'link');
 });
+
+test('critical registration times show confirmed local and official Manila values', () => {
+  const result = buildMyRegistrationsPresentation([registration('timezone')], {}, {
+    now: NOW,
+    timezone: 'America/New_York',
+    timezoneConfirmedAt: '2026-01-01T00:00:00.000Z'
+  });
+  const item = [...result.groups.nextActions, ...result.groups.active, ...result.groups.history][0];
+
+  assert.match(item.eventDateLabel, /America\/New_York/);
+  assert.match(item.eventDateLabel, /Official:.*Asia\/Manila/);
+  assert.match(item.submissionDeadlineLabel, /America\/New_York/);
+});

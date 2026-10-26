@@ -38,16 +38,17 @@ exports.bulkRejectSubmissions = async (req, res) => {
           action: 'reject',
           rejectionReason,
           reviewNotes: String(req.body.reviewNotes || '').trim().slice(0, 1200)
-        }).catch(() =>
-          reviewAccumulatedActivitySubmission({
+        }).catch((error) => {
+          if (error?.code !== 'submission_not_found') throw error;
+          return reviewAccumulatedActivitySubmission({
             activityId: id,
             organizerId: req.session.userId,
             reviewerRole: 'admin',
             action: 'reject',
             rejectionReason,
             reviewNotes: String(req.body.reviewNotes || '').trim().slice(0, 1200)
-          })
-        )
+          });
+        })
       )
     );
 

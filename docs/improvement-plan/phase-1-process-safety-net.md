@@ -1,13 +1,32 @@
 # Phase 1 — Process Safety Net
 
+**Current ownership:** `PRC-01` in [ROADMAP.md](../ROADMAP.md) · **Delivery
+state:** [STATUS.md](../STATUS.md)
+**Reconciliation note (October 19, 2026):** this is the July assessment.
+Remote-database guards, Node pinning, and graceful shutdown subsequently
+shipped. On October 20, CI, dependency automation, and non-rewriting
+lint/format/documentation gates were added; GitHub and deployment enforcement
+remain verification pending in `PRC-01`.
+
 **Priority:** P0–P1 · **Effort:** ~1 day · **When:** same week as Phase 0.
 None of these touch runtime app behavior (except the shutdown handler), so they're low-risk and can be batched.
 
-**Why this phase exists:** the repo has excellent code-review history but *zero automated process*: no CI, no lint, no version pinning, no dependency automation — and Render auto-deploys `main`. Every safeguard currently lives in one person's discipline. These items convert that discipline into infrastructure.
+**Why this phase exists:** the July review found no automated delivery process.
+Production topology later moved to HelloDeploy/nginx/Cloudflare with Render as
+an unverified backup. The repository automation described below now exists;
+account-side required-check and deployment gating still needs owner access.
 
 ---
 
 ## PRC-1 · CI pipeline (P0)
+
+**Implemented October 20, 2026:** `.github/workflows/ci.yml` runs on pushes to
+`main` and pull requests with read-only permissions, concurrency cancellation,
+Node 22, `npm ci --ignore-scripts`, syntax/template, non-rewriting format,
+documentation, and DB-free unit gates. CI supplies only an unreachable loopback
+Mongo name and blank Postgres/Redis variables, so production services cannot be
+contacted. The local syntax run checked 1,050 JS files and 180 EJS templates and
+caught a real duplicated invalid tail in `backfill-missing-references.js`.
 
 **Problem:** pushes to `main` deploy to production with no automated check ever running. The July 5 batch found stale tests that had been broken for days — CI would have caught them at commit time.
 
@@ -70,9 +89,19 @@ No `engines` field, no `.nvmrc` — local Node and Render's default can silently
 
 ## PRC-5 · Dependency automation (P1)
 
+**Implemented October 20, 2026:** Dependabot checks npm weekly with grouped
+minor/patch updates and GitHub Actions monthly. Major upgrades remain manual.
+
 `npm audit` is clean *today*; nothing re-checks tomorrow. **Action:** add `.github/dependabot.yml` (weekly, npm ecosystem, grouped minor/patch). With CI from PRC-1, bumps arrive pre-tested. Majors stay manual (Phase 5 list).
 
 ## PRC-6 · ESLint + Prettier (P2)
+
+**First guarded stage implemented October 20, 2026:** without introducing a
+repository-wide rewrite, CI now runs Node syntax checks for all JS, compiles all
+EJS templates, verifies canonical JSON plus automation newlines/merge markers,
+and runs the full Markdown audit. Introducing opinionated ESLint/Prettier rules
+and their large cleanup diff remains strategic tooling work rather than being
+mixed into this safety-net change.
 
 There's even an `// eslint-disable-next-line` comment in `src/config/redis.js` — but no ESLint. **Action:** flat-config ESLint (`eslint:recommended` + `no-undef`, `no-unused-vars`, `require-atomic-updates`), Prettier with house style, `npm run lint` in CI. Run once, commit the (likely large) autofix diff separately from any logic change. Note: the CQ-2 splits already built an acorn-based no-undef checker — ESLint supersedes it.
 

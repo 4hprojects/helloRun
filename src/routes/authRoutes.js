@@ -29,6 +29,7 @@ const {
   getWorkspaceDashboard,
   resolveActiveWorkspace
 } = require('../utils/workspace');
+const { getClientIp, getClientIpKey } = require('../utils/client-ip');
 
 const LOGIN_TURNSTILE_FAILURE_THRESHOLD = 3;
 
@@ -39,7 +40,7 @@ const loginLimiter = createRateLimiter({
   message: 'Too many login attempts. Please wait 15 minutes and try again.',
   keyFn: (req) => {
     const email = String(req.body.email || '').toLowerCase().trim().slice(0, 254);
-    const ip = String(req.ip || 'unknown-ip');
+    const ip = getClientIpKey(req);
     return `login|${email}|${ip}`;
   }
 });
@@ -51,7 +52,7 @@ const forgotPasswordLimiter = createRateLimiter({
   message: 'Too many password reset requests. Please wait an hour and try again.',
   keyFn: (req) => {
     const email = String(req.body.email || '').toLowerCase().trim().slice(0, 254);
-    const ip = String(req.ip || 'unknown-ip');
+    const ip = getClientIpKey(req);
     return `forgot-password|${email}|${ip}`;
   }
 });
@@ -63,7 +64,7 @@ const resendVerificationLimiter = createRateLimiter({
   message: 'Too many verification email requests. Please wait an hour and try again.',
   keyFn: (req) => {
     const email = String(req.body.email || '').toLowerCase().trim().slice(0, 254);
-    const ip = String(req.ip || 'unknown-ip');
+    const ip = getClientIpKey(req);
     return `resend-verification|${email}|${ip}`;
   }
 });
@@ -74,7 +75,7 @@ const signupIpLimiter = createRateLimiter({
   maxRequests: 5,
   message: 'Too many signup attempts. Please wait an hour and try again.',
   keyFn: (req) => {
-    const ip = String(req.ip || 'unknown-ip');
+    const ip = getClientIpKey(req);
     return `signup-ip|${ip}`;
   }
 });
@@ -86,7 +87,7 @@ const signupEmailLimiter = createRateLimiter({
   message: 'Too many signup attempts for this email. Please wait an hour and try again.',
   keyFn: (req) => {
     const email = normalizeEmail(req.body.email);
-    const ip = String(req.ip || 'unknown-ip');
+    const ip = getClientIpKey(req);
     return `signup-email|${email}|${ip}`;
   }
 });
@@ -103,16 +104,24 @@ function resolveSignupRole(value) {
 }
 
 function getRequestIpAddress(req) {
-  const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  const directIp = String(req.ip || '').trim();
-  return (forwardedFor || directIp).slice(0, 120);
+  return getClientIp(req).slice(0, 120);
 }
 
 function getRequestUserAgent(req) {
   return String(req.get('user-agent') || '').trim().slice(0, 500);
 }
 
-function startAuthenticatedSession(req, user) {
+function regenerateSession(req) {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate((error) => {
+      if (error) return reject(error);
+      return resolve();
+    });
+  });
+}
+
+async function startAuthenticatedSession(req, user) {
+  await regenerateSession(req);
   req.session.userId = user._id;
   req.session.role = user.role;
   req.session.activeWorkspace = getDefaultWorkspace(user);
@@ -299,7 +308,7 @@ router.post('/login', redirectIfAuth, requireCsrfProtection, loginLimiter, async
 
     clearSessionLoginFailures(req);
     await clearStoredLoginFailures({ email, remoteIp });
-    startAuthenticatedSession(req, user);
+    await startAuthenticatedSession(req, user);
     syncProfileCompletionInBackground(user);
     if (returnTo) {
       req.session.returnTo = returnTo;
@@ -704,7 +713,8 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
     }
 
     const wasNewUser = req.session.firstLogin === true;
-    startAuthenticatedSession(req, user);
+    const googleReturnTo = resolveSafeReturnTo(req.session.googleOAuthReturnTo);
+    await startAuthenticatedSession(req, user);
     if (wasNewUser) {
       req.session.firstLogin = true;
       communicationService.notify('account.welcome', {
@@ -713,8 +723,6 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
     }
     syncProfileCompletionInBackground(user);
 
-    const googleReturnTo = resolveSafeReturnTo(req.session.googleOAuthReturnTo);
-    delete req.session.googleOAuthReturnTo;
     if (googleReturnTo) {
       return res.redirect(googleReturnTo);
     }
@@ -1008,10 +1016,8 @@ router.get('/verify-email/:token', async (req, res) => {
       { new: true }
     );
 
-    // Set session
-    req.session.userId = user._id;
-    req.session.role = user.role;
-    req.session.activeWorkspace = getDefaultWorkspace(user);
+    // Rotate the anonymous session before establishing authenticated state.
+    await startAuthenticatedSession(req, user);
     req.session.firstLogin = true;
 
     // Send welcome email (non-blocking)

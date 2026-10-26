@@ -186,7 +186,7 @@ test('reviewSubmission enforces organizer ownership and action guards', async ()
         organizerId: seed.organizer._id,
         action: 'reject'
       }),
-    /rejection reason is required/i
+    /select a valid rejection reason/i
   );
 
   await Submission.updateOne(
@@ -1014,7 +1014,7 @@ test('accumulated activities keep suspicious OCR pending', async () => {
   assert.equal(activity.validation.reviewReason, 'suspicious_activity');
 });
 
-test('accumulated activities auto-approve validated Strava source', async () => {
+test('accumulated activities reject connected Strava as an event-submission source', async () => {
   const seed = await seedSubmissionFixture('accumulated-strava-auto');
   await Event.updateOne(
     { _id: seed.event._id },
@@ -1028,7 +1028,7 @@ test('accumulated activities auto-approve validated Strava source', async () => 
     }
   );
 
-  const activity = await createAccumulatedActivitySubmission({
+  await assert.rejects(() => createAccumulatedActivitySubmission({
     registrationId: seed.registration._id,
     runnerId: seed.runner._id,
     distanceKm: 4,
@@ -1058,14 +1058,7 @@ test('accumulated activities auto-approve validated Strava source', async () => 
       detectedSource: 'strava',
       nameMatchStatus: 'not_checked'
     }
-  });
-
-  assert.equal(activity.status, 'approved');
-  assert.equal(activity.reviewedBy, null);
-  assert.equal(activity.reviewNotes, 'Auto-approved from verified Strava activity.');
-  assert.equal(activity.validation.method, 'strava');
-  assert.equal(activity.validation.submissionMode, 'accumulated');
-  assert.equal(activity.validation.autoApprovalEligible, true);
+  }), (error) => error?.code === 'external_use_blocked' && /cannot be used/i.test(error.message));
 });
 
 async function seedSubmissionFixture(tag, options = {}) {
@@ -1575,9 +1568,9 @@ test('createSubmission auto-approves clean matched OCR and issues certificate', 
   assert.equal(result.validation.submissionMode, 'one_time');
 });
 
-test('createSubmission auto-approves validated Strava source without OCR name match', async () => {
+test('createSubmission rejects connected Strava as an event-submission source', async () => {
   const seed = await seedSubmissionFixture('strava-auto-approve');
-  const result = await createSubmission({
+  await assert.rejects(() => createSubmission({
     registrationId: seed.registration._id,
     runnerId: seed.runner._id,
     distanceKm: 5,
@@ -1609,15 +1602,7 @@ test('createSubmission auto-approves validated Strava source without OCR name ma
       detectedSource: 'strava',
       nameMatchStatus: 'not_checked'
     }
-  });
-
-  assert.equal(result.status, 'approved');
-  assert.equal(result.reviewedBy, null);
-  assert.equal(result.reviewNotes, 'Auto-approved from verified Strava activity.');
-  assert.equal(result.validation.method, 'strava');
-  assert.equal(result.validation.autoApprovalEligible, true);
-  assert.equal(result.validation.reviewRequired, false);
-  assert.equal(result.validation.reviewReason, '');
+  }), (error) => error?.code === 'external_use_blocked' && /cannot be used/i.test(error.message));
 });
 
 test('createSubmission keeps one-time proof below category distance pending', async () => {
@@ -1662,12 +1647,12 @@ test('createSubmission keeps one-time proof below category distance pending', as
   assert.equal(result.validation.minimumRequiredDistanceKm, 10);
 });
 
-test('createSubmission keeps below-minimum Strava one-time proof pending', async () => {
+test('createSubmission blocks below-minimum connected Strava event proof', async () => {
   const seed = await seedSubmissionFixture('strava-below-minimum');
   seed.registration.raceDistance = '10K';
   await seed.registration.save();
 
-  const result = await createSubmission({
+  await assert.rejects(() => createSubmission({
     registrationId: seed.registration._id,
     runnerId: seed.runner._id,
     distanceKm: 7.8,
@@ -1699,13 +1684,7 @@ test('createSubmission keeps below-minimum Strava one-time proof pending', async
       detectedSource: 'strava',
       nameMatchStatus: 'not_checked'
     }
-  });
-
-  assert.equal(result.status, 'submitted');
-  assert.equal(result.suspiciousFlag, true);
-  assert.equal(result.validation.method, 'strava');
-  assert.equal(result.validation.autoApprovalEligible, false);
-  assert.equal(result.validation.reviewReason, 'below_minimum_distance_one_time_submission');
+  }), (error) => error?.code === 'external_use_blocked' && /cannot be used/i.test(error.message));
 });
 
 test('eligible submission options expose one-time minimum required distance', async () => {

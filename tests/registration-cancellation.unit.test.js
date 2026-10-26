@@ -81,7 +81,11 @@ test('the cancellation event has an email sender and a subject', () => {
 
 test('the route is CSRF-protected, rate limited, and permission checked', () => {
   assert.match(routes, /registrants\/:registrationId\/cancel/);
-  assert.match(routes, /requireCsrfProtection/);
+  assert.match(routes, /protectEventReviewMutation/);
+  assert.match(
+    read('src/routes/organiser/event-route-protection.js'),
+    /protectEventReviewMutation = \[requireAuth, requireCsrfProtection, requireOrganizerEventReviewAccess\]/
+  );
   assert.match(routes, /registrantCancellationLimiter/);
   assert.match(routes, /canAccessRegistrantReview/);
   assert.match(routes, /getRegistrantAccessibleEventOrNull/);

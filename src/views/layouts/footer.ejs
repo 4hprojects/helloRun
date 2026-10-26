@@ -52,16 +52,16 @@
   <i data-lucide="arrow-up"></i>
 </button>
 <%- include('../partials/cookie-preferences') %>
-<script src="/js/cookie-preferences.js"></script>
+<script nonce="<%= locals.cspNonce || String() %>" src="/js/cookie-preferences.js"></script>
 <% if (locals.renderRunProofModal) { %>
   <%- include('../partials/run-proof-modal') %>
-  <script src="/js/vendor/tesseract/tesseract.min.js"></script>
-  <script src="/js/ocr/ocr-source-detector.js"></script>
-  <script src="/js/ocr/ocr-confidence.js"></script>
-  <script src="/js/ocr/ocr-identity.js"></script>
-  <script src="/js/ocr/ocr-location-resolver.js"></script>
-  <script src="/js/ocr-proof-reader.js"></script>
-  <script src="/js/ocr/ocr-parser.js"></script>
-  <script src="/js/run-proof-integrity.js"></script>
-  <script src="/js/run-proof-modal.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/vendor/tesseract/tesseract.min.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/ocr/ocr-source-detector.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/ocr/ocr-confidence.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/ocr/ocr-identity.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/ocr/ocr-location-resolver.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/ocr-proof-reader.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/ocr/ocr-parser.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/run-proof-integrity.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/run-proof-modal.js"></script>
 <% } %>

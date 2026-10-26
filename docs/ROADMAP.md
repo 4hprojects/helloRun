@@ -1,349 +1,138 @@
-# HelloRun Roadmap
+# HelloRun Roadmap and Canonical Backlog
 
-**Forward-looking priorities only**
-
-**Last reconciled:** October 9, 2026
-
+**Last reconciled:** October 22, 2026
+**Repository evidence:** `main` at `0c1fd86`
 **Delivery state:** [STATUS.md](STATUS.md)
 
-## How this list works
+This is the single source of truth for incomplete HelloRun work. Feature
+specifications, implementation records, audits, and historical checklists provide
+context and acceptance evidence; their unchecked boxes do not create a second
+backlog.
 
-Items are ranked by what it costs to leave them undone, not by size. Each is
-ticked in the same commit that implements it, with a one-line note of the
-evidence. Anything requiring a production migration or a hands-on session says so
-and stops for a decision.
+## How to use this backlog
 
-## 0. Deployment record gaps
+- Priority is based on the cost of leaving work undone: P0 safety/blocker, P1
+  release/security, P2 quality/efficiency, and P3 strategic/deferred.
+- Allowed states are **blocked**, **ready**, **in progress**, **verification
+  pending**, **deferred**, and **complete**.
+- Repository implementation and live verification are different states. Code or
+  tests alone never close an operational task.
+- Complete an item only when the listed evidence exists. Record the completion in
+  the monthly changelog, update [STATUS.md](STATUS.md), and remove it from this
+  forward-looking list in the same change.
+- Relative size is planning guidance only: S (focused), M (multi-surface), L
+  (cross-system), or XL (program of work). It is not a delivery-date promise.
 
-The August 9–10 full-site `502` is resolved: production's `.env` `PORT` had
-drifted off nginx's `proxy_pass` target and the app crash-looped under PM2. See
-[operations/deployment-runbook.md](operations/deployment-runbook.md) §1 and §3,
-item 5. What that outage exposed is still open:
+## Phase 0 — P0 Decisions and Risk Acceptance
 
-- [ ] **Write down how code reaches production, and how to fail over.** The
-      runbook records the PM2 → nginx → Cloudflare Tunnel chain, but not the
-      exact pull/install/restart procedure (STATUS.md now refers to HelloDeploy
-      releases, which the runbook does not describe), nor **how to cut over to
-      the Render backup and back**. A backup nobody has failed over to is a
-      plan, not a capability. Until this exists, both a deploy and a failover
-      depend on one person remembering.
+These decisions unblock destructive, legal, or externally visible work. They
+require an owner decision and must not be inferred by an implementation agent.
 
-## 1. Verify what is live
+| ID | State | Size | Task and dependency | Completion evidence | Source |
+|---|---|---:|---|---|---|
+| DEC-01 | blocked | M | Decide whether to prune, quarantine, or retain the current orphaned MongoDB footprint. The October 20 read-only refresh found all 88 onsite registrations tied to unavailable events (48 hard-missing, 40 soft-deleted) and 1,116 of 2,401 submissions across both collections with an unavailable runner, event, or registration reference. Depends on an approved retention decision and recoverable production backup. | Current count audit is complete. Closure requires a written scope/retention decision; if pruning is approved, exact cross-store/R2 dry run, operation log, and post-run unresolved counts. | [orphan audit](analysis/2026-10-20/production-mongo-orphan-audit.md) |
+| DEC-02 | complete | S | The owner accepted the pre-August `audit_critical` gap as unrecoverable on October 22. Do not synthesize history; retain the three legacy dead letters as evidence; preserve the documented limitation; and treat every new unresolved critical-audit failure as an incident. | Explicit owner acceptance recorded October 22, backed by the technical record distinguishing 344 existing pre-fix event-dated rows, three known legacy dead letters, and an unknown wider gap. Deployment verification of the forward retry fix remains separate. | [decision record](analysis/2026-10-20/critical-audit-history-gap.md) |
+| DEC-03 | blocked | S | Set retention and account-deletion rules for `ReviewDecision` evidence and proof files. Depends on privacy/legal review. | Approved retention table covering decision rows, referenced proof objects, deletion requests, and legal/audit holds. | [STATUS](STATUS.md#implemented-production-or-live-verification-pending) |
+| DEC-04 | complete | S | The two narrowly identified `purge.runner` / `purge.organizer` placeholder patterns now match zero production Mongo users and zero `app_users` rows. No deletion or owner decision remains. | October 20 read-only exact-pattern audit: matched `0`; modified `0`. | [placeholder audit](analysis/2026-10-20/production-placeholder-user-audit.md) |
+| DEC-05 | blocked | S | Repository and production-catalog inventory now identifies 11 candidate views, not ten, plus the empty `shop_platform_fees` table. No candidate has a runtime source reference, database dependent, or retained statement-statistics call; two other views are runtime dependencies and excluded. Confirm saved SQL, dashboard, BI, automation, and ad-hoc consumers before removal. | Technical inventory is complete. Closure requires an owner retain/remove decision for each of the 12 candidates and confirmation from every external-consumer surface. | [consumer inventory](analysis/2026-10-20/postgres-object-consumer-inventory.md) |
+| DEC-06 | blocked | M | Complete legal review of OCR model-improvement notice-and-objection wording and authorize publication. No historical-entry backfill may begin before publication and the configured notice period. | Approved policy versions, publication record, user-notice result, recorded legal basis/date/version, and computed `backfillNotBefore`. | [OCR deployment](improvement-plan/ocr-platform-aware/DEPLOYMENT-AND-ROLLBACK.md) |
+| DEC-07 | blocked | M | Decide the disposition of 99 active non-admin `@example.com` fixture accounts. The read-only impact audit found 37 soft-deleted test events, no real/guest participants, no submissions, and zero PostgreSQL footprint. Five non-deleted blogs remain, including one published, with five asset references. Depends on blog/asset review, a recoverable backup, and explicit owner approval. | Count-only downstream/cross-store audit is complete. Closure requires a written retain/quarantine/delete decision, exact target manifest, blog/R2 disposition, and—if deletion is approved—operation audit plus post-run fixture/orphan counts. | [placeholder audit](analysis/2026-10-20/production-placeholder-user-audit.md) |
 
-- [~] **Launch the private Strava viewer.** Repository work is complete behind a
-      disabled feature flag. Remaining work is operational: verify the Strava app and
-      capacity, complete historical-data remediation, publish the current policies,
-      deploy disabled, register/verify the webhook, enable the flag, and record the
-      supervised connect/view/disconnect/deauthorization smoke test. Official event
-      submissions remain intentionally blocked.
+## Phase 1 — P0 Deployment and Data Safety
 
-Everything below the line has been verified by DB-free tests and by live probes
-against throwaway data. The organiser race-day chain has now also been driven
-through its own interfaces (August 8–9) — that item is closed. What remains
-unverified is how these surfaces behave **on a phone at a start line**, which is
-where they are actually used, and none of it has yet been exercised against
-production rather than a local server on the same commit.
+| ID | State | Size | Task and dependency | Completion evidence | Source |
+|---|---|---:|---|---|---|
+| OPS-01 | in progress | M | The HelloDeploy build/activate and rollback procedure is documented, and postinstall now captures the checked-out SHA/branch into the image so `/healthz` remains verifiable without runtime `.git`. The refreshed public smoke confirms HelloDeploy is healthy but still reports an unknown commit. Deploy this revision, confirm the live commit, record external Render/Cloudflare origin values, then rehearse cutover and restoration. Exact failover controls require owner/provider access. | Seventeen deploy-hygiene cases and a local no-runtime-Git simulation pass. Completion requires a deployed `/healthz` target-SHA match and a second operator successfully failing over and restoring the primary from the runbook only. | [public smoke](analysis/2026-10-20/public-deployment-smoke.md) · [deployment runbook](operations/deployment-runbook.md) |
+| OPS-02 | complete | L | Isolated loopback MongoDB/PostgreSQL services, separate local credentials, deterministic seed data, non-production boot/test guards, and a reset workflow are implemented and repository-verified. | Migrations `001`–`027`, repeat seed, 27 focused tests, application boot/readiness, and a 527-test integration invocation all used only local services. | [environment runbook](operations/isolated-development.md) |
+| OPS-03 | blocked | L | Rehearse Atlas and Supabase restore into the isolated environment and document R2 loss/recovery behavior. Depends on OPS-02 and backup-provider access. | Timed restore record, application/shadow reconciliation results, RPO/RTO observations, and rollback notes for all three stores. | [deployment runbook](operations/deployment-runbook.md#6-backups-and-restore) |
+| OPS-04 | in progress | M | The production read-only preflight confirms migration `027` is absent: 0/36 tables use RLS, both Data API roles retain broad grants across 49 objects, and 0/13 views use `security_invoker`. The application role passes the bypass guard. Apply remains blocked on a recoverable backup/rollback approval and project-side verification access. | Preflight and isolated control are recorded. Completion requires the production migration record, 36/36 RLS and 13/13 invoker results, application-role reads, anon/authenticated and external Data API denial, application smoke checks, Security Advisor result, and rollback decision. | [production preflight](analysis/2026-10-20/production-rls-preflight.md) · [RLS audit](analysis/2026-10-07/supabase-rls-lockdown.md) |
+| OPS-05 | blocked | M | Configure production Redis and validate Cloudflare Tunnel/nginx client-IP behavior. Depends on infrastructure access and the canonical IP implementation in SEC-02. | `/readyz` reports Redis ready; shared rate-limit behavior is demonstrated; a known request resolves to the real client rather than a proxy edge or forged header. | [environment plan](improvement-plan/phase-2-environments-and-data-safety.md) |
+| OPS-06 | complete | L | The isolated baseline was repaired from 451/527 to 527/527 passing; the guarded OCR gate passed 46/46, the DB-free unit gate passed 2,486/2,486, and the named-volume reset/reseed left zero fixture, sync-failure, or dead-letter residue. Provider/deployed checks remain separate tasks. | Final totals, elapsed times, loopback environment, the Mongo file-limit correction, pre-reset artifact counts, and clean post-reset counts are recorded. | [October 20 baseline](analysis/2026-10-20/isolated-integration-baseline.md) · [verification-pending index](implementation/verification-pending/README.md) |
 
-- [x] **Walk a draft event end to end in a browser.** Done August 8–9 with a
-      headless browser against a **local** server on the current commit. Verified
-      the guest race pass renders on a phone viewport with a real 300×300 QR and a
-      readable bib. **It found a site-wide bug nothing else could:** saving cookie
-      preferences 404'd on every page, because the banner's two submit buttons are
-      `name="action"` and a form control named `action` shadows
-      `HTMLFormElement.action` — so the fetch posted to `/[object RadioNodeList]`.
-      The consent banner could never be dismissed, and on the race pass it sat over
-      the QR code.
-      **The organiser race-day chain was completed August 9** against a local server
-      on the current commit, driving each step through its own interface rather than
-      calling the services: walk-in registered (`201`, confirmation code issued),
-      bib assigned, checked in, kit released with stock decrementing 5→4, finish
-      time recorded, result approved. The approval produced the whole B2 chain —
-      a submission with a null runner, one ranking row at position 1 with
-      `elapsed_ms` 1,725,000 matching the 00:28:45 entered, and zero certificates,
-      which is the agreed guest policy. State persisted across a full page reload.
-      Walk-in registration is therefore browser-verified for the first time.
-      **Cancellation returns everything it should**, checked August 9 through
-      `POST /organizer/events/:id/registrants/:registrationId/cancel` on an event
-      with a capped category and kit stock: `raceCategories.reserved` went 1→0,
-      the kit went back on the books (`released` 1→0, stock 5 available again),
-      the registration read `cancelled`, and the Postgres bib assignment moved to
-      `voided` so the number is reissuable — which is what the organiser's own
-      confirmation message promises.
+## Phase 2 — P1 Deploy and Verify Repository-Complete Work
 
-      One finding, filed in §2: kit release before a bib exists answers `500`
-      with "Something went wrong. Please try again." while the log holds the
-      actually useful "No live bib assignment found for this registration. Assign
-      a bib first."
-- [ ] Responsive and weak-connectivity checks on the onsite surfaces, which are
-      used on a phone at a start line.
-- [ ] Finish the AdSense crawl, sitemap, content-seed and review operations.
+| ID | State | Size | Task and dependency | Completion evidence | Source |
+|---|---|---:|---|---|---|
+| REL-01 | blocked | M | Deploy current `main` with every OCR feature flag disabled and verify the served commit and readiness state. The refreshed public baseline is HTTP 200 with Mongo ready and Strava disabled, but the commit remains unknown. Depends on OPS-01 restoring trustworthy served-commit metadata. | Public `/healthz` reports the intended commit; `/readyz` is understood; OCR routes/behavior remain disabled; core browser smoke checks pass. | [public smoke](analysis/2026-10-20/public-deployment-smoke.md) · [OCR deployment](improvement-plan/ocr-platform-aware/DEPLOYMENT-AND-ROLLBACK.md) |
+| REL-02 | verification pending | M | Isolated MongoDB verification now proves review-decision evidence, rejection-code persistence, and linked standard/accumulated history. Complete the same supervised review workflow after REL-01 deploys this code. | The isolated integration writes three real `ReviewDecision` rows, retains the rejection code, preserves the independent source decision, and records `linkedFrom` on both linked kinds. Completion still requires a deployed live review with the same result. | [STATUS](STATUS.md#implemented-production-or-live-verification-pending) |
+| REL-03 | blocked | XL | Complete the OCR rollout: policy publication, notice wait, labelled real-image baseline, host survey, training-tool approval, profile gates, staged flags, model rollback rehearsal, and monitoring. Depends on DEC-06, OPS-02, and REL-01. | Every gate in the deployment runbook is recorded with real measurements; rollback is rehearsed; no accuracy claim is made from synthetic or unverified labels. | [OCR progress](improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md) · [rollout](improvement-plan/ocr-platform-aware/DEPLOYMENT-AND-ROLLBACK.md) |
+| REL-04 | blocked | L | Complete the private Strava viewer remediation, resolve the provider subscription HTTP 403, register/verify the webhook, and perform supervised connect/view/disconnect/deauthorization checks before controlled enablement. | Remediation audit, verified subscription, deletion confirmation, owner-only access checks, disabled event submission, and flag enablement record. | [Strava launch record](implementation/private-strava-viewer-launch.md) |
+| REL-05 | verification pending | M | Public PWA resources and core routes return HTTP 200, but `/sw.js` is currently overridden to a four-hour Cloudflare/browser TTL. The repository now sends browser- and CDN-specific `no-store`; exclude `/sw.js` from Cloudflare TTL rules, purge it, then verify install/update behavior on Android Chrome and iPhone Safari, including installed-state controls and mutation requests. | Eleven focused PWA cases pass, including the new browser/CDN no-store headers. Completion requires a non-cached deployed worker plus a device/browser matrix showing Android install, iOS guidance, hidden installed control, update prompt after deploy, and network delivery of registration/payment/run-proof POSTs. | [public smoke](analysis/2026-10-20/public-deployment-smoke.md) · [UI/PWA follow-ups](improvement-plan/ui-pwa-follow-ups.md) |
+| REL-06 | verification pending | L | Isolated migration/schema audit, guarded idempotent legacy backfill, and repository step/legacy workflow checks pass. Apply and audit the backfill in production, run supervised browser workflows, then enable the feature flag only if they pass. Depends on REL-01 and production access. | Migration 022 and all expected columns are present locally; 70/70 isolated form/backfill/submission cases and 87/87 step/UI cases pass; dry-run is now the safe command default and apply-twice is idempotent. Completion requires production backfill output, both browser smokes, flag-change record, monitoring, and rollback evidence. | [step-competition plan](create_event/step-competition-feature-plan.md) |
+| REL-07 | blocked | L | Verify admin exports, mutation limits, organiser onboarding with a real ID OCR upload, certificate/challenge reconciliation, uploads, policy/email/queue/worker behavior, and responsive onsite workflows. Depends on OPS-02; real-device onsite checks also require supervised test access. | Results recorded by workflow and viewport/connectivity condition, with failures converted into focused ROADMAP items. | [STATUS](STATUS.md#implemented-production-or-live-verification-pending) |
+| REL-08 | blocked | L | Complete AdSense CMP, Search Console, crawl, sitemap, content-seed, and account-side approval checks. Account-side work remains external and the approval program stays on hold until higher-priority operational work is safe. | Certified CMP behavior, Search Console evidence, zero actionable crawl/metadata failures, content verification, and recorded AdSense review state. | [AdSense roadmap](adsense-readiness/approval-roadmap.md) |
+| REL-09 | verification pending | S | The production dry run resolves the intended event and current asset set. Live CDN images materially differ from the committed replacements, so an approved apply and public visual check are still required. | October 20 dry-run output records no mutation; live/committed image comparisons are not matches. Complete after reviewed apply output and event, badge, and certificate visual confirmation. | [STATUS](STATUS.md#operational-work-pending) |
+| REL-10 | complete | S | The production approved-organiser role reconciliation returned zero runner/approved mismatches on October 20; no apply or workspace repair was necessary. | Production dry run: matched `0`, modified `0`. Three focused cases prove approved-runner promotion and preservation of other statuses/roles. | [October changelog](changelog/2026-10-october.md#october-9--admin-approved-organiser-role-reconciliation) |
 
-Completion requires recorded production observations, not repository tests.
+## Phase 3 — P1 Security and Delivery Hardening
 
-## 2. Live behaviour that is wrong
+| ID | State | Size | Task and dependency | Completion evidence | Source |
+|---|---|---:|---|---|---|
+| SEC-01 | verification pending | M | Session regeneration is implemented for password login, Google login, and email-verification auto-login. Privileged sync health now reloads the current account instead of trusting a cached session role. Repository verification is complete; supervised deployed smoke checks remain. | Sixteen focused integration tests prove session-ID rotation, preserved Google return state, hardened cookies, and immediate denial after admin demotion. Complete after deployed password/Google/verification smoke checks confirm the same behavior. | [security phase](improvement-plan/phase-0-pre-deploy-security.md) |
+| SEC-02 | verification pending | M | A canonical validated client-IP resolver now covers abuse tracking, rate limits, consent, blog views, provider metadata, and audit records; no application source reads raw `X-Forwarded-For` or `req.ip` outside the resolver. `CF-Connecting-IP` remains disabled by default until the origin boundary is proven. Coordinate the deployed check with OPS-05. | Five focused unit cases cover invalid, forged, multi-value, IPv4-mapped, IPv6, trusted-CF, socket fallback, and unknown-key behavior; rate-limit/auth integration checks pass. Complete after a known-IP request and direct-origin spoof probe are recorded. | [security phase](improvement-plan/phase-0-pre-deploy-security.md) · [deployment runbook](operations/deployment-runbook.md#client-ip-trust-boundary) |
+| SEC-03 | verification pending | M | Pinned Lucide 0.468.0 and Quill 1.3.7 assets are committed and served locally; `unpkg`/`jsdelivr` references and CSP origins are gone. All 336 view script elements receive a per-response nonce, `script-src-elem` enforces it, all 29 legacy handler attributes are migrated, and `script-src-attr 'none'` is enforced. The public baseline still serves `unpkg`, legacy inline CSP, and 404s the new vendor URLs, confirming this revision is not deployed. | Asset/editor/PWA, response-nonce, handler-inventory, EJS compilation, and local HTTP delivery checks pass. Complete after deployed vendor/icon/editor checks and a clean CSP console/report review. | [public smoke](analysis/2026-10-20/public-deployment-smoke.md) · [security phase](improvement-plan/phase-0-pre-deploy-security.md) · [strategic debt](improvement-plan/phase-5-strategic-debt.md) |
+| PRC-01 | verification pending | M | GitHub Actions now runs locked install-without-lifecycle, JS/EJS syntax, non-rewriting format, documentation, and all DB-free unit tests with explicit loopback/blank database variables. Dependabot covers npm weekly and Actions monthly. PR #19's initial workflow caught two ignored vendor assets; commit `928825d` added them and the replacement run passed. `main` remains unprotected with no rulesets. | The current complete local unit gate passes 2,524/2,524; focused synchronization checks pass 134/134; local checks pass across 1,069 JavaScript files, 181 EJS templates, 95 automation files, and 273 Markdown files. Complete after branch or ruleset protection makes the recovered check required and a controlled failing branch proves it blocks merge. | [GitHub controls audit](analysis/2026-10-20/github-delivery-controls-audit.md) · [process phase](improvement-plan/phase-1-process-safety-net.md) |
+| SEC-04 | verification pending | L | CQ-3 now has shared event read/mutation and participant-review guards across event-scoped registrant, export, messaging, cancellation, correction, payment-proof, and run-proof routes. The guard accepts both route parameter conventions, reloads current account state, blocks restricted accounts, and preserves owner/active-co-organiser/admin semantics. | Sixteen direct guard/source cases and all 25 existing submission-review route tests pass for owner, active/stale co-organiser, full/support admin, unrelated organiser, runner, restricted account, deleted user, invalid reference, missing event, and unauthenticated access. Complete after supervised deployed 200/403/404 smoke coverage. | [strategic debt](improvement-plan/phase-5-strategic-debt.md) |
+| BUG-01 | complete | M | All five documented defects are fixed: standard submissions persist `honorSystemConfirmed`; OCR accepts `treadmill`; admin bulk reject falls back only for a missing standard entry; new critical-audit failures retain an idempotent retry payload as structured JSON; and both scheduled blog publishers use one lease-based atomic claim service. Legacy critical-audit failures without payload remain deliberately unrecoverable under DEC-02. | The October 20 follow-up changed the integration to exercise the real failure writer, catching and fixing string-encoded JSON context. Five focused unit and two real-database regression cases pass, including Mongo concurrency and PostgreSQL critical-audit replay. Existing critical-audit batch and blog eligibility suites also pass. | [decision record](analysis/2026-10-20/critical-audit-history-gap.md) |
+| SEC-05 | verification pending | L | All first-party native `confirm()`/`alert()`/`prompt()` calls and inline event attributes are replaced by shared accessible confirm, prompt, toast, auto-submit, and image-fallback behaviors. The 171-form same-origin POST inventory now requires CSRF fields and caught/fixed the payment-proof upload omission; route middleware and focused rejection tests cover mutations. | Four static regression checks, 20 focused CSP/interaction UI tests, 13 CSRF route checks, and all 12 payment-route guard cases pass. Complete after deployed keyboard/focus/assistive-technology and no-JavaScript form checks find no interaction gap. | [UI reference](design/ui-ux-reference.md#21-pending-uiux-work) |
 
-- [x] **Releasing a race kit blanked the runner's shadow row.** Found and fixed
-      August 10. The kit service reads the registration with a projection, saves,
-      and the model's `post('save')` hook syncs that half-read document — and the
-      upsert writes every column from `excluded`, so the unloaded fields were
-      overwritten rather than skipped. `mongo_event_id` became `''`, and the
-      onsite roster joins on it, so **the runner's bib and check-in disappeared
-      from the console the moment their kit was handed over.** Fixed in
-      `syncRegistrationPaymentShadow`, which now reloads a projected document
-      before normalising it — at the choke point, because the hook fires for
-      every `save()` anywhere. Reproduced live and re-verified. No production data
-      affected: the only blanked row was a probe row, since this feature has never
-      deployed.
-- [x] **Race-kit release hid the one instruction the organiser needs.** Fixed
-      August 10. Releasing a kit before a bib was assigned failed with `500` and
-      "Something went wrong. Please try again.", while the service raised "Assign
-      a bib first." — an instruction, not a fault. A duplicate bib number behaved
-      the same way. At a kit table with a queue, that is the difference between a
-      five-second fix and a stuck volunteer. The onsite services now mark
-      operational failures with a code and the routes answer `409`/`404` with the
-      service's own message; the console already rendered it. The ordering
-      constraint itself was correct and stays. Verified live through both routes.
-- [x] **`probe:cleanup` reported clean while a row survived.** Fixed August 10.
-      It found data by walking down from `events_core`, so a registration whose
-      event link had been blanked was invisible to it — which is exactly how the
-      defect above survived a teardown. It now also sweeps probe rows and accounts
-      by the `zz-…@example.com` convention and fails loudly if any remain.
-- [x] **Guest cancellation files a false failure every time.** Fixed August 8.
-      A guest has no in-app inbox, so the notification is now requested only when
-      there is an account, and `notify` treats a missing recipient as
-      not-applicable rather than as a delivery failure — which also protects the
-      payment-approval and shop call sites that pass the same field. Probed live:
-      cancellation recorded, zero `failed` rows written.
-- [x] **`FEATURE_STEP_COMPETITIONS_ENABLED` gates the form, not the feature.**
-      Fixed August 8. Enforced in `applyEventFormData`: steps cannot be
-      *introduced* while the flag is off, but an event that already has them keeps
-      them — the form replays existing values on every save, so stripping them
-      would silently downgrade a configured event. STATUS.md corrected.
+## Phase 4 — P2 Quality, UX, and Measured Efficiency
 
-### Verification-probe safety
+| ID | State | Size | Task and dependency | Completion evidence | Source |
+|---|---|---:|---|---|---|
+| EFF-01 | blocked | M | Establish request, database, OCR, asset, and page-performance baselines before changing behavior. Depends on representative staging or an explicitly approved measurement environment. | Reproducible median/p95 baseline with dataset, route mix, host, and tool versions recorded. | [efficiency phase](improvement-plan/phase-3-efficiency.md) |
+| EFF-02 | blocked | L | Reduce avoidable authenticated-user lookups and request-path organiser ID OCR, then verify bundle, compression, cache, and asset-version behavior. Depends on EFF-01. | Before/after measurements show the intended improvement without stale assets, auth regressions, or weaker OCR review behavior. | [efficiency phase](improvement-plan/phase-3-efficiency.md) |
+| COM-01 | verification pending | L | Event promotion now has signed 30-day email-context unsubscribe, opt-out-aware centralized resolution, honest quota-capped preview/send counts, tracked dispatch outcomes, an atomic same-day event/audience/recipient duplicate key, escaped and protocol-validated email content, exact-count confirmation copy, and direct admin/organizer route coverage. Existing audience definitions were deliberately preserved; broader segmentation still requires a product decision. | Twenty-five focused service/source/email tests and four isolated route scenarios pass, covering full-admin access, opt-outs, platform and organizer quotas, duplicate rejection, ownership, signed unsubscribe, URL/subject hardening, and outcome tracking. Complete after one supervised provider send verifies the signed link, quota display, campaign status, and duplicate message in the deployed environment. | [event-promotion follow-ups](improvement-plan/event-promotion-follow-ups.md) |
+| TIME-01 | verification pending | XL | Repository timezone behavior and the production ISO audit are complete. Ten active non-personal events match all five Mongo/Postgres instants; CNS has three stale shadow values that require organiser confirmation. Date-only validation now uses Manila today and UTC storage components without shifting existing data. | Sixty prior focused cases plus three date-only boundary cases, 26 runner/admin/onboarding integrations, and the read-only production comparison pass. Complete after CNS and historical organiser confirmation, approved shadow repair, and deployed browser/email display checks. | [production audit](analysis/2026-10-20/production-timezone-audit.md) · [timezone policy](architecture/time-and-timezone-policy.md) |
+| UX-01 | blocked | L | Consolidate custom dialogs, measure PostgreSQL-backed and blog pages at responsive widths, and run deployed weak-connectivity, real-device, and assistive-technology checks. Depends on OPS-02 for complete staging coverage. | Recorded role/viewport/device/connectivity matrix, accessible dialog behavior, and focused regressions for every fixed issue. | [UI/PWA follow-ups](improvement-plan/ui-pwa-follow-ups.md) |
+| UX-02 | complete | M | `/runner/submissions` now has a compact summary/discovery toolbar, distinct personal-record/event/challenge identity, responsive two-zone entry cards, clearer empty/filter states, touch-safe actions, accessible focus behavior, and progressive busy/copy/unsaved feedback without changing backend contracts. | Twenty-one presentation/template cases and all 28 isolated ownership/filter/detail/proof route scenarios pass for standard, personal-record, and accumulated entries. | [runner submitted entries](implementation/runner-submitted-entries.md#completed-ui-improvement-pass) |
+| CONTENT-01 | verification pending | L | Production reconciliation is complete: all 47 October–December slugs exist, ten due articles are published, and 37 future articles are scheduled correctly. No missing content required publication. Verify scheduler completion after the remaining dates; indexing review stays separate. | All 47 are publication-eligible, all 38 health/safety records pass their review gates, required cover/alt/SEO metadata is present, scheduler errors are zero, and 1,041 internal links validate. Completion requires post-December confirmation for the 37 future records. | [production audit](analysis/2026-10-20/editorial-calendar-audit.md) |
 
-- [x] **Probe teardowns left residue in production, twice.** Fixed August 8. Seventeen
-      Postgres tables reference `events_core` and each probe hand-wrote four to six of
-      them; the second miss left a `rankings` row that blocked the event delete.
-      `scripts/probe-cleanup.js` now delegates to the one FK-ordered list in
-      `test-data-cleanup.service`, and **verifies zero residue afterwards rather than
-      assuming** — a teardown that failed quietly is what caused this. Runnable as a
-      sweep: `npm run probe:cleanup:dry`.
-- [x] **An event delete orphaned four event-scoped collections.** Guest tokens,
-      waitlist entries, transfers and bib QR tokens were all added after
-      `cascadeDeleteEventsMongo` was written and none were in it — so the **admin
-      test-data purge** orphaned them too, not just a probe.
-- [x] **Two gaps found while fixing the above.** Both fixed August 8, and one of
-      them corrected: `orders` and `products_core` reference `events_core` with
-      **ON DELETE SET NULL**, not RESTRICT, so the delete never failed — the rows
-      simply survived orphaned with a null `event_id` and nothing left to identify
-      them by. Both are now purged before the event. And
-      `scripts/cleanup-smoke-tests.js` treated "this table has no smoke-test
-      metadata columns" as "zero rows found", so it reported a clean sweep for
-      tables it had never looked at; it now names them as unchecked.
-      `badge_progress` and `certificate_audit_logs` are in the list and correctly
-      report as unverifiable — they genuinely lack the columns, which is a
-      migration nobody has needed yet.
+## Phase 5 — P3 Strategic Debt and Product Expansion
 
-### Onsite workflow gaps, found by an end-to-end trace on August 8
+| ID | State | Size | Task and dependency | Completion evidence | Source |
+|---|---|---:|---|---|---|
+| DEBT-01 | deferred | XL | Split oversized admin controller and organiser route modules after brittle source-inspection tests are replaced with behavior-focused coverage. | Independently testable feature modules, unchanged route contracts, and full focused regression evidence. | [archived full-app review](archive/reviews/full-app-review-and-improvement-backlog-2026-06-24.md#section-7--technical-debt) |
+| DEBT-02 | deferred | XL | Upgrade dependency majors one at a time with compatibility, security, performance, and rollback evidence. | Each upgrade is independently reviewable and passes unit, integration-in-staging, template, and browser smoke checks. | [strategic debt](improvement-plan/phase-5-strategic-debt.md) |
+| DEBT-03 | blocked | M | Remove only the 11 candidate views and/or `shop_platform_fees` explicitly approved by DEC-05; preserve the two runtime onsite views. | Approved object list, reversible migration, schema tests updated, and post-deploy external-consumer verification. | [consumer inventory](analysis/2026-10-20/postgres-object-consumer-inventory.md) |
+| PROD-01 | deferred | L | Deepen platform analytics and reporting only after production usage/support evidence identifies decisions the new metrics will support. | Approved metric definitions, privacy boundary, source queries, and user-facing decision supported by each report. | [STATUS backlog](STATUS.md#backlog) |
+| PROD-02 | blocked | XL | Keep direct COROS integration disabled until partner approval, controlled terms review, a separate threat model, non-production tests, and production secret issuance are complete. | Every approval gate is recorded and `COROS_DIRECT_INTEGRATION_ENABLED` remains false until final authorization. | [COROS readiness](integrations/COROS_PARTNER_API_READINESS.md) |
+| PROD-03 | deferred | XL | Evaluate mobile-app integration only after staging, restore rehearsal, stable web workflows, and measured user need. | Product decision and architecture proposal demonstrate value without duplicating unstable web behavior. | [STATUS backlog](STATUS.md#backlog) |
 
-Full analysis:
-[`features/onsite-registration-expansion/workflow-analysis.md`](features/onsite-registration-expansion/workflow-analysis.md).
-The feature checklist was complete; the workflow was not. Both blocking defects
-live in a seam between features rather than inside one.
+## Classification of Other Checklists
 
-- [x] **Walk-in registration 500s through its own form.** Fixed August 8, and
-      verified end to end for the first time: the form's own body now registers a
-      walk-in, captures the kit size and the organiser's answers, records desk
-      payment, and the bib assigns immediately. `validateGuestForm` now rejects a
-      missing `participationMode` or `raceDistance` rather than passing them to a
-      `save()` failure, both projections carry the kit and question fields, and a
-      new test builds the body the *form* serialises rather than supplying its
-      own — the specific hole that let this ship.
-- [x] **An approved onsite result produces nothing without an account.** Fixed
-      August 8. Migration `025` applied: `submissions_core.runner_user_id` is
-      nullable; `certificates` and `user_badges` deliberately are not. The result
-      ranks and reaches the leaderboard under the participant's name; the
-      certificate and badges are handed over when the registration is claimed with
-      a verified email. Probed live: shadow row written with a null runner, one
-      ranking row created, no certificate issued, claim backfills the runner.
-- [x] **Transfer drops the recipient's manage token on organiser approval.** Fixed
-      August 8. `completeTransfer` now emails the link to the new holder via a
-      `registration.transfer_completed` event, so both approval paths deliver it —
-      it is the recipient's credential, not something to hand an organiser in a
-      response body. Also makes the auto-approve path durable, which previously
-      rendered the link once and lost it if the tab closed.
-- [x] **Transfer inherits the previous person's custom answers, and never requires
-      an emergency contact.** Both fixed August 8. Answers are cleared — the kit size
-      was already replaced and the waiver re-signed, so inheriting a meal choice was
-      an omission rather than a policy. An onsite entry now demands the recipient's
-      own emergency contact, as every other route into an event does.
-- [x] **Bulk import commit trusts client-supplied rows.** Fixed August 8. Both the
-      validation and the cross-type duplicate check are re-run at commit, so a
-      hand-crafted post cannot skip the preview's checks and a duplicate created
-      between the two requests is caught.
-- [x] **Import's shadow-sync failure is logged but never recorded.** Fixed August 8.
-      It now writes a `sync_failures` row with the same call shape the post-save hook
-      uses, so the retry worker can actually see it.
-- [x] **The self-serve guest duplicate check ignores accounts.** Fixed August 8.
-      The public guest route now uses `findAnyExistingRegistration`, which the
-      walk-in desk has always used, so an account holder can no longer register a
-      second time as a guest and arrive as two people for one bib.
-- [x] **Guests have no reachable race pass.** Built August 8. The guest's existing
-      manage link now shows their bib and check-in QR — one credential, already
-      hashed and already revoked on cancellation and claim, rather than a second
-      one. QR check-in works for walk-ins and imported runners for the first time.
-- [x] **The onsite roster has no pagination.** Fixed August 8: paging on the
-      check-in, bibs, race-kit and results pages, reporting the real total so staff
-      can tell "that is everyone" from "there are more". The offline backup export
-      pages through instead of silently stopping at 500 — the worst place for a
-      truncation, since it is what staff fall back on when connectivity drops.
-- [x] **Participation mode is never checked against the event.** Fixed August 8 —
-      a guest could hold a confirmed entry that never appeared on the race-day
-      roster, because the roster filters on exactly `onsite`.
-- [x] **The roster showed cancelled registrations.** Fixed August 8: a cancelled
-      entry looked identical to a live one, so a desk could hand over a bib and a
-      kit for a registration that no longer existed. `includeCancelled` keeps them
-      reachable for an organiser reconciling afterwards.
+- Files under `implementation/` describe shipped code or verification-pending
+  handoffs; unchecked examples there are not automatically backlog tasks.
+- Files under `features/`, `architecture/`, `design/`, `blog/`, and
+  `improvement-plan/` are requirements or supporting plans. Open work from them
+  is represented above by a ROADMAP ID.
+- Files under `analysis/`, `changelog/`, `done/`, and `archive/` are evidence or
+  history. Their checkboxes are immutable historical context.
+- Operational actions that could alter production data remain blocked until
+  their stated approval, backup, and environment dependencies are satisfied.
 
-## 3. Dead code
+### Unchecked-checkbox source audit
 
-Removal only, no behaviour change, each independently revertable.
+The October 19 review classified every Markdown file containing an unchecked
+task box. Counts may remain in supporting and historical documents because the
+boxes preserve original acceptance evidence; this table determines whether
+they are actionable.
 
-- [x] **14 unreachable partials** in `views/runner/partials/`. Removed August 8,
-      24 files down to 10. The two tests that assert these are *not* rendered were
-      kept — the consolidation was deliberate and they are the reason not to
-      reintroduce them. All 158 views still compile, so no include was left
-      dangling.
-- [x] **Dead service exports.** 25 removed August 8 across 17 files, ~370 lines.
-      The 26th, `getPasswordStrength`, turned out **not** to be dead — it is called
-      internally by `validatePassword`, and removing it broke password validation
-      until the check caught it. Removing `consumeClaimToken` also surfaced a real
-      fact: nothing has ever issued a `claim` token, because claiming is proved by
-      a verified email instead. `badge-template.service.js` survives but has no
-      `src/` consumer at all — it is reachable only from its test, which is a
-      separate decision from dead exports.
-- [ ] **11 never-queried Postgres objects** — 10 views plus `shop_platform_fees`,
-      including all five Phase-6 reporting views. Verified August 8 as unused by
-      the application: no `src/` code references any of them, and the only test
-      mentions are schema-existence assertions. **Deliberately not dropped.**
-      Views are exactly what a Supabase dashboard query, a BI tool or an ad-hoc
-      report would use, and none of that is visible from the repository — so
-      dropping them is a silent breakage no test here could catch. Removable once
-      it is confirmed nothing outside the app reads them. A twelfth,
-      `v_runner_certifications`, became unreachable when its only caller was
-      removed as dead code.
-
-## 4. Environment and test isolation
-
-- [x] **Prevent tests from writing to production.** Shipped August 8: any group
-      that is not DB-free unit tests is refused unless the configured databases
-      are local, with an explicit `ALLOW_REMOTE_TEST_DB=1` override.
-- [ ] Create isolated development/staging data services. Until this exists,
-      every live verification is a probe against production with throwaway data.
-- [ ] Execute the deferred live-database verification backlog in that
-      environment.
-- [x] **Document** backup, restore, rollback and deployment runbooks. Written
-      August 8: [`operations/deployment-runbook.md`](operations/deployment-runbook.md).
-      Covers how to verify a deploy actually landed, what to do when it does not,
-      the migration order, and rollback. Also pins the Node version in `engines`,
-      which was unset — the platform was free to change it under us.
-- [ ] **Test** the restore path. The runbook describes what exists but nobody has
-      restored an Atlas snapshot or a Supabase backup, so it is a plan and not a
-      capability. Needs the isolated environment above to rehearse in. **This is
-      the largest untested risk on the platform.**
-
-Detailed plan:
-[`improvement-plan/phase-2-environments-and-data-safety.md`](improvement-plan/phase-2-environments-and-data-safety.md).
-
-## 5. Security, process, and runtime hardening
-
-- [x] **`/healthz` reports the running commit.** Shipped August 8, after a deploy
-      was reported as verified from a route that answers 302 whether or not it
-      shipped.
-- [x] **Cross-event write protection.** Shipped August 8: bib assignment,
-      check-in and onsite results resolved a registration by id alone, so an
-      organiser could write against another organiser's runner.
-- [ ] Close the remaining improvement-plan acceptance checks.
-- [ ] Verify the login/session, proxy/IP, CSP, CI, dependency, shutdown and Redis
-      safeguards against the deployed topology. Note Redis is **not** configured
-      in production, so the shared rate limiters run on their in-memory fallback.
-- [ ] Complete CQ-3 organiser authorization-chain unification, with focused
-      authorization tests and supervised runtime smoke coverage. Related: every
-      `/organizer/*` route re-implements its ownership check by convention rather
-      than through middleware.
-- [x] **Resolve server-spawning test open handles.** Fixed August 8. All 41 files
-      spawned `src/server.js` inline and every one called `kill()` without awaiting
-      exit, so the runner held a live handle each time. `tests/helpers/test-server.js`
-      waits for the child to actually exit, with a SIGKILL fallback so a hung server
-      cannot hang the run.
-- [x] **The app ignored SIGTERM entirely.** Found while fixing the above and far
-      more serious. Four workers register `process.once('SIGTERM', cleanup)` to clear
-      an interval — and any SIGTERM listener replaces Node's default, which is to
-      terminate. So the app cleared four timers and carried on serving indefinitely.
-      Measured: still alive 8s after SIGTERM, versus 7ms for a bare HTTP server.
-      **In production the host asks the service to stop, waits out its whole shutdown
-      grace period, then SIGKILLs it** — dropping in-flight requests and making every
-      deploy as slow as that timeout. Now exits cleanly in 65ms, closing the HTTP
-      server before the databases so a request in flight can finish.
-
-## 6. Measured efficiency and delivery refinement
-
-- [ ] Establish performance baselines before changing request-path behaviour.
-- [ ] Reduce avoidable authenticated-user lookups and request-time OCR work.
-- [ ] **Platform-aware OCR and training** ([plan](improvement-plan/ocr-platform-aware/README.md)).
-      Phases 0–6 implemented Oct 17–18 on the feature branch (flags off). Next, owner
-      actions: review/merge; consented screenshots + baseline benchmark; privacy wording
-      for the opt-in; approval to install training tools; then flag-by-flag rollout per
-      `DEPLOYMENT-AND-ROLLBACK.md`.
-- [ ] Confirm edge compression, asset versioning, caching and bundle behaviour.
-- [ ] Complete residual communication delivery and unsubscribe observability.
-
-## 7. Documentation hygiene
-
-- [x] **Status headers on `features/`.** Added August 8 to the 14 files that had
-      none. Each was checked against the code first — all describe shipped work,
-      so all are labelled implemented rather than blanket-stamped. They stay where
-      they are rather than moving to `implementation/`: 11 of them are linked from
-      other documents, and relocating would break those links for a filing tidy-up.
-- [x] **`PRD.md` and `ux-improvement-plan.md` were behind their own edits.** Both
-      addressed August 8, differently and on purpose. The PRD was genuinely missing
-      requirements the system now meets — registration without an account, category
-      capacity, waitlists, per-size kit stock, organiser questions, transfers — so
-      those were written in and its date moved. `ux-improvement-plan.md` was not
-      re-dated: its UX recommendations have not been re-audited, and moving the date
-      would claim they had. It now states what it is authoritative for (the specs
-      four implementation records cite) and that its progress narrative is a
-      June–July snapshot superseded by STATUS and ROADMAP.
-
-## 8. Product expansion
-
-The onsite event lifecycle is complete — the pack's sequenced work all landed on
-August 7–8 and is recorded in
-[`features/onsite-registration-expansion/delivery-plan.md`](features/onsite-registration-expansion/delivery-plan.md).
-What remains of that spec is deliberately deferred, with reasons, in
-[`features/onsite-registration-expansion/05-form-builder.md`](features/onsite-registration-expansion/05-form-builder.md).
-
-- [ ] Decide whether to prune orphaned data: 48 of 108 onsite registrations
-      reference hard-deleted events, and 1,136 of 1,211 submissions reference
-      deleted users or events. No backfill resolves these. Tooling exists —
-      `scripts/diagnose-broken-registrations.js` reports,
-      `repair-registration-references.js` and `backfill-missing-references.js` fix.
-- [ ] Accept the `audit_critical` gap: every write failed until August 7 and
-      those records cannot be reconstructed.
-- [ ] Deploy review decision history, then confirm a live review writes a
-      `ReviewDecision` row and that a run-proof rejection keeps its `rejectionCode`.
-- [ ] With that deployment, confirm on a non-production database that approving one
-      entry of a multi-event submission approves its pending linked entries (standard and
-      accumulated) and that each writes a `ReviewDecision` with `linkedFrom`.
-- [ ] Decide a retention period for `ReviewDecision` evidence and retained proof files,
-      and whether account deletion should remove them (it does not remove submissions
-      today either).
-- [ ] Deepen platform analytics and reporting.
-- [ ] Prioritise backlog items using production usage and support evidence.
-- [ ] Evaluate mobile-app integration without duplicating unstable web workflows.
-
-## Historical Roadmap
-
-The former full-app review and mixed completion roadmap is preserved at
-[`archive/roadmaps/full-app-review-roadmap-2026-06-22.md`](archive/roadmaps/full-app-review-roadmap-2026-06-22.md).
+| Source files | Classification | Canonical owner |
+|---|---|---|
+| `operations/deployment-runbook.md` | Active operational acceptance checks | `OPS-03` |
+| `improvement-plan/phase-0-pre-deploy-security.md`, `phase-1-process-safety-net.md`, `phase-2-environments-and-data-safety.md`, `phase-3-efficiency.md` | Active supporting checks mixed with completed historical findings | `SEC-01`–`SEC-03`, `PRC-01`, `DEC-04`, `OPS-02`–`OPS-06`, `EFF-01`, `EFF-02` |
+| `improvement-plan/ocr-platform-aware/09-DECISION-LOG-AND-HANDOFF.md` | Rollout acceptance gates, not unfinished repository implementation | `DEC-06`, `REL-03` |
+| `adsense-readiness/approval-roadmap.md` | Active external/account and verification checks | `REL-08` |
+| `design/ui-ux-reference.md` | Supporting UX/security recommendations | `SEC-05`, `UX-01` |
+| `create_event/step-competition-feature-plan.md` | Verification-only rollout checklist | `REL-06` |
+| `create_event/event_auto_approval_plan.md` | Verification-only evidence for the implemented trusted-organiser path | `REL-07` |
+| `features/onsite-registration-expansion/delivery-plan.md` | Owner decisions and verification-only checks | `DEC-01`, `DEC-02`, `REL-06`, `REL-07` |
+| `implementation/verification-pending/*` and `implementation/smoke-test-cleanup-guide.md` | Verification-only implementation records | `OPS-06`, `REL-07` |
+| October, November, and December 2026 blog implementation plans | Production inventory and editorial acceptance checks | `CONTENT-01` |
+| September 2026 blog plan and `create_event/september-active-run-2026-event-brief.md` | Historical calendar/event checklists; no active task inferred | None |
+| `features/onsite-registration-expansion/10-implementation-checklist.md` and `features/hellorun_commerce_phase0_phase1a_checklist.md` | Superseded or implemented feature acceptance examples | None |
+| `blog/hellorun_blog_feature_phased_implementation_spec.md` and `blog/hellorun_adsense_original_experience_articles_codex_plan.md` | Implemented/historical content acceptance examples | None |
+| `implementation/hellorun_prd_expansion_insert.md`, `runner-experience-ux-enhancements.md`, `admin-governance.md`, `submission-review-workflow-redesign.md`, `proof-rejection-guidance.md`, `onboarding-flow.md`, `db-architecture-priority-2.md`, `bulk-organiser-actions.md`, `p4-personal-leaderboard-rank.md`, and `blog-scheduled-publishing.md` | Historical acceptance examples inside completed implementation records | None |
+| February and March 2026 changelogs | Historical session checklists | None |
+| Every file under `archive/` | Historical or superseded by definition | None |

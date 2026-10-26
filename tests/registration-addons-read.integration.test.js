@@ -268,7 +268,7 @@ test('registration submit persists distance-based price snapshot', async () => {
   await waitForSessionReady('/runner/dashboard', cookie);
 
   const { csrfToken, html } = await getCsrfFromAuthedPage(`/events/${seed.distanceEvent.slug}/register`, cookie);
-  assert.match(html, /Race Distance/i);
+  assert.match(html, /Goal or category/i);
   assert.match(html, /10K/i);
 
   const response = await fetch(`${BASE_URL}/events/${seed.distanceEvent.slug}/register`, {
@@ -310,8 +310,8 @@ test('registration submit persists active distance-period price snapshot', async
   await waitForSessionReady('/runner/dashboard', cookie);
 
   const { csrfToken, html } = await getCsrfFromAuthedPage(`/events/${seed.distancePeriodEvent.slug}/register`, cookie);
-  assert.match(html, /raceDistancePricingPreviewData/i);
-  assert.match(html, /Early Bird/i);
+  assert.match(html, /registrationReviewData/i);
+  assert.match(html, /PHP 400\.00/i);
 
   const response = await fetch(`${BASE_URL}/events/${seed.distancePeriodEvent.slug}/register`, {
     method: 'POST',

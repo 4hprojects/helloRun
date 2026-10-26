@@ -14,6 +14,7 @@ const Event = require('../models/Event');
 const logger = require('../utils/logger');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
+const { getClientIp, getClientIpKey } = require('../utils/client-ip');
 const {
   isTurnstileConfigured,
   getTurnstileSiteKey,
@@ -38,7 +39,7 @@ const waitlistJoinLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   maxRequests: 5,
   message: 'Too many attempts. Please wait a few minutes and try again.',
-  keyFn: (req) => `waitlist-join|${req.ip || 'unknown-ip'}|${req.params.slug || ''}`
+  keyFn: (req) => `waitlist-join|${getClientIpKey(req)}|${req.params.slug || ''}`
 });
 
 // Separate from the join limiter: that one keys on `:slug`, which this route does not
@@ -48,14 +49,14 @@ const waitlistClaimLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   maxRequests: 10,
   message: 'Too many attempts. Please wait a few minutes and try again.',
-  keyFn: (req) => `waitlist-claim|${req.ip || 'unknown-ip'}|${req.params.token || ''}`
+  keyFn: (req) => `waitlist-claim|${getClientIpKey(req)}|${req.params.token || ''}`
 });
 
 const waitlistLookupLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   maxRequests: 30,
   message: 'Too many attempts. Please wait a few minutes and try again.',
-  keyFn: (req) => `waitlist-lookup|${req.ip || 'unknown-ip'}`
+  keyFn: (req) => `waitlist-lookup|${getClientIpKey(req)}`
 });
 
 async function loadPublicEvent(slug) {
@@ -134,7 +135,7 @@ router.post(
       if (isTurnstileConfigured()) {
         const verified = await verifyTurnstileToken({
           token: req.body['cf-turnstile-response'],
-          remoteIp: req.ip
+          remoteIp: getClientIp(req)
         });
         if (!verified?.success) {
           errors.turnstile = 'Please complete the verification and try again.';
@@ -252,7 +253,7 @@ router.post(
       const { registration, manageToken, hasAccount } = await createGuestRegistration({
         event,
         form,
-        requestMeta: { ipAddress: req.ip, userAgent: req.get('user-agent') },
+        requestMeta: { ipAddress: getClientIp(req), userAgent: req.get('user-agent') },
         // Skip only when this offer actually holds a slot. An entry with no category — or
         // one in an uncapped category — never reserved anything, so skipping would let it
         // register with no capacity check at all.

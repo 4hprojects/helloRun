@@ -50,6 +50,7 @@
           <section class="shop-detail-section">
             <h2>Upload Payment Proof</h2>
             <form id="shopPaymentProofForm" method="POST" enctype="multipart/form-data" class="shop-form-grid">
+              <input type="hidden" id="shopPaymentCsrfToken" name="_csrf" value="<%= csrfToken %>">
               <label>
                 <span>Payment Method</span>
                 <input type="text" name="paymentMethod" maxlength="80" placeholder="e.g. Bank transfer, GCash">
@@ -96,8 +97,8 @@
   </main>
 
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script>
-  <script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">
     if (window.lucide) lucide.createIcons();
 
     (function () {
