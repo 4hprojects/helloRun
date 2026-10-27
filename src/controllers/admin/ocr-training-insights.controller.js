@@ -98,14 +98,14 @@ exports.updateSettings = async (req, res) => {
     const basisCheck = validateTrainingBasis(set, before);
     if (basisCheck.errors.length) return base._redirectWith(res, back, 'error', basisCheck.errors.join(' '));
     await updateOcrSettings(set, req.session?.userId);
-    if (basisChanging || set['training.noticePublishedAt'] !== undefined || set['training.noticePolicyVersion'] !== undefined) {
+    if (basisChanging || set['training.noticePublishedAt'] !== undefined || set['training.noticePrivacyPolicyVersion'] !== undefined || set['training.noticeDataUsagePolicyVersion'] !== undefined || set['training.legalReviewApprovedAt'] !== undefined) {
       await recordOcrAudit({
         action: 'ocr.training_basis_updated',
         targetType: 'ocr_settings',
         targetId: 'global',
         statusFrom: before.training?.basis || 'opt_in',
         statusTo: basisCheck.merged.basis,
-        reason: `notice ${basisCheck.merged.noticePolicyVersion || '-'} published ${basisCheck.merged.noticePublishedAt ? new Date(basisCheck.merged.noticePublishedAt).toISOString().slice(0, 10) : '-'}; backfill not before ${basisCheck.merged.backfillNotBefore ? new Date(basisCheck.merged.backfillNotBefore).toISOString().slice(0, 10) : '-'}`,
+        reason: `privacy ${basisCheck.merged.noticePrivacyPolicyVersion || '-'}; data usage ${basisCheck.merged.noticeDataUsagePolicyVersion || '-'}; assessment ${basisCheck.merged.legitimateInterestAssessmentVersion || '-'}; legal review ${basisCheck.merged.legalReviewReference || '-'} approved ${basisCheck.merged.legalReviewApprovedAt ? new Date(basisCheck.merged.legalReviewApprovedAt).toISOString().slice(0, 10) : '-'}; notice published ${basisCheck.merged.noticePublishedAt ? new Date(basisCheck.merged.noticePublishedAt).toISOString().slice(0, 10) : '-'}; backfill not before ${basisCheck.merged.backfillNotBefore ? new Date(basisCheck.merged.backfillNotBefore).toISOString().slice(0, 10) : '-'}`,
         req
       });
     }

@@ -121,6 +121,26 @@ function buildSettingsUpdate(body = {}) {
   if (body['training.noticePolicyVersion'] !== undefined) {
     set['training.noticePolicyVersion'] = String(body['training.noticePolicyVersion']).trim().slice(0, 40);
   }
+  if (body['training.noticePrivacyPolicyVersion'] !== undefined) {
+    const version = String(body['training.noticePrivacyPolicyVersion']).trim().slice(0, 40);
+    set['training.noticePrivacyPolicyVersion'] = version;
+    set['training.noticePolicyVersion'] = version;
+  }
+  if (body['training.noticeDataUsagePolicyVersion'] !== undefined) {
+    set['training.noticeDataUsagePolicyVersion'] = String(body['training.noticeDataUsagePolicyVersion']).trim().slice(0, 40);
+  }
+  if (body['training.legitimateInterestAssessmentVersion'] !== undefined) {
+    set['training.legitimateInterestAssessmentVersion'] = String(body['training.legitimateInterestAssessmentVersion']).trim().slice(0, 80);
+  }
+  if (body['training.legalReviewReference'] !== undefined) {
+    set['training.legalReviewReference'] = String(body['training.legalReviewReference']).trim().slice(0, 200);
+  }
+  if (body['training.legalReviewApprovedAt'] !== undefined) {
+    const raw = String(body['training.legalReviewApprovedAt']).trim();
+    const date = raw ? new Date(`${raw}T00:00:00+08:00`) : null;
+    if (raw && (!/^\d{4}-\d{2}-\d{2}$/.test(raw) || Number.isNaN(date.getTime()))) errors.push('Enter the legal approval date as YYYY-MM-DD.');
+    else set['training.legalReviewApprovedAt'] = date;
+  }
   if (body['training.backfillNotBefore'] !== undefined) {
     const raw = String(body['training.backfillNotBefore']).trim();
     const date = raw ? new Date(`${raw}T00:00:00+08:00`) : null;
@@ -145,13 +165,23 @@ function validateTrainingBasis(set, current = {}, now = new Date()) {
     basis: set['training.basis'] ?? current.training?.basis ?? 'opt_in',
     noticePublishedAt: set['training.noticePublishedAt'] !== undefined ? set['training.noticePublishedAt'] : current.training?.noticePublishedAt || null,
     noticePolicyVersion: set['training.noticePolicyVersion'] ?? current.training?.noticePolicyVersion ?? '',
+    noticePrivacyPolicyVersion: set['training.noticePrivacyPolicyVersion'] ?? current.training?.noticePrivacyPolicyVersion ?? '',
+    noticeDataUsagePolicyVersion: set['training.noticeDataUsagePolicyVersion'] ?? current.training?.noticeDataUsagePolicyVersion ?? '',
+    legitimateInterestAssessmentVersion: set['training.legitimateInterestAssessmentVersion'] ?? current.training?.legitimateInterestAssessmentVersion ?? '',
+    legalReviewApprovedAt: set['training.legalReviewApprovedAt'] !== undefined ? set['training.legalReviewApprovedAt'] : current.training?.legalReviewApprovedAt || null,
+    legalReviewReference: set['training.legalReviewReference'] ?? current.training?.legalReviewReference ?? '',
     backfillNotBefore: set['training.backfillNotBefore'] !== undefined ? set['training.backfillNotBefore'] : current.training?.backfillNotBefore || null
   };
   const errors = [];
   if (merged.basis === 'notice_opt_out') {
     if (!merged.noticePublishedAt) errors.push('Record the date the revised privacy notice was published before switching basis.');
-    if (!merged.noticePolicyVersion) errors.push('Record the published policy version before switching basis.');
+    if (!merged.noticePrivacyPolicyVersion) errors.push('Record the published Privacy Policy version before switching basis.');
+    if (!merged.noticeDataUsagePolicyVersion) errors.push('Record the published Data Usage Policy version before switching basis.');
+    if (!merged.legitimateInterestAssessmentVersion) errors.push('Record the approved legitimate-interest assessment version before switching basis.');
+    if (!merged.legalReviewApprovedAt) errors.push('Record the legal review approval date before switching basis.');
+    if (!merged.legalReviewReference) errors.push('Record the legal review reference before switching basis.');
     if (merged.noticePublishedAt && new Date(merged.noticePublishedAt) > now) errors.push('The notice date cannot be in the future.');
+    if (merged.legalReviewApprovedAt && new Date(merged.legalReviewApprovedAt) > now) errors.push('The legal approval date cannot be in the future.');
     if (merged.noticePublishedAt) {
       const earliest = new Date(new Date(merged.noticePublishedAt).getTime() + NOTICE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
       if (!merged.backfillNotBefore || new Date(merged.backfillNotBefore) < earliest) {
@@ -161,6 +191,15 @@ function validateTrainingBasis(set, current = {}, now = new Date()) {
     }
   }
   return { errors, merged };
+}
+
+function hasApprovedNoticeBasis(training, now = new Date()) {
+  if (!training || training.basis !== 'notice_opt_out') return false;
+  if (!training.noticePublishedAt || new Date(training.noticePublishedAt) > now) return false;
+  if (!training.noticePrivacyPolicyVersion || !training.noticeDataUsagePolicyVersion) return false;
+  if (!training.legitimateInterestAssessmentVersion || !training.legalReviewReference) return false;
+  if (!training.legalReviewApprovedAt || new Date(training.legalReviewApprovedAt) > now) return false;
+  return true;
 }
 
 async function updateOcrSettings(set, actorId) {
@@ -175,6 +214,7 @@ async function updateOcrSettings(set, actorId) {
 
 module.exports = {
   NOTICE_PERIOD_DAYS,
+  hasApprovedNoticeBasis,
   validateTrainingBasis,
   getOcrSettings,
   updateOcrSettings,

@@ -15,7 +15,7 @@ const { validateTrainingBasis, buildSettingsUpdate } = require('../src/services/
 const { checkGates, manilaDateKey } = require('../src/services/ocr/ocr-backfill.service');
 
 const NOW = new Date('2026-12-01T00:00:00Z');
-const notice = { training: { basis: 'notice_opt_out', noticePublishedAt: new Date('2026-10-20T00:00:00Z'), noticePolicyVersion: '1.6', backfillNotBefore: new Date('2026-11-19T00:00:00Z') } };
+const notice = { training: { basis: 'notice_opt_out', noticePublishedAt: new Date('2026-10-20T00:00:00Z'), noticePolicyVersion: '1.6', noticePrivacyPolicyVersion: '1.6', noticeDataUsagePolicyVersion: '1.2', legitimateInterestAssessmentVersion: 'OCR-LIA-1', legalReviewApprovedAt: new Date('2026-10-19T00:00:00Z'), legalReviewReference: 'COUNSEL-2026-10', backfillNotBefore: new Date('2026-11-19T00:00:00Z') } };
 const optIn = { training: { basis: 'opt_in' } };
 const runner = { _id: 'r1', accountStatus: 'active', dateOfBirth: new Date('1990-01-01'), ocrTrainingOptOut: { optedOut: false } };
 const entry = (overrides = {}) => ({ runnerId: 'r1', status: 'approved', proof: { key: 'k', mimeType: 'image/webp' }, ...overrides });
@@ -60,10 +60,27 @@ test('minor detection turns adult on the 18th birthday', () => {
 
 test('switching to the notice basis needs a published notice and holds a 30-day objection period', () => {
   const missing = validateTrainingBasis({ 'training.basis': 'notice_opt_out' }, {}, NOW);
-  assert.equal(missing.errors.length, 2);
-  const future = validateTrainingBasis({ 'training.basis': 'notice_opt_out', 'training.noticePublishedAt': new Date('2027-01-01'), 'training.noticePolicyVersion': '1.6' }, {}, NOW);
+  assert.equal(missing.errors.length, 6);
+  const future = validateTrainingBasis({
+    'training.basis': 'notice_opt_out',
+    'training.noticePublishedAt': new Date('2027-01-01'),
+    'training.noticePrivacyPolicyVersion': '1.6',
+    'training.noticeDataUsagePolicyVersion': '1.2',
+    'training.legitimateInterestAssessmentVersion': 'OCR-LIA-1',
+    'training.legalReviewApprovedAt': new Date('2027-01-01'),
+    'training.legalReviewReference': 'COUNSEL-1'
+  }, {}, NOW);
   assert.match(future.errors.join(' '), /cannot be in the future/);
-  const set = { 'training.basis': 'notice_opt_out', 'training.noticePublishedAt': new Date('2026-11-25T00:00:00Z'), 'training.noticePolicyVersion': '1.6', 'training.backfillNotBefore': new Date('2026-11-26T00:00:00Z') };
+  const set = {
+    'training.basis': 'notice_opt_out',
+    'training.noticePublishedAt': new Date('2026-11-25T00:00:00Z'),
+    'training.noticePrivacyPolicyVersion': '1.6',
+    'training.noticeDataUsagePolicyVersion': '1.2',
+    'training.legitimateInterestAssessmentVersion': 'OCR-LIA-1',
+    'training.legalReviewApprovedAt': new Date('2026-11-20T00:00:00Z'),
+    'training.legalReviewReference': 'COUNSEL-1',
+    'training.backfillNotBefore': new Date('2026-11-26T00:00:00Z')
+  };
   const ok = validateTrainingBasis(set, {}, NOW);
   assert.deepEqual(ok.errors, []);
   assert.equal(set['training.backfillNotBefore'].toISOString(), '2026-12-25T00:00:00.000Z', 'pushed to notice + 30 days');
@@ -78,7 +95,8 @@ test('backfill gates fail closed', () => {
   try {
     process.env.OCR_SERVER_PIPELINE_ENABLED = 'true';
     assert.match(checkGates(optIn, NOW), /not "notice and objection"/);
-    assert.match(checkGates({ training: { ...notice.training, noticePolicyVersion: '' } }, NOW), /notice date and policy version/);
+    assert.match(checkGates({ training: { ...notice.training, noticePrivacyPolicyVersion: '' } }, NOW), /both policy versions/);
+    assert.match(checkGates({ training: { ...notice.training, legalReviewReference: '' } }, NOW), /legal approval date/);
     assert.match(checkGates({ training: { ...notice.training, backfillNotBefore: new Date('2027-01-01') } }, NOW), /objection period has not ended/);
     assert.equal(checkGates(notice, NOW), '');
     delete process.env.OCR_SERVER_PIPELINE_ENABLED;
