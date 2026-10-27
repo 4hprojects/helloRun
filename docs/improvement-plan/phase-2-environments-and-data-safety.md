@@ -54,8 +54,8 @@ Rate limiters currently run on the in-memory fallback in prod (no `REDIS_URL`): 
 
 The October 20 production audit found zero users matching
 `purge.runner.*@example.com` or `purge.organizer.*@example.com`, and no matching
-PostgreSQL shadows. No deletion was necessary. The separately discovered 99-account
-fixture footprint is not part of this completed narrow task; it is governed by `DEC-07`
+PostgreSQL shadows. No deletion was necessary. The separately discovered fixture
+footprint is not part of this completed narrow task; it is governed by `DEC-07`
 and the [placeholder audit](../analysis/2026-10-20/production-placeholder-user-audit.md).
 
 ## DATA-1 · Decide orphan-record retention (complete)
