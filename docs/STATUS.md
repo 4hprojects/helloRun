@@ -306,13 +306,14 @@ those remain open below.
   blocked on that owner inventory; no object was dropped. See the
   [consumer inventory](analysis/2026-10-20/postgres-object-consumer-inventory.md).
 
-- **The broader fixture-account impact is now bounded.** The 99 non-admin
-  `@example.com` accounts own 37 events, all soft-deleted and marked test data. Their
-  event registrations contain no non-fixture or guest participants and no submissions;
-  PostgreSQL has no matching shadow or dependent rows. Five non-deleted blogs remain,
-  including one published, with five referenced assets. `DEC-07` remains blocked on
-  blog/R2 disposition, recoverable backup, and explicit retain/quarantine/delete
-  approval. No account or record was changed; see the
+- **Fixture-account quarantine is selected and dry-run verified.** The October 27
+  Mongo-only refresh found 102 active non-admin `@example.com` accounts, 38 test-data
+  events, 70 fixture-only registrations, one fixture submission, and no real or guest
+  participant. Five blogs remain, including one published, with five referenced assets.
+  The reversible migration suspends accounts and archives blogs while preserving all
+  records and R2 assets. Apply remains blocked because the full cross-store refresh hit
+  Supabase DNS failure and a current MongoDB backup is not yet recorded. No production
+  record changed; see the
   [fixture audit](analysis/2026-10-20/production-placeholder-user-audit.md).
 
 - **Critical audit history has an unrecoverable coverage gap.** The malformed service
@@ -397,9 +398,9 @@ those remain open below.
   blocked or verification-pending tasks.
 - The two narrowly identified `purge.runner` / `purge.organizer` placeholder users are
   already absent from both production stores; `DEC-04` closed without mutation. A
-  separate read-only preview found 99 active non-admin `@example.com` fixture accounts
-  owning 37 events and related records. Their disposition is a new, explicitly scoped
-  owner/backup decision under `DEC-07`; see the
+  separate read-only preview now finds 102 active non-admin `@example.com` fixture
+  accounts. Reversible quarantine is selected under `DEC-07`; cross-store preflight and
+  current backup evidence still gate apply. See the
   [placeholder audit](analysis/2026-10-20/production-placeholder-user-audit.md).
 - Verify backup/restore and graceful-deployment procedures.
 

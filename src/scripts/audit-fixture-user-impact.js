@@ -25,6 +25,7 @@ const CertificateTemplate = require('../models/CertificateTemplate');
 const Blog = require('../models/Blog');
 
 const FIXTURE_QUERY = { email: /@example\.com$/i, role: { $ne: 'admin' } };
+const MONGO_ONLY = process.argv.includes('--mongo-only');
 
 function quoteIdentifier(value) {
   return `"${String(value).replace(/"/g, '""')}"`;
@@ -153,8 +154,8 @@ async function postgresImpact(mongoUserIds, mongoEventIds) {
 }
 
 async function main() {
-  if (!process.env.MONGODB_URI || !process.env.DATABASE_URL) {
-    throw new Error('MONGODB_URI and DATABASE_URL are required');
+  if (!process.env.MONGODB_URI || (!MONGO_ONLY && !process.env.DATABASE_URL)) {
+    throw new Error(MONGO_ONLY ? 'MONGODB_URI is required' : 'MONGODB_URI and DATABASE_URL are required');
   }
   await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 10_000 });
 
@@ -268,10 +269,12 @@ async function main() {
       assetReferences: blogAssetReferences
     },
     certificateTemplateAssetReferences: countTemplateAssetReferences(templates),
-    postgres: await postgresImpact(
-      fixtureUsers.map((user) => String(user._id)),
-      events.map((event) => String(event._id))
-    ),
+    postgres: MONGO_ONLY
+      ? { status: 'not_checked', reason: 'Mongo-only mode does not satisfy the DEC-07 cross-store gate.' }
+      : await postgresImpact(
+          fixtureUsers.map((user) => String(user._id)),
+          events.map((event) => String(event._id))
+        ),
     caveat: 'Asset references are counts from MongoDB fields; this audit does not list or delete R2 objects.'
   };
 

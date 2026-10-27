@@ -1,5 +1,18 @@
 # HelloRun Changelog — October 2026
 
+## October 27 — DEC-07 reversible fixture quarantine prepared
+
+- Selected quarantine instead of deletion: suspend fixture accounts and archive their
+  blogs while preserving events, participant records, evidence, and all R2 assets.
+- Added dry-run-by-default, exact-count-guarded apply, mode-`0600` rollback manifest,
+  transactional updates, verification, and manifest-based rollback commands.
+- The isolated apply/rollback case passes. Production dry run changed nothing and found
+  102 active accounts and five blogs. A Mongo-only impact refresh found 38 test-data
+  events, 70 fixture-only registrations, and one fixture submission with no real or
+  guest participant.
+- Full cross-store refresh failed on Supabase DNS resolution. Apply remains blocked until
+  that audit succeeds and a current recoverable MongoDB backup is recorded.
+
 ## October 27 — DEC-01 orphan retention decision
 
 - Chose retain-in-place for the audited orphaned MongoDB footprint. No source row,
