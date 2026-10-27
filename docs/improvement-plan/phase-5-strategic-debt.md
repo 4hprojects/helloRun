@@ -2,8 +2,8 @@
 
 **Status:** Active long-term backlog
 
-**Last reconciled:** October 20, 2026 · **Current ownership:** `DEC-05`,
-`SEC-03`, `SEC-04`, `DEBT-02`, and `DEBT-03` in
+**Last reconciled:** October 27, 2026 · **Current ownership:** `SEC-03`,
+`SEC-04`, and `DEBT-02` in
 [ROADMAP.md](../ROADMAP.md) · **Delivery state:** [STATUS.md](../STATUS.md)
 
 ## 1. CSP and Third-Party Assets
@@ -43,8 +43,10 @@ and `shop_platform_fees` is empty with no foreign key or runtime source referenc
 
 The technical inventory is complete in
 [`analysis/2026-10-20/postgres-object-consumer-inventory.md`](../analysis/2026-10-20/postgres-object-consumer-inventory.md).
-`DEC-05` still requires explicit saved-SQL, dashboard, BI, automation, and ad-hoc consumer
-confirmation. Only objects approved there enter a reversible `DEBT-03` migration.
+On October 27 the owner chose indefinite retention for all 12 candidates. Unknown
+external consumers are treated as a reason to retain, not permission to remove. No
+`DEBT-03` migration will be created. Any future removal proposal must reopen the full
+inventory and its reversible-migration gates.
 
 ## Acceptance Criteria
 
@@ -53,5 +55,6 @@ confirmation. Only objects approved there enter a reversible `DEBT-03` migration
 - Each dependency major is independently reviewable and reversible.
 - Current behavior and persisted `organiser` compatibility identifiers remain
   unchanged unless a separately approved migration says otherwise.
-- PostgreSQL objects are removed only from the approved inventory, with the two runtime
-  onsite views preserved and external consumers checked after deployment.
+- PostgreSQL candidates remain retained unless a new decision completes the external
+  consumer inventory and reversible-removal gates; the two runtime onsite views remain
+  protected.

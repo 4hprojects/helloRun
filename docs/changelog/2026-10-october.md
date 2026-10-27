@@ -1,5 +1,14 @@
 # HelloRun Changelog — October 2026
 
+## October 27 — DEC-05 PostgreSQL objects retained
+
+- Chose indefinite retention for all 11 candidate views and the empty
+  `shop_platform_fees` table. Unknown saved SQL, dashboard, BI, spreadsheet,
+  automation, runbook, and ad-hoc consumers make removal riskier than retention.
+- No migration was created and no production object changed. Closed `DEC-05` and
+  `DEBT-03` as a no-op. Any future removal proposal must reopen the external-consumer
+  inventory and meet the reversible-migration and post-deploy verification gates.
+
 ## October 27 — DEC-07 reversible fixture quarantine prepared
 
 - Selected quarantine instead of deletion: suspend fixture accounts and archive their
