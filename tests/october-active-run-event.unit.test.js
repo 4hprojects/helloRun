@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const mongoose = require('mongoose');
 const Event = require('../src/models/Event');
@@ -159,5 +160,33 @@ test('October artwork updater is dry-run by default and re-synchronizes badges o
   assert.match(script, /logoFile: filePayload\(LOGO_PATH\)/);
   assert.match(script, /synchronizeEventBadgeImages\(event\._id/);
   assert.match(script, /template\.assets\.eventArtworkUrl = uploads\.banner\.url/);
+  assert.match(script, /--expected-current=/);
+  assert.match(script, /Apply requires --manifest=\/absolute\/path\.json/);
+  assert.match(script, /mode: 0o600/);
+  assert.match(script, /await restoreState/);
+  assert.match(script, /flag: exclusive \? 'wx' : 'w'/);
   assert.equal(pkg.scripts['event:update-october-active-run-2026-artwork'], 'node src/scripts/update-october-active-run-2026-artwork.js');
+});
+
+test('October artwork state fingerprint is stable and covers rollback fields', () => {
+  const { currentState, fingerprint } = require('../src/scripts/update-october-active-run-2026-artwork');
+  const event = { _id: 'event-1', bannerImageUrl: 'banner', posterImageUrl: 'poster', logoUrl: 'logo', badgeImageUrl: 'badge' };
+  const template = { _id: 'template-1', assets: { eventLogoUrl: 'tl', eventLogoKey: 'tlk', eventArtworkUrl: 'ta', eventArtworkKey: 'tak' } };
+  const state = currentState(event, template);
+  assert.deepEqual(state.certificateTemplate, { id: 'template-1', eventLogoUrl: 'tl', eventLogoKey: 'tlk', eventArtworkUrl: 'ta', eventArtworkKey: 'tak' });
+  assert.equal(fingerprint(state), fingerprint({ ...state }));
+  assert.notEqual(fingerprint(state), fingerprint({ ...state, badgeImageUrl: 'changed' }));
+});
+
+test('October artwork rollback manifest is private and cannot overwrite an existing file', () => {
+  const { writeManifest } = require('../src/scripts/update-october-active-run-2026-artwork');
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hellorun-artwork-manifest-'));
+  const manifestPath = path.join(directory, 'rollback.json');
+  try {
+    writeManifest(manifestPath, { version: 1 }, { exclusive: true });
+    assert.equal(fs.statSync(manifestPath).mode & 0o777, 0o600);
+    assert.throws(() => writeManifest(manifestPath, { version: 2 }, { exclusive: true }), /EEXIST/);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
 });
