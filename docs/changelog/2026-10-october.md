@@ -1,5 +1,15 @@
 # HelloRun Changelog — October 2026
 
+## October 27 — REL-09 artwork apply safeguards
+
+- Added PostgreSQL reachability and badge-state preflight before any R2 upload or MongoDB
+  write, plus an exact current-state fingerprint required by apply.
+- Apply now writes a mode-`0600` rollback manifest before mutation, preserves prior R2
+  objects, compensates MongoDB/template/badge changes on failure, and supports manifest
+  rollback before deleting newly uploaded objects.
+- The October 27 production preflight reached MongoDB, then stopped on Supabase DNS
+  (`ENOTFOUND`) before any R2 upload or database write. REL-09 remains unapplied.
+
 ## October 27 — DEC-06 OCR legal-review gate strengthened
 
 - Added a legal-review packet covering legitimate-interest purpose, necessity, balancing,
