@@ -389,7 +389,7 @@ async function processExtractionJob(job, deps = {}) {
           : trainingSettings?.training?.noticePublishedAt,
         consentNoticeVersion: consentingEntry.consentBasis === 'participant_opt_in'
           ? consentingEntry.entry.ocrTrainingConsent?.noticeVersion
-          : trainingSettings?.training?.noticePolicyVersion,
+          : (trainingSettings?.training?.noticePrivacyPolicyVersion || trainingSettings?.training?.noticePolicyVersion),
         source: consentingEntry.consentBasis === 'participant_opt_in'
           ? 'submission_opt_in'
           : (job.options?.reason === 'backfill' ? 'backfill' : 'submission_notice'),

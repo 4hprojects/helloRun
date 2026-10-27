@@ -107,7 +107,11 @@
               </select>
             </label>
             <label>Revised notice published on <input type="date" name="training.noticePublishedAt" value="<%= toDate(t.noticePublishedAt) %>"></label>
-            <label>Published policy version <input name="training.noticePolicyVersion" maxlength="40" value="<%= t.noticePolicyVersion || '' %>" placeholder="e.g. 1.6"></label>
+            <label>Published Privacy Policy version <input name="training.noticePrivacyPolicyVersion" maxlength="40" value="<%= t.noticePrivacyPolicyVersion || '' %>" placeholder="e.g. 1.6"></label>
+            <label>Published Data Usage Policy version <input name="training.noticeDataUsagePolicyVersion" maxlength="40" value="<%= t.noticeDataUsagePolicyVersion || '' %>" placeholder="e.g. 1.2"></label>
+            <label>Legitimate-interest assessment version <input name="training.legitimateInterestAssessmentVersion" maxlength="80" value="<%= t.legitimateInterestAssessmentVersion || '' %>" placeholder="e.g. OCR-LIA-1"></label>
+            <label>Legal review approved on <input type="date" name="training.legalReviewApprovedAt" value="<%= toDate(t.legalReviewApprovedAt) %>"></label>
+            <label>Legal review reference <input name="training.legalReviewReference" maxlength="200" value="<%= t.legalReviewReference || '' %>" placeholder="Approval record or counsel reference"></label>
             <label>Backfill not before <input type="date" name="training.backfillNotBefore" value="<%= toDate(t.backfillNotBefore) %>"></label>
             <label>Backfill proofs per day <input type="number" min="1" max="20000" name="training.backfillDailyCap" value="<%= t.backfillDailyCap || 500 %>"></label>
             <label>To change the basis, type CHANGE BASIS <input name="basisConfirmation" autocomplete="off"></label>

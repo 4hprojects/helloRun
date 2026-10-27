@@ -16,7 +16,7 @@ const sharp = require('sharp');
 const TrainingSample = require('../../models/TrainingSample');
 const { CONSENT_BASES } = require('../../models/TrainingSample');
 const { getOcrLimits } = require('./ocr-config');
-const { getOcrSettings } = require('./ocr-settings.service');
+const { getOcrSettings, hasApprovedNoticeBasis } = require('./ocr-settings.service');
 
 const CROP_FIELDS = Object.freeze(['distance', 'time', 'pace']);
 const CROP_PADDING_PX = 6;
@@ -76,7 +76,7 @@ function isEntryUsableForTraining(entry, runner, settings, now = new Date()) {
   if (entry.ocrTrainingConsent?.withdrawnAt) return no('entry_withdrawn');
   if (entry.ocrTrainingConsent?.granted) return { usable: true, consentBasis: 'participant_opt_in', reason: '' };
   const training = settings?.training || {};
-  if (training.basis === 'notice_opt_out' && training.noticePublishedAt && new Date(training.noticePublishedAt) <= now) {
+  if (hasApprovedNoticeBasis(training, now)) {
     return { usable: true, consentBasis: 'notice_legitimate_interest', reason: '' };
   }
   return no('no_basis');

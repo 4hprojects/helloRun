@@ -1,5 +1,13 @@
 # HelloRun Changelog — October 2026
 
+## October 27 — DEC-06 OCR legal-review gate strengthened
+
+- Added a legal-review packet covering legitimate-interest purpose, necessity, balancing,
+  sensitive-data, minor, historical-use, notice, retention, and NPC-registration questions.
+- Notice-based OCR training now fails closed until administrators record both published
+  policy versions, an approved assessment version, legal approval date, and durable review
+  reference. Opt-in remains the default; no policy was published and no basis changed.
+
 ## October 27 — DEC-03 review-evidence retention preparation
 
 - Drafted a purpose-based schedule that separates activity proof objects, minimized

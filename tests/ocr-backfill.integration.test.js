@@ -130,7 +130,7 @@ test.describe('training backfill against local MongoDB', { skip }, () => {
 
   test('cannot start under opt-in, before the objection period, or twice', async () => {
     await assert.rejects(backfill.startBackfill({ actorId: people.adult, now: NOW }), (error) => error.code === 'gate_closed' && /notice and objection/.test(error.message));
-    await updateOcrSettings({ 'training.basis': 'notice_opt_out', 'training.noticePublishedAt': daysFromNow(-40), 'training.noticePolicyVersion': '1.6', 'training.backfillNotBefore': daysFromNow(5), 'training.backfillDailyCap': 3 });
+    await updateOcrSettings({ 'training.basis': 'notice_opt_out', 'training.noticePublishedAt': daysFromNow(-40), 'training.noticePolicyVersion': '1.6', 'training.noticePrivacyPolicyVersion': '1.6', 'training.noticeDataUsagePolicyVersion': '1.2', 'training.legitimateInterestAssessmentVersion': 'OCR-LIA-1', 'training.legalReviewApprovedAt': daysFromNow(-41), 'training.legalReviewReference': 'TEST-APPROVAL', 'training.backfillNotBefore': daysFromNow(5), 'training.backfillDailyCap': 3 });
     await assert.rejects(backfill.startBackfill({ actorId: people.adult, now: NOW }), /objection period has not ended/);
     await updateOcrSettings({ 'training.backfillNotBefore': daysFromNow(-10) });
     await backfill.startBackfill({ actorId: people.adult, now: NOW });

@@ -101,7 +101,9 @@ Each step is reversible by turning its flag off and restarting (`pm2 restart hel
       `npm run privacy:prepare-draft`, `npm run data-usage:prepare-draft`, then publish from the admin
       policy pages. Publishing sends the existing policy-update notice to users.
    3. In *Settings › Which entries may be used for training*: choose *Notice and objection*, enter the
-      publication date and policy version, type CHANGE BASIS. The backfill date is held at least 30 days later.
+      publication date, both published policy versions, approved legitimate-interest assessment
+      version, legal approval date and durable review reference, then type CHANGE BASIS. The
+      backfill date is held at least 30 days later.
    4. New submissions now produce candidates for runners who have not objected. After the 30 days, in
       *Jobs › Backfill past entries*: run the dry run, then type START BACKFILL. It runs in the background
       after normal submissions, within the daily cap (default 500/day). Pause, resume or cancel there.

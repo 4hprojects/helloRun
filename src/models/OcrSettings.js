@@ -35,7 +35,14 @@ const ocrSettingsSchema = new mongoose.Schema(
       // objects; allowed only after the revised policy is published (owner decision 2026-10-18).
       basis: { type: String, enum: ['opt_in', 'notice_opt_out'], default: 'opt_in' },
       noticePublishedAt: { type: Date, default: null },
+      // `noticePolicyVersion` remains for sample/audit compatibility. The two explicit
+      // versions prevent one value from ambiguously standing for two published policies.
       noticePolicyVersion: { type: String, default: '', maxlength: 40 },
+      noticePrivacyPolicyVersion: { type: String, default: '', maxlength: 40 },
+      noticeDataUsagePolicyVersion: { type: String, default: '', maxlength: 40 },
+      legitimateInterestAssessmentVersion: { type: String, default: '', maxlength: 80 },
+      legalReviewApprovedAt: { type: Date, default: null },
+      legalReviewReference: { type: String, default: '', maxlength: 200 },
       // Earliest date the backfill of existing entries may start (objection period).
       backfillNotBefore: { type: Date, default: null },
       backfillDailyCap: { type: Number, default: 500, min: 1, max: 20000 }

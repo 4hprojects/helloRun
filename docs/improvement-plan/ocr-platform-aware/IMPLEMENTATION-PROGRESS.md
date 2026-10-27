@@ -545,8 +545,9 @@ DECISION: Henz — use all run-proof entries (past and future, accepted and reje
 STATE: COMPLETED and merged to main in 0c1fd86. Nothing is processed until the owner
   records the legal prerequisites; the code enforces them.
 BEHAVIOR:
-  - Settings: training basis opt_in (default) | notice_opt_out. Switching needs the notice date and
-    policy version, typed CHANGE BASIS, full admin; audited. Backfill date held ≥ 30 days after notice.
+  - Settings: training basis opt_in (default) | notice_opt_out. Switching needs the notice date,
+    both policy versions, assessment version, legal approval date/reference, typed CHANGE BASIS,
+    and full admin; audited. Backfill date held ≥ 30 days after notice.
   - One rule, isEntryUsableForTraining: image proof, existing active account, not objected, not a known
     minor, entry not withdrawn, and (opt-in tick OR published notice basis). Review status is ignored.
   - Objection: Profile › Screenshot reader improvement (account-wide, past and future, audited);
@@ -557,7 +558,9 @@ BEHAVIOR:
     readings; pauses itself if the basis is withdrawn or the pipeline is turned off.
   - Policy drafts revised to notice + objection wording (still for legal review).
 DATA (additive): User.ocrTrainingOptOut; OcrSettings.training.{basis, noticePublishedAt,
-  noticePolicyVersion, backfillNotBefore, backfillDailyCap}; OcrBackfillRun collection; new sample
+  noticePolicyVersion, noticePrivacyPolicyVersion, noticeDataUsagePolicyVersion,
+  legitimateInterestAssessmentVersion, legalReviewApprovedAt, legalReviewReference,
+  backfillNotBefore, backfillDailyCap}; OcrBackfillRun collection; new sample
   basis notice_legitimate_interest and sources submission_notice / backfill; extraction source backfill.
 TESTS: tests/ocr-training-notice.unit.test.js 9/9 (eligibility truth table incl. approved = rejected,
   minors on the 18th birthday, gates, UI); tests/ocr-backfill.integration.test.js 7/7 (gates, dry-run

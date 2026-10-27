@@ -54,7 +54,8 @@ function manilaDateKey(date) {
 function checkGates(settings, now = new Date()) {
   const training = settings?.training || {};
   if (training.basis !== 'notice_opt_out') return 'Training basis is not "notice and objection". Change it in Settings after the revised policy is published.';
-  if (!training.noticePublishedAt || !training.noticePolicyVersion) return 'Record the published notice date and policy version in Settings first.';
+  if (!training.noticePublishedAt || !training.noticePrivacyPolicyVersion || !training.noticeDataUsagePolicyVersion) return 'Record the published notice date and both policy versions in Settings first.';
+  if (!training.legitimateInterestAssessmentVersion || !training.legalReviewApprovedAt || !training.legalReviewReference) return 'Record the approved legitimate-interest assessment, legal approval date, and review reference in Settings first.';
   if (!training.backfillNotBefore || new Date(training.backfillNotBefore) > now) {
     return `The objection period has not ended; the backfill may start on ${training.backfillNotBefore ? new Date(training.backfillNotBefore).toISOString().slice(0, 10) : 'a date set in Settings'}.`;
   }
@@ -132,7 +133,7 @@ async function startBackfill({ actorId, now = new Date() }) {
   try {
     return (await OcrBackfillRun.create({
       startedBy: actorId,
-      noticePolicyVersion: settings.training.noticePolicyVersion,
+      noticePolicyVersion: settings.training.noticePrivacyPolicyVersion || settings.training.noticePolicyVersion,
       dailyCap: Number(settings.training.backfillDailyCap || 500),
       status: 'running',
       activeLock: 'active'
@@ -188,7 +189,7 @@ async function reuseExistingReading(entry, source, settings, verdict, deps) {
     buffer,
     consentBasis: verdict.consentBasis,
     consentRecordedAt: verdict.consentBasis === 'participant_opt_in' ? entry.ocrTrainingConsent?.recordedAt : settings.training.noticePublishedAt,
-    consentNoticeVersion: verdict.consentBasis === 'participant_opt_in' ? entry.ocrTrainingConsent?.noticeVersion : settings.training.noticePolicyVersion,
+    consentNoticeVersion: verdict.consentBasis === 'participant_opt_in' ? entry.ocrTrainingConsent?.noticeVersion : (settings.training.noticePrivacyPolicyVersion || settings.training.noticePolicyVersion),
     source: 'backfill',
     sourceEntry: { kind: source.kind, id: entry._id },
     eventId: entry.eventId || null,
