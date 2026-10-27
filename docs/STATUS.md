@@ -2,10 +2,10 @@
 
 **Source of truth for delivery status**
 
-**Last reconciled:** October 27, 2026
+**Last reconciled:** October 28, 2026
 
-**Evidence window:** repository and GitHub delivery-control verification through
-October 27, 2026, based on `main` at `817ed87`
+**Evidence window:** repository, public-production, and release-readiness
+verification through October 28, 2026, based on `main` at `1190f0c`
 
 **Forward priorities and the tracked checklist:** [ROADMAP.md](ROADMAP.md)
 
@@ -280,6 +280,18 @@ those remain open below.
 
 
 ## Operational Work Pending
+
+- **REL-01 stopped safely before activation on October 28.** Candidate
+  `1190f0c4c6afbe8948078a77b497731d51829324` matched remote `main` and passed
+  locked install, syntax/template, format, documentation, and DB-free unit
+  gates. No release was queued because current Atlas backup evidence,
+  authenticated production HelloDeploy settings, and a retained healthy
+  rollback release could not be verified. Production remains unchanged:
+  `/healthz` still reports an unknown commit, vendored browser assets return
+  404, and the old CDN/inline CSP remains. The cleanup dry run found zero Mongo
+  probe events but could not verify PostgreSQL because Supabase DNS returned
+  `ENOTFOUND`. See the
+  [release attempt](analysis/2026-10-28/rel-01-production-deployment.md).
 
 - **Production Supabase Data API lockdown is urgent and unapplied.** The October 20
   read-only preflight found migration 027 absent, RLS disabled on all 36 public tables,

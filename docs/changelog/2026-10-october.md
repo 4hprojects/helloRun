@@ -1,5 +1,22 @@
 # HelloRun Changelog — October 2026
 
+## October 28 — REL-01 release attempt stopped at readiness gate
+
+- Fast-forwarded the clean release checkout to remote `main` at
+  `1190f0c4c6afbe8948078a77b497731d51829324`; locked install,
+  syntax/template, format, documentation, and DB-free unit gates passed.
+- Stopped before HelloDeploy activation because current Atlas backup evidence,
+  authenticated production HelloDeploy settings, and a retained healthy
+  rollback release could not be verified. No release, migration, backfill,
+  production-data mutation, feature change, Cloudflare change, or Render change
+  occurred.
+- Public production remains on the prior fingerprint: route and readiness are
+  healthy, the served commit is unknown, vendored Lucide/Quill assets return
+  404, and legacy CDN/inline CSP remains. The cleanup dry run found zero Mongo
+  probe events but stopped on Supabase DNS before PostgreSQL verification.
+- `REL-01` remains blocked and `OPS-01` remains in progress. Full evidence is in
+  the [release attempt](../analysis/2026-10-28/rel-01-production-deployment.md).
+
 ## October 27 — CONTENT-01 recurring production audit
 
 - Added a reusable read-only audit derived from the canonical 47-post October–December

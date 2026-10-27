@@ -3,7 +3,7 @@
 **Status: In progress — HelloDeploy path and repository metadata capture are ready;
 live metadata verification and the Render failover drill remain incomplete**
 
-**Last reconciled:** October 20, 2026 · **Delivery state:** [../STATUS.md](../STATUS.md) · **Priorities:** [../ROADMAP.md](../ROADMAP.md)
+**Last reconciled:** October 28, 2026 · **Delivery state:** [../STATUS.md](../STATUS.md) · **Priorities:** [../ROADMAP.md](../ROADMAP.md)
 
 Written after a week in which a deploy was reported as verified when it had not
 shipped, and a second stretch where sixteen commits sat unlive for a day without
@@ -12,6 +12,14 @@ anyone being able to say why. Both were avoidable with a procedure. This is it.
 Commands marked as production evidence were run read-only on October 20. The
 Render cutover and restore drills have not been run and are not described as if
 they work.
+
+The October 28 `REL-01` attempt stopped before activation. Repository gates
+passed for `1190f0c`, but no deploy was queued because the operator environment
+could not verify a current Atlas backup, authenticate to the production
+HelloDeploy control surface, or establish a retained healthy rollback release.
+Repository defaults and a development HelloDeploy database were not accepted as
+production flag or rollback evidence. See the
+[release attempt](../analysis/2026-10-28/rel-01-production-deployment.md).
 
 ---
 
