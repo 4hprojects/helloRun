@@ -1,5 +1,17 @@
 # HelloRun Changelog — October 2026
 
+## October 27 — DEC-03 review-evidence retention preparation
+
+- Drafted a purpose-based schedule that separates activity proof objects, minimized
+  decision history, payment evidence, account deletion, backups, and explicit holds.
+- Added a read-only MongoDB audit for decision kinds, proof-reference counts, lifecycle
+  age bands, and missing event or runner links. It prints no object keys or personal data
+  and deliberately computes no deletion candidates before legal approval.
+- The production read found 260 decision rows, all within 180 days and linked to available
+  runners and events, referencing 224 unique proof-object keys. It changed nothing.
+- Kept publication and production disposal blocked on privacy/legal and accounting review,
+  approved policy versions, hold controls, backup evidence, and an exact dry run.
+
 ## October 27 — DEC-05 PostgreSQL objects retained
 
 - Chose indefinite retention for all 11 candidate views and the empty
