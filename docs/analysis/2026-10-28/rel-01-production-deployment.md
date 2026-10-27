@@ -19,6 +19,8 @@
 - `npm ci --ignore-scripts`, syntax/template, non-rewriting format,
   documentation/link, and DB-free unit gates passed. The unit command exited
   zero after 179.4 seconds.
+- GitHub `Repository checks` run `40465739878` also completed successfully for
+  the frozen SHA under the workflow's Node 22 environment.
 - The host runs Node 20.20.2 while the package requires Node 22 or newer. npm
   emitted `EBADENGINE` warnings, but the mandatory commands completed. This
   workstation warning is not deployment evidence and did not bypass a gate.
