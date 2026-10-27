@@ -1,5 +1,13 @@
 # HelloRun Changelog — October 2026
 
+## October 27 — CONTENT-01 recurring production audit
+
+- Added a reusable read-only audit derived from the canonical 47-post October–December
+  source calendar.
+- Production has all 13 posts due through October 27 published and all 34 future posts
+  scheduled correctly. Eligibility, health/safety reviews, cover/alt/SEO metadata, and
+  scheduler state all pass with zero missing, overdue, mismatched, or errored records.
+
 ## October 27 — REL-09 artwork apply safeguards
 
 - Added PostgreSQL reachability and badge-state preflight before any R2 upload or MongoDB

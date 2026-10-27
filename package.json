@@ -31,6 +31,7 @@
     "adsense:blocker-cleanup": "node src/scripts/adsense-blocker-cleanup.js",
     "adsense:audit-links": "node src/scripts/audit-public-links.js",
     "adsense:audit-metadata": "node src/scripts/audit-public-metadata.js",
+    "adsense:audit-calendar": "node src/scripts/audit-editorial-calendar.js",
     "adsense:validate-content-links": "node src/scripts/validate-adsense-content-links.js",
     "event:reconcile-date-copy": "node src/scripts/reconcile-event-date-copy.js",
     "event:create-bayani-run-2026": "node src/scripts/create-bayani-run-2026.js",

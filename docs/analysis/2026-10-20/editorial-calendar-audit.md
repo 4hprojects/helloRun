@@ -44,3 +44,11 @@ verification pending only because 37 calendar dates are in the future. After Dec
 31, verify that the scheduler published each record, retained its metadata, and recorded
 no terminal error. Search indexing changes require their own completed expert/value
 review and are not implied by the editorial calendar.
+
+## October 27 refresh
+
+`npm run adsense:audit-calendar` repeated the production check read-only. All 13 articles
+due by October 27 are published. The remaining 34 records are still scheduled at their
+canonical times. All 47 remain publication-eligible with complete cover, alt, and SEO
+metadata; all 38 health/safety records retain current review evidence; scheduler errors,
+missing records, overdue posts, and schedule mismatches are all zero. No record changed.
