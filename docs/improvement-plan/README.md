@@ -15,11 +15,11 @@ and phase.
 | Plan | Current role | ROADMAP owner |
 |---|---|---|
 | [Phase 0 — pre-deploy security](phase-0-pre-deploy-security.md) | Session regeneration, trusted client IP, and vendored third-party assets remain open; the original assessment also contains completed historical findings. | `SEC-01`–`SEC-03` |
-| [Phase 1 — process safety net](phase-1-process-safety-net.md) | CI, dependency automation, and lint/format gates remain open. Safe remote-database guards, Node pinning, and graceful shutdown are already implemented. | `PRC-01` |
+| [Phase 1 — process safety net](phase-1-process-safety-net.md) | Historical CI, dependency automation, lint/format, remote-database guard, Node pinning, graceful-shutdown, and required-check evidence. | None |
 | [Phase 2 — environments and data safety](phase-2-environments-and-data-safety.md) | Staging, Redis/proxy verification, restore rehearsal, deferred integration suites, and controlled cleanup decisions. | `DEC-04`, `OPS-02`–`OPS-06` |
 | [Phase 3 — efficiency](phase-3-efficiency.md) | Measurement-first request, OCR, asset, caching, and compression work. | `EFF-01`, `EFF-02` |
 | [Phase 4 — intuitivity and UX](phase-4-intuitivity-ux.md) | Deployed, real-device, and cross-journey verification that remains after the October responsive pass. | `REL-05`, `REL-07`, `UX-01` |
-| [Phase 5 — strategic debt](phase-5-strategic-debt.md) | CSP, organiser authorization, dependency majors, and externally constrained database cleanup. | `DEC-05`, `SEC-03`, `SEC-04`, `DEBT-02`, `DEBT-03` |
+| [Phase 5 — strategic debt](phase-5-strategic-debt.md) | CSP, organiser authorization, dependency majors, and historical database-retention evidence. | `SEC-03`, `SEC-04`, `DEBT-02` |
 | [Platform-aware OCR](ocr-platform-aware/README.md) | Repository-complete and merged with flags off; legal, data, infrastructure, deployment, measurement, and rollback gates remain. | `DEC-06`, `REL-01`, `REL-03` |
 | [UI and PWA follow-ups](ui-pwa-follow-ups.md) | Real-device install checks, staging-only responsive coverage, and custom-dialog consolidation. | `REL-05`, `UX-01` |
 | [Event-promotion follow-ups](event-promotion-follow-ups.md) | Consent, audience, dispatch-state, safety-control, escaping, and route-coverage refinements. | `COM-01` |

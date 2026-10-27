@@ -298,12 +298,14 @@ those remain open below.
   dry run found zero accounts with `role: runner` and `organizerStatus: approved`, so no
   role writes or audit events were needed. All three focused role-transition cases pass.
 
-- **PostgreSQL removal candidates are inventoried but not approved.** Production has 13
+- **PostgreSQL removal candidates are retained.** Production has 13
   public views: two are runtime onsite dependencies and 11 have no repository runtime
   consumer. The 11 candidates have no database dependents or retained statement calls;
   `shop_platform_fees` is empty with no foreign keys or runtime source reference. This
-  cannot rule out dormant saved SQL, BI, dashboard, or ad-hoc consumers. `DEC-05` remains
-  blocked on that owner inventory; no object was dropped. See the
+  cannot rule out dormant saved SQL, BI, dashboard, or ad-hoc consumers. On October 27
+  the owner chose indefinite retention for all 12 candidates; no removal migration will
+  be created and no object was dropped. Any future removal proposal must reopen the full
+  external-consumer inventory. See the
   [consumer inventory](analysis/2026-10-20/postgres-object-consumer-inventory.md).
 
 - **Fixture-account quarantine is selected and dry-run verified.** The October 27

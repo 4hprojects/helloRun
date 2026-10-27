@@ -1,8 +1,9 @@
 # PostgreSQL Object Consumer Inventory
 
 **Audit date:** October 20, 2026
+**Decision recorded:** October 27, 2026
 **Mode:** Read-only repository and production-catalog inspection
-**Canonical tasks:** `DEC-05` and `DEBT-03` in [ROADMAP](../../ROADMAP.md)
+**Canonical tasks:** `DEC-05` and `DEBT-03` — complete with no removal
 
 ## Result
 
@@ -72,3 +73,31 @@ candidate views and `shop_platform_fees` appear in:
 Record retain/remove for every object. Any approved removal must use a new reversible
 migration, preserve the two runtime views, update schema tests, and include a post-deploy
 external-consumer check. No production object was changed by this audit.
+
+## Retain decision
+
+Retain all 11 candidate views and `shop_platform_fees` indefinitely. No removal migration
+will be created. Their small storage and maintenance cost does not justify the risk of
+breaking an unobserved saved SQL query, dashboard, BI connection, spreadsheet,
+automation, runbook, or ad-hoc operator workflow.
+
+| Object | Decision |
+|---|---|
+| `v_event_leaderboards_accumulated` | Retain |
+| `v_event_leaderboards_single` | Retain |
+| `v_event_submission_stats` | Retain |
+| `v_inventory_status` | Retain |
+| `v_onsite_results_by_category` | Retain |
+| `v_race_kit_inventory` | Retain |
+| `v_runner_certifications` | Retain |
+| `v_runner_performance` | Retain |
+| `v_shop_order_queue` | Retain |
+| `v_shop_variant_inventory` | Retain |
+| `v_top_events_by_activity` | Retain |
+| `shop_platform_fees` | Retain |
+
+Unknown external-consumer status is treated as evidence for retention, not permission to
+remove. Any future removal proposal reopens the inventory and requires explicit
+confirmation from every external-consumer surface, a reversible migration, updated schema
+tests, and post-deploy verification. The two runtime onsite views remain protected and
+were never candidates. This no-op decision changes no production object.
