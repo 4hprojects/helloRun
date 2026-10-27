@@ -289,8 +289,9 @@ those remain open below.
   rollback release could not be verified. Production remains unchanged:
   `/healthz` still reports an unknown commit, vendored browser assets return
   404, and the old CDN/inline CSP remains. The cleanup dry run found zero Mongo
-  probe events but could not verify PostgreSQL because Supabase DNS returned
-  `ENOTFOUND`. See the
+  probe events but could not verify PostgreSQL because both the system resolver
+  and Cloudflare `1.1.1.1` return `NXDOMAIN` for the configured Supabase database
+  and project API hosts. The project reference is unavailable or stale. See the
   [release attempt](analysis/2026-10-28/rel-01-production-deployment.md).
 
 - **Production Supabase Data API lockdown is urgent and unapplied.** The October 20

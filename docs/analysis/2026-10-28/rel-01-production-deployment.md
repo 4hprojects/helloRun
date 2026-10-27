@@ -54,13 +54,19 @@ data write, feature change, Cloudflare change, or Render change exists.
   no authenticated application or deployment-control session was available.
 - `npm run probe:cleanup:dry` found zero stranded MongoDB probe events, then
   failed before completing PostgreSQL verification because the configured
-  Supabase hostname returned `ENOTFOUND`. It made no deletion.
+  Supabase hostname returned `ENOTFOUND`. Follow-up queries through both the
+  system resolver and Cloudflare `1.1.1.1` returned authoritative `NXDOMAIN`
+  for the database host and project API host. The configured project reference
+  is unavailable or stale; this is not a workstation resolver failure. The dry
+  run made no deletion.
 
 ## Required continuation
 
 An operator with Atlas and production HelloDeploy access must verify a current
 restorable backup, the active release, a retained healthy rollback image, and
-the ten disabled production settings. Then rerun the remote-main equality check
-and all mandatory repository gates if `origin/main` changed. Deploy only the
-resulting frozen SHA and complete the live verification matrix. `REL-01` remains
-blocked; `OPS-01` remains in progress.
+the ten disabled production settings. The operator must also identify the live
+Supabase project or correct the stale project configuration through a separately
+approved production configuration change. Then rerun the remote-main equality
+check and all mandatory repository gates if `origin/main` changed. Deploy only
+the resulting frozen SHA and complete the live verification matrix. `REL-01`
+remains blocked; `OPS-01` remains in progress.

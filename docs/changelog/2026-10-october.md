@@ -13,7 +13,10 @@
 - Public production remains on the prior fingerprint: route and readiness are
   healthy, the served commit is unknown, vendored Lucide/Quill assets return
   404, and legacy CDN/inline CSP remains. The cleanup dry run found zero Mongo
-  probe events but stopped on Supabase DNS before PostgreSQL verification.
+  probe events but stopped before PostgreSQL verification. System DNS and
+  Cloudflare `1.1.1.1` both return `NXDOMAIN` for the configured Supabase
+  database and project API hosts, proving the project reference is unavailable
+  or stale rather than a local resolver fault.
 - `REL-01` remains blocked and `OPS-01` remains in progress. Full evidence is in
   the [release attempt](../analysis/2026-10-28/rel-01-production-deployment.md).
 
