@@ -249,7 +249,7 @@
     "connect-mongo": "^5.1.0",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
-    "exceljs": "3.10.0",
+    "exceljs": "4.4.0",
     "express": "4.22.3",
     "express-session": "^1.18.0",
     "feed": "^5.2.1",
