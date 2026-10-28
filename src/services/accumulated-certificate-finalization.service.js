@@ -13,6 +13,7 @@ const communicationService = require('./communication.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 const logger = require('../utils/logger');
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
+const { refreshAccumulatedChallengeProgress } = require('./badge-progress.service');
 
 const LOCK_TIMEOUT_MS = 15 * 60 * 1000;
 
@@ -73,6 +74,17 @@ async function finalizeDueAccumulatedCertificates(options = {}) {
           eventId: String(event._id),
           registrationId: String(registration._id),
           error: error.message
+        });
+      } finally {
+        await refreshAccumulatedChallengeProgress(registration, {
+          performedBy: event.approvedBy || event.organizerId,
+          finalReviewComplete: true
+        }).catch((error) => {
+          logger.error('[accumulated-certificate] Final reward reconciliation failed:', {
+            eventId: String(event._id),
+            registrationId: String(registration._id),
+            error: error.message
+          });
         });
       }
     }

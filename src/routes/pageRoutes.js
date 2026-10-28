@@ -134,6 +134,8 @@ router.get('/unsubscribe', async (req, res) => {
   }
 });
 
+router.get('/active-quest', pageController.getActiveQuestLanding);
+router.get('/active-quest/:year', pageController.getActiveQuestYear);
 router.get('/events', pageController.getEvents);
 router.get('/my-registrations', requireAuth, requireRunnerWorkspace, pageController.getMyRegistrations);
 router.get('/my-registrations/claim', requireAuth, requireRunnerWorkspace, pageController.getClaimRegistrations);

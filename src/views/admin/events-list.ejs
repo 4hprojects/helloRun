@@ -24,6 +24,12 @@
       <% } %>
 
       <div class="quick-link-grid">
+        <% if (viewerIsFullAdmin) { %>
+          <a class="quick-link-card" href="/admin/active-quest">
+            <span class="quick-link-title">Active Quest</span>
+            <span class="quick-link-meta">Monthly series operations</span>
+          </a>
+        <% } %>
         <a class="quick-link-card" href="/admin/events?needsReview=1">
           <span class="quick-link-title">Pending Review</span>
           <span class="quick-link-meta"><%= statusCounts.pendingReview %> event<%= statusCounts.pendingReview === 1 ? '' : 's' %></span>

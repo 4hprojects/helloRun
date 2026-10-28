@@ -4,6 +4,7 @@
 
 module.exports = {
   ...require('./page/home.controller'),
+  ...require('./page/active-quest.controller'),
   ...require('./page/event.controller'),
   ...require('./page/badge.controller'),
   ...require('./page/registration.controller'),

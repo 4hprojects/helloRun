@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main class="admin-page active-quest-admin-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <p class="active-quest-admin-eyebrow">Monthly series operations</p>
+          <h1>Active Quest</h1>
+          <p>Prepare templates and private monthly drafts. Publication stays in the existing event review flow.</p>
+        </div>
+        <div class="admin-header-actions">
+          <a href="/admin/events" class="btn btn-secondary admin-event-action-btn">
+            <i data-lucide="calendar-days" aria-hidden="true"></i><span>All Events</span>
+          </a>
+          <a href="/admin/dashboard" class="btn btn-secondary admin-event-action-btn">
+            <i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span>
+          </a>
+        </div>
+      </div>
+
+      <% if (message) { %>
+        <div class="admin-alert admin-alert-<%= message.type %>" role="status"><%= message.text %></div>
+      <% } %>
+
+      <% if (!series) { %>
+        <section class="active-quest-admin-empty" aria-labelledby="activeQuestStartTitle">
+          <i data-lucide="route" aria-hidden="true"></i>
+          <div>
+            <h2 id="activeQuestStartTitle">Create the private foundation</h2>
+            <p>This creates one series and frozen baseline template. All feature flags remain disabled.</p>
+          </div>
+          <form method="POST" action="/admin/active-quest/initialize">
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+            <button class="btn" type="submit">Create Foundation</button>
+          </form>
+        </section>
+      <% } else { %>
+        <section class="active-quest-status-strip" aria-label="Active Quest status">
+          <div><span>Series</span><strong><%= series.isActive ? 'Configured' : 'Inactive' %></strong></div>
+          <div><span>Timezone</span><strong><%= series.timezone %></strong></div>
+          <div><span>Current template</span><strong>Version <%= currentTemplate?.version || 'none' %></strong></div>
+          <div><span>Editions</span><strong><%= editions.length %></strong></div>
+        </section>
+
+        <div class="active-quest-admin-layout">
+          <section class="detail-card active-quest-admin-card" aria-labelledby="seriesSettingsTitle">
+            <div class="active-quest-card-heading">
+              <div><p class="active-quest-admin-eyebrow">Series</p><h2 id="seriesSettingsTitle">Defaults and branding</h2></div>
+              <span class="status-badge status-badge-draft">Private</span>
+            </div>
+            <form method="POST" action="/admin/active-quest/settings" class="active-quest-form">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <label for="aqTagline">Tagline</label>
+              <input id="aqTagline" name="tagline" maxlength="160" required value="<%= series.tagline %>">
+              <div class="active-quest-field-grid">
+                <label>Registration lead days<input name="registrationLeadDays" type="number" min="1" max="31" required value="<%= series.scheduleDefaults.registrationLeadDays %>"></label>
+                <label>Prepare draft before registration<input name="draftPreparationDaysBeforeRegistration" type="number" min="7" max="14" required value="<%= series.scheduleDefaults.draftPreparationDaysBeforeRegistration || 10 %>"></label>
+                <label>Registration closes after day<input name="registrationCloseDay" type="number" min="1" max="28" required value="<%= series.scheduleDefaults.registrationCloseDay %>"></label>
+                <label>Proof closes after next-month day<input name="proofCloseDayNextMonth" type="number" min="1" max="28" required value="<%= series.scheduleDefaults.proofCloseDayNextMonth %>"></label>
+                <label>Review target days<input name="reviewTargetDays" type="number" min="1" max="31" required value="<%= series.scheduleDefaults.reviewTargetDays %>"></label>
+              </div>
+              <label for="aqBannerUrl">Banner HTTPS URL</label>
+              <input id="aqBannerUrl" name="bannerUrl" type="url" value="<%= series.brandAssets?.bannerUrl || '' %>">
+              <label for="aqPosterUrl">Poster HTTPS URL</label>
+              <input id="aqPosterUrl" name="posterUrl" type="url" value="<%= series.brandAssets?.posterUrl || '' %>">
+              <label for="aqLogoUrl">Logo HTTPS URL</label>
+              <input id="aqLogoUrl" name="logoUrl" type="url" value="<%= series.brandAssets?.logoUrl || '' %>">
+              <label for="aqSettingsReason">Change reason</label>
+              <textarea id="aqSettingsReason" name="reason" minlength="8" maxlength="500" rows="2" required placeholder="Explain the operational reason for this change."></textarea>
+              <button class="btn" type="submit">Save Series Settings</button>
+            </form>
+          </section>
+
+          <section class="detail-card active-quest-admin-card" aria-labelledby="featureFlagsTitle">
+            <div class="active-quest-card-heading">
+              <div><p class="active-quest-admin-eyebrow">Safety controls</p><h2 id="featureFlagsTitle">Feature flags</h2></div>
+            </div>
+            <p class="metric-helper">Every change needs a reason. Auto-publication remains code-locked off.</p>
+            <div class="active-quest-flag-list">
+              <% const flagLabels = {
+                activeQuestSeriesEnabled: 'Series enabled',
+                activeQuestDraftGenerationEnabled: 'Draft generation',
+                activeQuestSchedulerEnabled: 'Scheduler',
+                activeQuestAutoPublishEnabled: 'Auto-publication'
+              }; %>
+              <% Object.entries(flagLabels).forEach(([flag, label]) => { const enabled = series.featureFlags?.[flag] === true; const locked = flag === 'activeQuestAutoPublishEnabled'; %>
+                <form method="POST" action="/admin/active-quest/flags" class="active-quest-flag-row">
+                  <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                  <input type="hidden" name="flag" value="<%= flag %>">
+                  <div><strong><%= label %></strong><span><%= locked ? 'Locked off pending separate approval' : (enabled ? 'Enabled' : 'Disabled') %></span></div>
+                  <select name="enabled" aria-label="New value for <%= label %>" <%= locked ? 'disabled' : '' %>>
+                    <option value="false" <%= !enabled ? 'selected' : '' %>>Disabled</option>
+                    <option value="true" <%= enabled ? 'selected' : '' %>>Enabled</option>
+                  </select>
+                  <input name="reason" minlength="1" maxlength="500" required placeholder="Reason" aria-label="Reason for changing <%= label %>" <%= locked ? 'disabled' : '' %>>
+                  <button class="btn btn-secondary" type="submit" <%= locked ? 'disabled' : '' %>>Save</button>
+                </form>
+              <% }) %>
+            </div>
+          </section>
+        </div>
+
+        <section class="detail-card active-quest-admin-card active-quest-template-card" aria-labelledby="templateTitle">
+          <div class="active-quest-card-heading">
+            <div>
+              <p class="active-quest-admin-eyebrow">Versioned configuration</p>
+              <h2 id="templateTitle">Master template</h2>
+              <p>Published versions are frozen. Create a draft to change rules, copy, or reward mappings.</p>
+            </div>
+            <% if (!draftTemplate) { %>
+              <form method="POST" action="/admin/active-quest/templates">
+                <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                <button class="btn btn-secondary" type="submit">Create Template Draft</button>
+              </form>
+            <% } %>
+          </div>
+
+          <% if (draftTemplate) { const summaryBlock = draftTemplate.contentBlocks?.find((block) => block.key === 'summary'); const faqBlock = draftTemplate.contentBlocks?.find((block) => block.key === 'faq'); %>
+            <form method="POST" action="/admin/active-quest/templates/<%= draftTemplate._id %>" class="active-quest-form">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <div class="active-quest-draft-banner"><strong>Editing version <%= draftTemplate.version %></strong><span>Draft changes do not affect existing editions.</span></div>
+              <label for="aqSummaryOfChanges">Summary of changes</label>
+              <input id="aqSummaryOfChanges" name="summaryOfChanges" required maxlength="1000" value="<%= draftTemplate.summaryOfChanges %>">
+              <label for="aqPolicyText">Policy text</label>
+              <textarea id="aqPolicyText" name="policyText" rows="4" maxlength="20000" required><%= draftTemplate.policyText %></textarea>
+              <label for="aqRulesText">Rules text</label>
+              <textarea id="aqRulesText" name="rulesText" rows="5" maxlength="20000" required><%= draftTemplate.rulesText %></textarea>
+              <label for="aqSummaryMarkdown">Participant summary override</label>
+              <textarea id="aqSummaryMarkdown" name="summaryMarkdown" rows="3" maxlength="20000"><%= summaryBlock?.markdown || '' %></textarea>
+              <label for="aqFaqMarkdown">Additional FAQ copy</label>
+              <textarea id="aqFaqMarkdown" name="faqMarkdown" rows="3" maxlength="20000"><%= faqBlock?.markdown || '' %></textarea>
+              <fieldset class="active-quest-reward-fieldset">
+                <legend>Category badge assets</legend>
+                <p>All six HTTPS assets are required before an edition can pass publication checks.</p>
+                <div class="active-quest-field-grid">
+                  <% draftTemplate.categories.forEach((category) => { %>
+                    <label><%= category.targetKm %>K <%= category.label %><input type="url" name="badgeAssetUrl_<%= category.key %>" value="<%= category.badgeAssetUrl || '' %>"></label>
+                  <% }) %>
+                </div>
+              </fieldset>
+              <% const certificateConfig = draftTemplate.rewardRequirements?.certificateTemplate || {}; %>
+              <fieldset class="active-quest-reward-fieldset">
+                <legend>Reusable certificate design</legend>
+                <p>This frozen design is cloned into each monthly edition. Monthly organizers can customize the clone.</p>
+                <div class="active-quest-field-grid">
+                  <label>Template name<input name="certificateName" maxlength="150" value="<%= certificateConfig.name || 'Active Quest Certificate' %>"></label>
+                  <label>Heading<input name="certificateHeading" maxlength="120" value="<%= certificateConfig.content?.heading || '' %>" placeholder="Certificate of Completion"></label>
+                  <label>Primary color<input type="color" name="certificatePrimaryColor" value="<%= certificateConfig.styleOptions?.primaryColor || '#0F172A' %>"></label>
+                  <label>Accent color<input type="color" name="certificateAccentColor" value="<%= certificateConfig.styleOptions?.accentColor || '#FA9A4B' %>"></label>
+                  <label>Secondary accent<input type="color" name="certificateSecondaryAccentColor" value="<%= certificateConfig.styleOptions?.secondaryAccentColor || '#78C0E9' %>"></label>
+                  <label>Organizer logo URL<input type="url" name="certificateOrganizerLogoUrl" value="<%= certificateConfig.assets?.organizerLogoUrl || '' %>"></label>
+                  <label>Background image URL<input type="url" name="certificateBackgroundImageUrl" value="<%= certificateConfig.assets?.backgroundImageUrl || '' %>"></label>
+                  <label>Signature image URL<input type="url" name="certificateSignatureImageUrl" value="<%= certificateConfig.assets?.signatureImageUrl || '' %>"></label>
+                  <label>Signature name<input name="certificateSignatureName" maxlength="120" value="<%= certificateConfig.content?.signatureName || '' %>"></label>
+                  <label>Signature role<input name="certificateSignatureRole" maxlength="120" value="<%= certificateConfig.content?.signatureRole || 'Organiser' %>"></label>
+                </div>
+                <label>Body text<textarea name="certificateBodyText" rows="3" maxlength="1000" placeholder="Completed {{goalDistance}} at {{eventTitle}} with {{verifiedDistance}} verified."><%= certificateConfig.content?.bodyText || '' %></textarea></label>
+                <label>Footer text<textarea name="certificateFooterText" rows="2" maxlength="300"><%= certificateConfig.content?.footerText || 'Scan the QR code to verify this achievement.' %></textarea></label>
+              </fieldset>
+              <div class="active-quest-form-actions">
+                <button class="btn" type="submit">Save Template Draft</button>
+              </div>
+            </form>
+            <form method="POST" action="/admin/active-quest/templates/<%= draftTemplate._id %>/publish" class="active-quest-publish-form">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <div><strong>Freeze version <%= draftTemplate.version %></strong><p>Review every field first. Publication makes this template immutable.</p></div>
+              <button class="btn btn-secondary" type="submit">Publish and Freeze Template</button>
+            </form>
+          <% } else { %>
+            <div class="active-quest-current-template">
+              <strong>Version <%= currentTemplate?.version || 'none' %></strong>
+              <span><%= currentTemplate ? `Published ${new Date(currentTemplate.publishedAt).toLocaleDateString('en-PH')}` : 'No published template' %></span>
+            </div>
+          <% } %>
+        </section>
+
+        <section class="detail-card active-quest-admin-card" aria-labelledby="generateTitle">
+          <div class="active-quest-card-heading">
+            <div><p class="active-quest-admin-eyebrow">Monthly draft</p><h2 id="generateTitle">Generate edition</h2></div>
+          </div>
+          <p>Generation is idempotent. Existing editions return unchanged. New editions are always private drafts.</p>
+          <form method="POST" action="/admin/active-quest/editions" class="active-quest-generate-form">
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+            <label for="aqMonth">Month<select id="aqMonth" name="month" required><% for (let month = 1; month <= 12; month += 1) { %><option value="<%= month %>"><%= new Date(Date.UTC(2026, month - 1, 1)).toLocaleString('en-PH', { month: 'long', timeZone: 'UTC' }) %></option><% } %></select></label>
+            <label for="aqYear">Year<input id="aqYear" name="year" type="number" min="2026" max="3000" required value="<%= new Date().getFullYear() %>"></label>
+            <button class="btn" type="submit" <%= !series.featureFlags?.activeQuestSeriesEnabled || !series.featureFlags?.activeQuestDraftGenerationEnabled ? 'disabled' : '' %>>Generate Private Draft</button>
+          </form>
+          <% if (!series.featureFlags?.activeQuestSeriesEnabled || !series.featureFlags?.activeQuestDraftGenerationEnabled) { %><p class="metric-helper">Enable both Series and Draft generation flags first.</p><% } %>
+          <div class="active-quest-scheduler-recovery">
+            <div><strong>Scheduler: <%= schedulerRecovery.enabled ? 'running' : 'paused' %></strong><span>Pausing does not change existing registrations, activities, or editions.</span></div>
+            <% if (schedulerRecovery.missed.length) { %><div role="status"><strong><%= schedulerRecovery.missed.length %> due edition<%= schedulerRecovery.missed.length === 1 ? '' : 's' %> missing</strong><span><%= schedulerRecovery.missed.map((item) => `${item.year}-${String(item.month).padStart(2, '0')}`).join(', ') %>. Generate safely with the form above.</span></div><% } %>
+            <% const failedJobs = schedulerRecovery.jobs.filter((job) => job.status === 'failed'); %>
+            <% if (failedJobs.length) { %><details><summary><%= failedJobs.length %> recent scheduler failure<%= failedJobs.length === 1 ? '' : 's' %></summary><ul><% failedJobs.forEach((job) => { %><li><strong><%= job.year %>-<%= String(job.month).padStart(2, '0') %></strong>: <%= job.lastError || 'Unknown failure' %><% if (job.nextRetryAt) { %> · retry after <%= new Date(job.nextRetryAt).toLocaleString('en-PH') %><% } %></li><% }) %></ul></details><% } %>
+          </div>
+        </section>
+
+        <section class="detail-card active-quest-admin-card active-quest-analytics-card" aria-labelledby="activeQuestAnalyticsTitle">
+          <div class="active-quest-card-heading"><div><p class="active-quest-admin-eyebrow">Series performance</p><h2 id="activeQuestAnalyticsTitle">Monthly analytics</h2></div></div>
+          <p class="metric-helper">Operational aggregates only. Research export is not available from this screen and requires separate review.</p>
+          <div class="active-quest-analytics-summary">
+            <div><span>Editions measured</span><strong><%= analytics.totals.editions || 0 %></strong></div>
+            <div><span>Registrations</span><strong><%= analytics.totals.registrations || 0 %></strong></div>
+            <div><span>Approved activities</span><strong><%= analytics.totals.approvedActivityCount || 0 %></strong></div>
+            <div><span>Approved event km</span><strong><%= Number(analytics.totals.totalApprovedKm || 0).toFixed(2) %></strong></div>
+          </div>
+          <% if (analytics.months.length) { %>
+            <div class="admin-users-table-wrap">
+              <table class="admin-table">
+                <thead><tr><th>Edition</th><th>Participants</th><th>Returning</th><th>Completion</th><th>Activities</th><th>Review queue</th><th>Median review</th><th>OCR corrected</th></tr></thead>
+                <tbody><% analytics.months.slice().reverse().forEach((month) => { %><tr>
+                  <td><strong><%= month.title %></strong><div><small><%= month.totalApprovedKm.toFixed(2) %> approved km</small></div></td>
+                  <td><%= month.uniqueParticipants %><div><small><%= month.newParticipants %> new</small></div></td>
+                  <td><%= month.returningRate === null ? 'N/A' : `${(month.returningRate * 100).toFixed(1)}%` %></td>
+                  <td><%= month.completionRate === null ? 'N/A' : `${(month.completionRate * 100).toFixed(1)}%` %><div><small><%= month.completedRegistrations %> complete</small></div></td>
+                  <td><%= month.approvedActivityCount %> approved<div><small><%= month.rejectedCount %> rejected · <%= month.flaggedCount %> flagged</small></div></td>
+                  <td><%= month.pendingCount %></td>
+                  <td><%= month.medianReviewDurationMs === null ? 'N/A' : `${(month.medianReviewDurationMs / 3600000).toFixed(1)}h` %></td>
+                  <td><%= month.ocrCorrectionRate === null ? 'N/A' : `${(month.ocrCorrectionRate * 100).toFixed(1)}%` %><div><small><%= month.ocrReviewedCount %> OCR-reviewed</small></div></td>
+                </tr><% }) %></tbody>
+              </table>
+            </div>
+          <% } else { %><div class="empty-state"><h3>No series metrics yet</h3><p>Metrics appear after registrations and activity reviews exist.</p></div><% } %>
+          <details class="active-quest-metric-rules"><summary>Metric definitions</summary><dl><% Object.entries(analytics.metricRules).forEach(([key, value]) => { if (key !== 'version') { %><div><dt><%= key %></dt><dd><%= value %></dd></div><% } }) %></dl></details>
+        </section>
+
+        <section id="editions" class="detail-card active-quest-admin-card" aria-labelledby="editionsTitle">
+          <div class="active-quest-card-heading"><div><p class="active-quest-admin-eyebrow">History</p><h2 id="editionsTitle">Monthly editions</h2></div></div>
+          <% if (editions.length) { %>
+            <div class="admin-users-table-wrap">
+              <table class="admin-table">
+                <thead><tr><th>Edition</th><th>Status</th><th>Readiness</th><th>Template</th><th>Actions</th></tr></thead>
+                <tbody>
+                  <% editions.forEach((edition) => { %>
+                    <tr>
+                      <td><strong><%= edition.title %></strong><div><small><%= edition.slug %></small></div></td>
+                      <td><span class="status-badge status-badge-<%= edition.status %>"><%= edition.status %></span></td>
+                      <td><%= edition.readinessErrors.length ? `${edition.readinessErrors.length} issue${edition.readinessErrors.length === 1 ? '' : 's'}` : 'Ready for human review' %></td>
+                      <td>v<%= edition.seriesSnapshot?.version || '?' %></td>
+                      <td class="policy-row-actions"><a class="btn btn-sm btn-secondary" href="/organizer/preview-event?eventId=<%= edition._id %>&previewSource=edit">Preview</a><a class="btn btn-sm btn-secondary" href="/admin/events/<%= edition._id %>/edit">Edit</a></td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } else { %>
+            <div class="empty-state"><h3>No monthly editions yet</h3><p>Enable private draft generation, then create the first month above.</p></div>
+          <% } %>
+        </section>
+      <% } %>
+    </section>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">if (window.lucide) window.lucide.createIcons();</script>
+</body>
+</html>

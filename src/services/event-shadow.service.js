@@ -73,6 +73,12 @@ function normalizeMongoEvent(event) {
     pricingMode: String(event.pricingMode || 'free').trim() || 'free',
     targetDistanceKm: nullableNumber(event.targetDistanceKm),
     minimumActivityDistanceKm: nullableNumber(event.minimumActivityDistanceKm),
+    seriesKey: stringOrNull(event.seriesKey),
+    seriesYear: nullableInteger(event.seriesYear),
+    seriesMonth: nullableInteger(event.seriesMonth),
+    seriesTemplateVersionId: event.seriesTemplateVersionId ? String(event.seriesTemplateVersionId) : null,
+    generatedFromKey: stringOrNull(event.generatedFromKey),
+    seriesSnapshotChecksum: event.seriesSnapshot ? buildGenericChecksum(event.seriesSnapshot) : null,
     recognitionMode: String(event.recognitionMode || 'completion_only').trim() || 'completion_only',
     leaderboardMode: String(event.leaderboardMode || 'finishers').trim() || 'finishers',
     digitalCertificateEnabled: event.digitalCertificateEnabled !== false,
@@ -115,6 +121,12 @@ function buildEventChecksum(normalizedEvent) {
       feeMode: normalizedEvent.feeMode,
       feeAmount: normalizedEvent.feeAmount,
       feeCurrency: normalizedEvent.feeCurrency,
+      seriesKey: normalizedEvent.seriesKey || '',
+      seriesYear: normalizedEvent.seriesYear,
+      seriesMonth: normalizedEvent.seriesMonth,
+      seriesTemplateVersionId: normalizedEvent.seriesTemplateVersionId || '',
+      generatedFromKey: normalizedEvent.generatedFromKey || '',
+      seriesSnapshotChecksum: normalizedEvent.seriesSnapshotChecksum || '',
       distances: normalizedEvent.distances
     }))
     .digest('hex');
@@ -240,6 +252,12 @@ async function syncEventShadow(event, options = {}) {
         pricing_mode,
         target_distance_km,
         minimum_activity_distance_km,
+        series_key,
+        series_year,
+        series_month,
+        series_template_version_id,
+        generated_from_key,
+        series_snapshot_checksum,
         recognition_mode,
         leaderboard_mode,
         digital_certificate_enabled,
@@ -288,6 +306,12 @@ async function syncEventShadow(event, options = {}) {
         ${normalized.pricingMode},
         ${normalized.targetDistanceKm},
         ${normalized.minimumActivityDistanceKm},
+        ${normalized.seriesKey},
+        ${normalized.seriesYear},
+        ${normalized.seriesMonth},
+        ${normalized.seriesTemplateVersionId},
+        ${normalized.generatedFromKey},
+        ${normalized.seriesSnapshotChecksum},
         ${normalized.recognitionMode},
         ${normalized.leaderboardMode},
         ${normalized.digitalCertificateEnabled},
@@ -336,6 +360,12 @@ async function syncEventShadow(event, options = {}) {
         pricing_mode = excluded.pricing_mode,
         target_distance_km = excluded.target_distance_km,
         minimum_activity_distance_km = excluded.minimum_activity_distance_km,
+        series_key = excluded.series_key,
+        series_year = excluded.series_year,
+        series_month = excluded.series_month,
+        series_template_version_id = excluded.series_template_version_id,
+        generated_from_key = excluded.generated_from_key,
+        series_snapshot_checksum = excluded.series_snapshot_checksum,
         recognition_mode = excluded.recognition_mode,
         leaderboard_mode = excluded.leaderboard_mode,
         digital_certificate_enabled = excluded.digital_certificate_enabled,
@@ -512,6 +542,17 @@ function normalizeNullableEnum(value, allowed) {
 function nullableNumber(value) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : null;
+}
+
+function nullableInteger(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const numeric = Number(value);
+  return Number.isInteger(numeric) ? numeric : null;
+}
+
+function stringOrNull(value) {
+  const safe = String(value || '').trim();
+  return safe || null;
 }
 
 function isoOrEmpty(value) {

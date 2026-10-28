@@ -62,13 +62,14 @@ async function generateDefaultEventBadges(eventOrId, options = {}) {
           ${eventCore.id},
           ${String(event._id)},
           ${definition.id},
-          ${logoFallback},
+          ${resolveEventBadgeImageUrl(event, payload, logoFallback)},
           TRUE,
           TRUE
         )
         ON CONFLICT (event_core_id, badge_definition_id)
         DO UPDATE SET
           mongo_event_id = EXCLUDED.mongo_event_id,
+          badge_image_url = EXCLUDED.badge_image_url,
           is_active = TRUE
         RETURNING *
       `;
@@ -95,6 +96,15 @@ async function generateDefaultEventBadges(eventOrId, options = {}) {
   });
 
   return created;
+}
+
+function resolveEventBadgeImageUrl(event, payload, fallback = null) {
+  if (payload?.requirementType !== 'distance_completed') return fallback;
+  const distanceLabel = normalizeBadgeDistanceLabel(payload.requirementValue?.raceDistance);
+  const category = (event?.seriesSnapshot?.categories || []).find((item) =>
+    normalizeBadgeDistanceLabel(`${Number(item?.targetKm || 0)}K`) === distanceLabel
+  );
+  return String(category?.badgeAssetUrl || '').trim() || fallback;
 }
 
 function generateDefaultEventBadgesInBackground(eventOrId, options = {}) {
@@ -550,6 +560,7 @@ module.exports = {
   updateEventBadgeDisplay,
   synchronizeEventBadgeImages,
   buildDefaultEventBadges,
+  resolveEventBadgeImageUrl,
   isEligibleForEventBadges,
   buildChallengeMilestones,
   resolveAppUserId,

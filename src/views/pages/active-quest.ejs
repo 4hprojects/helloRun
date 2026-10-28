@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title, seo }) %>
+  <link rel="stylesheet" href="/css/active-quest.css">
+</head>
+<body class="<%= locals.isAuthenticated && locals.isRunnerWorkspace ? 'has-runner-mobile-nav' : '' %>">
+  <%- include('../layouts/nav') %>
+  <main id="main-content" class="aq-public-page">
+    <section class="aq-public-hero" aria-labelledby="activeQuestTitle">
+      <div class="container aq-public-hero-grid">
+        <div>
+          <p class="aq-public-kicker">Free monthly virtual distance challenge</p>
+          <h1 id="activeQuestTitle"><%= page.title %></h1>
+          <p class="aq-public-tagline"><%= page.tagline %></p>
+          <p>Choose one distance. Complete eligible runs, walks, hikes, trail runs, or treadmill activities during the month. Only approved proof counts.</p>
+          <div class="aq-public-actions">
+            <% if (page.featured?.registrationState === 'open') { %>
+              <a class="btn btn-primary" href="<%= page.featured.registrationHref %>">Join <%= page.featured.title %></a>
+            <% } else if (page.featured?.href) { %>
+              <a class="btn btn-primary" href="<%= page.featured.href %>">View <%= page.featured.title %></a>
+            <% } else { %>
+              <a class="btn btn-primary" href="#quest-categories">Explore the categories</a>
+            <% } %>
+            <a class="btn btn-outline" href="#active-quest-archive">Browse past editions</a>
+          </div>
+        </div>
+        <aside class="aq-featured-edition" aria-label="<%= page.featuredRelation === 'current' ? 'Current edition' : page.featuredRelation === 'next' ? 'Next published edition' : 'Latest edition' %>">
+          <% if (page.featured) { %>
+            <p class="aq-featured-label"><%= page.featuredRelation === 'current' ? 'Current edition' : page.featuredRelation === 'next' ? 'Next published edition' : 'Latest edition' %></p>
+            <h2><a href="<%= page.featured.href %>"><%= page.featured.title %></a></h2>
+            <span class="aq-registration-state aq-registration-state-<%= page.featured.registrationState %>"><%= page.featured.registrationLabel %></span>
+            <dl>
+              <div><dt>Activity window</dt><dd><%= page.featured.eventStartAt ? page.featured.eventStartAt.toLocaleDateString('en-PH', { timeZone: page.timezone, month: 'short', day: 'numeric' }) : 'See edition' %>–<%= page.featured.eventEndAt ? page.featured.eventEndAt.toLocaleDateString('en-PH', { timeZone: page.timezone, month: 'short', day: 'numeric', year: 'numeric' }) : '' %></dd></div>
+              <div><dt>Distances</dt><dd><%= page.featured.raceDistances.join(', ') %></dd></div>
+              <div><dt>Format</dt><dd>Virtual · accumulated distance</dd></div>
+            </dl>
+          <% } else { %>
+            <p class="aq-featured-label">Next edition</p>
+            <h2>Preparation in progress</h2>
+            <p>No monthly edition is published yet. Unpublished drafts never appear as open for registration.</p>
+            <a href="/events">See other HelloRun events</a>
+          <% } %>
+        </aside>
+      </div>
+    </section>
+
+    <section id="quest-categories" class="aq-public-section" aria-labelledby="questCategoryTitle">
+      <div class="container">
+        <div class="aq-section-heading"><p>Choose your quest</p><h2 id="questCategoryTitle">One goal for the month</h2><span>Your registered category stays fixed, even when you go beyond it.</span></div>
+        <div class="aq-category-grid">
+          <% page.categories.forEach((category) => { %>
+            <article class="aq-category-card">
+              <% if (page.rewards.badgesAvailable && category.badgeAssetUrl) { %><img src="<%= category.badgeAssetUrl %>" alt="<%= category.targetKm %>K <%= category.label %> digital badge"><% } %>
+              <strong><%= category.targetKm %>K</strong>
+              <h3><%= category.label %></h3>
+              <p>Build <%= category.targetKm %> approved kilometers during the edition activity window.</p>
+            </article>
+          <% }) %>
+        </div>
+      </div>
+    </section>
+
+    <section class="aq-public-section aq-how-section" aria-labelledby="howActiveQuestWorks">
+      <div class="container">
+        <div class="aq-section-heading"><p>How it works</p><h2 id="howActiveQuestWorks">Record, submit, and get reviewed</h2></div>
+        <ol class="aq-step-grid">
+          <li><span>1</span><div><h3>Choose one category</h3><p>Register free for one published monthly edition and select 25K, 50K, 75K, 100K, 150K, or 200K.</p></div></li>
+          <li><span>2</span><div><h3>Complete eligible activities</h3><p>Run, walk, hike, trail run, or use a treadmill. Each submitted activity must meet the edition rules.</p></div></li>
+          <li><span>3</span><div><h3>Upload screenshot proof</h3><p>Screenshot submission is available. Activity links are optional corroboration and may require manual review.</p></div></li>
+          <li><span>4</span><div><h3>Track approved distance</h3><p>Pending distance does not count. Provider-connected automatic sync is coming soon and is not required.</p></div></li>
+        </ol>
+      </div>
+    </section>
+
+    <% if (page.rewards.badgesAvailable || page.rewards.certificateAvailable) { %>
+      <section class="aq-public-section aq-reward-section" aria-labelledby="activeQuestRewards">
+        <div class="container aq-reward-layout">
+          <div><p class="aq-public-kicker">Configured digital rewards</p><h2 id="activeQuestRewards">Recognition after final review</h2><p>Rewards issue only after the proof deadline, final review, and approved completion of your selected category.</p></div>
+          <ul>
+            <% if (page.rewards.badgesAvailable) { %><li><i data-lucide="award" aria-hidden="true"></i><span><strong>Category badge</strong> for the category selected at registration.</span></li><% } %>
+            <% if (page.rewards.certificateAvailable) { %><li><i data-lucide="file-check-2" aria-hidden="true"></i><span><strong>Verifiable certificate</strong> with approved completion details.</span></li><% } %>
+          </ul>
+        </div>
+      </section>
+    <% } %>
+
+    <section class="aq-public-section" aria-labelledby="activeQuestResults">
+      <div class="container aq-results-layout">
+        <div><p class="aq-public-kicker">Results and privacy</p><h2 id="activeQuestResults">Progress without exposing private account data</h2><p>Public leaderboards use each participant’s display preference. Hidden participants stay out of public standings. Pending and flagged activities are not presented as verified results.</p></div>
+        <% if (page.featured?.leaderboardHref) { %><a class="btn btn-outline" href="<%= page.featured.leaderboardHref %>">View edition leaderboard</a><% } %>
+      </div>
+    </section>
+
+    <section id="active-quest-archive" class="aq-public-section aq-archive-section" aria-labelledby="activeQuestArchiveTitle">
+      <div class="container">
+        <div class="aq-section-heading"><p>Published history</p><h2 id="activeQuestArchiveTitle"><%= page.selectedYear ? `Active Quest ${page.selectedYear}` : 'Past Active Quest editions' %></h2><span>Historical titles and URLs remain unchanged.</span></div>
+        <% if (page.availableYears.length) { %>
+          <nav class="aq-year-nav" aria-label="Active Quest archive years">
+            <a href="/active-quest" <%= !page.selectedYear ? 'aria-current="page"' : '' %>>All</a>
+            <% page.availableYears.forEach((year) => { %><a href="/active-quest/<%= year %>" <%= page.selectedYear === year ? 'aria-current="page"' : '' %>><%= year %></a><% }) %>
+          </nav>
+        <% } %>
+        <% if (page.archiveEvents.length) { %>
+          <div class="aq-archive-grid">
+            <% page.archiveEvents.forEach((edition) => { %>
+              <article>
+                <p><%= edition.eventStartAt ? edition.eventStartAt.toLocaleDateString('en-PH', { timeZone: page.timezone, month: 'long', year: 'numeric' }) : edition.year %></p>
+                <h3><a href="<%= edition.href %>"><%= edition.title %></a></h3>
+                <span><%= edition.raceDistances.join(' · ') %></span>
+                <div><a href="<%= edition.href %>">View edition</a><% if (edition.leaderboardHref) { %><a href="<%= edition.leaderboardHref %>">Results</a><% } %></div>
+              </article>
+            <% }) %>
+          </div>
+        <% } else { %>
+          <div class="aq-empty-state"><h3><%= page.selectedYear ? `No published ${page.selectedYear} edition was found` : 'No published editions yet' %></h3><p>Try another archive year or browse current HelloRun events.</p><a class="btn btn-outline" href="<%= page.selectedYear ? '/active-quest' : '/events' %>"><%= page.selectedYear ? 'View all Active Quest editions' : 'Browse events' %></a></div>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="aq-public-section aq-faq-section" aria-labelledby="activeQuestFaq">
+      <div class="container"><div class="aq-section-heading"><p>FAQ</p><h2 id="activeQuestFaq">Before you join</h2></div>
+        <details><summary>Can I change categories after registering?</summary><p>Your category is locked for the edition. Going farther does not automatically upgrade your reward category.</p></details>
+        <details><summary>Does pending distance count?</summary><p>No. Only activities approved through the edition’s review workflow count toward progress and completion.</p></details>
+        <details><summary>Will every edition include rewards?</summary><p>Rewards appear here only when all six badge assets and the certificate design are configured for the featured edition.</p></details>
+      </div>
+    </section>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>">if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

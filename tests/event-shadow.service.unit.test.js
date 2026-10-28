@@ -134,5 +134,7 @@ test('syncEventShadow inserts event core and distances into Supabase shadow tabl
 
   assert.equal(result.id, 'event-core-uuid');
   assert.ok(calls.some((call) => call.query.includes('insert into events_core')));
+  assert.ok(calls.some((call) => call.query.includes('series_key')));
+  assert.ok(calls.some((call) => call.query.includes('series_snapshot_checksum')));
   assert.ok(calls.some((call) => call.query.includes('insert into event_distances')));
 });

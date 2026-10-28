@@ -12,6 +12,32 @@ const eventSchema = new mongoose.Schema(
       ref: 'User',
       index: true
     },
+    // Optional series provenance. Historical and non-series events keep these fields
+    // absent. A generated monthly edition carries the complete identity and a frozen
+    // template snapshot, so later template changes cannot rewrite its rules.
+    seriesKey: { type: String, trim: true, lowercase: true, maxlength: 80, default: null },
+    seriesYear: { type: Number, min: 2000, max: 3000, default: null },
+    seriesMonth: { type: Number, min: 1, max: 12, default: null },
+    seriesTemplateVersionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ActiveQuestTemplateVersion',
+      default: null,
+      immutable: true
+    },
+    generatedFromKey: { type: String, trim: true, maxlength: 160, default: '', immutable: true },
+    seriesSnapshot: { type: mongoose.Schema.Types.Mixed, default: null, immutable: true },
+    seriesSchedule: { type: mongoose.Schema.Types.Mixed, default: null, immutable: true },
+    seriesGeneratedAt: { type: Date, default: null, immutable: true },
+    seriesGeneratedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, immutable: true },
+    seriesAdminOverrides: {
+      type: [{
+        actorUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        reason: { type: String, required: true, trim: true, maxlength: 500 },
+        effectiveAt: { type: Date, required: true },
+        changes: { type: mongoose.Schema.Types.Mixed, required: true }
+      }],
+      default: []
+    },
     slug: {
       type: String,
       required: true,
@@ -850,7 +876,50 @@ eventSchema.index({ status: 1, isDeleted: 1, eventType: 1, createdAt: -1 });
 eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, publicListingAvailableAt: 1 });
 eventSchema.index({ status: 1, autoEmailPromotionEnabled: 1, autoEmailPromotionStatus: 1, autoEmailPromotionScheduledAt: 1 });
 eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, homeFeatured: 1, homeFeaturedRank: 1, eventStartAt: 1 });
+eventSchema.index(
+  { seriesKey: 1, seriesYear: 1, seriesMonth: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { seriesKey: { $type: 'string' } },
+    name: 'unique_series_month_edition'
+  }
+);
 applySmokeTestSchema(eventSchema);
+
+eventSchema.pre('validate', function validateSeriesProvenance(next) {
+  const values = [
+    this.seriesKey,
+    this.seriesYear,
+    this.seriesMonth,
+    this.seriesTemplateVersionId,
+    this.generatedFromKey,
+    this.seriesSnapshot,
+    this.seriesSchedule,
+    this.seriesGeneratedAt,
+    this.seriesGeneratedBy
+  ];
+  const hasAnySeriesValue = values.some((value) => value !== null && value !== undefined && value !== '');
+  if (!hasAnySeriesValue) return next();
+
+  const hasCompleteSeriesIdentity = Boolean(
+    this.seriesKey &&
+    this.seriesYear &&
+    this.seriesMonth &&
+    this.seriesTemplateVersionId &&
+    this.generatedFromKey &&
+    this.seriesSnapshot &&
+    this.seriesSchedule &&
+    this.seriesGeneratedAt &&
+    this.seriesGeneratedBy
+  );
+  if (!hasCompleteSeriesIdentity) {
+    this.invalidate('seriesKey', 'Series editions require complete identity, template, snapshot, and generation provenance.');
+  }
+  if (this.isNew && this.seriesKey && this.status !== 'draft') {
+    this.invalidate('status', 'New series editions must start as drafts.');
+  }
+  next();
+});
 
 function shouldSyncSupabase() {
   return Boolean(process.env.DATABASE_URL);
