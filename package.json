@@ -266,7 +266,7 @@
     "tesseract.js-core": "^5.0.0"
   },
   "devDependencies": {
-    "happy-dom": "^20.10.6",
+    "happy-dom": "^21.0.4",
     "nodemon": "^3.1.0"
   },
   "overrides": {
