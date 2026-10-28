@@ -254,7 +254,7 @@
     "express-session": "^1.18.0",
     "feed": "^5.2.1",
     "ioredis": "^5.10.0",
-    "mongoose": "8.24.4",
+    "mongoose": "9.11.4",
     "multer": "^2.2.0",
     "pdfkit": "^0.18.0",
     "postgres": "^3.4.9",
