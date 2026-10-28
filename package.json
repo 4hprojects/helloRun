@@ -244,7 +244,7 @@
     "@aws-sdk/client-s3": "^3.998.0",
     "@aws-sdk/s3-request-presigner": "^3.998.0",
     "@hellorun/threaded-comments": "file:packages/threaded-comments",
-    "@sentry/node": "^10.60.0",
+    "@sentry/node": "^11.9.0",
     "bcryptjs": "^2.4.3",
     "connect-mongo": "^5.1.0",
     "dotenv": "^16.4.5",
