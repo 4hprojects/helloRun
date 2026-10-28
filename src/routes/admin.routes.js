@@ -109,6 +109,14 @@ router.post('/running-groups/:id/community/:targetType/:targetId', requireAdmin,
 router.post('/running-groups/:id/community-reports/:reportId', requireAdmin, adminModerationLimiter, adminController.resolveRunningGroupCommunityReport);
 
 // Event management
+router.get('/active-quest', requireAdmin, requireFullAdmin, adminController.getActiveQuest);
+router.post('/active-quest/initialize', requireAdmin, requireFullAdmin, adminContentSettingsLimiter, adminController.initializeActiveQuest);
+router.post('/active-quest/settings', requireAdmin, requireFullAdmin, adminContentSettingsLimiter, adminController.updateActiveQuestSeries);
+router.post('/active-quest/flags', requireAdmin, requireFullAdmin, adminContentSettingsLimiter, adminController.updateActiveQuestFlag);
+router.post('/active-quest/templates', requireAdmin, requireFullAdmin, adminContentSettingsLimiter, adminController.createActiveQuestTemplateDraft);
+router.post('/active-quest/templates/:id', requireAdmin, requireFullAdmin, adminContentSettingsLimiter, adminController.saveActiveQuestTemplateDraft);
+router.post('/active-quest/templates/:id/publish', requireAdmin, requireFullAdmin, adminContentSettingsLimiter, adminController.publishActiveQuestTemplate);
+router.post('/active-quest/editions', requireAdmin, requireFullAdmin, adminContentSettingsLimiter, adminController.generateActiveQuestEdition);
 router.get('/events', requireAdmin, adminController.listEvents);
 router.post('/events/bulk-delete', requireAdmin, requireFullAdmin, adminModerationLimiter, adminController.bulkDeleteEvents);
 router.post('/events/test-data/purge', requireAdmin, requireFullAdmin, adminTestDataPurgeLimiter, adminController.purgeTestData);

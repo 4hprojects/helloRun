@@ -20,6 +20,9 @@ const {
 } = require('./event-badge.service');
 const { checkBadgeRequirement, hasRevokedBadge } = require('./achievement.service');
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../utils/challenge-metrics');
+const { normalizeBadgeDistanceLabel } = require('../utils/badge-normalization');
+const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
+const { ACTIVE_QUEST_SERIES_KEY } = require('../config/active-quest');
 
 const GLOBAL_DISTANCE_MILESTONES_KM = [5, 50, 100, 500, 1000];
 
@@ -47,11 +50,21 @@ async function refreshAccumulatedChallengeProgress(registrationOrId, options = {
     sql,
     performedBy: options.performedBy || null
   });
+  const selectedCategoryRevoked = await revokeInvalidActiveQuestCategoryBadges(context, {
+    sql,
+    performedBy: options.performedBy || null
+  });
+  const selectedCategoryAwards = options.finalReviewComplete === true
+    ? await awardCompletedActiveQuestCategoryBadge(context, {
+        sql,
+        performedBy: options.performedBy || null
+      })
+    : [];
 
   return {
     progressRows,
-    awards,
-    revoked,
+    awards: [...awards, ...selectedCategoryAwards],
+    revoked: [...revoked, ...selectedCategoryRevoked],
     currentValue: context.currentValue,
     targetValue: context.eventTargetValue,
     progressPercent: context.eventProgressPercent
@@ -187,7 +200,8 @@ async function buildProgressContext({ registration, event, sql }) {
   const challengeConfig = resolveChallengeConfig(event);
   const approvedDistanceKm = approvedTotals.distanceKm;
   const approvedSteps = approvedTotals.steps;
-  const eventTargetDistanceKm = Number(event.targetDistanceKm || 0);
+  const selectedTargetDistanceKm = resolveAccumulatedTargetDistanceKm(registration, event);
+  const eventTargetDistanceKm = selectedTargetDistanceKm || Number(event.targetDistanceKm || 0);
   const eventTargetValue = challengeConfig.primaryMetric === 'steps'
     ? Number(challengeConfig.targetSteps || 0)
     : eventTargetDistanceKm;
@@ -208,6 +222,9 @@ async function buildProgressContext({ registration, event, sql }) {
     approvedSteps,
     primaryMetric: challengeConfig.primaryMetric,
     eventTargetDistanceKm,
+    selectedTargetDistanceKm,
+    selectedRaceDistance: resolveSelectedRaceDistance(registration, event, selectedTargetDistanceKm),
+    eventSeriesKey: String(event.seriesKey || ''),
     eventTargetSteps: challengeConfig.targetSteps,
     eventTargetValue,
     eventProgressPercent,
@@ -425,6 +442,137 @@ async function awardCompletedChallengeBadges(context, options = {}) {
   }
 
   return awarded;
+}
+
+const ACTIVE_QUEST_CATEGORY_UNMET_REVOKE_REASON =
+  'Verified Active Quest distance no longer meets the selected category after review.';
+
+function resolveSelectedRaceDistance(registration = {}, event = {}, targetDistanceKm = 0) {
+  const explicit = registration.pricingSnapshot?.raceDistance || registration.raceDistance;
+  if (normalizeBadgeDistanceLabel(explicit)) return normalizeBadgeDistanceLabel(explicit);
+  const categoryId = String(registration.pricingSnapshot?.raceCategoryId || '').trim();
+  const category = (event.raceCategories || []).find((item) => String(item?.categoryId || '').trim() === categoryId);
+  const categoryLabel = category?.distanceLabel || (category?.distanceKm ? `${category.distanceKm}K` : '');
+  return normalizeBadgeDistanceLabel(categoryLabel || (targetDistanceKm > 0 ? `${targetDistanceKm}K` : ''));
+}
+
+function isActiveQuestCategoryBadgeEligible(context, badge) {
+  return context?.eventSeriesKey === ACTIVE_QUEST_SERIES_KEY &&
+    Number(context.selectedTargetDistanceKm || 0) > 0 &&
+    Number(context.approvedDistanceKm || 0) >= Number(context.selectedTargetDistanceKm) &&
+    normalizeBadgeDistanceLabel(badge?.requirement_value?.raceDistance) ===
+      normalizeBadgeDistanceLabel(context.selectedRaceDistance);
+}
+
+async function awardCompletedActiveQuestCategoryBadge(context, options = {}) {
+  if (context.eventSeriesKey !== ACTIVE_QUEST_SERIES_KEY) return [];
+  const sql = options.sql || getPostgresClient();
+  const badges = await findActiveEventBadgeDefinitions(context.eventCoreId, ['distance_completed'], { sql });
+  const badge = badges.find((item) => isActiveQuestCategoryBadgeEligible(context, item));
+  if (!badge) return [];
+
+  const awardedByAppUserId = await resolveAppUserId(options.performedBy, { sql });
+  const restoredRows = await sql`
+    UPDATE user_badges
+    SET verification_status = 'verified',
+        revoke_reason = null,
+        earned_at = NOW(),
+        updated_at = NOW()
+    WHERE runner_user_id = ${context.runnerUserId}
+      AND badge_definition_id = ${badge.id}
+      AND event_core_id = ${context.eventCoreId}
+      AND verification_status = 'revoked'
+      AND source = 'system_auto_award'
+      AND revoke_reason = ${ACTIVE_QUEST_CATEGORY_UNMET_REVOKE_REASON}
+    RETURNING *
+  `;
+  let userBadge = restoredRows[0] || null;
+  let action = 'badge_restored';
+  if (!userBadge) {
+    const rows = await sql`
+      INSERT INTO user_badges (
+        runner_user_id, badge_definition_id, event_core_id, registration_id,
+        submission_id, mongo_user_id, mongo_event_id, mongo_registration_id,
+        mongo_submission_id, verification_status, source, awarded_by
+      ) VALUES (
+        ${context.runnerUserId}, ${badge.id}, ${context.eventCoreId}, ${context.registrationId},
+        null, ${context.mongoUserId}, ${context.mongoEventId}, ${context.mongoRegistrationId},
+        '', 'verified', 'system_auto_award', ${awardedByAppUserId || null}
+      )
+      ON CONFLICT (runner_user_id, badge_definition_id, event_core_id)
+      WHERE verification_status != 'revoked'
+      DO NOTHING
+      RETURNING *
+    `;
+    userBadge = rows[0] || null;
+    action = 'badge_awarded';
+  }
+  if (!userBadge) return [];
+
+  await logBadgeAudit({
+    badgeDefinitionId: badge.id,
+    userBadgeId: userBadge.id,
+    eventCoreId: context.eventCoreId,
+    runnerUserId: context.runnerUserId,
+    action,
+    performedBy: awardedByAppUserId,
+    metadata: {
+      requirementType: badge.requirement_type,
+      selectedCategory: context.selectedRaceDistance,
+      approvedDistanceKm: context.approvedDistanceKm,
+      targetDistanceKm: context.selectedTargetDistanceKm,
+      mongoRegistrationId: context.mongoRegistrationId
+    }
+  }, { sql });
+  await notifyBadgeEarned(context.mongoUserId, {
+    ...badge,
+    ...userBadge,
+    name: badge.badge_name_override || badge.name,
+    user_badge_id: userBadge.id
+  });
+  return [userBadge];
+}
+
+async function revokeInvalidActiveQuestCategoryBadges(context, options = {}) {
+  if (context.eventSeriesKey !== ACTIVE_QUEST_SERIES_KEY) return [];
+  const sql = options.sql || getPostgresClient();
+  const badges = await findActiveEventBadgeDefinitions(context.eventCoreId, ['distance_completed'], { sql });
+  const allowedId = badges.find((item) => isActiveQuestCategoryBadgeEligible(context, item))?.id || null;
+  const invalidIds = badges.map((badge) => badge.id).filter((id) => String(id) !== String(allowedId || ''));
+  if (!invalidIds.length) return [];
+
+  const revoked = await sql`
+    UPDATE user_badges
+    SET verification_status = 'revoked',
+        revoke_reason = ${ACTIVE_QUEST_CATEGORY_UNMET_REVOKE_REASON},
+        is_featured = false,
+        updated_at = NOW()
+    WHERE runner_user_id = ${context.runnerUserId}
+      AND event_core_id = ${context.eventCoreId}
+      AND badge_definition_id = ANY(${invalidIds})
+      AND verification_status = 'verified'
+      AND source = 'system_auto_award'
+    RETURNING *
+  `;
+  const performedBy = await resolveAppUserId(options.performedBy, { sql });
+  for (const row of revoked) {
+    await logBadgeAudit({
+      badgeDefinitionId: row.badge_definition_id,
+      userBadgeId: row.id,
+      eventCoreId: context.eventCoreId,
+      runnerUserId: context.runnerUserId,
+      action: 'badge_revoked',
+      performedBy,
+      reason: ACTIVE_QUEST_CATEGORY_UNMET_REVOKE_REASON,
+      metadata: {
+        selectedCategory: context.selectedRaceDistance,
+        approvedDistanceKm: context.approvedDistanceKm,
+        targetDistanceKm: context.selectedTargetDistanceKm,
+        mongoRegistrationId: context.mongoRegistrationId
+      }
+    }, { sql });
+  }
+  return revoked;
 }
 
 async function revokeUnmetChallengeBadges(context, options = {}) {
@@ -814,5 +962,10 @@ module.exports = {
   getRunnerBadgeProgress,
   getRunnerNextMilestones,
   calculateProgressPercent,
-  isEligibleChallengeEvent
+  isEligibleChallengeEvent,
+  resolveSelectedRaceDistance,
+  isActiveQuestCategoryBadgeEligible,
+  awardCompletedActiveQuestCategoryBadge,
+  revokeInvalidActiveQuestCategoryBadges,
+  ACTIVE_QUEST_CATEGORY_UNMET_REVOKE_REASON
 };

@@ -81,6 +81,7 @@ exports.getSitemapXml = async (req, res) => {
     const staticPages = [
       '/',
       '/events',
+      '/active-quest',
       '/blog',
       '/about',
       '/how-it-works',

@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "releaseId": "active-quest-private-draft-2026-11",
+  "assets": [
+    {
+      "id": "series-logo",
+      "path": "assets/events/active-quest/active-quest-logo.webp",
+      "r2Key": "active-quest/series/active-quest-logo.webp",
+      "mimeType": "image/webp",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "evergreen": true,
+      "sha256": "9722876f74520f85447909b6e27aa859f814e47f8c35d4910fe725a3c6e4f3d8"
+    },
+    {
+      "id": "series-banner",
+      "path": "assets/events/active-quest/active-quest-banner.webp",
+      "r2Key": "active-quest/series/active-quest-banner.webp",
+      "mimeType": "image/webp",
+      "width": 1920,
+      "height": 1080,
+      "alpha": false,
+      "evergreen": true,
+      "sha256": "e34e8edccd94acebc7d120178acb400fc31290bf25e9d2b09b2ad3ab641edc70"
+    },
+    {
+      "id": "series-poster",
+      "path": "assets/events/active-quest/active-quest-poster.webp",
+      "r2Key": "active-quest/series/active-quest-poster.webp",
+      "mimeType": "image/webp",
+      "width": 1080,
+      "height": 1620,
+      "alpha": false,
+      "evergreen": true,
+      "sha256": "0425d7854c88a29649f344a2ede11b88500ba5cfb18d659723b8420a55b4248f"
+    },
+    {
+      "id": "certificate-background",
+      "path": "assets/events/active-quest/active-quest-certificate-background.webp",
+      "r2Key": "active-quest/series/active-quest-certificate-background.webp",
+      "mimeType": "image/webp",
+      "width": 1684,
+      "height": 1191,
+      "alpha": false,
+      "evergreen": true,
+      "sha256": "5d7cad3a53f512a3dd56bb274b276a92ad4363fb728d3dd18ce7799d25f28bb0"
+    },
+    {
+      "id": "25k-starter-quest",
+      "path": "assets/events/november-active-quest-2026/25k-starter-quest.webp",
+      "r2Key": "active-quest/editions/2026-11/rewards/25k-starter-quest.webp",
+      "mimeType": "image/webp",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "label": "25K STARTER QUEST",
+      "sha256": "34feb9853d8c7d0aa88013a30daf8f53e5be3aa3786dbeebbc99924534692b4a"
+    },
+    {
+      "id": "50k-active-quest",
+      "path": "assets/events/november-active-quest-2026/50k-active-quest.webp",
+      "r2Key": "active-quest/editions/2026-11/rewards/50k-active-quest.webp",
+      "mimeType": "image/webp",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "label": "50K ACTIVE QUEST",
+      "sha256": "d04b10eb4cd81297def6747e75d82cbcda915c0366adce73b38238a0f8c439fb"
+    },
+    {
+      "id": "75k-momentum-quest",
+      "path": "assets/events/november-active-quest-2026/75k-momentum-quest.webp",
+      "r2Key": "active-quest/editions/2026-11/rewards/75k-momentum-quest.webp",
+      "mimeType": "image/webp",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "label": "75K MOMENTUM QUEST",
+      "sha256": "f86f111304ced0dd09ab12e50d8788a99eaf4924c15e7214c7cf2be3b4842e32"
+    },
+    {
+      "id": "100k-endurance-quest",
+      "path": "assets/events/november-active-quest-2026/100k-endurance-quest.webp",
+      "r2Key": "active-quest/editions/2026-11/rewards/100k-endurance-quest.webp",
+      "mimeType": "image/webp",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "label": "100K ENDURANCE QUEST",
+      "sha256": "22c8181ada76374264de0f378470b46d2737c0410a28b2f4fd77848605d1077d"
+    },
+    {
+      "id": "150k-distance-quest",
+      "path": "assets/events/november-active-quest-2026/150k-distance-quest.webp",
+      "r2Key": "active-quest/editions/2026-11/rewards/150k-distance-quest.webp",
+      "mimeType": "image/webp",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "label": "150K DISTANCE QUEST",
+      "sha256": "9ee8bbfe6ed8dce170bf5d167f44ade8aee3560d5f47d28179b7a6513b034beb"
+    },
+    {
+      "id": "200k-ultra-quest",
+      "path": "assets/events/november-active-quest-2026/200k-ultra-quest.webp",
+      "r2Key": "active-quest/editions/2026-11/rewards/200k-ultra-quest.webp",
+      "mimeType": "image/webp",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "label": "200K ULTRA QUEST",
+      "sha256": "3fe3d308c6d4f1411df0e5c01635b7f3fb7e3dc2302b7048abcd9a173ea79a62"
+    }
+  ]
+}

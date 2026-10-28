@@ -4,6 +4,7 @@ const { recordCriticalAuditEventInBackground } = require('./critical-audit.servi
 const { generateDefaultEventBadgesInBackground } = require('./event-badge.service');
 const { evaluateOrganiserAchievementsInBackground } = require('./achievement.service');
 const { getPublishReadinessErrors } = require('./event-form.service');
+const { getActiveQuestPublicationErrors } = require('./active-quest-readiness.service');
 
 const AUTO_APPROVAL_RULE_VERSION = 'event_auto_approval_v1_free_virtual';
 const TRUSTED_ORGANIZER_RULE_VERSION = 'event_auto_approval_v2_trusted_organizer';
@@ -17,7 +18,14 @@ async function publishEvent(event, options = {}) {
     throw new Error('Only pending review events can be published.');
   }
 
-  const readinessErrors = getPublishReadinessErrors(event);
+  const readinessErrors = event.seriesKey === 'active-quest'
+    ? getActiveQuestPublicationErrors(event)
+    : getPublishReadinessErrors(event);
+  if (event.seriesKey === 'active-quest') {
+    if (options.approvalSource !== 'admin' || options.actorIsFullAdmin !== true) {
+      readinessErrors.unshift('Active Quest publication requires an explicit full-admin approval.');
+    }
+  }
   if (readinessErrors.length) {
     const error = new Error(readinessErrors[0]);
     error.readinessErrors = readinessErrors;
@@ -104,6 +112,7 @@ async function getAutoApprovalEligibility(event, options = {}) {
   if (!event || !event._id) reasons.push('event_missing');
   if (event && event.status !== 'pending_review') reasons.push('event_not_pending_review');
   if (event && getPublishReadinessErrors(event).length) reasons.push('publish_readiness_errors');
+  if (event?.seriesKey === 'active-quest') reasons.push('active_quest_requires_manual_full_admin_approval');
 
   if (!organizer) {
     reasons.push('organizer_missing');

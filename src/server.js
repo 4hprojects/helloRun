@@ -436,6 +436,7 @@ const { startEventActivationReminderWorker } = require('./workers/event-activati
 const { startStravaLifecycleWorker } = require('./workers/strava-lifecycle-worker');
 const { startOcrExtractionWorker } = require('./workers/ocr-extraction-worker');
 const { startOcrMaintenanceWorker } = require('./workers/ocr-maintenance-worker');
+const { startActiveQuestSchedulerWorker } = require('./workers/active-quest-scheduler-worker');
 const { isActivityUrlEnabled, isTrainingConsentPromptEnabled } = require('./services/ocr/ocr-config');
 
 async function startServer() {
@@ -453,6 +454,7 @@ async function startServer() {
   require('./services/ocr/ocr-engine').setLanguageResolver(require('./services/ocr/model-registry.service').resolveLanguage);
   startOcrExtractionWorker();
   startOcrMaintenanceWorker();
+  startActiveQuestSchedulerWorker();
 
   const server = app.listen(PORT, () => {
     logger.info(`Server running on http://localhost:${PORT}`);

@@ -289,6 +289,23 @@ exports.updateEvent = async (req, res) => {
     }
     const actor = await User.findById(req.session.userId);
     const formData = getCreateEventFormData(req.body, { existingEvent: event });
+    const isActiveQuestEdition = event.seriesKey === 'active-quest';
+    const overrideReason = String(req.body.adminNotes || '').trim();
+    if (isActiveQuestEdition && (!actor || actor.role !== 'admin' || !isFullAdminTier(actor))) {
+      return res.status(403).render('error', {
+        title: 'Full Admin Required',
+        status: 403,
+        message: 'Active Quest edition changes require full admin access.'
+      });
+    }
+    if (isActiveQuestEdition && overrideReason.length < 8) {
+      return res.status(400).render('organizer/edit-event', buildAdminEditViewData({
+        req,
+        event,
+        formData,
+        errors: { adminNotes: 'Explain this Active Quest override in at least 8 characters.' }
+      }));
+    }
     const incomingPaymentQrFile = req.files?.paymentQrImageFile?.[0] || null;
     if (incomingPaymentQrFile && formData.feeMode === 'paid' && !formData.paymentQrImageUrl) {
       formData.paymentQrImageUrl = 'https://pending-upload.local/payment-qr.png';
@@ -364,8 +381,32 @@ exports.updateEvent = async (req, res) => {
       event.status = 'pending_review';
       event.submittedForReviewAt = new Date();
     }
+    if (isActiveQuestEdition) {
+      event.seriesAdminOverrides.push({
+        actorUserId: actor._id,
+        reason: overrideReason,
+        effectiveAt: new Date(),
+        changes: {
+          source: 'admin_event_editor',
+          submittedFields: Object.keys(req.body || {})
+            .filter((key) => !['_csrf', 'adminNotes'].includes(key))
+            .sort()
+        }
+      });
+    }
     event.adminNotes = String(req.body.adminNotes || event.adminNotes || '').trim().slice(0, 1000);
     await event.save();
+    if (isActiveQuestEdition) {
+      recordCriticalAuditEventInBackground({
+        actorMongoUserId: actor._id,
+        action: 'active_quest.edition_overridden',
+        targetType: 'event',
+        targetId: String(event._id),
+        statusFrom: event.status,
+        statusTo: event.status,
+        notes: overrideReason
+      });
+    }
     const returnContext = getAdminEditReturnContext(req, event._id);
     const successMessage = isDraftSubmitForReview ? 'Event submitted for review.' : 'Event updated.';
     return res.redirect(returnContext.returnTo
@@ -403,13 +444,15 @@ exports.approveEvent = async (req, res) => {
     // Saving the event can depopulate organizerId. Retain the populated recipient
     // before publication so the approval communication is not silently skipped.
     const organizer = event.organizerId;
+    const viewer = await User.findById(req.session.userId).select('role adminTier').lean();
     try {
       await publishEvent(event, {
         approvalSource: 'admin',
         actorUserId: req.session.userId,
         approvalNote: req.body?.approvalNote,
         ipAddress: getRequestIpAddress(req),
-        userAgent: getRequestUserAgent(req)
+        userAgent: getRequestUserAgent(req),
+        actorIsFullAdmin: viewer?.role === 'admin' && isFullAdminTier(viewer)
       });
     } catch (error) {
       if (Array.isArray(error.readinessErrors) && error.readinessErrors.length) {
