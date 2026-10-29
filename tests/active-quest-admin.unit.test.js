@@ -42,6 +42,9 @@ test('admin forms use visible labels, CSRF tokens, and useful disabled states', 
   assert.match(view, /Enable both Series and Draft generation flags first/);
   assert.match(view, /No monthly editions yet/);
   assert.match(view, /name="organizerEmail" type="email"/);
+  assert.match(view, /class="active-quest-foundation-form"/);
+  assert.match(css, /\.active-quest-foundation-form\s*\{[\s\S]*gap:\s*1rem/);
+  assert.match(css, /\.active-quest-foundation-form \.btn\s*\{[\s\S]*min-height:\s*44px/);
 });
 
 test('foundation organizer must be an active verified approved organizer account', async () => {

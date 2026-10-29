@@ -199,6 +199,36 @@
   color: #086534;
 }
 
+.active-quest-foundation-form {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) max-content;
+  gap: 1rem;
+  align-items: end;
+}
+
+.active-quest-foundation-form label {
+  display: grid;
+  gap: 0.25rem;
+  color: #334155;
+  font-weight: 700;
+}
+
+.active-quest-foundation-form input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 1rem;
+}
+
+.active-quest-foundation-form .btn {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
 @media (max-width: 900px) {
   .active-quest-status-strip,
   .active-quest-admin-layout,
@@ -228,11 +258,16 @@
   }
 
   .active-quest-form-actions .btn,
+  .active-quest-foundation-form .btn,
   .active-quest-generate-form .btn,
   .active-quest-flag-row .btn,
   .active-quest-publish-form .btn {
     width: 100%;
     min-height: 44px;
+  }
+
+  .active-quest-foundation-form {
+    grid-template-columns: 1fr;
   }
 }
 
