@@ -4,7 +4,9 @@ Last updated: 2026-10-29
 
 ## Current stage
 
-Stage 0 and Phases 1 through 10 are complete. Phase 11 targets a private November draft; publication remains out of scope.
+Stage 0 and Phases 1 through 10 are complete. Phase 11 now targets an immediate
+public November launch after every production gate passes. The current run stops
+before production deployment or mutation.
 
 ## Completed
 
@@ -162,7 +164,7 @@ Manual browser and assistive-technology QA remains a release task. No deployed e
 
 ## Phase 11 report
 
-Status: implementation and preflight complete; live release blocked.
+Status: implementation complete; production rollout awaits backup verification.
 
 - November 2026 generation is covered by a golden fixture with exact title, slug, PHT schedule, six categories, private draft state, and frozen provenance.
 - Added `NOVEMBER_2026_RELEASE_RUNBOOK.md` with required inventory, generation, review, publication, rollback, and post-release checks.
@@ -173,14 +175,20 @@ Status: implementation and preflight complete; live release blocked.
 - Production has no Active Quest series or template-version collections, no November edition, and no `november-active-quest-2026` slug owner.
 - Production `/active-quest` returns HTTP 404 because this implementation is not deployed. Health and readiness return HTTP 200, but served commit metadata remains `unknown`.
 - Production R2 contains one September event badge and one October event badge. It does not contain six November category badge assets.
-- Production migration 028 remains unverifiable because the configured Supabase hostname returns `ENOTFOUND`.
+- October 30 verification connected through the Supabase session pooler. Production is migrated through 026; migrations 027 and 028 remain pending.
+- All 11 real Mongo events exist in the Postgres shadow. Ten match current core fields; `cns-move-more-challenge-2026` needs a targeted date refresh after migration 028.
+- Legacy integration fixtures account for the cross-store count mismatch. Fixture cleanup is deferred to a separate audited operation.
+- Fixed ordinary shadow metadata so only genuine smoke rows receive `created_by_test = 'smoke'`.
+- Updated production verification to require complete parity for real Mongo-authoritative events while reporting unrelated legacy shadows separately.
 - No production connection, migration, event creation, publication, asset upload, or external write occurred.
 - Confirmed Henson M. Sagorsor as owner and full administrator.
 - Generated evergreen logo, 1920×1080 banner, 1080×1620 poster, A4-landscape certificate background, and six transparent 512×512 WebP badges.
 - Added a ten-file manifest with SHA-256 checksums, dimensions, MIME types, alpha expectations, and intended R2 keys.
 - Added a dry-run-first R2 uploader with collision refusal, mode-0600 rollback manifests, partial-failure cleanup, and ownership-safe rollback.
 - Added read-only replacement-database verification and exact deployed-SHA verification scripts.
-- Production deployment, replacement Postgres secret, backup evidence, migration 028, visual approval, R2 upload, and private-draft generation remain required.
+- Production deployment, backup evidence, migrations 027 and 028, R2 upload,
+  private-draft generation, manual review, and explicit
+  full-admin publication remain required. Artwork is approved.
 
 ## Not executed
 
@@ -192,4 +200,7 @@ Status: implementation and preflight complete; live release blocked.
 
 ## Authorization state
 
-The user authorized production-readiness implementation. Private-draft rollout is authorized only after database, backup, and visual-approval hold points pass. Publication remains locked.
+The user authorized an immediate public November launch after database, backup,
+deployment, asset, draft-readiness, and manual-review gates pass. The user will
+operate HelloDeploy and authenticated full-admin screens. Legacy fixture deletion
+is not authorized as part of this launch.

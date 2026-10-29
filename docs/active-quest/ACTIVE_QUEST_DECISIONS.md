@@ -181,3 +181,12 @@ Use persistent unique generation jobs as atomic claims. Recover stale claims, ca
 Status: enforced.
 
 Repository implementation and local preflight do not authorize production publication. November release requires production inventory, approved assets, readiness review, and explicit publication authority.
+
+### AQ-D030: November public launch authority
+
+Status: authorized, not executed.
+
+Public launch of November Active Quest 2026 is authorized after the correct
+HelloRun Supabase project, restorable backup, migration 028, exact deployment,
+approved assets, private-draft readiness, and manual full-admin review all pass.
+The current preparation run stops before every production write.

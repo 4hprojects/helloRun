@@ -18,7 +18,7 @@ function toPostgresSmokeMeta(smokeMeta) {
   return {
     is_smoke_test: Boolean(smokeMeta?.isSmokeTest),
     test_run_id: smokeMeta?.testRunId || '',
-    created_by_test: smokeMeta?.createdByTest || 'smoke',
+    created_by_test: smokeMeta?.createdByTest || null,
     expires_at: smokeMeta?.expiresAt || null
   };
 }

@@ -96,11 +96,24 @@ Severity: critical. Status: open.
 
 Production R2 contains one event badge image for September and one for October. No six-asset category set exists for November. Existing Mongo badge-content rows do not supply category image URLs. Publication readiness must remain blocked until 25K, 50K, 75K, 100K, 150K, and 200K assets are approved and reachable.
 
-### AQ-I016: production migration state is unreachable
+### AQ-I016: production migrations 027 and 028 are pending
 
 Severity: critical. Status: open.
 
-The configured Supabase hostname returned `ENOTFOUND` during an authorized read-only transaction attempt. Migration 028 and event-badge rows cannot be verified. Identify the live Postgres project and restore read-only connectivity before migration review or deployment.
+October 30 read-only verification connected through the Supabase session pooler.
+Production is migrated through 026. Verify the existing backup and restore path,
+then apply security migration 027 and Active Quest migration 028 in order.
+
+### AQ-I017: legacy fixtures contaminate production shadows
+
+Severity: high. Status: isolated; cleanup deferred.
+
+Legacy integration fixtures create large raw Mongo/Postgres count differences.
+All 11 real Mongo events have Postgres identities, so November launch verification
+now scopes authority to non-personal, non-test Mongo events and reports unrelated
+shadows separately. A separate audited cleanup must classify relationships before
+deleting any fixture. Ordinary Postgres rows must no longer default
+`created_by_test` to `smoke`.
 
 ## Production inventory state
 
@@ -108,7 +121,7 @@ The configured Supabase hostname returned `ENOTFOUND` during an authorized read-
 - No November edition or expected-slug conflict exists as of the inventory timestamp.
 - Recent September and October editions are owned by a full administrator. Earlier May through August editions use a separate organiser account.
 - Active September and October certificate templates exist and provide reusable design candidates. No candidate is approved for November yet.
-- Applied Postgres migration versions remain unknown because the configured hostname is unavailable.
+- Applied Postgres migrations are verified through 026; migrations 027 and 028 are pending.
 - Final six category badge assets do not exist.
 - Existing production reward outcomes, backup state, web replica count, and worker topology remain unknown.
 

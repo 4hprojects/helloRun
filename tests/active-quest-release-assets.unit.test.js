@@ -24,6 +24,7 @@ function commandName(command) {
 
 test('Active Quest release manifest validates exact production assets', async () => {
   const manifest = loadManifest(MANIFEST_PATH);
+  assert.equal(manifest.releaseId, 'active-quest-public-launch-2026-11');
   assert.equal(manifest.assets.length, 10);
   assert.equal(new Set(manifest.assets.map((asset) => asset.r2Key)).size, 10);
   assert.equal(manifest.assets.filter((asset) => asset.label).length, 6);

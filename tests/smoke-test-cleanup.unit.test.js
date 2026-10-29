@@ -46,6 +46,15 @@ test('createTestRunId creates filesystem-safe smoke id', () => {
   );
 });
 
+test('ordinary records do not receive smoke creator metadata', () => {
+  assert.deepEqual(toPostgresSmokeMeta({}), {
+    is_smoke_test: false,
+    test_run_id: '',
+    created_by_test: null,
+    expires_at: null
+  });
+});
+
 test('parseArgs requires a bounded cleanup mode', () => {
   assert.throws(() => parseArgs([]), /requires --test-run-id or --expired/);
   assert.deepEqual(parseArgs(['--dry-run', '--test-run-id', 'smoke-1']), {
