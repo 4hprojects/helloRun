@@ -6,6 +6,19 @@ Scope: authorized read-only inspection of public endpoints, production MongoDB, 
 
 Production mutation: none.
 
+## October 30 connectivity update
+
+- The HelloRun Supabase session-pooler connection succeeds from the release workstation.
+- Applied migrations stop at `026_activity_review_and_treadmill_vocabulary.sql`.
+- Migrations 027 and 028 are pending.
+- All 11 real Mongo events have matching Postgres identities; ten match current
+  core fields and CNS Move More needs a targeted date refresh.
+- Hundreds of legacy integration fixtures explain the raw event-count mismatch.
+  Cleanup is deferred and no fixture deletion is part of the November launch.
+- A smoke metadata default incorrectly marked ordinary Postgres shadows as test-created;
+  the release patch changes the ordinary value to `NULL`.
+- The remaining database hold point is verification of the existing backup and restore path.
+
 ## Public deployment
 
 - `https://hellorun.online/healthz`: HTTP 200 through the HelloDeploy route.
@@ -85,9 +98,11 @@ Do not run migration 028 until the live Postgres project is identified, a restor
 ## Release blockers
 
 1. Deploy and verify the Active Quest repository implementation.
-2. Identify the live Postgres project and restore connectivity.
-3. Verify a current Atlas and Postgres recovery point.
-4. Review and apply migration 028 through the normal release process.
+2. Verify a current Atlas and Postgres recovery point.
+3. Review and apply migrations 027 and 028 through the normal release process.
 5. Approve the generated artwork and upload it through the rollback-controlled script.
 6. Create a private November draft, run readiness, and complete manual browser and workflow QA.
-7. Keep publication locked pending later explicit authority.
+7. Publication authority was granted later on October 29, 2026. After backup and
+   migration readiness pass, deploy the exact approved SHA through HelloDeploy,
+   upload the approved assets, generate and review the private draft, then publish
+   through explicit full-admin approval.

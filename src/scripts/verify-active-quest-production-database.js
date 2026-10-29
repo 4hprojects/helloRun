@@ -18,6 +18,10 @@ const REQUIRED_COLUMNS = [
   'series_year'
 ];
 const REQUIRED_INDEXES = ['events_core_series_template_idx', 'events_core_unique_series_month'];
+const AUTHORITATIVE_EVENT_QUERY = Object.freeze({
+  isPersonalRecord: Object.freeze({ $ne: true }),
+  isTestData: Object.freeze({ $ne: true })
+});
 
 function expectedPriorMigrations() {
   const migrationDirectory = path.resolve(__dirname, '../db/migrations');
@@ -47,17 +51,31 @@ function compareRepresentative(normalized, row, distances) {
   return differences;
 }
 
+function assertAuthoritativeShadowCoverage({ mongoEventIds, shadowMongoEventIds, totalShadowEventCount }) {
+  const shadowIds = new Set(shadowMongoEventIds.map(String));
+  const missing = mongoEventIds.map(String).filter((id) => !shadowIds.has(id));
+  if (mongoEventIds.length === 0) throw new Error('Authoritative Mongo event set must not be empty.');
+  if (missing.length) {
+    throw new Error(`Authoritative event shadows missing: ${missing.length}.`);
+  }
+  return {
+    mongoEventCount: mongoEventIds.length,
+    shadowEventCount: shadowIds.size,
+    totalShadowEventCount: Number(totalShadowEventCount),
+    ignoredShadowEventCount: Math.max(0, Number(totalShadowEventCount) - shadowIds.size)
+  };
+}
+
 async function verifyDatabase({ postMigration = false } = {}) {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL must come from secrets management.');
   if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is required.');
 
   await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 10000, socketTimeoutMS: 120000 });
   const sql = getPostgresClient();
-  const sampleEvents = await Event.find({ isPersonalRecord: { $ne: true } })
+  const authoritativeEvents = await Event.find(AUTHORITATIVE_EVENT_QUERY)
     .sort({ updatedAt: -1, _id: -1 })
-    .limit(10)
     .lean();
-  const mongoEventCount = await Event.countDocuments({ isPersonalRecord: { $ne: true } });
+  const authoritativeIds = authoritativeEvents.map((event) => String(event._id));
 
   return sql.begin(async (tx) => {
     await tx`SET TRANSACTION READ ONLY`;
@@ -72,26 +90,24 @@ async function verifyDatabase({ postMigration = false } = {}) {
     `;
     assertSetContains(new Set(tables.map((row) => row.table_name)), REQUIRED_TABLES, 'Required tables');
 
-    const [{ count: shadowCountValue }] = await tx`SELECT count(*)::integer AS count FROM events_core`;
-    const shadowEventCount = Number(shadowCountValue);
-    if (mongoEventCount === 0 || shadowEventCount === 0) throw new Error('Production event stores must not be empty.');
-    if (mongoEventCount !== shadowEventCount) {
-      throw new Error(`Event shadow count mismatch: Mongo ${mongoEventCount}, Postgres ${shadowEventCount}.`);
-    }
-
-    const sampleIds = sampleEvents.map((event) => String(event._id));
-    const rows = sampleIds.length
+    const [{ count: totalShadowEventCount }] = await tx`SELECT count(*)::integer AS count FROM events_core`;
+    const rows = authoritativeIds.length
       ? await tx`
           SELECT mongo_event_id, slug, title, status, event_type, virtual_completion_mode
           FROM events_core
-          WHERE mongo_event_id IN ${tx(sampleIds)}
+          WHERE mongo_event_id IN ${tx(authoritativeIds)}
         `
       : [];
-    const distanceRows = sampleIds.length
+    const coverage = assertAuthoritativeShadowCoverage({
+      mongoEventIds: authoritativeIds,
+      shadowMongoEventIds: rows.map((row) => row.mongo_event_id),
+      totalShadowEventCount
+    });
+    const distanceRows = authoritativeIds.length
       ? await tx`
           SELECT mongo_event_id, distance_label
           FROM event_distances
-          WHERE mongo_event_id IN ${tx(sampleIds)}
+          WHERE mongo_event_id IN ${tx(authoritativeIds)}
           ORDER BY mongo_event_id, sort_order, distance_label
         `
       : [];
@@ -102,12 +118,12 @@ async function verifyDatabase({ postMigration = false } = {}) {
       if (!distancesById.has(id)) distancesById.set(id, []);
       distancesById.get(id).push(String(row.distance_label));
     }
-    for (const event of sampleEvents) {
+    for (const event of authoritativeEvents) {
       const normalized = normalizeMongoEvent(event);
       const row = rowsById.get(normalized.mongoEventId);
-      if (!row) throw new Error(`Representative event missing from shadow: ${normalized.slug}.`);
+      if (!row) throw new Error(`Authoritative event missing from shadow: ${normalized.slug}.`);
       const differences = compareRepresentative(normalized, row, distancesById.get(normalized.mongoEventId) || []);
-      if (differences.length) throw new Error(`Representative event mismatch for ${normalized.slug}: ${differences.join(', ')}.`);
+      if (differences.length) throw new Error(`Authoritative event mismatch for ${normalized.slug}: ${differences.join(', ')}.`);
     }
 
     if (postMigration) {
@@ -138,9 +154,8 @@ async function verifyDatabase({ postMigration = false } = {}) {
       mode: postMigration ? 'post-migration' : 'pre-migration',
       transactionReadOnly: true,
       priorMigrations: expectedPriorMigrations().length,
-      mongoEventCount,
-      shadowEventCount,
-      representativeEvents: sampleEvents.length,
+      ...coverage,
+      authoritativeEvents: authoritativeEvents.length,
       migration028Applied: migrationNames.has(MIGRATION)
     };
   });
@@ -168,7 +183,9 @@ module.exports = {
   REQUIRED_COLUMNS,
   REQUIRED_INDEXES,
   REQUIRED_TABLES,
+  AUTHORITATIVE_EVENT_QUERY,
   assertSetContains,
+  assertAuthoritativeShadowCoverage,
   compareRepresentative,
   expectedPriorMigrations,
   verifyDatabase

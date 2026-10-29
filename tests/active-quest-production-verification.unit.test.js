@@ -2,8 +2,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   MIGRATION,
+  AUTHORITATIVE_EVENT_QUERY,
   REQUIRED_COLUMNS,
   REQUIRED_INDEXES,
+  assertAuthoritativeShadowCoverage,
   assertSetContains,
   compareRepresentative,
   expectedPriorMigrations
@@ -28,6 +30,34 @@ test('Active Quest database verifier locks the migration 028 shape', () => {
     'series_year'
   ]);
   assert.deepEqual(REQUIRED_INDEXES, ['events_core_series_template_idx', 'events_core_unique_series_month']);
+});
+
+test('Active Quest database verifier scopes Mongo authority to real events', () => {
+  assert.deepEqual(AUTHORITATIVE_EVENT_QUERY, {
+    isPersonalRecord: { $ne: true },
+    isTestData: { $ne: true }
+  });
+});
+
+test('Active Quest database verifier reports unrelated fixture shadows without failing coverage', () => {
+  assert.deepEqual(assertAuthoritativeShadowCoverage({
+    mongoEventIds: ['event-a', 'event-b'],
+    shadowMongoEventIds: ['event-a', 'event-b'],
+    totalShadowEventCount: 602
+  }), {
+    mongoEventCount: 2,
+    shadowEventCount: 2,
+    totalShadowEventCount: 602,
+    ignoredShadowEventCount: 600
+  });
+});
+
+test('Active Quest database verifier rejects missing authoritative shadows', () => {
+  assert.throws(() => assertAuthoritativeShadowCoverage({
+    mongoEventIds: ['event-a', 'event-b'],
+    shadowMongoEventIds: ['event-a'],
+    totalShadowEventCount: 601
+  }), /Authoritative event shadows missing: 1/);
 });
 
 test('Active Quest representative parity reports changed fields', () => {
