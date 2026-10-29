@@ -78,6 +78,8 @@ test('admin styling follows existing product cards, responsive grids, and 44px c
   assert.match(css, /\.active-quest-admin-card/);
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /@media \(max-width: 640px\)[\s\S]*active-quest-admin-layout/);
+  assert.match(css, /\.active-quest-flag-row\s*\{[\s\S]*grid-template-areas:[\s\S]*"details state action"[\s\S]*"\. reason reason"/);
+  assert.match(css, /@media \(max-width: 640px\)[\s\S]*"details"[\s\S]*"state"[\s\S]*"reason"[\s\S]*"action"/);
   assert.doesNotMatch(css, /\.active-quest[^}]*transition:\s*all/i);
 });
 
