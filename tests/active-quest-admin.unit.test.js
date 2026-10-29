@@ -5,6 +5,7 @@ const path = require('node:path');
 const ejs = require('ejs');
 const { getAutoApprovalEligibility } = require('../src/services/event-approval.service');
 const { getActiveQuestPublicationErrors } = require('../src/services/active-quest-readiness.service');
+const { resolveActiveQuestOrganizer } = require('../src/controllers/admin/active-quest.controller');
 
 const ROOT = path.resolve(__dirname, '..');
 const viewPath = path.join(ROOT, 'src/views/admin/active-quest.ejs');
@@ -40,6 +41,34 @@ test('admin forms use visible labels, CSRF tokens, and useful disabled states', 
   assert.match(view, /aria-label="Reason for changing/);
   assert.match(view, /Enable both Series and Draft generation flags first/);
   assert.match(view, /No monthly editions yet/);
+  assert.match(view, /name="organizerEmail" type="email"/);
+});
+
+test('foundation organizer must be an active verified approved organizer account', async () => {
+  let query;
+  const approved = {
+    _id: 'organizer-1',
+    email: 'henzoom8@gmail.com',
+    role: 'organiser',
+    organizerStatus: 'approved',
+    emailVerified: true,
+    accountStatus: 'active'
+  };
+  const model = {
+    findOne(value) {
+      query = value;
+      return { select: async () => approved };
+    }
+  };
+  assert.equal(await resolveActiveQuestOrganizer(' HENZOOM8@gmail.com ', model), approved);
+  assert.deepEqual(query, { email: 'henzoom8@gmail.com' });
+
+  await assert.rejects(
+    resolveActiveQuestOrganizer('henzoom8@gmail.com', {
+      findOne: () => ({ select: async () => ({ ...approved, organizerStatus: 'pending' }) })
+    }),
+    /must be active, verified, and approved/
+  );
 });
 
 test('admin styling follows existing product cards, responsive grids, and 44px controls', () => {

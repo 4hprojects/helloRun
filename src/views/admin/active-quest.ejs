@@ -37,6 +37,8 @@
           </div>
           <form method="POST" action="/admin/active-quest/initialize">
             <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+            <label for="aqOrganizerEmail">Organizer account email</label>
+            <input id="aqOrganizerEmail" name="organizerEmail" type="email" autocomplete="email" required>
             <button class="btn" type="submit">Create Foundation</button>
           </form>
         </section>
