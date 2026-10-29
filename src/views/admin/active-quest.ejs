@@ -35,10 +35,11 @@
             <h2 id="activeQuestStartTitle">Create the private foundation</h2>
             <p>This creates one series and frozen baseline template. All feature flags remain disabled.</p>
           </div>
-          <form method="POST" action="/admin/active-quest/initialize">
+          <form method="POST" action="/admin/active-quest/initialize" class="active-quest-foundation-form">
             <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-            <label for="aqOrganizerEmail">Organizer account email</label>
-            <input id="aqOrganizerEmail" name="organizerEmail" type="email" autocomplete="email" required>
+            <label for="aqOrganizerEmail">Organizer account email
+              <input id="aqOrganizerEmail" name="organizerEmail" type="email" autocomplete="email" required>
+            </label>
             <button class="btn" type="submit">Create Foundation</button>
           </form>
         </section>
