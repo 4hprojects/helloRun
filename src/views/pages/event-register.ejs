@@ -22,25 +22,32 @@
 
   <main class="event-register-page <%= presentation.isAccumulated ? 'is-accumulated-registration' : '' %>">
     <section class="event-register-shell">
-      <header class="event-register-header">
-        <a href="/events/<%= event.slug %>" class="event-register-back">
+      <% if (!existingRegistration) { %>
+        <header class="event-register-header">
+          <a href="/events/<%= event.slug %>" class="event-register-back">
+            <i data-lucide="arrow-left" aria-hidden="true"></i>
+            Back to event
+          </a>
+          <div class="event-register-header-copy">
+            <span class="event-register-eyebrow"><%= eventSummary.formatLabel || 'Event registration' %></span>
+            <h1>Join <%= event.title %></h1>
+            <p><%= presentation.isAccumulated ? 'Choose one challenge goal and review the waiver before registering.' : 'Choose your event preferences, accept the waiver, and review everything before registering.' %></p>
+            <ul class="event-register-key-facts" aria-label="Registration timing">
+              <li><i data-lucide="calendar-x" aria-hidden="true"></i><span>Register by <strong><%= eventSummary.registrationCloseLabel %></strong></span></li>
+              <li><i data-lucide="activity" aria-hidden="true"></i><span>Activity <strong><%= eventSummary.activityWindowLabel %></strong></span></li>
+              <li><i data-lucide="upload-cloud" aria-hidden="true"></i><span>Submit by <strong><%= eventSummary.submissionDeadlineLabel %></strong></span></li>
+            </ul>
+            <small class="event-register-timezone">Dates follow <%= eventSummary.timeZoneLabel || 'Asia/Manila' %>.</small>
+          </div>
+        </header>
+      <% } else { %>
+        <a href="/events/<%= event.slug %>" class="event-register-back event-register-success-back">
           <i data-lucide="arrow-left" aria-hidden="true"></i>
-          Back to event
+          Event details
         </a>
-        <div class="event-register-header-copy">
-          <span class="event-register-eyebrow"><%= eventSummary.formatLabel || 'Event registration' %></span>
-          <h1>Join <%= event.title %></h1>
-          <p><%= presentation.isAccumulated ? 'Choose one challenge goal and review the waiver before registering.' : 'Choose your event preferences, accept the waiver, and review everything before registering.' %></p>
-          <ul class="event-register-key-facts" aria-label="Registration timing">
-            <li><i data-lucide="calendar-x" aria-hidden="true"></i><span>Register by <strong><%= eventSummary.registrationCloseLabel %></strong></span></li>
-            <li><i data-lucide="activity" aria-hidden="true"></i><span>Activity <strong><%= eventSummary.activityWindowLabel %></strong></span></li>
-            <li><i data-lucide="upload-cloud" aria-hidden="true"></i><span>Submit by <strong><%= eventSummary.submissionDeadlineLabel %></strong></span></li>
-          </ul>
-          <small class="event-register-timezone">Dates follow <%= eventSummary.timeZoneLabel || 'Asia/Manila' %>.</small>
-        </div>
-      </header>
+      <% } %>
 
-      <% if (message) { %>
+      <% if (message && !(existingRegistration && message.type === 'success')) { %>
         <div class="page-message page-message-<%= message.type %>" role="status"><%= message.text %></div>
       <% } %>
 
@@ -54,51 +61,58 @@
 
       <% if (existingRegistration) { %>
         <% const existingSummary = presentation.existing || {}; %>
-        <section class="registration-state-card registration-state-success" aria-labelledby="registrationStateTitle">
-          <div class="registration-state-heading">
-            <span class="registration-state-icon"><i data-lucide="circle-check" aria-hidden="true"></i></span>
-            <div>
-              <span class="event-register-eyebrow"><%= justRegistered ? 'You are in' : 'Registration found' %></span>
-              <h2 id="registrationStateTitle"><%= justRegistered ? 'Registration confirmed' : 'Already registered' %></h2>
-              <p>Your event place and selected preferences are saved.</p>
-            </div>
-          </div>
-
-          <div class="registration-confirmation-code">
-            <span>Confirmation code</span>
-            <code><%= existingRegistration.confirmationCode %></code>
-          </div>
-
-          <dl class="registration-state-grid">
-            <div><dt>Goal or category</dt><dd><%= existingRegistration.raceDistance || 'Not listed' %></dd></div>
-            <div><dt>Participation mode</dt><dd><%= existingRegistration.participationMode || 'Not listed' %></dd></div>
-            <% if (existingRegistration.pricingSnapshot?.optionDescription) { %>
-              <div><dt>Signup option</dt><dd><%= existingRegistration.pricingSnapshot.optionDescription %></dd></div>
-            <% } %>
-            <% if (existingRegistration.pricingSnapshot?.packageName) { %>
-              <div><dt>Registration package</dt><dd><%= existingRegistration.pricingSnapshot.packageName %></dd></div>
-            <% } %>
-            <% if (existingRegistration.pricingSnapshot?.pricingPeriodLabel) { %>
-              <div><dt>Pricing period</dt><dd><%= existingRegistration.pricingSnapshot.pricingPeriodLabel %></dd></div>
-            <% } %>
-            <div><dt>Registration status</dt><dd><%= existingSummary.statusLabel || existingRegistration.status || 'Confirmed' %></dd></div>
-            <div><dt>Payment status</dt><dd><%= existingSummary.paymentStatusLabel || existingRegistration.paymentStatus || 'Not listed' %></dd></div>
-          </dl>
-
-          <section class="registration-cost-summary" aria-labelledby="existingCostTitle">
-            <h3 id="existingCostTitle">Registration total</h3>
-            <dl>
-              <div><dt>Registration</dt><dd><%= existingSummary.registrationAmount > 0 ? existingSummary.registrationAmountLabel : 'Free' %></dd></div>
-              <% if (existingSummary.addOnsAmount > 0) { %>
-                <div><dt>Add-ons</dt><dd><%= existingSummary.addOnsAmountLabel %></dd></div>
+        <section class="registration-state-card registration-state-success" aria-labelledby="registrationStateTitle" data-registration-success data-just-registered="<%= justRegistered ? 'true' : 'false' %>" tabindex="-1">
+          <header class="registration-success-hero">
+            <span class="registration-state-icon"><i data-lucide="circle-check-big" aria-hidden="true"></i></span>
+            <div class="registration-success-copy">
+              <span class="event-register-eyebrow"><%= justRegistered ? 'Registration confirmed' : 'Registration found' %></span>
+              <h1 id="registrationStateTitle"><%= justRegistered ? 'You’re registered' : 'You’re already registered' %></h1>
+              <p>Your place in <strong><%= event.title %></strong> is saved.</p>
+              <div class="registration-success-tags" aria-label="Selected challenge">
+                <span><i data-lucide="flag" aria-hidden="true"></i><%= existingSummary.categoryLabel || existingRegistration.raceDistance || 'Challenge goal' %></span>
+                <span><i data-lucide="smartphone" aria-hidden="true"></i><%= existingSummary.modeLabel || 'Virtual' %></span>
+                <% if (existingSummary.isFree) { %><span><i data-lucide="badge-check" aria-hidden="true"></i>No payment required</span><% } %>
+              </div>
+              <% if (justRegistered && presentation.isAccumulated && Number(existingSummary.targetDistanceKm || 0) > 0) { %>
+                <p class="registration-success-progress"><strong>0 of <%= Number(existingSummary.targetDistanceKm).toLocaleString('en-US', { maximumFractionDigits: 2 }) %> km approved</strong> · Your progress starts with your first verified activity.</p>
               <% } %>
-              <div class="registration-cost-total"><dt>Total</dt><dd><%= existingSummary.totalAmountLabel || 'Free' %></dd></div>
-            </dl>
-          </section>
+            </div>
+          </header>
 
           <div class="register-actions registration-state-actions">
-            <a href="<%= existingSummary.nextAction?.href || `/events/${event.slug}` %>" class="btn btn-primary"><%= existingSummary.nextAction?.label || 'View event' %></a>
-            <a href="/my-registrations" class="btn btn-outline">My registrations</a>
+            <a href="<%= existingSummary.nextAction?.href || '/my-registrations' %>" class="btn btn-primary"><i data-lucide="<%= existingSummary.nextAction?.icon || 'activity' %>" aria-hidden="true"></i><%= existingSummary.nextAction?.label || 'View my quest' %></a>
+            <% if (existingSummary.nextAction?.href !== existingSummary.secondaryAction?.href) { %>
+              <a href="<%= existingSummary.secondaryAction?.href || '/my-registrations' %>" class="btn btn-outline"><%= existingSummary.secondaryAction?.label || 'View my quest' %></a>
+            <% } %>
+          </div>
+
+          <div class="registration-success-layout">
+            <section class="registration-next-steps" aria-labelledby="registrationNextStepsTitle">
+              <h2 id="registrationNextStepsTitle">What happens next</h2>
+              <p><%= existingSummary.activityStatusLabel %></p>
+              <ol>
+                <li><span>1</span><div><strong>Complete an eligible activity</strong><small>Follow the event’s activity types and minimum-distance rules.</small></div></li>
+                <li><span>2</span><div><strong>Save your tracking screenshot</strong><small>Keep the activity date and distance readable.</small></div></li>
+                <li><span>3</span><div><strong>Submit proof by <%= eventSummary.submissionDeadlineLabel %></strong><small>Only approved activities count toward your goal.</small></div></li>
+              </ol>
+            </section>
+
+            <aside class="registration-success-summary" aria-labelledby="registrationSummaryTitle">
+              <h2 id="registrationSummaryTitle">Your registration</h2>
+              <dl>
+                <div><dt>Challenge</dt><dd><%= existingSummary.categoryLabel || existingRegistration.raceDistance || 'Not listed' %></dd></div>
+                <div><dt>Activity period</dt><dd><%= eventSummary.activityWindowLabel %></dd></div>
+                <div><dt>Status</dt><dd><span class="registration-status-dot" aria-hidden="true"></span><%= existingSummary.statusLabel || 'Confirmed' %></dd></div>
+                <% if (!existingSummary.isFree) { %><div><dt>Payment</dt><dd><%= existingSummary.paymentStatusLabel %></dd></div><% } %>
+              </dl>
+              <div class="registration-confirmation-code">
+                <span>Confirmation code</span>
+                <div><code id="registrationConfirmationCode"><%= existingRegistration.confirmationCode %></code><button type="button" class="registration-copy-code" data-copy-confirmation aria-label="Copy confirmation code"><i data-lucide="copy" aria-hidden="true"></i><span>Copy</span></button></div>
+              </div>
+              <% if (!existingSummary.isFree) { %>
+                <div class="registration-paid-total"><span>Total</span><strong><%= existingSummary.totalAmountLabel %></strong></div>
+              <% } %>
+            </aside>
           </div>
         </section>
       <% } else { %>

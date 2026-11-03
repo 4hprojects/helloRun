@@ -2851,15 +2851,22 @@
 
     const params = new URLSearchParams(window.location.search || '');
     if (params.get('openRunProof') === '1') {
+      const requestedRegistrationId = String(params.get('registrationId') || '').trim();
       params.delete('openRunProof');
+      params.delete('registrationId');
       const nextQuery = params.toString();
       const nextUrl = window.location.pathname + (nextQuery ? '?' + nextQuery : '') + window.location.hash;
       window.history.replaceState({}, '', nextUrl);
 
       window.setTimeout(() => {
+        const requestedTrigger = requestedRegistrationId
+          ? Array.from(document.querySelectorAll('[data-open-run-proof-modal]')).find((trigger) => {
+              return String(trigger.getAttribute('data-registration-id') || trigger.getAttribute('data-run-proof-registration-id') || '') === requestedRegistrationId;
+            })
+          : null;
         const dashboardTrigger = document.querySelector('[data-open-run-proof-modal][data-run-proof-surface="runner-dashboard"]');
         const fallbackTrigger = document.querySelector('[data-open-run-proof-modal]');
-        openModal(dashboardTrigger || fallbackTrigger || null, null);
+        openModal(requestedTrigger || dashboardTrigger || fallbackTrigger || null, null);
       }, 0);
     }
   };

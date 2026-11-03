@@ -3,6 +3,31 @@
 
   const onReady = () => {
     window.lucide?.createIcons?.();
+    const successState = document.querySelector('[data-registration-success]');
+    if (successState?.dataset.justRegistered === 'true') successState.focus({ preventScroll: true });
+
+    const copyButton = document.querySelector('[data-copy-confirmation]');
+    copyButton?.addEventListener('click', async () => {
+      const code = document.getElementById('registrationConfirmationCode')?.textContent?.trim() || '';
+      if (!code) return;
+      try {
+        await navigator.clipboard.writeText(code);
+      } catch (_) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        const codeElement = document.getElementById('registrationConfirmationCode');
+        if (!selection || !codeElement) return;
+        range.selectNodeContents(codeElement);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+      }
+      const label = copyButton.querySelector('span');
+      if (label) label.textContent = 'Copied';
+      copyButton.setAttribute('aria-label', 'Confirmation code copied');
+    });
+
     const form = document.getElementById('eventRegisterForm');
     const dataElement = document.getElementById('registrationReviewData');
     if (!form || !dataElement) return;
