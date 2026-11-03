@@ -300,6 +300,15 @@ function setupDashboardRefresh() {
   };
 
   const replaceFragments = (fragments) => {
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    let changed = false;
+    const markEntering = (root) => {
+      const clear = () => root.classList.remove('is-entering');
+      root.classList.add('is-entering');
+      root.addEventListener('animationend', clear, { once: true });
+      window.setTimeout(clear, 300);
+    };
     Object.entries(fragments || {}).forEach(([name, html]) => {
       const currentRoot = document.querySelector(`[data-dashboard-fragment="${name}"]`);
       const nextRoot = parseFragment(html, name);
@@ -307,18 +316,30 @@ function setupDashboardRefresh() {
       const focusedInside = currentRoot.contains(document.activeElement);
       const interactionOpen = Boolean(currentRoot.querySelector('details[open], [data-certificate-share-menu]:not([hidden])'));
       if (focusedInside || interactionOpen) return;
+      if (currentRoot.innerHTML === nextRoot.innerHTML) {
+        currentRoot.classList.remove('is-loading');
+        return;
+      }
 
       if (currentRoot.id) {
         currentRoot.innerHTML = nextRoot.innerHTML;
+        currentRoot.classList.remove('is-loading');
+        markEntering(currentRoot);
+        changed = true;
         return;
       }
+      markEntering(nextRoot);
       currentRoot.replaceWith(nextRoot);
+      changed = true;
     });
+    if (!changed) return false;
+    window.scrollTo(scrollX, scrollY);
     if (window.lucide && typeof window.lucide.createIcons === 'function') {
       window.lucide.createIcons();
     }
     setupCollapsiblePanels();
     setupLoadingStates();
+    return true;
   };
 
   const refresh = async (href, options = {}) => {
@@ -331,6 +352,7 @@ function setupDashboardRefresh() {
     }
     const endpointUrl = buildEndpointUrl(href || window.location.pathname + window.location.search);
     page.setAttribute('aria-busy', 'true');
+    page.querySelectorAll('[data-dashboard-fragment]').forEach((root) => root.classList.add('is-loading'));
 
     activeRequest = (async () => {
       const response = await fetch(endpointUrl.toString(), {
@@ -368,6 +390,7 @@ function setupDashboardRefresh() {
     } finally {
       activeRequest = null;
       page.removeAttribute('aria-busy');
+      page.querySelectorAll('[data-dashboard-fragment].is-loading').forEach((root) => root.classList.remove('is-loading'));
     }
   };
 
@@ -460,7 +483,8 @@ function setupDashboardFlashBridge() {
     }
 
     if (typeof alert.scrollIntoView === 'function') {
-      alert.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+      alert.scrollIntoView({ block: 'nearest', behavior: reducedMotion ? 'auto' : 'smooth' });
     }
   };
 }

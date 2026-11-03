@@ -1657,3 +1657,79 @@
   flex: 0 0 auto;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .run-proof-modal-backdrop:not([hidden]) .run-proof-modal-dialog,
+  #runProofStepDate:not([hidden]),
+  #runProofStep1:not([hidden]),
+  #runProofStep2:not([hidden]),
+  .run-proof-upload-preview:not([hidden]),
+  .run-proof-draft-prompt:not([hidden]),
+  .run-proof-name-mismatch-dialog:not([hidden]),
+  .run-proof-submit-review:not([hidden]) .run-proof-submit-review-dialog,
+  .run-proof-post-submit:not([hidden]) .run-proof-post-submit-dialog {
+    animation: run-proof-state-in var(--hr-motion-panel, 240ms) var(--hr-ease-out, ease-out);
+  }
+
+  .run-proof-field-error:not(:empty),
+  .run-proof-message:not(:empty),
+  .run-proof-ocr-results:not([hidden]),
+  .run-proof-ocr-warning:not([hidden]),
+  .run-proof-autofill-banner:not([hidden]) {
+    animation: run-proof-feedback-in var(--hr-motion-state, 180ms) var(--hr-ease-out, ease-out);
+  }
+
+  .run-proof-modal-dialog[data-flow-phase="ocr_processing"] .run-proof-upload,
+  .run-proof-modal-dialog[data-flow-phase="submitting"] .run-proof-final-step {
+    transition: opacity var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease);
+  }
+
+  .run-proof-chip,
+  .run-proof-event-card,
+  .run-proof-upload,
+  .run-proof-modal-dialog .btn {
+    transition:
+      background-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+      border-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+      color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+      box-shadow var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+      opacity var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+      transform var(--hr-motion-fast, 120ms) var(--hr-ease-out, ease-out);
+  }
+
+  .run-proof-chip:active:not(:disabled),
+  .run-proof-event-card:active,
+  .run-proof-modal-dialog .btn:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+}
+
+@keyframes run-proof-state-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes run-proof-feedback-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-proof-modal-dialog,
+  #runProofStepDate,
+  #runProofStep1,
+  #runProofStep2,
+  .run-proof-upload-preview,
+  .run-proof-draft-prompt,
+  .run-proof-name-mismatch-dialog,
+  .run-proof-submit-review-dialog,
+  .run-proof-post-submit-dialog,
+  .run-proof-chip,
+  .run-proof-event-card,
+  .run-proof-upload,
+  .run-proof-modal-dialog .btn {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+

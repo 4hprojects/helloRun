@@ -1653,7 +1653,37 @@
 
 @media (prefers-reduced-motion: reduce) {
   .registration-choice-card,
-  .registration-addon-card {
+  .registration-addon-card,
+  .registration-goal-card,
+  .registration-client-field-error {
     transition: none;
+    animation: none;
   }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .registration-choice-card:active,
+  .registration-addon-card:active,
+  .registration-goal-card:active {
+    transform: scale(0.99);
+  }
+
+  .registration-client-field-error {
+    animation: registration-error-in var(--hr-motion-state, 180ms) var(--hr-ease-out, ease-out);
+  }
+
+  .registration-motion-invalid {
+    animation: registration-invalid-nudge var(--hr-motion-panel, 240ms) var(--hr-ease-standard, ease);
+  }
+}
+
+@keyframes registration-error-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes registration-invalid-nudge {
+  0%, 100% { transform: translateX(0); }
+  35% { transform: translateX(-3px); }
+  70% { transform: translateX(3px); }
 }

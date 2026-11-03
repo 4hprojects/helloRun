@@ -162,6 +162,7 @@
 
     const clearClientErrors = () => {
       form.querySelectorAll('.registration-client-field-error').forEach((message) => message.remove());
+      form.querySelectorAll('.registration-motion-invalid').forEach((field) => field.classList.remove('registration-motion-invalid'));
       form.querySelectorAll('[aria-invalid="true"]').forEach((field) => field.setAttribute('aria-invalid', 'false'));
       form.querySelectorAll('[aria-describedby]').forEach((field) => {
         const describedBy = String(field.getAttribute('aria-describedby') || '')
@@ -208,8 +209,14 @@
         }
       });
       if (firstInvalidField) {
+        const motionTarget = firstInvalidField.closest('.form-group, fieldset, .registration-choice-group') || firstInvalidField;
+        motionTarget.classList.remove('registration-motion-invalid');
+        void motionTarget.offsetWidth;
+        motionTarget.classList.add('registration-motion-invalid');
+        motionTarget.addEventListener('animationend', () => motionTarget.classList.remove('registration-motion-invalid'), { once: true });
         firstInvalidField.focus({ preventScroll: true });
-        firstInvalidField.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        firstInvalidField.scrollIntoView?.({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
       }
     };
 

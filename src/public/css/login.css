@@ -40,7 +40,13 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
   
-  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition:
+    background-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    border-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    box-shadow var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    opacity var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    transform var(--hr-motion-fast, 120ms) var(--hr-ease-out, ease-out);
 }
 
 /* ============================================
@@ -719,7 +725,7 @@
   position: relative;
   color: transparent;
   pointer-events: none;
-  transition: all 0.2s;
+  transition: color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease);
 }
 
 .btn-primary.loading::after {
@@ -781,8 +787,24 @@
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
-  20%, 40%, 60%, 80% { transform: translateX(6px); }
+  30% { transform: translateX(-3px); }
+  70% { transform: translateX(3px); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .auth-form.motion-invalid {
+    animation: shake var(--hr-motion-panel, 240ms) var(--hr-ease-standard, ease);
+  }
+
+  .form-error.show {
+    animation: slideInDown var(--hr-motion-state, 180ms) var(--hr-ease-out, ease-out);
+  }
+
+  .btn-primary:active:not(:disabled),
+  .btn-google:active,
+  .btn-cta:active {
+    transform: scale(0.98);
+  }
 }
 
 @keyframes slideInDown {

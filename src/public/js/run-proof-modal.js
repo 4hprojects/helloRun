@@ -766,6 +766,8 @@
     const clearOcrState = () => {
       state.ocrRunId += 1;
       state.ocrRunning = false;
+      uploadDropzone.setAttribute('aria-busy', 'false');
+      if (analyseBtn) analyseBtn.setAttribute('aria-busy', 'false');
       state.ocrResult = null;
       state.ocrDateAdjusted = null;
       setOcrStatus(OCR_WAITING_STATUS);
@@ -1177,6 +1179,8 @@
       clearOcrState();
       state.ocrRunning = true;
       setFlowPhase(FLOW_PHASES.OCR_PROCESSING);
+      uploadDropzone.setAttribute('aria-busy', 'true');
+      if (analyseBtn) analyseBtn.setAttribute('aria-busy', 'true');
       const runId = state.ocrRunId;
 
       setOcrStatus('Starting analysis...', { withEstimate: true });
@@ -1212,6 +1216,8 @@
       }), ocrTimeout]).then((result) => {
         if (runId !== state.ocrRunId) return;
         state.ocrRunning = false;
+        uploadDropzone.setAttribute('aria-busy', 'false');
+        if (analyseBtn) analyseBtn.setAttribute('aria-busy', 'false');
         state.ocrResult = result;
 
         setOcrStatus(OCR_READY_STATUS, { hidden: true });
@@ -1258,6 +1264,8 @@
       }).catch(() => {
         if (runId !== state.ocrRunId) return;
         state.ocrRunning = false;
+        uploadDropzone.setAttribute('aria-busy', 'false');
+        if (analyseBtn) analyseBtn.setAttribute('aria-busy', 'false');
         state.ocrResult = {
           ok: false,
           errorCode: 'OCR_TIMEOUT',

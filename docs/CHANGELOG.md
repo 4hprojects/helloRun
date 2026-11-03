@@ -15,6 +15,7 @@
 
 | Period | File | Sessions |
 |--------|------|----------|
+| November 2026 | [changelog/2026-11-november.md](changelog/2026-11-november.md) | 1 |
 | October 2026 | [changelog/2026-10-october.md](changelog/2026-10-october.md) | 15 |
 | September 2026 | [changelog/2026-09-september.md](changelog/2026-09-september.md) | 23 |
 | August 2026 | [changelog/2026-08-august.md](changelog/2026-08-august.md) | 4 |

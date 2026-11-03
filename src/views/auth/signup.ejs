@@ -392,6 +392,7 @@
             el.classList.remove('show');
           });
           document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+          form.querySelectorAll('[aria-invalid="true"]').forEach(field => field.setAttribute('aria-invalid', 'false'));
 
           let isValid = true;
 
@@ -464,6 +465,17 @@
             
             // Submit form
             form.submit();
+          } else {
+            const firstInvalid = form.querySelector('[aria-invalid="true"]');
+            if (firstInvalid) {
+              const motionTarget = firstInvalid.closest('.compact-input-group, .checkbox-group') || firstInvalid;
+              motionTarget.classList.remove('motion-invalid');
+              void motionTarget.offsetWidth;
+              motionTarget.classList.add('motion-invalid');
+              firstInvalid.focus({ preventScroll: true });
+              const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+              firstInvalid.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
+            }
           }
         });
       }
@@ -483,7 +495,8 @@
             e.preventDefault();
             showCheckboxError('termsError', 'You must agree to the Terms, Privacy, Cookie, and Data Usage policies');
             termsGroup.classList.add('error');
-            termsGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+            termsGroup.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
             return;
           }
 
@@ -498,6 +511,13 @@
         if (errorElement) {
           errorElement.textContent = message;
           errorElement.classList.add('show');
+          const field = document.getElementById(elementId.replace(/Error$/, ''));
+          if (field) {
+            field.setAttribute('aria-invalid', 'true');
+            const describedBy = new Set(String(field.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+            describedBy.add(elementId);
+            field.setAttribute('aria-describedby', Array.from(describedBy).join(' '));
+          }
         }
       }
 
@@ -507,8 +527,15 @@
           errorElement.textContent = message || '';
           if (message) {
             errorElement.classList.add('show');
+            const field = document.getElementById(elementId === 'termsError' ? 'agreeTerms' : elementId.replace(/Error$/, ''));
+            if (field) {
+              field.setAttribute('aria-invalid', 'true');
+              field.setAttribute('aria-describedby', elementId);
+            }
           } else {
             errorElement.classList.remove('show');
+            const field = document.getElementById(elementId === 'termsError' ? 'agreeTerms' : elementId.replace(/Error$/, ''));
+            if (field) field.setAttribute('aria-invalid', 'false');
           }
         }
       }
