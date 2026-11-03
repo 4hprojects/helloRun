@@ -3,7 +3,7 @@
 <head>
   <%- include('../layouts/head', { title: title }) %>
   <link rel="stylesheet" href="/css/events.css">
-  <link rel="stylesheet" href="/css/event-register.css">
+  <link rel="stylesheet" href="/css/event-register.css?v=<%= encodeURIComponent(locals.assetVersion || 'dev') %>">
 </head>
 <body>
   <%- include('../layouts/nav') %>
@@ -511,6 +511,6 @@
   <% } %>
   <%- include('../layouts/footer') %>
   <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
-  <script nonce="<%= locals.cspNonce || String() %>" src="/js/event-register.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/event-register.js?v=<%= encodeURIComponent(locals.assetVersion || 'dev') %>"></script>
 </body>
 </html>
