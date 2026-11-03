@@ -58,7 +58,7 @@ test('runner mobile submit works on pages that do not load the proof modal', () 
 
   const modal = read('src/public/js/run-proof-modal.js');
   assert.match(modal, /params\.get\('openRunProof'\) === '1'/);
-  assert.match(modal, /openModal\(dashboardTrigger \|\| fallbackTrigger \|\| null, null\)/);
+  assert.match(modal, /openModal\(requestedTrigger \|\| dashboardTrigger \|\| fallbackTrigger \|\| null, null\)/);
 
   const publicPageNav = renderNav({ currentPath: '/events' });
   assert.match(publicPageNav, /<a href="\/runner\/submissions\?openRunProof=1" class="mobile-nav-tab mobile-nav-tab-submit"/);

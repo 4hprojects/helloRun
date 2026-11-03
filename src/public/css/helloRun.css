@@ -1856,6 +1856,35 @@ h1, h2, h3 {
 }
 
 /* ── Reduced motion ── */
+@media (prefers-reduced-motion: no-preference) {
+  .featured-event-card,
+  .home-leaderboard-link,
+  .featured-events-nav,
+  .featured-events-dot,
+  .audience-action,
+  .cta-action {
+    transition:
+      background-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+      border-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+      color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+      box-shadow var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+      transform var(--hr-motion-fast, 120ms) var(--hr-ease-out, ease-out);
+  }
+
+  .featured-event-card:focus-within {
+    transform: translateY(-2px);
+  }
+
+  .home .btn:active:not(:disabled),
+  .home-leaderboard-link:active,
+  .featured-events-nav:active:not(:disabled),
+  .featured-events-dot:active:not(:disabled),
+  .audience-action:active,
+  .cta-action:active {
+    transform: scale(0.98);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .home-skip-link,
   .home .btn,

@@ -477,7 +477,12 @@ p {
     border-radius: var(--radius-md);
     font-weight: 600;
     font-size: 0.95rem;
-    transition: all 0.2s ease;
+    transition:
+        background-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+        border-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+        color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+        box-shadow var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+        transform var(--hr-motion-fast, 120ms) var(--hr-ease-out, ease-out);
     border: 2px solid #c2410c;
     cursor: pointer;
     font-family: var(--heading-font);
@@ -487,6 +492,14 @@ p {
     white-space: nowrap;
     line-height: 1.1;
     box-shadow: 0 4px 12px rgba(194, 65, 12, 0.26);
+}
+
+.btn:active:not(:disabled):not([aria-disabled="true"]),
+.menu-toggle:active:not(:disabled),
+.nav-run-proof-shortcut:active:not(:disabled),
+.nav .nav-account-toggle:active:not(:disabled),
+.nav .nav-account-item:active:not(:disabled) {
+    transform: scale(0.98);
 }
 
 .btn:hover {
@@ -860,10 +873,31 @@ p {
         box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
         flex-wrap: nowrap;
         justify-content: flex-start;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transform: translateY(-6px) scale(0.98);
+        transform-origin: top right;
+        transition:
+            opacity var(--hr-motion-fast, 120ms) var(--hr-ease-in, ease-in),
+            transform var(--hr-motion-fast, 120ms) var(--hr-ease-in, ease-in),
+            visibility 0s linear var(--hr-motion-fast, 120ms);
     }
-    
+
+    .nav-links[data-nav-ready] {
+        display: flex;
+    }
+
     .nav-links.active {
         display: flex;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateY(0) scale(1);
+        transition:
+            opacity var(--hr-motion-state, 180ms) var(--hr-ease-out, ease-out),
+            transform var(--hr-motion-state, 180ms) var(--hr-ease-out, ease-out),
+            visibility 0s linear;
     }
 
     .nav-links a {
@@ -1549,7 +1583,10 @@ textarea {
   font-size: 1rem;
   color: var(--text);
   background-color: #ffffff;
-  transition: all 0.3s ease;
+  transition:
+    background-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    border-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    box-shadow var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease);
   box-sizing: border-box;
 }
 
@@ -1682,7 +1719,12 @@ label .required {
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition:
+    background-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    border-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    box-shadow var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    transform var(--hr-motion-fast, 120ms) var(--hr-ease-out, ease-out);
   font-family: var(--heading-font);
   white-space: nowrap;
 }
@@ -2151,6 +2193,11 @@ label .required {
   color: #334155;
   font: inherit;
   cursor: pointer;
+  transition:
+    background-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    border-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    transform var(--hr-motion-fast, 120ms) var(--hr-ease-out, ease-out);
 }
 
 .nav .nav-account-toggle:hover,
@@ -2181,6 +2228,10 @@ label .required {
   width: 16px;
   height: 16px;
   flex: 0 0 auto;
+}
+
+.nav .nav-account-chevron {
+  transition: transform var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease);
 }
 
 .nav .nav-account-toggle[aria-expanded="true"] .nav-account-chevron {
@@ -2237,6 +2288,11 @@ label .required {
   text-decoration: none;
   white-space: normal;
   cursor: pointer;
+  transition:
+    background-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    border-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    transform var(--hr-motion-fast, 120ms) var(--hr-ease-out, ease-out);
 }
 
 .nav .nav-account-item svg {
@@ -2279,10 +2335,25 @@ label .required {
     border-radius: var(--radius-md);
     background: #ffffff;
     box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    transform-origin: top right;
+    transition:
+      opacity var(--hr-motion-state, 180ms) var(--hr-ease-out, ease-out),
+      transform var(--hr-motion-state, 180ms) var(--hr-ease-out, ease-out),
+      visibility 0s linear;
   }
 
   .nav .nav-account[data-account-ready] .nav-account-panel:not(.is-open) {
-    display: none;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-6px) scale(0.98);
+    transition:
+      opacity var(--hr-motion-fast, 120ms) var(--hr-ease-in, ease-in),
+      transform var(--hr-motion-fast, 120ms) var(--hr-ease-in, ease-in),
+      visibility 0s linear var(--hr-motion-fast, 120ms);
   }
 
   /* Before main.js runs the panel would sit open under the header; keep it in the
