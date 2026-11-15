@@ -1656,4 +1656,3 @@ Track all badge actions in audit logs.
 ```
 
 This gives HelloRun a credible achievement layer that supports runner motivation and organiser event promotion while leaving AI-generated badge artwork as a future enhancement rather than part of the core award path.
-

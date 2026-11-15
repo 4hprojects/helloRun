@@ -574,4 +574,3 @@ TESTS: tests/ocr-training-notice.unit.test.js 9/9 (eligibility truth table incl.
   withdrawal pauses); all OCR integration suites 46/46; full unit suite: see commit.
 NOT DONE: legal review and publication (owner); no production data was read for this work.
 ```
-
