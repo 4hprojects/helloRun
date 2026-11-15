@@ -16,6 +16,7 @@ and phase.
 
 | Plan | Current role | ROADMAP owner |
 |---|---|---|
+| [30-day security and reliability plan](30-day-security-reliability-2026-11-16.md) | November 16–December 15 deployment identity, recovery, database, Redis, security, governance, and live-verification sequence. | `OPS-01`, `OPS-03`–`OPS-05`, `REL-01`, `REL-02`, `REL-05`, `REL-11`, `SEC-01`–`SEC-05`, `COM-01`, `DEC-03`, `DEC-06`, `DEC-07` |
 | [Phase 0 — pre-deploy security](phase-0-pre-deploy-security.md) | Session regeneration, trusted client IP, and vendored third-party assets remain open; the original assessment also contains completed historical findings. | `SEC-01`–`SEC-03` |
 | [Phase 1 — process safety net](phase-1-process-safety-net.md) | Historical CI, dependency automation, lint/format, remote-database guard, Node pinning, graceful-shutdown, and required-check evidence. | None |
 | [Phase 2 — environments and data safety](phase-2-environments-and-data-safety.md) | Staging, Redis/proxy verification, restore rehearsal, deferred integration suites, and controlled cleanup decisions. | `DEC-04`, `OPS-02`–`OPS-06` |

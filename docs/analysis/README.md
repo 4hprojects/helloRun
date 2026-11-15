@@ -17,7 +17,7 @@ that review.
 | `2026-10-27/` | OCR legal review and evidence-retention proposals | Decision evidence |
 | `2026-10-28/` | Active Quest existing-system audit | Historical implementation evidence |
 | `2026-10-29/` | Active Quest production inventory before launch | Historical production snapshot |
-| `2026-11-15/` | Full Markdown inventory and taxonomy migration | Current documentation audit |
+| `2026-11-15/` | Full Markdown inventory, taxonomy migration, and security/reliability production baseline | Current documentation and operational evidence |
 
 Open work discovered by an analysis must be copied into
 [`../plans/`](../plans/README.md) or the canonical
