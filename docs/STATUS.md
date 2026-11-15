@@ -4,10 +4,11 @@
 
 **Last reconciled:** November 15, 2026
 
-**Evidence window:** repository evidence through `main` at
-`394d8dfbe6aa368a805aaabefce68464ebbf38a2`, plus read-only public, MongoDB,
-and PostgreSQL evidence observed November 15, 2026. Backup, feature-flag,
-administrator, authenticated browser, and second-operator evidence was not accessed.
+**Evidence window:** repository evidence through documentation PR #45, plus
+read-only public, MongoDB, and PostgreSQL evidence observed November 15, 2026.
+The deployment target SHA must be captured from `origin/main` at the production
+window. Backup, feature-flag, administrator, authenticated browser, and
+second-operator evidence was not accessed.
 
 **Forward priorities and the tracked checklist:** [ROADMAP.md](ROADMAP.md)
 

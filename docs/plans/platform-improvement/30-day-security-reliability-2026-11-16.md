@@ -38,7 +38,8 @@ Detailed sanitized output is in the
 
 ## Week 1 — Deployment identity
 
-1. Capture the HelloDeploy target as the exact current `main` SHA.
+1. Fetch `origin/main` at the production-window preflight and record its exact
+   40-character SHA as the immutable HelloDeploy target.
 2. Record pre-deploy health, readiness, public Active Quest, login, signup,
    registration gate, submission gate, and admin gate results.
 3. Deploy the exact SHA through **Deploy a Specific Commit**. Do not change OCR,
