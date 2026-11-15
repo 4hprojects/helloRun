@@ -1,9 +1,9 @@
 # Phase 1 - Technical Indexing And Crawl Cleanup
 
-**Document role:** Supporting plan  
-**Lifecycle:** Active only through REL-08  
-**Last documentation reconciliation:** November 15, 2026  
-**Canonical owner:** [ROADMAP](../../../ROADMAP.md)  
+**Document role:** Supporting plan
+**Lifecycle:** Active only through REL-08
+**Last documentation reconciliation:** November 15, 2026
+**Canonical owner:** [ROADMAP](../../../ROADMAP.md)
 **Verification boundary:** Repository evidence does not prove external or production state
 
 Status: complete. Implemented in PR #10 and merged to `main`.

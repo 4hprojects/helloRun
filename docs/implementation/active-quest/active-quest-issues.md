@@ -1,8 +1,8 @@
 # Active Quest Issues
 
-Last updated: 2026-10-28  
-Last reconciled: 2026-11-15  
-Lifecycle: implementation issue record  
+Last updated: 2026-10-28
+Last reconciled: 2026-11-15
+Lifecycle: implementation issue record
 Canonical owner for remaining verification: [`REL-11`](../../ROADMAP.md)
 
 The issue details preserve their October evidence. Public launch and category

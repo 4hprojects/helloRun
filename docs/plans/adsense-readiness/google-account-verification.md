@@ -1,9 +1,9 @@
 # Google AdSense Account Verification
 
-**Document role:** Supporting plan  
-**Lifecycle:** Active only through REL-08  
-**Last documentation reconciliation:** November 15, 2026  
-**Canonical owner:** [ROADMAP](../../ROADMAP.md)  
+**Document role:** Supporting plan
+**Lifecycle:** Active only through REL-08
+**Last documentation reconciliation:** November 15, 2026
+**Canonical owner:** [ROADMAP](../../ROADMAP.md)
 **Verification boundary:** Repository evidence does not prove external or production state
 
 > **Status: account-side verification pending.** This checklist records the required evidence but does not claim access to, configuration of, or approval by Google.

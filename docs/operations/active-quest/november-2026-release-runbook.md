@@ -1,6 +1,6 @@
 # November 2026 Active Quest Release Runbook
 
-Last updated: 2026-10-30  
+Last updated: 2026-10-30
 Last reconciled: 2026-11-15
 
 ## Release state

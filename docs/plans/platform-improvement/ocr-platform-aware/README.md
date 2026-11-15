@@ -1,9 +1,9 @@
 # HelloRun Platform-Aware OCR and Activity Verification
 
-**Document role:** Supporting plan  
-**Lifecycle:** Active only through DEC-06, REL-01, and REL-03  
-**Last documentation reconciliation:** November 15, 2026  
-**Canonical owner:** [ROADMAP](../../../ROADMAP.md)  
+**Document role:** Supporting plan
+**Lifecycle:** Active only through DEC-06, REL-01, and REL-03
+**Last documentation reconciliation:** November 15, 2026
+**Canonical owner:** [ROADMAP](../../../ROADMAP.md)
 **Verification boundary:** Repository evidence does not prove external or production state
 
 Status: **Implemented and repository-verified on `main`; production/live
@@ -13,8 +13,8 @@ data, infrastructure, measurement, deployment, and rollback gates remain open.
 Progress: [IMPLEMENTATION-PROGRESS.md](implementation-progress.md) · Deploy:
 [DEPLOYMENT-AND-ROLLBACK.md](deployment-and-rollback.md) · Priority:
 [`DEC-06`, `REL-01`, and `REL-03`](../../../ROADMAP.md)
-Plan version: 1.0  
-Approved: 2026-10-17  
+Plan version: 1.0
+Approved: 2026-10-17
 Audience: Claude Code, maintainers, reviewers, and research stakeholders
 
 ## Mission

@@ -1,9 +1,9 @@
 # Phase 3 — Efficiency
 
-**Document role:** Supporting plan  
-**Lifecycle:** Active only through EFF-01 and EFF-02  
-**Last documentation reconciliation:** November 15, 2026  
-**Canonical owner:** [ROADMAP](../../ROADMAP.md)  
+**Document role:** Supporting plan
+**Lifecycle:** Active only through EFF-01 and EFF-02
+**Last documentation reconciliation:** November 15, 2026
+**Canonical owner:** [ROADMAP](../../ROADMAP.md)
 **Verification boundary:** Repository evidence does not prove external or production state
 
 **Current ownership:** `EFF-01` and `EFF-02` in

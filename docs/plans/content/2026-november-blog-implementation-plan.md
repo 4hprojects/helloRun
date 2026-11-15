@@ -1,9 +1,9 @@
 # HelloRun November 2026 Blog Implementation Plan
 
-**Document role:** Supporting editorial plan  
-**Lifecycle:** Verification pending  
-**Last reconciled:** November 15, 2026  
-**Canonical owner:** [`CONTENT-01`](../../ROADMAP.md)  
+**Document role:** Supporting editorial plan
+**Lifecycle:** Verification pending
+**Last reconciled:** November 15, 2026
+**Canonical owner:** [`CONTENT-01`](../../ROADMAP.md)
 **Verification boundary:** Publication state requires dated production evidence
 
 > **Production reconciliation (October 20, 2026):** all 15 planned slugs exist and are

@@ -1,9 +1,9 @@
 # Phase 7 - UX, Mobile, And Link QA
 
-**Document role:** Supporting plan  
-**Lifecycle:** Active only through REL-08  
-**Last documentation reconciliation:** November 15, 2026  
-**Canonical owner:** [ROADMAP](../../../ROADMAP.md)  
+**Document role:** Supporting plan
+**Lifecycle:** Active only through REL-08
+**Last documentation reconciliation:** November 15, 2026
+**Canonical owner:** [ROADMAP](../../../ROADMAP.md)
 **Verification boundary:** Repository evidence does not prove external or production state
 
 Status: mostly complete. Automated checks and HTTP smoke checks passed; in-app Browser visual QA was blocked by local plugin runtime setup.

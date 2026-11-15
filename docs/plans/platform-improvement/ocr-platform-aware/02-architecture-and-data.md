@@ -1,9 +1,9 @@
 # Target architecture and data contracts
 
-**Document role:** Supporting plan  
-**Lifecycle:** Active only through DEC-06, REL-01, and REL-03  
-**Last documentation reconciliation:** November 15, 2026  
-**Canonical owner:** [ROADMAP](../../../ROADMAP.md)  
+**Document role:** Supporting plan
+**Lifecycle:** Active only through DEC-06, REL-01, and REL-03
+**Last documentation reconciliation:** November 15, 2026
+**Canonical owner:** [ROADMAP](../../../ROADMAP.md)
 **Verification boundary:** Repository evidence does not prove external or production state
 
 The following is logical architecture, not a mandate to replace the established HelloRun stack.

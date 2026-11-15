@@ -1,9 +1,9 @@
 # Phase 4 — Intuitivity and UX Follow-Up
 
-**Document role:** Supporting plan  
-**Lifecycle:** Active only through REL-05, REL-07, and UX-01  
-**Last documentation reconciliation:** November 15, 2026  
-**Canonical owner:** [ROADMAP](../../ROADMAP.md)  
+**Document role:** Supporting plan
+**Lifecycle:** Active only through REL-05, REL-07, and UX-01
+**Last documentation reconciliation:** November 15, 2026
+**Canonical owner:** [ROADMAP](../../ROADMAP.md)
 **Verification boundary:** Repository evidence does not prove external or production state
 
 **Status:** Repository foundation implemented; deployed and real-device

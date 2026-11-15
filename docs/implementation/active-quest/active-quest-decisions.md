@@ -1,8 +1,8 @@
 # Active Quest Decisions
 
-Last updated: 2026-10-28  
-Last reconciled: 2026-11-15  
-Lifecycle: implementation decision record  
+Last updated: 2026-10-28
+Last reconciled: 2026-11-15
+Lifecycle: implementation decision record
 Canonical owner for remaining verification: [`REL-11`](../../ROADMAP.md)
 
 Decision statuses below reflect their recorded implementation stage. Public

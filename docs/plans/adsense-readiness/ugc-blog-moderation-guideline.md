@@ -1,9 +1,9 @@
 # User-Generated Blog Moderation and Ad Eligibility
 
-**Document role:** Supporting plan  
-**Lifecycle:** Active only through REL-08  
-**Last documentation reconciliation:** November 15, 2026  
-**Canonical owner:** [ROADMAP](../../ROADMAP.md)  
+**Document role:** Supporting plan
+**Lifecycle:** Active only through REL-08
+**Last documentation reconciliation:** November 15, 2026
+**Canonical owner:** [ROADMAP](../../ROADMAP.md)
 **Verification boundary:** Repository evidence does not prove external or production state
 
 HelloRun treats publication, search indexing, and advertising as separate privileges. A saved draft is not public, and a published URL is not automatically eligible for search indexing or Google advertisements.

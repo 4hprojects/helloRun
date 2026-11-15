@@ -1,7 +1,7 @@
 # Package Pricing Implementation Record
 
-**Status:** Implemented and repository-verified  
-**Last reconciled:** November 15, 2026  
+**Status:** Implemented and repository-verified
+**Last reconciled:** November 15, 2026
 **Verification boundary:** Repository implementation and focused tests; no new
 production claim is made by this record
 

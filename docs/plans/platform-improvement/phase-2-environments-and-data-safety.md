@@ -1,9 +1,9 @@
 # Phase 2 — Environments & Data Safety
 
-**Document role:** Supporting plan  
-**Lifecycle:** Active only through DEC-04 and OPS-02 through OPS-06  
-**Last documentation reconciliation:** November 15, 2026  
-**Canonical owner:** [ROADMAP](../../ROADMAP.md)  
+**Document role:** Supporting plan
+**Lifecycle:** Active only through DEC-04 and OPS-02 through OPS-06
+**Last documentation reconciliation:** November 15, 2026
+**Canonical owner:** [ROADMAP](../../ROADMAP.md)
 **Verification boundary:** Repository evidence does not prove external or production state
 
 **Current ownership:** `DEC-04`, `DEC-07`, `OPS-02`–`OPS-06` in

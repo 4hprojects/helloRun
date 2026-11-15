@@ -1,9 +1,9 @@
 # Phase 1 — Process Safety Net
 
-**Document role:** Supporting plan  
-**Lifecycle:** Active only through historical evidence; no active owner  
-**Last documentation reconciliation:** November 15, 2026  
-**Canonical owner:** [ROADMAP](../../ROADMAP.md)  
+**Document role:** Supporting plan
+**Lifecycle:** Active only through historical evidence; no active owner
+**Last documentation reconciliation:** November 15, 2026
+**Canonical owner:** [ROADMAP](../../ROADMAP.md)
 **Verification boundary:** Repository evidence does not prove external or production state
 
 **Current ownership:** historical `PRC-01` completion evidence; remaining

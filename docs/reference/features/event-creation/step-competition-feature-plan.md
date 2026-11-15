@@ -1,6 +1,6 @@
 # Step-Based Competition Events
 
-**Status:** Repository implemented behind disabled feature flag; rollout pending  
+**Status:** Repository implemented behind disabled feature flag; rollout pending
 **Reconciliation date:** 2026-10-20
 
 ## Purpose

@@ -1,9 +1,9 @@
 # Test matrix, acceptance checks and MIT research support
 
-**Document role:** Supporting plan  
-**Lifecycle:** Active only through DEC-06, REL-01, and REL-03  
-**Last documentation reconciliation:** November 15, 2026  
-**Canonical owner:** [ROADMAP](../../../ROADMAP.md)  
+**Document role:** Supporting plan
+**Lifecycle:** Active only through DEC-06, REL-01, and REL-03
+**Last documentation reconciliation:** November 15, 2026
+**Canonical owner:** [ROADMAP](../../../ROADMAP.md)
 **Verification boundary:** Repository evidence does not prove external or production state
 
 ## Baseline and measurements
@@ -28,10 +28,10 @@ Define canonical normalization rules before scoring. Exact field metrics must ac
 
 ## Experimental conditions for MIT capstone
 
-A. Unmodified baseline Tesseract configuration.  
-B. Preprocessing + platform extraction profile.  
-C. Profile/rules improved with approved reviewer error analysis (no network weight update).  
-D. Fine-tuned model evaluated on the same held-out set.  
+A. Unmodified baseline Tesseract configuration.
+B. Preprocessing + platform extraction profile.
+C. Profile/rules improved with approved reviewer error analysis (no network weight update).
+D. Fine-tuned model evaluated on the same held-out set.
 E. URL-assisted verification, measured separately for reviewer accuracy/time and discrepancy detection.
 
 Never claim E improves OCR neural recognition directly. Report CER and exact fields for A–D; verification outcomes for E. Pre-register test groups and key outcomes if capstone research design permits. Document possible selection bias from URL opt-in, public activity access, screenshots contributed by frequent users, and app layout changes.

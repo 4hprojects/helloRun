@@ -401,11 +401,11 @@ Explain what happens after review.
 
 Add a simple visual flow:
 
-Complete activity  
-→ Capture proof  
-→ Submit  
-→ Review  
-→ Decision  
+Complete activity
+→ Capture proof
+→ Submit
+→ Review
+→ Decision
 → Participant result
 
 ### Real Example Walkthrough

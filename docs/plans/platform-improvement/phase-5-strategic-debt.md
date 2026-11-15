@@ -1,9 +1,9 @@
 # Phase 5 — Strategic Debt
 
-**Document role:** Supporting plan  
-**Lifecycle:** Active only through SEC-03, SEC-04, and DEBT-02  
-**Last documentation reconciliation:** November 15, 2026  
-**Canonical owner:** [ROADMAP](../../ROADMAP.md)  
+**Document role:** Supporting plan
+**Lifecycle:** Active only through SEC-03, SEC-04, and DEBT-02
+**Last documentation reconciliation:** November 15, 2026
+**Canonical owner:** [ROADMAP](../../ROADMAP.md)
 **Verification boundary:** Repository evidence does not prove external or production state
 
 **Status:** Active long-term backlog

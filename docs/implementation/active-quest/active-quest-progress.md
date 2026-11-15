@@ -1,8 +1,8 @@
 # Active Quest Progress
 
-Last updated: 2026-10-29  
-Last reconciled: 2026-11-15  
-Lifecycle: implemented; production and post-event verification pending  
+Last updated: 2026-10-29
+Last reconciled: 2026-11-15
+Lifecycle: implemented; production and post-event verification pending
 Canonical owner: [`REL-11`](../../ROADMAP.md)
 
 The phase reports below preserve repository evidence through October 30. A

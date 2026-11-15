@@ -1,9 +1,9 @@
 # UI and PWA Follow-Ups
 
-**Document role:** Supporting plan  
-**Lifecycle:** Active only through REL-05 and UX-01  
-**Last documentation reconciliation:** November 15, 2026  
-**Canonical owner:** [ROADMAP](../../ROADMAP.md)  
+**Document role:** Supporting plan
+**Lifecycle:** Active only through REL-05 and UX-01
+**Last documentation reconciliation:** November 15, 2026
+**Canonical owner:** [ROADMAP](../../ROADMAP.md)
 **Verification boundary:** Repository evidence does not prove external or production state
 
 **Created:** October 3, 2026
