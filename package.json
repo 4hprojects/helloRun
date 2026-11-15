@@ -256,7 +256,7 @@
     "ioredis": "^5.10.0",
     "mongoose": "8.24.4",
     "multer": "^2.2.0",
-    "pdfkit": "^0.18.0",
+    "pdfkit": "^0.20.2",
     "postgres": "^3.4.9",
     "qrcode": "^1.5.4",
     "resend": "^3.2.0",
