@@ -63,7 +63,7 @@ npm run test:unit
 Integration tests may connect to MongoDB or PostgreSQL and must only be run in
 an explicitly approved non-production environment. See
 [`CLAUDE.md`](CLAUDE.md) and
-[`docs/improvement-plan/phase-2-environments-and-data-safety.md`](docs/improvement-plan/phase-2-environments-and-data-safety.md).
+[`docs/plans/platform-improvement/phase-2-environments-and-data-safety.md`](docs/plans/platform-improvement/phase-2-environments-and-data-safety.md).
 
 ## Documentation
 
@@ -74,6 +74,9 @@ an explicitly approved non-production environment. See
 - [Product requirements](docs/PRD.md)
 - [Changelog](docs/CHANGELOG.md)
 - [Documentation conventions](docs/DOCUMENTATION-CONVENTIONS.md)
+- [Stable references](docs/reference/README.md)
+- [Supporting plans](docs/plans/README.md)
+- [Operations runbooks](docs/operations/README.md)
 
 ## Package
 

@@ -20,10 +20,12 @@ and Cloudflare R2.
 | `docs/STATUS.md` | Sole current delivery-status source |
 | `docs/ROADMAP.md` | Forward priorities |
 | `docs/CHANGELOG.md` | Implementation history |
-| `docs/improvement-plan/README.md` | Active cross-cutting work |
+| `docs/plans/README.md` | Active supporting plans |
 
-Follow `docs/DOCUMENTATION-CONVENTIONS.md`. Completed plans belong in
-`docs/implementation/` or `docs/archive/`, not in `todo/` or `to-implement/`.
+Follow `docs/DOCUMENTATION-CONVENTIONS.md`. Stable references belong under
+`docs/reference/`; active supporting plans belong under `docs/plans/`;
+completed work belongs in `docs/implementation/` or `docs/archive/`.
+Files at former documentation paths are compatibility pointers only.
 
 ## Commands
 

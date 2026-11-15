@@ -240,7 +240,7 @@ curl http://localhost:3001/organizer/events/evt_001/check-in-dashboard/poll \
 - ✅ `.env` - Added TIMING_SYSTEM_WEBHOOK_SECRET
 
 ### Documentation Updated
-- ✅ [hybrid database architecture](../database/hellorun_hybrid_database_schema_architecture.md) - Added Phase 7 Extended section
+- ✅ [hybrid database architecture](../reference/architecture/database/hellorun-hybrid-database-schema-architecture.md) - Added Phase 7 Extended section
 
 ---
 

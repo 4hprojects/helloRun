@@ -1,8 +1,10 @@
 # Product
 
-## Register
+## Product Definition
 
-product
+HelloRun is a running-event platform for virtual, onsite, and hybrid events.
+It connects runner discovery and registration with organizer operations,
+evidence review, results, leaderboards, badges, and verifiable certificates.
 
 ## Users
 

@@ -18,47 +18,42 @@ priority is owned by [ROADMAP.md](ROADMAP.md).
 ## Current Work
 
 - [ROADMAP.md](ROADMAP.md) is the canonical detailed backlog. Supporting
-  implementation and rollout plans live under [`improvement-plan/`](improvement-plan/)
+  implementation and rollout plans live under [`plans/`](plans/README.md)
   and link back to the ROADMAP task that owns their remaining work.
-- [`implementation/verification-pending/`](implementation/verification-pending/)
+- [`implementation/verification-pending/`](implementation/verification-pending)
   contains completed code records that still require approved live or
   production verification.
-- [`adsense-readiness/`](adsense-readiness/) contains the implementation and
+- [`plans/adsense-readiness/`](plans/adsense-readiness/README.md) contains the implementation and
   operational AdSense readiness sequence.
+- [`operations/active-quest/`](operations/active-quest/README.md) contains the
+  live Active Quest operating record and verification boundary.
 
 The former `todo/`, `to do/`, and `to-implement/` trees were emptied during
 reconciliation. Implemented or superseded plans moved to `archive/`; residual
 work is represented once in ROADMAP and may link to a supporting specification.
 
-## Stable Reference
+## Canonical Taxonomy
 
 | Directory | Contents |
 |---|---|
-| [`architecture/`](architecture/) | Workflows, roles, schemas, security, time policy, and package architecture |
-| [`database/`](database/) | Hybrid MongoDB/PostgreSQL architecture |
-| [`design/`](design/) | Design system, UI patterns, and upload presentation |
-| [`features/`](features/) | Feature-level behavior and product specifications |
-| [`implementation/`](implementation/) | Completed implementation records and handoffs |
-| [`create_event/`](create_event/) | Event-builder requirements and mappings |
-| [`ocr/`](ocr/) | Run-proof OCR and auto-approval criteria |
-| [`sys_access_mngr/`](sys_access_mngr/) | System and communication access matrices |
-| [`blog/`](blog/) | Blog/composer design records |
-| [`policy-markdown-pack/`](policy-markdown-pack/) | Canonical runtime-consumed policy Markdown |
-| [`contents/`](contents/) | Policy content source snapshots |
-| [`codex/`](codex/) | Focused implementation notes |
-| [`example/`](example/) | Reference event examples |
-| [`template/`](template/) | Reusable event templates |
+| [`reference/`](reference/README.md) | Stable architecture, feature, design, integration, and example references |
+| [`plans/`](plans/README.md) | Supporting plans whose remaining work is owned by ROADMAP |
+| [`implementation/`](implementation/README.md) | Completed implementation records and handoffs |
+| [`operations/`](operations/README.md) | Deployment, environment, and release runbooks |
+| [`analysis/`](analysis/README.md) | Dated engineering, production, and UI/UX evidence |
+| [`archive/`](archive/README.md) | Historical and superseded plans, reviews, and snapshots |
+| [`policy-markdown-pack/`](policy-markdown-pack) | Canonical runtime-consumed policy Markdown |
+| [`contents/`](contents) | Policy content source snapshots |
+| [`template/`](template) | Reusable event templates |
 
 ## Evidence and History
 
 | Directory | Contents |
 |---|---|
-| [`analysis/`](analysis/) | Dated engineering and UI/UX evidence |
-| [`operations/`](operations/) | Deployment and isolated-environment runbooks |
-| [`ux-analysis/`](ux-analysis/) | Feature-specific UI audits retained for traceability |
-| [`changelog/`](changelog/) | Monthly session and commit summaries |
-| [`done/`](done/) | Older completed-phase records retained at their historical paths |
-| [`archive/`](archive/) | Superseded PRDs, roadmaps, plans, reviews, and status snapshots |
+| [`analysis/`](analysis/README.md) | Dated engineering and UI/UX evidence |
+| [`operations/`](operations/README.md) | Deployment and isolated-environment runbooks |
+| [`changelog/`](changelog) | Monthly session and commit summaries |
+| [`archive/`](archive) | Superseded PRDs, roadmaps, plans, reviews, and status snapshots |
 
 See [`analysis/README.md`](analysis/README.md) and
 [`archive/README.md`](archive/README.md) for lifecycle details.
@@ -66,7 +61,7 @@ See [`analysis/README.md`](analysis/README.md) and
 ## Package Documentation
 
 The reusable threaded-comment package maintains its own documentation under
-[`../packages/threaded-comments/`](../packages/threaded-comments/). Those files
+[`../packages/threaded-comments/`](../packages/threaded-comments). Those files
 are indexed by the package README and are not reorganized into application
 documentation.
 
@@ -74,3 +69,11 @@ documentation.
 
 Screenshots and audit images live beside the dated analysis that produced them
 or under `image_test/`. They are evidence, not canonical product state.
+
+## Compatibility and Source Material
+
+Former tracked paths contain short pointer documents. They preserve repository
+and external bookmarks but are not canonical content. Original third-party or
+operator-supplied planning packs live under
+[`../documentation-source-packs/`](../documentation-source-packs/README.md) and
+remain outside the governed `docs/` quality gate.

@@ -6,7 +6,7 @@
 
 ---
 
-> **This file is an index.** Full monthly records are in [changelog/](changelog/).
+> **This file is an index.** Full monthly records are in [changelog/](changelog).
 > Add new sessions to the appropriate monthly file, not here.
 
 ---
@@ -15,6 +15,7 @@
 
 | Period | File | Sessions |
 |--------|------|----------|
+| November 2026 | [changelog/2026-11-november.md](changelog/2026-11-november.md) | 1 |
 | October 2026 | [changelog/2026-10-october.md](changelog/2026-10-october.md) | 15 |
 | September 2026 | [changelog/2026-09-september.md](changelog/2026-09-september.md) | 23 |
 | August 2026 | [changelog/2026-08-august.md](changelog/2026-08-august.md) | 4 |

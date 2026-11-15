@@ -7,8 +7,13 @@ historical evidence and must not be used as current delivery truth.
 - `roadmaps/`: former mixed audit/completion roadmaps.
 - `status/`: dated status snapshots.
 - `implemented-plans/`: original plans for work now implemented.
+- `content/`: historical editorial calendars and content plans.
 - `reviews/`: completed or superseded review programs.
 - `todo-refinement/`: older refinement and approval plans retained for context.
+
+Original Hello Motion and Active Quest input packs moved outside `docs/` to
+[`../../documentation-source-packs/`](../../documentation-source-packs/README.md).
+They remain byte-preserved source material, not current project state.
 
 Use [`../STATUS.md`](../STATUS.md), [`../ROADMAP.md`](../ROADMAP.md), and
 [`../PRD.md`](../PRD.md) for current information.
