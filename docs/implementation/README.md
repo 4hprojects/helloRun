@@ -5,7 +5,19 @@ handoffs, and technical completion records.
 
 An implementation record may describe repository-verified behavior without
 claiming production verification. Records that still need approved live checks
-are grouped under [`verification-pending/`](verification-pending/).
+are grouped under [`verification-pending/`](verification-pending).
 
 Current aggregate status belongs in [`../STATUS.md`](../STATUS.md); active work
-belongs in [`../improvement-plan/`](../improvement-plan/).
+belongs in [`../plans/`](../plans/README.md).
+
+## Domain Records
+
+- [`active-quest/`](active-quest/README.md): repository implementation,
+  decisions, and unresolved verification boundaries.
+- [`blog/`](blog/README.md): implemented blog and composer specifications.
+- [`hello-motion-ui-improvements.md`](hello-motion-ui-improvements.md):
+  repository-verified motion and validation improvements.
+- [`verification-pending/`](verification-pending/): repository-complete work
+  awaiting approved live checks.
+- [`package-pricing.md`](package-pricing.md): implemented package-period
+  registration pricing.

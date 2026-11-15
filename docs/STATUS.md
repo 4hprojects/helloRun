@@ -2,10 +2,11 @@
 
 **Source of truth for delivery status**
 
-**Last reconciled:** October 27, 2026
+**Last reconciled:** November 15, 2026
 
-**Evidence window:** repository and GitHub delivery-control verification through
-October 27, 2026, based on `main` at `817ed87`
+**Evidence window:** repository evidence through `main` at `a30bfdb`, plus
+read-only public Active Quest evidence observed November 15, 2026. Private
+deployment, database, backup, flag, and administrator evidence was not accessed.
 
 **Forward priorities and the tracked checklist:** [ROADMAP.md](ROADMAP.md)
 
@@ -171,6 +172,11 @@ core platform:
   page; both flush the cached leaderboard;
 - the reusable `@hellorun/threaded-comments` package and HelloRun blog
   integration.
+- Active Quest series and immutable templates, deterministic Manila schedules,
+  draft generation, full-administrator controls, selected-category rewards,
+  reusable certificates, public series pages, aggregate analytics, finalized
+  streak achievements, and a fail-closed scheduler. Migration 028, release
+  assets, verification commands, and focused tests are present at `a30bfdb`.
 
 Repository verification means the implementation and its recorded focused
 tests exist. It does not imply that every workflow has been exercised against
@@ -194,6 +200,14 @@ production services.
 
 ## Implemented, Production or Live Verification Pending
 
+- **Active Quest is publicly launched but not fully verified.** A November 15
+  read-only check found the [November event](https://hellorun.online/events/november-active-quest-2026)
+  published with registration open through November 22, activity dates of
+  November 1–30, proof submission through December 14, six distance categories,
+  and public reward artwork. Public output does not prove the deployed SHA,
+  migrations 027/028, backup evidence, flag history, administrator audit records,
+  or December reward and certificate finalization. `REL-11` owns those checks.
+
 - Platform-aware OCR, optional activity-link review, immutable extraction history,
   reviewer-labelled training samples, dataset snapshots, manually initiated training,
   model activation/rollback, reminders, analytics, and research export are merged into
@@ -203,7 +217,7 @@ production services.
   policy drafts still need legal review/publication, and native training tools have not
   been installed on the host. Repository completion must not be read as accuracy or
   deployment evidence. See
-  [`improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md`](improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md)
+  [`plans/platform-improvement/ocr-platform-aware/implementation-progress.md`](plans/platform-improvement/ocr-platform-aware/implementation-progress.md)
   and the canonical rollout task `REL-03` in [ROADMAP.md](ROADMAP.md).
 
 - Review decision history is repository-complete (October 15): an append-only
@@ -250,7 +264,7 @@ production services.
   - A second deploy surfaces the update prompt.
   - Registration, payment-proof and run-proof POSTs still reach the network.
   Remaining navigation and responsive work is tracked in
-  [`improvement-plan/ui-pwa-follow-ups.md`](improvement-plan/ui-pwa-follow-ups.md).
+  [`plans/platform-improvement/ui-pwa-follow-ups.md`](plans/platform-improvement/ui-pwa-follow-ups.md).
 
 The organiser race-day chain — walk-in, bib, check-in, kit release, result
 record and approve, and cancellation — was walked through its own interfaces on
@@ -280,6 +294,12 @@ those remain open below.
 
 
 ## Operational Work Pending
+
+- **Active Quest private and post-event verification remains pending.** Preserve
+  the live event and its history. Record the exact deployed SHA, approved backup
+  and migration evidence, flag and administrator audit history, then verify badge
+  and certificate finalization after the December deadlines. See the
+  [runbook](operations/active-quest/november-2026-release-runbook.md) and `REL-11`.
 
 - **Production Supabase Data API lockdown is urgent and unapplied.** The October 20
   read-only preflight found migration 027 absent, RLS disabled on all 36 public tables,
@@ -410,7 +430,7 @@ those remain open below.
 
 The canonical backlog is [ROADMAP.md](ROADMAP.md). Detailed engineering and
 rollout context is indexed by
-[`improvement-plan/README.md`](improvement-plan/README.md).
+[`plans/platform-improvement/README.md`](plans/platform-improvement/README.md).
 Open themes include:
 
 - remaining process and environment safety-net checks;
@@ -425,9 +445,9 @@ Open themes include:
   measured on labelled real screenshots, no real Tesseract training run has
   happened (tools not installed; host change needs approval), and rollback has
   not been rehearsed in staging (none exists). See
-  [`improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md`](improvement-plan/ocr-platform-aware/IMPLEMENTATION-PROGRESS.md);
+  [`plans/platform-improvement/ocr-platform-aware/implementation-progress.md`](plans/platform-improvement/ocr-platform-aware/implementation-progress.md);
 - residual event-promotion delivery/unsubscribe refinements listed in
-  [`improvement-plan/event-promotion-follow-ups.md`](improvement-plan/event-promotion-follow-ups.md).
+  [`plans/platform-improvement/event-promotion-follow-ups.md`](plans/platform-improvement/event-promotion-follow-ups.md).
 
 ## Backlog
 
@@ -443,6 +463,13 @@ Implementation history after that date is summarized in
 [`changelog/2026-07-july.md`](changelog/2026-07-july.md).
 
 ## Documentation Reconciliation Verification
+
+On November 15, 2026, the Markdown corpus was re-audited and migrated into
+canonical `reference/`, `plans/`, `implementation/`, `operations/`, `analysis/`,
+and `archive/` ownership. One hundred eighteen tracked documents moved with
+permanent compatibility pointers. Sixteen byte-preserved source-pack files moved
+outside `docs/`. The dated evidence is in the
+[documentation audit](analysis/2026-11-15/documentation-audit.md).
 
 On October 19, 2026:
 

@@ -6,7 +6,7 @@
 
 ---
 
-> **This file is an index.** Full monthly records are in [changelog/](changelog/).
+> **This file is an index.** Full monthly records are in [changelog/](changelog).
 > Add new sessions to the appropriate monthly file, not here.
 
 ---

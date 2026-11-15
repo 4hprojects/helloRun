@@ -77,7 +77,7 @@ This is **not** a small follow-on to the global catalog — it touches the read 
 
 ## Recommendation
 
-This is a genuinely new, cross-cutting feature — not a UI gap like the global catalog was. If there's real demand for HelloRun-branded merch (the docs already list "HelloRun branded shirts, singlets, hoodies" as a merch idea in [`shop_feature.md`](../../implementation/shop_feature.md#L44)), the lowest-risk slice to build first would be:
+This is a genuinely new, cross-cutting feature — not a UI gap like the global catalog was. If there's real demand for HelloRun-branded merch (the docs already list "HelloRun branded shirts, singlets, hoodies" as a merch idea in [`shop_feature.md`](../../implementation/shop_feature.md#merchandise-ideas)), the lowest-risk slice to build first would be:
 
 1. `createPlatformProduct` service function + admin authoring routes/views (write path, fully isolated — nothing public depends on it yet).
 2. A standalone `GET /shop/:productSlug` product-detail route that works without an event (needed regardless of catalog changes, since the global catalog can't link anywhere otherwise).

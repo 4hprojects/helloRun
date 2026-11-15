@@ -44,14 +44,30 @@ priority list.
 
 ## Placement
 
-- Put stable system behavior in `architecture/`, `design/`, `features/`, or the
-  relevant domain folder.
+- Put stable system behavior under `reference/architecture/`,
+  `reference/design/`, or `reference/features/`.
 - Put completed implementation records in `implementation/`.
-- Put supporting plans for current cross-cutting work in `improvement-plan/`;
+- Put supporting plans for current cross-cutting work in `plans/`;
   ROADMAP remains the priority owner.
+- Put deployment and release procedures in `operations/`.
 - Put dated evidence in `analysis/`.
 - Put superseded plans and trackers in `archive/`.
 - Keep package-specific documentation inside its package.
+- Keep runtime-consumed Markdown at its established path unless application code
+  and its focused tests are deliberately migrated in the same change.
+
+## Compatibility Pointers
+
+- A moved tracked document leaves a permanent pointer at its former path.
+- A pointer contains one H1 and one relative link to the canonical document.
+- Canonical indexes and new links must target the new location, never a pointer.
+- Pointer files contain no status, requirements, or backlog claims.
+
+## Source Packs
+
+Unmodified source packs live under top-level `documentation-source-packs/`.
+They preserve original bytes and naming, are not canonical project state, and
+are excluded from `npm run docs:check`. Their provenance index is authoritative.
 
 ## Links and Naming
 
@@ -59,6 +75,8 @@ priority list.
 - Use root application paths such as `/privacy` only when linking to a web
   route, not a repository file.
 - Prefer lowercase kebab-case filenames for new documentation.
+- Preserve uppercase names only for canonical root documents, package READMEs,
+  or byte-preserved source material.
 - Do not rename files consumed by runtime scripts without updating and testing
   those consumers.
 
