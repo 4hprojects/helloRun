@@ -207,7 +207,8 @@ test('login and account controls use concise labels and distinct restrained inte
   assert.equal((memberNav.match(/data-pwa-install-action/g) || []).length, 1, 'one install control per screen');
 
   assert.match(css, /\.nav \.nav-account-logout:hover,[\s\S]*color: #b42318/);
-  assert.match(css, /\.nav \.nav-account\[data-account-ready\] \.nav-account-panel:not\(\.is-open\) \{\s*display: none;/);
+  assert.match(css, /\.nav \.nav-account\[data-account-ready\] \.nav-account-panel:not\(\.is-open\) \{[\s\S]*?opacity: 0;[\s\S]*?visibility: hidden;[\s\S]*?pointer-events: none;/);
+  assert.doesNotMatch(css, /\.nav \.nav-account\[data-account-ready\] \.nav-account-panel:not\(\.is-open\) \{\s*display: none;/);
   assert.match(main, /function initAccountMenu\(\)[\s\S]*event\.key === 'Escape' && isOpen\(\)\) setOpen\(false, \{ returnFocus: true \}\)/);
 });
 

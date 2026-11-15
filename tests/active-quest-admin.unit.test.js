@@ -5,6 +5,7 @@ const path = require('node:path');
 const ejs = require('ejs');
 const { getAutoApprovalEligibility } = require('../src/services/event-approval.service');
 const { getActiveQuestPublicationErrors } = require('../src/services/active-quest-readiness.service');
+const { resolveActiveQuestOrganizer } = require('../src/controllers/admin/active-quest.controller');
 
 const ROOT = path.resolve(__dirname, '..');
 const viewPath = path.join(ROOT, 'src/views/admin/active-quest.ejs');
@@ -40,12 +41,45 @@ test('admin forms use visible labels, CSRF tokens, and useful disabled states', 
   assert.match(view, /aria-label="Reason for changing/);
   assert.match(view, /Enable both Series and Draft generation flags first/);
   assert.match(view, /No monthly editions yet/);
+  assert.match(view, /name="organizerEmail" type="email"/);
+  assert.match(view, /class="active-quest-foundation-form"/);
+  assert.match(css, /\.active-quest-foundation-form\s*\{[\s\S]*gap:\s*1rem/);
+  assert.match(css, /\.active-quest-foundation-form \.btn\s*\{[\s\S]*min-height:\s*44px/);
+});
+
+test('foundation organizer must be an active verified approved organizer account', async () => {
+  let query;
+  const approved = {
+    _id: 'organizer-1',
+    email: 'henzoom8@gmail.com',
+    role: 'organiser',
+    organizerStatus: 'approved',
+    emailVerified: true,
+    accountStatus: 'active'
+  };
+  const model = {
+    findOne(value) {
+      query = value;
+      return { select: async () => approved };
+    }
+  };
+  assert.equal(await resolveActiveQuestOrganizer(' HENZOOM8@gmail.com ', model), approved);
+  assert.deepEqual(query, { email: 'henzoom8@gmail.com' });
+
+  await assert.rejects(
+    resolveActiveQuestOrganizer('henzoom8@gmail.com', {
+      findOne: () => ({ select: async () => ({ ...approved, organizerStatus: 'pending' }) })
+    }),
+    /must be active, verified, and approved/
+  );
 });
 
 test('admin styling follows existing product cards, responsive grids, and 44px controls', () => {
   assert.match(css, /\.active-quest-admin-card/);
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /@media \(max-width: 640px\)[\s\S]*active-quest-admin-layout/);
+  assert.match(css, /\.active-quest-flag-row\s*\{[\s\S]*grid-template-areas:[\s\S]*"details state action"[\s\S]*"\. reason reason"/);
+  assert.match(css, /@media \(max-width: 640px\)[\s\S]*"details"[\s\S]*"state"[\s\S]*"reason"[\s\S]*"action"/);
   assert.doesNotMatch(css, /\.active-quest[^}]*transition:\s*all/i);
 });
 

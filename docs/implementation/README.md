@@ -15,6 +15,8 @@ belongs in [`../plans/`](../plans/README.md).
 - [`active-quest/`](active-quest/README.md): repository implementation,
   decisions, and unresolved verification boundaries.
 - [`blog/`](blog/README.md): implemented blog and composer specifications.
+- [`hello-motion-ui-improvements.md`](hello-motion-ui-improvements.md):
+  repository-verified motion and validation improvements.
 - [`verification-pending/`](verification-pending/): repository-complete work
   awaiting approved live checks.
 - [`package-pricing.md`](package-pricing.md): implemented package-period

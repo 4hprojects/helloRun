@@ -33,6 +33,14 @@
   --hr-control-height: 44px;
   --hr-container: 1200px;
 
+  /* Motion communicates response and state without delaying interaction. */
+  --hr-motion-fast: 120ms;
+  --hr-motion-state: 180ms;
+  --hr-motion-panel: 240ms;
+  --hr-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --hr-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --hr-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
   /* Spacing scale for new and refactored components. */
   --hr-space-1: 0.25rem;
   --hr-space-2: 0.5rem;

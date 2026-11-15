@@ -260,6 +260,38 @@ test('existing registration presentation separates registration, add-ons, total,
   assert.deepEqual(presentation.existing.nextAction, { href: '/my-registrations', label: 'Continue to payment' });
 });
 
+test('free active challenge confirmation hands the runner to the correct activity submission', () => {
+  const registrationId = '69941482ab1333984de6c999';
+  const presentation = buildRegistrationPagePresentation({
+    event: buildJulyEvent({
+      raceCategories: [{ name: '200K July Ultra Quest', distanceLabel: '200K', distanceKm: 200 }]
+    }),
+    allowedModes: ['virtual'],
+    allowedRaceDistances: ['200K'],
+    raceCategoryOptions: [{ name: '200K July Ultra Quest', distanceLabel: '200K', distanceKm: 200 }],
+    existingRegistration: {
+      _id: registrationId,
+      raceDistance: '200K',
+      participationMode: 'virtual',
+      paymentAmountDue: 0,
+      paymentStatus: 'paid',
+      status: 'confirmed'
+    },
+    now: new Date('2026-07-10T00:00:00.000Z')
+  });
+
+  assert.equal(presentation.existing.categoryLabel, '200K July Ultra Quest');
+  assert.equal(presentation.existing.targetDistanceKm, 200);
+  assert.equal(presentation.existing.modeLabel, 'Virtual');
+  assert.equal(presentation.existing.paymentStatusLabel, 'No payment required');
+  assert.equal(presentation.existing.activityStatusLabel, 'Your activity period is underway.');
+  assert.deepEqual(presentation.existing.nextAction, {
+    href: `/my-registrations?openRunProof=1&registrationId=${registrationId}#registration-${registrationId}`,
+    label: 'Submit an activity',
+    icon: 'upload-cloud'
+  });
+});
+
 test('registration page keeps backend contracts and progressive review hooks', () => {
   const view = read('src/views/pages/event-register.ejs');
   const script = read('src/public/js/event-register.js');
@@ -297,6 +329,10 @@ test('registration page keeps backend contracts and progressive review hooks', (
   assert.match(script, /registration-client-field-error/);
   assert.match(script, /scrollIntoView/);
   assert.match(view, /Final pricing is validated when you submit/);
+  assert.match(view, /You’re registered/);
+  assert.match(view, /What happens next/);
+  assert.match(view, /data-copy-confirmation/);
+  assert.match(view, /Submit proof by/);
   assert.doesNotMatch(view, /Charges and checkout linking will be finalized in the next phase/);
   assert.equal((view.match(/raceDistancePricingPreviewData/g) || []).length, 0);
 
@@ -336,6 +372,7 @@ test('registration page keeps backend contracts and progressive review hooks', (
   assert.match(controller, /participationMode: defaultParticipationMode,\s*raceDistance: allowedRaceDistances\.length === 1 \? allowedRaceDistances\[0\] : '',/);
   assert.match(controller, /Choose at least one tracking app or device\./);
   assert.match(controller, /renderedWaiver,/);
+  assert.doesNotMatch(controller, /Registration completed\. Confirmation code:/);
   assert.match(communication, /email\.waiverVersion,[\s\S]*email\.renderedWaiver/);
   assert.match(email, /Accepted event waiver/);
   assert.match(email, /renderWaiverTemplate\(String\(renderedWaiver\)\)/);

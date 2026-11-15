@@ -3,6 +3,31 @@
 
   const onReady = () => {
     window.lucide?.createIcons?.();
+    const successState = document.querySelector('[data-registration-success]');
+    if (successState?.dataset.justRegistered === 'true') successState.focus({ preventScroll: true });
+
+    const copyButton = document.querySelector('[data-copy-confirmation]');
+    copyButton?.addEventListener('click', async () => {
+      const code = document.getElementById('registrationConfirmationCode')?.textContent?.trim() || '';
+      if (!code) return;
+      try {
+        await navigator.clipboard.writeText(code);
+      } catch (_) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        const codeElement = document.getElementById('registrationConfirmationCode');
+        if (!selection || !codeElement) return;
+        range.selectNodeContents(codeElement);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+      }
+      const label = copyButton.querySelector('span');
+      if (label) label.textContent = 'Copied';
+      copyButton.setAttribute('aria-label', 'Confirmation code copied');
+    });
+
     const form = document.getElementById('eventRegisterForm');
     const dataElement = document.getElementById('registrationReviewData');
     if (!form || !dataElement) return;
@@ -162,6 +187,7 @@
 
     const clearClientErrors = () => {
       form.querySelectorAll('.registration-client-field-error').forEach((message) => message.remove());
+      form.querySelectorAll('.registration-motion-invalid').forEach((field) => field.classList.remove('registration-motion-invalid'));
       form.querySelectorAll('[aria-invalid="true"]').forEach((field) => field.setAttribute('aria-invalid', 'false'));
       form.querySelectorAll('[aria-describedby]').forEach((field) => {
         const describedBy = String(field.getAttribute('aria-describedby') || '')
@@ -208,8 +234,14 @@
         }
       });
       if (firstInvalidField) {
+        const motionTarget = firstInvalidField.closest('.form-group, fieldset, .registration-choice-group') || firstInvalidField;
+        motionTarget.classList.remove('registration-motion-invalid');
+        void motionTarget.offsetWidth;
+        motionTarget.classList.add('registration-motion-invalid');
+        motionTarget.addEventListener('animationend', () => motionTarget.classList.remove('registration-motion-invalid'), { once: true });
         firstInvalidField.focus({ preventScroll: true });
-        firstInvalidField.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        firstInvalidField.scrollIntoView?.({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
       }
     };
 

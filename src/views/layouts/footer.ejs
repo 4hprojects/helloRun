@@ -63,5 +63,5 @@
   <script nonce="<%= locals.cspNonce || String() %>" src="/js/ocr-proof-reader.js"></script>
   <script nonce="<%= locals.cspNonce || String() %>" src="/js/ocr/ocr-parser.js"></script>
   <script nonce="<%= locals.cspNonce || String() %>" src="/js/run-proof-integrity.js"></script>
-  <script nonce="<%= locals.cspNonce || String() %>" src="/js/run-proof-modal.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/run-proof-modal.js?v=<%= encodeURIComponent(locals.assetVersion || 'dev') %>"></script>
 <% } %>

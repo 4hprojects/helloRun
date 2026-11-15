@@ -5,6 +5,11 @@ const { generateDefaultEventBadgesInBackground } = require('./event-badge.servic
 const { evaluateOrganiserAchievementsInBackground } = require('./achievement.service');
 const { getPublishReadinessErrors } = require('./event-form.service');
 const { getActiveQuestPublicationErrors } = require('./active-quest-readiness.service');
+const { buildActiveQuestContent } = require('./active-quest-content.service');
+const {
+  MONTH_NAMES,
+  getRewardReadiness
+} = require('./active-quest-generator.service');
 
 const AUTO_APPROVAL_RULE_VERSION = 'event_auto_approval_v1_free_virtual';
 const TRUSTED_ORGANIZER_RULE_VERSION = 'event_auto_approval_v2_trusted_organizer';
@@ -16,6 +21,15 @@ async function publishEvent(event, options = {}) {
   }
   if (event.status !== 'pending_review') {
     throw new Error('Only pending review events can be published.');
+  }
+
+  const approvedAt = options.approvedAt || new Date();
+  if (
+    event.seriesKey === 'active-quest' &&
+    options.approvalSource === 'admin' &&
+    options.actorIsFullAdmin === true
+  ) {
+    prepareActiveQuestPublication(event, approvedAt, options.actorUserId);
   }
 
   const readinessErrors = event.seriesKey === 'active-quest'
@@ -32,7 +46,6 @@ async function publishEvent(event, options = {}) {
     throw error;
   }
 
-  const approvedAt = options.approvedAt || new Date();
   const previousStatus = event.status;
   const approvalSource = options.approvalSource === 'auto' ? 'auto' : 'admin';
   const approvalNote = normalizeApprovalNote(options.approvalNote);
@@ -85,6 +98,85 @@ async function publishEvent(event, options = {}) {
   });
 
   return event;
+}
+
+function prepareActiveQuestPublication(event, approvedAt, actorUserId = null) {
+  if (event?.seriesKey !== 'active-quest') return false;
+  const publicationAt = new Date(approvedAt);
+  if (Number.isNaN(publicationAt.getTime())) throw new Error('Active Quest approval time is invalid.');
+
+  const currentOpen = new Date(event.registrationOpenAt || event.seriesSchedule?.instants?.registrationOpen);
+  if (Number.isNaN(currentOpen.getTime())) throw new Error('Active Quest registration opening is invalid.');
+  if (currentOpen >= publicationAt) return false;
+
+  const schedule = cloneJson(event.seriesSchedule);
+  if (!schedule?.local || !schedule?.instants || !schedule?.display) {
+    throw new Error('Active Quest publication schedule is incomplete.');
+  }
+  const localDate = formatPhtLocalDate(publicationAt);
+  schedule.local.registrationOpen = localDate;
+  schedule.instants.registrationOpen = publicationAt.toISOString();
+  schedule.display.registrationOpen = formatPhtDisplayDate(publicationAt);
+
+  event.registrationOpenAt = publicationAt;
+  event.publicListingAvailableAt = publicationAt;
+  if (typeof event.set === 'function') {
+    event.set('seriesSchedule', schedule, undefined, { overwriteImmutable: true });
+  } else {
+    event.seriesSchedule = schedule;
+  }
+
+  const monthName = MONTH_NAMES[Number(event.seriesMonth) - 1];
+  const year = Number(event.seriesYear);
+  if (!monthName || !Number.isInteger(year)) throw new Error('Active Quest edition identity is invalid.');
+  const content = buildActiveQuestContent({
+    monthName,
+    year,
+    templateSnapshot: event.seriesSnapshot,
+    schedule,
+    rewardReadiness: getRewardReadiness(event.seriesSnapshot || {})
+  });
+  event.description = content.description;
+  event.eventDetailsMarkdown = content.markdown;
+  if (actorUserId && Array.isArray(event.seriesAdminOverrides)) {
+    event.seriesAdminOverrides.push({
+      actorUserId,
+      reason: 'Registration opened at the actual Active Quest publication time.',
+      effectiveAt: publicationAt,
+      changes: {
+        source: 'active_quest_publication',
+        registrationOpenAt: {
+          previous: currentOpen.toISOString(),
+          next: publicationAt.toISOString()
+        }
+      }
+    });
+  }
+  return true;
+}
+
+function formatPhtLocalDate(value) {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(value);
+  const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${byType.year}-${byType.month}-${byType.day}`;
+}
+
+function formatPhtDisplayDate(value) {
+  return new Intl.DateTimeFormat('en-PH', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }).format(value);
+}
+
+function cloneJson(value) {
+  return value == null ? null : JSON.parse(JSON.stringify(value));
 }
 
 function normalizeApprovalNote(value) {
@@ -291,6 +383,7 @@ module.exports = {
   hasPhysicalRewards,
   hasDeliverySetup,
   hasOnsiteLogistics,
+  prepareActiveQuestPublication,
   publishEvent,
   tryAutoApproveEvent
 };

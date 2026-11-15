@@ -34,11 +34,13 @@ const logger = require('./utils/logger');
 const { sendJsonServerError } = require('./utils/json-error-response');
 const { sendHttpError } = require('./utils/http-error-response');
 const { getLifecycleStatus } = require('./utils/lifecycle-status');
+const { resolveServiceWorkerVersion } = require('./utils/service-worker');
 
 const app = express();
 app.locals.getLifecycleStatus = getLifecycleStatus;
 app.locals.buildNavigation = require('./config/navigation').buildNavigation;
 app.locals.submissionReviewModeOptions = require('./utils/submission-review-mode').SUBMISSION_REVIEW_MODE_OPTIONS;
+app.locals.assetVersion = resolveServiceWorkerVersion();
 const isProduction = process.env.NODE_ENV === 'production';
 const { attachCsrfToken } = require('./middleware/csrf.middleware');
 

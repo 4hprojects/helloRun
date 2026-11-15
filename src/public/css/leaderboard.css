@@ -141,6 +141,28 @@
 .leaderboard-button-secondary { border-color: #aebccc; background: #fff; color: #27364c; }
 .leaderboard-button-secondary:hover { border-color: #64748b; background: var(--leaderboard-soft); color: var(--leaderboard-orange-dark); }
 
+.leaderboard-button,
+.leaderboard-filter-chip,
+.leaderboard-distance-tab,
+.leaderboard-category-card,
+.leaderboard-page-link,
+.leaderboard-filter-panel summary {
+  transition:
+    background-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    border-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    box-shadow var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    transform var(--hr-motion-fast, 120ms) var(--hr-ease-out, ease-out);
+}
+
+.leaderboard-button:active:not(:disabled),
+.leaderboard-filter-chip:active,
+.leaderboard-distance-tab:active,
+.leaderboard-category-card:active,
+.leaderboard-page-link:active:not(.is-disabled) {
+  transform: scale(0.98);
+}
+
 .leaderboard-button:focus-visible,
 .leaderboard-text-link:focus-visible,
 .leaderboard-filter-chip:focus-visible,
@@ -552,6 +574,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .leaderboard-card-image img,
-  .leaderboard-button { transition: none; }
+  .leaderboard-button,
+  .leaderboard-filter-chip,
+  .leaderboard-distance-tab,
+  .leaderboard-category-card,
+  .leaderboard-page-link,
+  .leaderboard-filter-panel summary { transition: none; }
   .leaderboard-distance-tabs { scroll-behavior: auto; }
 }

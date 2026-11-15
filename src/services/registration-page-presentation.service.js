@@ -19,7 +19,8 @@ function buildRegistrationPagePresentation({
   registrationPackageOptions = [],
   registrationAddOns = [],
   profileCompleteness = null,
-  existingRegistration = null
+  existingRegistration = null,
+  now = new Date()
 } = {}) {
   const currency = String(event.feeCurrency || 'PHP').trim().toUpperCase() || 'PHP';
   const accumulated = isAccumulatedChallenge(event);
@@ -85,7 +86,7 @@ function buildRegistrationPagePresentation({
     expectedSignatureName: profile.fullName,
     reviewData,
     existing: existingRegistration
-      ? buildExistingRegistrationPresentation(existingRegistration, event)
+      ? buildExistingRegistrationPresentation(existingRegistration, event, now)
       : null,
     currency
   };
@@ -321,12 +322,25 @@ function buildReviewData({
   };
 }
 
-function buildExistingRegistrationPresentation(registration = {}, event = {}) {
+function buildExistingRegistrationPresentation(registration = {}, event = {}, now = new Date()) {
   const registrationAmount = safeAmount(registration.paymentAmountDue || registration.pricingSnapshot?.amount);
   const addOnsAmount = safeAmount(registration.addOnsSubtotal);
   const totalAmount = registrationAmount + addOnsAmount;
   const currency = String(registration.paymentCurrency || registration.addOnsCurrency || event.feeCurrency || 'PHP').trim().toUpperCase() || 'PHP';
   const requiresPayment = totalAmount > 0 && !['paid', 'refunded'].includes(String(registration.paymentStatus || '').trim());
+  const registrationId = String(registration._id || '').trim();
+  const activityStart = toValidDate(event.virtualWindow?.startAt || event.eventStartAt);
+  const activityEnd = toValidDate(event.virtualWindow?.endAt || event.eventEndAt);
+  const submissionDeadline = toValidDate(event.finalSubmissionDeadlineAt || event.eventEndAt);
+  const currentTime = toValidDate(now) || new Date();
+  const canSubmitActivity = !requiresPayment
+    && activityStart
+    && submissionDeadline
+    && currentTime >= activityStart
+    && currentTime <= submissionDeadline;
+  const selectedCategory = resolveExistingCategory(registration, event);
+  const registrationAnchor = registrationId ? `#registration-${registrationId}` : '';
+  const registrationQuery = registrationId ? `&registrationId=${encodeURIComponent(registrationId)}` : '';
   return {
     registrationAmount,
     registrationAmountLabel: formatCurrency(registrationAmount, currency),
@@ -335,12 +349,62 @@ function buildExistingRegistrationPresentation(registration = {}, event = {}) {
     totalAmount,
     totalAmountLabel: totalAmount > 0 ? formatCurrency(totalAmount, currency) : 'Free',
     currency,
-    paymentStatusLabel: humanize(registration.paymentStatus || 'unpaid'),
+    isFree: totalAmount === 0,
+    categoryLabel: selectedCategory.label,
+    targetDistanceKm: selectedCategory.targetDistanceKm,
+    modeLabel: titleCase(registration.participationMode || 'virtual'),
+    paymentStatusLabel: totalAmount === 0
+      ? 'No payment required'
+      : humanize(registration.paymentStatus || 'unpaid'),
+    activityStatusLabel: buildActivityStatusLabel({ currentTime, activityStart, activityEnd, submissionDeadline }),
     statusLabel: humanize(registration.status || 'confirmed'),
     nextAction: requiresPayment
       ? { href: '/my-registrations', label: 'Continue to payment' }
-      : { href: `/events/${event.slug || ''}`, label: 'View event' }
+      : canSubmitActivity
+        ? {
+            href: `/my-registrations?openRunProof=1${registrationQuery}${registrationAnchor}`,
+            label: 'Submit an activity',
+            icon: 'upload-cloud'
+          }
+        : {
+            href: `/my-registrations${registrationAnchor}`,
+            label: 'View my quest',
+            icon: 'activity'
+          },
+    secondaryAction: {
+      href: `/my-registrations${registrationAnchor}`,
+      label: 'View my quest'
+    }
   };
+}
+
+function resolveExistingCategory(registration, event) {
+  const selectedDistance = String(registration.raceDistance || '').trim();
+  const category = (Array.isArray(event.raceCategories) ? event.raceCategories : []).find((item) => {
+    const values = [item.categoryId, item.distanceLabel, item.name].map((value) => String(value || '').trim().toUpperCase());
+    return values.includes(selectedDistance.toUpperCase());
+  });
+  const label = String(
+    registration.pricingSnapshot?.raceCategoryName ||
+    category?.name ||
+    selectedDistance ||
+    'Challenge goal'
+  ).trim();
+  const targetDistanceKm = Number(category?.distanceKm || parseDistanceKm(category?.distanceLabel || selectedDistance) || 0);
+  return { label, targetDistanceKm: Number.isFinite(targetDistanceKm) ? targetDistanceKm : 0 };
+}
+
+function buildActivityStatusLabel({ currentTime, activityStart, activityEnd, submissionDeadline }) {
+  if (!activityStart || !submissionDeadline) return 'View your registration for the current schedule.';
+  if (currentTime < activityStart) return 'Your activity period has not started yet.';
+  if (activityEnd && currentTime <= activityEnd) return 'Your activity period is underway.';
+  if (currentTime <= submissionDeadline) return 'Activity proof submission is open.';
+  return 'Activity proof submission has closed.';
+}
+
+function toValidDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function getChoiceControlKind(count) {

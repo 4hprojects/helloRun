@@ -55,8 +55,11 @@ exports.getActiveQuest = async (req, res) => {
 
 exports.initializeActiveQuest = async (req, res) => {
   try {
-    const actor = await getActor(req);
-    const result = await initializeActiveQuestFoundation({ actor, organizerId: actor._id });
+    const [actor, organizer] = await Promise.all([
+      getActor(req),
+      resolveActiveQuestOrganizer(req.body.organizerEmail)
+    ]);
+    const result = await initializeActiveQuestFoundation({ actor, organizerId: organizer._id });
     return redirect(res, 'success', result.created
       ? 'Active Quest foundation created. Every feature flag remains disabled.'
       : 'Active Quest foundation already exists. No records changed.');
@@ -264,6 +267,25 @@ async function getActor(req) {
   return actor;
 }
 
+async function resolveActiveQuestOrganizer(email, UserModel = User) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail || !normalizedEmail.includes('@')) {
+    throw new Error('Enter the approved organizer account email.');
+  }
+  const organizer = await UserModel.findOne({ email: normalizedEmail })
+    .select('_id email role organizerStatus emailVerified accountStatus');
+  if (!organizer) throw new Error('Organizer account was not found.');
+  if (
+    organizer.role !== 'organiser' ||
+    organizer.organizerStatus !== 'approved' ||
+    organizer.emailVerified !== true ||
+    organizer.accountStatus !== 'active'
+  ) {
+    throw new Error('Organizer account must be active, verified, and approved.');
+  }
+  return organizer;
+}
+
 async function getSeries() {
   const series = await ActiveQuestSeries.findOne({ key: 'active-quest' });
   if (!series) throw new Error('Initialize Active Quest before changing it.');
@@ -297,3 +319,5 @@ function renderError(res, error, message) {
   logger.error(message, { error: error?.message || String(error) });
   return res.status(500).render('error', { title: 'Server Error', status: 500, message });
 }
+
+exports.resolveActiveQuestOrganizer = resolveActiveQuestOrganizer;

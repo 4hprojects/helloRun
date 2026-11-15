@@ -89,7 +89,7 @@ body {
   overflow: hidden;
   min-height: 0;
   max-height: none;
-  transition: all var(--transition-normal);
+  transition: box-shadow var(--hr-motion-panel, 240ms) var(--hr-ease-standard, ease);
 }
 
 /* Panel 1: Branding & Welcome */
@@ -330,7 +330,10 @@ body {
   border: 2px solid #cbd5e1;
   border-radius: var(--radius-md);
   color: var(--text-dark);
-  transition: all var(--transition-fast);
+  transition:
+    background-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    border-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    box-shadow var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease);
   outline: none;
 }
 
@@ -359,7 +362,10 @@ body {
   color: var(--text-light);
   font-size: 1rem;
   pointer-events: none;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    font-size var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    transform var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease);
   background: transparent;
   padding: 0 var(--space-xs);
 }
@@ -404,7 +410,9 @@ body {
   cursor: pointer;
   padding: var(--space-xs);
   border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
+  transition:
+    background-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease);
 }
 
 .toggle-password:hover {
@@ -436,7 +444,9 @@ body {
   height: 100%;
   width: 0%;
   border-radius: var(--radius-full);
-  transition: all var(--transition-normal);
+  transition:
+    background-color var(--hr-motion-panel, 240ms) var(--hr-ease-standard, ease),
+    width var(--hr-motion-panel, 240ms) var(--hr-ease-standard, ease);
 }
 
 .strength-text {
@@ -452,7 +462,9 @@ body {
   margin: var(--space-sm) 0 var(--space-xs);
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
+  transition:
+    background-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    border-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease);
 }
 
 .checkbox-group.error {
@@ -477,7 +489,7 @@ body {
   color: var(--primary-orange);
   text-decoration: none;
   font-weight: 500;
-  transition: all var(--transition-fast);
+  transition: color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease);
 }
 
 .checkbox-group label a:hover {
@@ -494,7 +506,9 @@ body {
   margin-top: 0.15rem;
   height: 0;
   opacity: 0;
-  transition: all var(--transition-fast);
+  transition:
+    margin-top var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    opacity var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease);
 }
 
 .form-error.show,
@@ -516,7 +530,12 @@ body {
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    background-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    border-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    box-shadow var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    transform var(--hr-motion-fast, 120ms) var(--hr-ease-out, ease-out);
   text-decoration: none;
   gap: 0.65rem;
 }
@@ -735,7 +754,10 @@ body {
   font-weight: 500;
   cursor: not-allowed;
   opacity: 0.6;
-  transition: all var(--transition-fast);
+  transition:
+    background-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+    transform var(--hr-motion-fast, 120ms) var(--hr-ease-out, ease-out);
 }
 
 .social-btn:hover {
@@ -774,7 +796,7 @@ body {
   color: var(--primary-orange);
   font-weight: 600;
   text-decoration: none;
-  transition: all var(--transition-fast);
+  transition: color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease);
 }
 
 .auth-switch a:hover {
@@ -948,5 +970,45 @@ body {
   .social-login,
   .toggle-password {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .compact-input-group.motion-invalid,
+  .checkbox-group.motion-invalid {
+    animation: signup-invalid-nudge var(--hr-motion-panel, 240ms) var(--hr-ease-standard, ease);
+  }
+
+  .form-error.show,
+  .checkbox-error.show {
+    animation: signup-error-in var(--hr-motion-state, 180ms) var(--hr-ease-out, ease-out);
+  }
+
+  .compact-auth-form .btn:active:not(:disabled),
+  .auth-switch a:active,
+  .checkbox-group label a:active {
+    transform: scale(0.98);
+  }
+}
+
+@keyframes signup-invalid-nudge {
+  0%, 100% { transform: translateX(0); }
+  35% { transform: translateX(-3px); }
+  70% { transform: translateX(3px); }
+}
+
+@keyframes signup-error-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .compact-auth-page *,
+  .compact-auth-page *::before,
+  .compact-auth-page *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

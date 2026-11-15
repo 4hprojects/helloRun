@@ -2525,6 +2525,37 @@ textarea.contact-organiser-input {
   }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .event-section-jump summary,
+  .event-runner-progress-details summary,
+  .event-organizer-details-summary,
+  .event-poster-thumb-btn,
+  .event-gallery-thumb-btn,
+  .event-mobile-sticky-cta .btn {
+    transition:
+      background-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+      border-color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+      color var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+      box-shadow var(--hr-motion-state, 180ms) var(--hr-ease-standard, ease),
+      transform var(--hr-motion-fast, 120ms) var(--hr-ease-out, ease-out);
+  }
+
+  .gallery-lightbox:not(.hidden) .gallery-lightbox-dialog {
+    animation: event-lightbox-in var(--hr-motion-panel, 240ms) var(--hr-ease-out, ease-out);
+  }
+
+  .event-poster-thumb-btn:active,
+  .event-gallery-thumb-btn:active,
+  .event-mobile-sticky-cta .btn:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+}
+
+@keyframes event-lightbox-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* ===== RELATED EVENTS ===== */
 .event-related-section {
   background: #f1f5f9;

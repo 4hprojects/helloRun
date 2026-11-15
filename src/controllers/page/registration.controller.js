@@ -517,11 +517,9 @@ exports.postEventRegistration = async (req, res) => {
       }
     });
 
-    const query = new URLSearchParams({
-      type: 'success',
-      msg: `Registration completed. Confirmation code: ${confirmationCode}`,
-      registered: '1'
-    });
+    // The confirmation code belongs in the authenticated page, not in browser
+    // history, referrer headers, analytics, or copied URLs.
+    const query = new URLSearchParams({ registered: '1' });
     return res.redirect(`/events/${event.slug}/register?${query.toString()}`);
   } catch (error) {
     // The registration did not complete, so any slot it was holding goes back.

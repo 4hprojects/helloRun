@@ -97,6 +97,7 @@ function initMainUi() {
   }
   
   if (menuToggle && navLinks) {
+    navLinks.dataset.navReady = '1';
     const getFocusable = () =>
       Array.from(navLinks.querySelectorAll('a, button, [tabindex]:not([tabindex="-1"])'))
         .filter((el) => !el.disabled && el.offsetParent !== null);
