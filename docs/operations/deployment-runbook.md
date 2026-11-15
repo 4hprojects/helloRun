@@ -107,7 +107,8 @@ curl -fsS https://hellorun.online/healthz
 
 - `x-hellodeploy-route: hellorun.online` proves the request used the current
   HelloDeploy route. It does not prove which commit the container runs.
-- `commitShort` must equal the target SHA. If it does not, **the deploy has
+- `build.commit` must equal the full 40-character target SHA. `commitShort`
+  must equal its short form. If either does not, **the deploy has
   not landed** — regardless of what any dashboard says.
 - `uptimeSeconds` climbing across checks with an unchanged `commitShort` means the
   service has not restarted. That is a stalled deploy, not a slow one.

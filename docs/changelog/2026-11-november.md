@@ -1,5 +1,23 @@
 # November 2026 Changelog
 
+## November 15 — Security and reliability baseline
+
+- Merged documentation PR #44 after required GitHub CI passed.
+- Captured a no-mutation public baseline: HelloDeploy and MongoDB are healthy,
+  the served commit remains unknown, Redis is not configured, Active Quest is
+  live, and anonymous protected routes redirect to login.
+- Verified `/sw.js` returns browser and CDN `no-store`, vendored Lucide and Quill
+  assets return HTTP 200, and the public CSP uses nonces with script attributes
+  disabled.
+- Reconciled migration evidence: migrations 027 and 028 were already recorded
+  on October 29. Current PostgreSQL metadata reports 36/36 RLS tables, 13/13
+  security-invoker views, and no Data API table grants. No migration ran.
+- Verified all 12 authoritative Active Quest events have Postgres shadows and
+  reran the aggregate fixture audit across MongoDB and PostgreSQL. Fixture
+  quarantine remains blocked on current backup and second-operator evidence.
+- Added the [30-day security and reliability plan](../plans/platform-improvement/30-day-security-reliability-2026-11-16.md)
+  and its [dated baseline](../analysis/2026-11-15/security-reliability-baseline.md).
+
 ## November 15 — Documentation audit and taxonomy migration
 
 ### Documentation

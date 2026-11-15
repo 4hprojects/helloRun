@@ -4,9 +4,10 @@
 
 **Last reconciled:** November 15, 2026
 
-**Evidence window:** repository evidence through `main` at `a30bfdb`, plus
-read-only public Active Quest evidence observed November 15, 2026. Private
-deployment, database, backup, flag, and administrator evidence was not accessed.
+**Evidence window:** repository evidence through `main` at
+`394d8dfbe6aa368a805aaabefce68464ebbf38a2`, plus read-only public, MongoDB,
+and PostgreSQL evidence observed November 15, 2026. Backup, feature-flag,
+administrator, authenticated browser, and second-operator evidence was not accessed.
 
 **Forward priorities and the tracked checklist:** [ROADMAP.md](ROADMAP.md)
 
@@ -204,9 +205,11 @@ production services.
   read-only check found the [November event](https://hellorun.online/events/november-active-quest-2026)
   published with registration open through November 22, activity dates of
   November 1–30, proof submission through December 14, six distance categories,
-  and public reward artwork. Public output does not prove the deployed SHA,
-  migrations 027/028, backup evidence, flag history, administrator audit records,
-  or December reward and certificate finalization. `REL-11` owns those checks.
+  and public reward artwork. Read-only database verification also proves
+  migrations 027/028 are recorded and all 12 authoritative events have Postgres
+  shadows. The deployed SHA, backup evidence, flag history, administrator audit
+  records, and December reward and certificate finalization remain unverified.
+  `REL-11` owns those checks.
 
 - Platform-aware OCR, optional activity-link review, immutable extraction history,
   reviewer-labelled training samples, dataset snapshots, manually initiated training,
@@ -253,11 +256,8 @@ production services.
   [`implementation/private-strava-viewer-launch.md`](implementation/private-strava-viewer-launch.md).
 
 - Verify the installable PWA added October 3 after deploy:
-  - `/manifest.webmanifest`, `/sw.js`, and `/offline.html` load over HTTPS. The
-    first and third return `no-cache`, but Cloudflare currently rewrites
-    `/sw.js` to `max-age=14400` and serves it as `REVALIDATED`. The repository
-    now sends browser/CDN `no-store`; the Cloudflare TTL rule must exclude and
-    purge `/sw.js` before the update behavior can pass.
+  - `/sw.js` now returns browser and CDN `no-store` with Cloudflare `BYPASS`.
+    The cache-header gate is complete; device install/update behavior remains.
   - Chrome on Android shows **Install HelloRun** and installs the app.
   - iPhone Safari shows Add to Home Screen guidance and no native prompt.
   - The installed app hides the install control.
@@ -301,13 +301,13 @@ those remain open below.
   and certificate finalization after the December deadlines. See the
   [runbook](operations/active-quest/november-2026-release-runbook.md) and `REL-11`.
 
-- **Production Supabase Data API lockdown is urgent and unapplied.** The October 20
-  read-only preflight found migration 027 absent, RLS disabled on all 36 public tables,
-  broad `anon`/`authenticated` grants across 49 table/view objects, and no
-  `security_invoker` setting on any of 13 views. The application `postgres` role passes
-  the migration's RLS-bypass guard. No SQL was applied because a recoverable backup and
-  rollback decision have not been approved; see the
-  [preflight record](analysis/2026-10-20/production-rls-preflight.md).
+- **Production Supabase Data API lockdown is applied but verification remains.**
+  The November 15 read-only reconciliation found migration 027 recorded on
+  October 29, RLS enabled on 36/36 public tables, `security_invoker` on 13/13
+  views, no `anon`/`authenticated` table grants, and successful application-role
+  reads. Migration 027 must not be reapplied. External Data API denial,
+  Security Advisor, application smoke, and the original backup/rollback record
+  remain pending; see the [baseline](analysis/2026-11-15/security-reliability-baseline.md).
 
 - **October Active Run artwork remains unapplied.** The October 20 production dry run
   found the intended event, certificate template, and existing four CDN assets without
@@ -386,7 +386,7 @@ those remain open below.
   Render hosting. That August topology was later replaced by a HelloDeploy-managed
   container behind nginx and the Cloudflare Tunnel; Render remains the unverified
   backup origin.
-- **Current deployment evidence is incomplete (October 20).** Public `/healthz`
+- **Current deployment evidence is incomplete (November 15).** Public `/healthz`
   and `/readyz` return HTTP 200, Mongo is ready, Redis is not configured, and the
   Strava viewer is disabled. The response includes
   `x-hellodeploy-route: hellorun.online`, confirming the HelloDeploy primary, but
@@ -400,12 +400,11 @@ those remain open below.
   artifact, then development `.git`. Seventeen deploy-hygiene cases and a local capture
   of `0c1fd86` pass. Production remains `unknown` until this revision is deployed and
   verified, so `OPS-01` is still in progress rather than complete.
-- **The October 20 public deployment fingerprint still predates the repository
-  hardening.** The homepage loads Lucide from `unpkg`, CSP still permits the
-  legacy CDN/inline behavior, and the new vendored Lucide/Quill URLs return 404.
-  This confirms the unpublished revision has not landed; it is the baseline for
-  the post-deployment `SEC-03` comparison. See the
-  [public smoke record](analysis/2026-10-20/public-deployment-smoke.md).
+- **Public CSP and vendored assets now match repository hardening.** The
+  November 15 homepage response uses a per-response nonce and
+  `script-src-attr 'none'`; vendored Lucide and Quill assets return HTTP 200.
+  Browser-console and CSP-report checks still gate `SEC-03`. See the
+  [baseline](analysis/2026-11-15/security-reliability-baseline.md).
 - **October Active Run 2026 artwork swap.** The event went live on October 3 with a
   banner and poster derived from the September artwork. Replacement artwork is
   committed; run `npm run event:update-october-active-run-2026-artwork -- --apply` to
@@ -420,10 +419,12 @@ those remain open below.
   blocked or verification-pending tasks.
 - The two narrowly identified `purge.runner` / `purge.organizer` placeholder users are
   already absent from both production stores; `DEC-04` closed without mutation. A
-  separate read-only preview now finds 102 active non-admin `@example.com` fixture
-  accounts. Reversible quarantine is selected under `DEC-07`; cross-store preflight and
-  current backup evidence still gate apply. See the
-  [placeholder audit](analysis/2026-10-20/production-placeholder-user-audit.md).
+  separate November 15 cross-store audit finds the same 102 active non-admin
+  `@example.com` fixture accounts, reviewed event/registration/submission/blog
+  counts, zero non-fixture participant impact, and zero linked PostgreSQL rows.
+  Reversible quarantine is selected under `DEC-07`; current backup evidence still
+  gates apply. See the
+  [baseline](analysis/2026-11-15/security-reliability-baseline.md).
 - Verify backup/restore and graceful-deployment procedures.
 
 ## Active Engineering Follow-Up
