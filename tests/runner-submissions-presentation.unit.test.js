@@ -112,3 +112,16 @@ test('detail presentation omits race timing for accumulated activities and raw O
   assert.equal(Object.hasOwn(detail.ocrData, 'rawText'), false);
   assert.equal(Object.hasOwn(detail.ocrData, 'confidence'), false);
 });
+
+test('clarification detail gives the runner a response path and preserves the question', () => {
+  const detail = formatSubmissionDetail(doc({
+    submissionKind: 'accumulated_activity',
+    status: 'needs_clarification',
+    reviewNotes: 'Which tracker recorded this activity?',
+    clarification: { question: 'Which tracker recorded this activity?' }
+  }));
+  assert.equal(detail.presentation.primaryAction.label, 'Respond now');
+  assert.equal(detail.presentation.primaryAction.href, '#clarificationResponse');
+  assert.equal(detail.clarification.question, 'Which tracker recorded this activity?');
+  assert.match(detail.presentation.outcomeText, /needs your response/i);
+});

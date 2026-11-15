@@ -4,9 +4,9 @@ const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubm
 const Event = require('../models/Event');
 
 // A runner can send one proof to several events in a single request. Each target gets its
-// own entry, and the entries share a submissionAttemptId. One manual review decision on any
-// of them applies to the rest, so the same proof is not reviewed (and possibly decided
-// differently) once per event.
+// own entry, and the entries share a submissionAttemptId. A review decision may apply to a
+// sibling only when the reviewer has target-event access and that event does not require
+// manual review.
 //
 // The cascade only touches siblings still awaiting review. A sibling that its own event's
 // reviewer has already approved or rejected, or that was auto-approved, keeps that decision,
@@ -59,7 +59,7 @@ async function describeLinkedEntries(entry) {
   const linked = await findLinkedEntries(entry);
   if (!linked.length) return [];
   const eventIds = [...new Set(linked.map((doc) => String(doc.eventId)))];
-  const events = await Event.find({ _id: { $in: eventIds } }).select('title').lean();
+  const events = await Event.find({ _id: { $in: eventIds } }).select('title submissionReviewMode').lean();
   const titleById = new Map((events || []).map((event) => [String(event._id), event.title || 'Event']));
   return linked.map((doc) => ({
     id: String(doc._id),

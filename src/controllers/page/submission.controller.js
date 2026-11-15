@@ -37,6 +37,7 @@ const {
   PERSONAL_RECORD_REGISTRATION_ID,
   AccumulatedActivitySubmission,
   createAccumulatedActivitySubmission,
+  respondToAccumulatedClarification,
   getAccumulatedActivitiesForRegistrations,
   buildAccumulatedProgress,
   acquireSubmissionIdempotencyLock,
@@ -144,6 +145,26 @@ exports.postEditSubmissionMetadata = async (req, res) => {
   } catch (error) {
     const submissionId = String(req.params.submissionId || '').trim();
     const msg = encodeURIComponent(error.message || 'An error occurred while updating your submission.');
+    return res.redirect(`/runner/submissions/${submissionId}?type=error&msg=${msg}`);
+  }
+};
+
+exports.postRespondToSubmissionClarification = async (req, res) => {
+  const submissionId = String(req.params.submissionId || '').trim();
+  try {
+    const user = await User.findById(req.session.userId).select('role emailVerified accountStatus');
+    if (!user) return res.redirect('/login');
+    if (!canUseRunnerWorkspace(user)) {
+      return redirectWithPageMessage(res, 'error', 'Runner participation is not available for this account.');
+    }
+    await respondToAccumulatedClarification({
+      activityId: submissionId,
+      runnerId: user._id,
+      response: req.body.response
+    });
+    return res.redirect(`/runner/submissions/${submissionId}?type=success&msg=Response+sent.+Your+activity+is+back+in+review.`);
+  } catch (error) {
+    const msg = encodeURIComponent(error.message || 'Unable to send clarification response.');
     return res.redirect(`/runner/submissions/${submissionId}?type=error&msg=${msg}`);
   }
 };

@@ -109,6 +109,8 @@ test('new organiser and runner routes are CSRF-protected and scoped', () => {
   const runnerRoutes = read('src/routes/runner.routes.js');
   assert.match(runnerRoutes, /if \(req\.method === 'POST'\)[\s\S]*requireCsrfProtection\(req, res, next\)/);
   assert.match(runnerRoutes, /ocr-training-consent\/withdraw/);
+  const pageRoutes = read('src/routes/pageRoutes.js');
+  assert.match(pageRoutes, /respond-clarification'[\s\S]*requireRunnerWorkspace[\s\S]*requireCsrfProtection[\s\S]*postRespondToSubmissionClarification/);
 });
 
 test('admin redirects only go back inside the OCR area', () => {
