@@ -60,7 +60,8 @@ Commands were run from the feature branch with remote database variables removed
 
 - `npm run lint:check`: passed; 1,114 JavaScript files and 183 EJS templates checked.
 - `npm run format:check`: passed; 2 JSON files and 101 automation files checked.
-- `npm run docs:check`: passed before this report; rerun required after documentation changes.
+- `npm run docs:check`: passed; 423 Markdown files audited.
+- `npm run test:audit`: completed with 18 existing dependency advisories: 4 low, 8 moderate, 5 high, and 1 critical. No dependency was changed in this feature branch.
 - Focused event, XSS, registration, waitlist, proof, participant-state, and step suites: 151 passed, 0 failed.
 - Create-form and registration-price integration suites: 35 passed, 0 failed.
 - Full unit suite: 2,650 passed, 2 failed. Both failures are in concurrent uncommitted OCR work (`ocr-admin-ui.unit.test.js` and `ocr-platform-aware.unit.test.js`) and do not touch Event Experience v2 files.
@@ -74,6 +75,7 @@ Commands were run from the feature branch with remote database variables removed
 - No field Core Web Vitals data or Lighthouse environment was available. No LCP, INP, or CLS score is claimed.
 - Chromium command-line checks covered rendering and layout. Gallery/poster keyboard behavior remains covered by existing source-level interaction tests, not an automated browser driver.
 - Full repository unit status is not clean because the shared worktree contains unrelated, uncommitted OCR implementation and two associated failing tests.
+- Dependency audit is not clean. Review and upgrade vulnerable transitive and direct packages in a separate dependency-change release; some available fixes require breaking upgrades.
 
 ## Deployment handoff
 
