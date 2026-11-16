@@ -162,6 +162,17 @@ test('recap, submission rules, and organizer details use compact semantic patter
   assert.match(viewSource, /JPG, PNG, or WebP image up to 5 MB/);
 });
 
+test('event page renders safe Event schema and structured reward logistics', () => {
+  assert.match(viewSource, /seo\?\.structuredDataJson/);
+  assert.match(viewSource, /type="application\/ld\+json"><%- seo\.structuredDataJson %>/);
+  assert.match(viewSource, /details\.rewardDetails\?\.claimingNotes/);
+  assert.match(viewSource, /details\.rewardDetails\?\.deliveryDescription/);
+  assert.match(viewSource, /details\.rewardDetails\?\.specialBenefits/);
+  assert.doesNotMatch(viewSource, /event\.physicalRewardsDescription/);
+  assert.match(cssSource, /\.event-reward-details div[\s\S]*grid-template-columns:\s*minmax\(120px, 0\.35fr\) minmax\(0, 1fr\)/);
+  assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*\.event-reward-details div[\s\S]*grid-template-columns:\s*1fr/);
+});
+
 test('supporting content follows the decision-first semantic order', () => {
   const rewardsIndex = viewSource.indexOf('id="event-rewards"');
   const detailsIndex = viewSource.indexOf('id="event-full-details"');

@@ -846,6 +846,42 @@
   color: #0d9488;
 }
 
+.event-reward-details {
+  display: grid;
+  gap: var(--hr-space-2);
+  margin: var(--hr-space-4) 0 0;
+}
+
+.event-reward-details div {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.35fr) minmax(0, 1fr);
+  gap: var(--hr-space-3);
+  padding: var(--hr-space-3);
+  border: 1px solid var(--hr-color-border);
+  border-radius: var(--hr-radius-md);
+  background: var(--hr-color-page);
+}
+
+.event-reward-details dt {
+  color: var(--hr-color-ink);
+  font-weight: 700;
+}
+
+.event-reward-details dd {
+  margin: 0;
+  color: var(--hr-color-muted);
+  overflow-wrap: anywhere;
+}
+
+.event-benefit-grid {
+  margin-top: var(--hr-space-4);
+}
+
+.event-benefit-grid small {
+  display: block;
+  margin-top: var(--hr-space-2);
+}
+
 .event-badge-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
@@ -2380,6 +2416,11 @@ textarea.contact-organiser-input {
   .event-badge-card,
   .event-package-grid article {
     padding: 14px;
+  }
+
+  .event-reward-details div {
+    grid-template-columns: 1fr;
+    gap: var(--hr-space-1);
   }
 
   .event-goal-panel {

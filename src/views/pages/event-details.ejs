@@ -52,6 +52,9 @@
   <%- include('../layouts/head', { title: title, seo: typeof seo !== 'undefined' ? seo : null }) %>
   <link rel="stylesheet" href="/css/events.css">
   <link rel="stylesheet" href="/css/event-details.css">
+  <% if (!isPreviewMode && typeof seo !== 'undefined' && seo?.structuredDataJson) { %>
+    <script nonce="<%= locals.cspNonce || String() %>" type="application/ld+json"><%- seo.structuredDataJson %></script>
+  <% } %>
 </head>
 <body class="event-details-body<%= details.isAccumulatedChallenge ? ' is-accumulated-challenge' : '' %><%= locals.isAuthenticated ? ' is-authenticated' : '' %><%= locals.isAuthenticated && locals.isRunnerWorkspace ? ' has-runner-mobile-nav' : '' %><%= showMobileStickyCta ? ' has-event-mobile-sticky-cta' : '' %>">
   <%- include('../layouts/nav') %>
@@ -577,15 +580,36 @@
                   </article>
                 <% }) %>
               </div>
-              <% if (details.isAccumulatedChallenge && event.leaderboardRecognitionEnabled !== false) { %>
+              <% if (details.isAccumulatedChallenge && details.rewardDetails?.leaderboardRecognitionEnabled) { %>
                 <p class="event-supporting-copy">Your approved progress can appear on the event leaderboards based on the privacy option you choose during registration.</p>
               <% } %>
             <% } else { %>
               <p class="event-muted">Rewards have not been listed by the organizer yet.</p>
             <% } %>
 
-            <% if (event.physicalRewardsDescription) { %>
-              <p class="event-supporting-copy"><%= event.physicalRewardsDescription %></p>
+            <% if (details.rewardDetails?.description) { %>
+              <p class="event-supporting-copy"><%= details.rewardDetails.description %></p>
+            <% } %>
+
+            <% if (details.rewardDetails?.claimingNotes || details.rewardDetails?.deliveryDescription || details.rewardDetails?.claimingMethodLabel) { %>
+              <dl class="event-reward-details">
+                <% if (details.rewardDetails.claimingMethodLabel) { %><div><dt>Claiming method</dt><dd><%= details.rewardDetails.claimingMethodLabel %></dd></div><% } %>
+                <% if (details.rewardDetails.claimingNotes) { %><div><dt>Claiming instructions</dt><dd><%= details.rewardDetails.claimingNotes %></dd></div><% } %>
+                <% if (details.rewardDetails.deliveryDescription) { %><div><dt>Delivery details</dt><dd><%= details.rewardDetails.deliveryDescription %></dd></div><% } %>
+              </dl>
+            <% } %>
+
+            <% if ((details.rewardDetails?.specialBenefits || []).length) { %>
+              <div class="event-package-grid event-benefit-grid">
+                <% details.rewardDetails.specialBenefits.forEach((benefit) => { %>
+                  <article>
+                    <h3><%= benefit.title %></h3>
+                    <% if (benefit.description) { %><p><%= benefit.description %></p><% } %>
+                    <% if (benefit.appliesToPackageNames.length) { %><small>For: <%= benefit.appliesToPackageNames.join(', ') %></small><% } %>
+                    <% if (benefit.validUntil) { %><small>Valid until <%= benefit.validUntil %></small><% } %>
+                  </article>
+                <% }) %>
+              </div>
             <% } %>
 
             <% const eventBadges = badges || []; %>

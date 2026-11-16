@@ -517,6 +517,7 @@ test('buildPublicEventView surfaces structured race category summaries and prici
         distanceLabel: '10K',
         distanceKm: 10,
         slots: 150,
+        reserved: 42,
         cutoffTime: '2 hours',
         ageGroup: '18+',
         rewardsDescription: 'Medal for finishers'
@@ -542,7 +543,9 @@ test('buildPublicEventView surfaces structured race category summaries and prici
   assert.equal(publicEvent.raceCategories.length, 2);
   assert.equal(publicEvent.raceCategories[0].name, '10K Open');
   assert.equal(publicEvent.raceCategories[0].typeLabel, 'Distance');
-  assert.equal(publicEvent.raceCategories[0].summary, '10K | 10 km | 150 slots | 2 hours | 18+');
+  assert.equal(publicEvent.raceCategories[0].summary, '10K | 10 km | 108 of 150 spots available | 2 hours | 18+');
+  assert.equal(publicEvent.raceCategories[0].remainingSlots, 108);
+  assert.equal(publicEvent.raceCategories[0].isFull, false);
   assert.equal(publicEvent.raceCategories[0].rewardsDescription, 'Medal for finishers');
   assert.deepEqual(publicEvent.pricingOptions.map((option) => `${option.label}:${option.amountLabel}`), ['10K Open (10K):PHP 750', 'Kids Dash (1K):PHP 250']);
 });
@@ -563,17 +566,101 @@ test('buildPublicEventView surfaces package period pricing options', () => {
         name: 'Medal + Shirt',
         includedItems: { medal: true, shirt: true },
         pricingPeriods: [
-          { label: 'Early Bird', amount: 899 },
-          { label: 'Regular', amount: 999 }
+          { label: 'Early Bird', code: 'early_bird', startAt: '2026-01-01T00:00:00.000Z', endAt: '2026-01-31T23:59:59.000Z', amount: 899 },
+          { label: 'Regular', code: 'regular', startAt: '2026-02-01T00:00:00.000Z', endAt: '2026-02-28T23:59:59.000Z', amount: 999 }
         ]
       }
     ]
-  });
+  }, { now: new Date('2026-01-15T00:00:00.000Z') });
 
   assert.equal(publicEvent.pricing.label, 'Registration pricing');
   assert.equal(publicEvent.pricing.amountLabel, 'PHP 899');
   assert.equal(publicEvent.pricingOptions.length, 1);
-  assert.deepEqual(publicEvent.pricingOptions.map((option) => `${option.label}:${option.amountLabel}`), ['Medal + Shirt:From PHP 899']);
+  assert.deepEqual(publicEvent.pricingOptions.map((option) => `${option.label}:${option.amountLabel}`), ['Medal + Shirt:PHP 899']);
+  assert.equal(publicEvent.pricingOptions[0].pricingPeriodBadge, 'Early Bird');
+});
+
+test('period pricing never advertises a historical minimum outside an active period', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Package Pricing Race',
+    eventType: 'virtual',
+    feeMode: 'paid',
+    pricingMode: 'package_period',
+    feeCurrency: 'PHP',
+    registrationPackages: [{
+      name: 'Medal + Shirt',
+      pricingPeriods: [
+        { label: 'Early Bird', code: 'early_bird', startAt: '2026-01-01T00:00:00.000Z', endAt: '2026-01-31T23:59:59.000Z', amount: 899 }
+      ]
+    }]
+  }, { now: new Date('2026-03-01T00:00:00.000Z') });
+
+  assert.equal(publicEvent.pricingOptions.length, 0);
+  assert.equal(publicEvent.pricing.amountLabel, 'Not currently available');
+  assert.equal(publicEvent.pricing.availableNow, false);
+  assert.equal(publicEvent.packageOptions[0].amountLabel, 'Not currently available');
+});
+
+test('category availability and waitlist use the same slots and reserved fields', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Capacity Race',
+    eventType: 'onsite',
+    waitlistEnabled: true,
+    raceCategories: [
+      { categoryId: '5k', name: '5K', distanceLabel: '5K', slots: 20, reserved: 20 },
+      { categoryId: '10k', name: '10K', distanceLabel: '10K', slots: 50, reserved: 47 }
+    ],
+    feeMode: 'free'
+  });
+
+  assert.equal(publicEvent.raceCategories[0].availabilityLabel, 'Full · Waitlist available');
+  assert.equal(publicEvent.raceCategories[0].isFull, true);
+  assert.equal(publicEvent.raceCategories[1].availabilityLabel, '3 of 50 spots available');
+  assert.deepEqual(publicEvent.waitlistCategories, [{ categoryId: '5k', label: '5K' }]);
+});
+
+test('public reward details include claiming, delivery, and special benefits', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Reward Race',
+    eventType: 'onsite',
+    physicalRewardsEnabled: true,
+    physicalRewardMedalEnabled: true,
+    physicalRewardsDescription: 'Every verified finisher receives the listed kit.',
+    physicalRewardsClaimingNotes: 'Bring your bib to the claiming desk.',
+    claimingMethod: 'both',
+    deliveryFeeDescription: 'Metro Manila delivery takes five business days.',
+    specialRewardBenefits: [{
+      title: 'Partner discount',
+      description: 'Ten percent off one purchase.',
+      validUntil: '2026-12-31T00:00:00.000Z',
+      appliesToPackageNames: ['Premium Kit']
+    }],
+    feeMode: 'free'
+  });
+
+  assert.equal(publicEvent.rewardDetails.description, 'Every verified finisher receives the listed kit.');
+  assert.equal(publicEvent.rewardDetails.claimingNotes, 'Bring your bib to the claiming desk.');
+  assert.equal(publicEvent.rewardDetails.claimingMethodLabel, 'Delivery or pickup');
+  assert.equal(publicEvent.rewardDetails.specialBenefits[0].title, 'Partner discount');
+  assert.equal(publicEvent.rewardDetails.specialBenefits[0].validUntil, 'Dec 31, 2026');
+});
+
+test('registration lifecycle distinguishes future, open, closed, ended, and cancelled states', () => {
+  const base = {
+    title: 'Lifecycle Event',
+    status: 'published',
+    eventType: 'onsite',
+    feeMode: 'free',
+    registrationOpenAt: '2026-06-01T00:00:00.000Z',
+    registrationCloseAt: '2026-06-30T23:59:59.000Z',
+    eventEndAt: '2026-07-15T23:59:59.000Z'
+  };
+
+  assert.equal(buildPublicEventView(base, { now: new Date('2026-05-01T00:00:00.000Z') }).registrationState.tone, 'upcoming');
+  assert.equal(buildPublicEventView(base, { now: new Date('2026-06-15T00:00:00.000Z') }).registrationState.tone, 'open');
+  assert.equal(buildPublicEventView(base, { now: new Date('2026-07-01T00:00:00.000Z') }).registrationState.label, 'Registration Closed');
+  assert.equal(buildPublicEventView(base, { now: new Date('2026-08-01T00:00:00.000Z') }).registrationState.label, 'Event Ended');
+  assert.equal(buildPublicEventView({ ...base, status: 'cancelled' }, { now: new Date('2026-06-15T00:00:00.000Z') }).registrationState.label, 'Event Cancelled');
 });
 
 test('buildPublicEventSeo uses event image and canonical URL', () => {
@@ -605,4 +692,36 @@ test('buildPublicEventSeo prefers a social poster and resolves local artwork URL
   assert.equal(seo.ogImageWidth, 1200);
   assert.equal(seo.ogImageHeight, 630);
   assert.equal(seo.ogImageType, 'image/webp');
+});
+
+test('buildPublicEventSeo emits safe Event schema only for physical attendance', () => {
+  const seo = buildPublicEventSeo({
+    title: '</script><script>alert(1)</script> Community Run',
+    slug: 'community-run',
+    description: 'A safe community event.',
+    eventType: 'onsite',
+    eventStartAt: '2026-09-01T00:00:00+08:00',
+    eventEndAt: '2026-09-01T09:00:00+08:00',
+    venueName: 'City Track',
+    venueAddress: '1 Run Road',
+    city: 'Baguio',
+    country: 'PH',
+    feeMode: 'free'
+  }, 'https://hellorun.online');
+
+  assert.doesNotMatch(seo.structuredDataJson, /<\/script>/i);
+  const structuredData = JSON.parse(seo.structuredDataJson);
+  assert.equal(structuredData['@type'], 'Event');
+  assert.equal(structuredData.eventAttendanceMode, 'https://schema.org/OfflineEventAttendanceMode');
+  assert.equal(structuredData.location.name, 'City Track');
+  assert.equal(structuredData.offers.price, 0);
+
+  const virtualSeo = buildPublicEventSeo({
+    title: 'Virtual Event',
+    slug: 'virtual-event',
+    eventType: 'virtual',
+    eventStartAt: '2026-09-01T00:00:00+08:00',
+    eventEndAt: '2026-09-30T00:00:00+08:00'
+  }, 'https://hellorun.online');
+  assert.equal(virtualSeo.structuredDataJson, '');
 });
