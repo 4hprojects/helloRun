@@ -59,7 +59,7 @@
 <body class="event-details-body<%= details.isAccumulatedChallenge ? ' is-accumulated-challenge' : '' %><%= locals.isAuthenticated ? ' is-authenticated' : '' %><%= locals.isAuthenticated && locals.isRunnerWorkspace ? ' has-runner-mobile-nav' : '' %><%= showMobileStickyCta ? ' has-event-mobile-sticky-cta' : '' %>">
   <%- include('../layouts/nav') %>
 
-  <main class="event-details-page">
+  <main class="event-details-page" id="main-content" tabindex="-1">
     <%
       const registrationToneClass = details.registrationState ? `event-status-${details.registrationState.tone}` : 'event-status-neutral';
       const defaultEventImageUrl = '/images/helloRun-icon.webp';

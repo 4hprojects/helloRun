@@ -11,6 +11,7 @@ const cssSource = fs.readFileSync(path.join(ROOT, 'src/public/css/event-details.
 
 test('event details template compiles and exposes task-first section navigation', () => {
   assert.doesNotThrow(() => ejs.compile(viewSource, { filename: viewPath }));
+  assert.match(viewSource, /<main class="event-details-page" id="main-content" tabindex="-1">/);
   assert.match(viewSource, /<details class="event-section-jump">/);
   assert.match(viewSource, /<summary>Jump to section<\/summary>/);
   assert.match(viewSource, /class="event-section-nav" aria-label="Event page sections"/);
@@ -88,6 +89,8 @@ test('event overview combines period, place, goals, price, and deadline without 
   assert.match(viewSource, /details\.distanceSummaryLabel \|\| details\.completionGoalLabel/);
   assert.match(viewSource, /details\.pricing\?\.amountLabel/);
   assert.doesNotMatch(viewSource, /class="event-stats-strip/);
+  assert.match(cssSource, /@media \(max-width: 980px\)[\s\S]*\.event-hero-panel\s*\{[\s\S]*display:\s*none/);
+  assert.match(cssSource, /@media \(max-width: 980px\)[\s\S]*\.event-side-panel \.event-register-card\s*\{[\s\S]*display:\s*none/);
 });
 
 test('participant essentials keep their content while omitting only the mobile heading', () => {

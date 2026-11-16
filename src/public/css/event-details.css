@@ -1772,6 +1772,10 @@ textarea.contact-organiser-input {
     position: static;
   }
 
+  .event-hero-panel {
+    display: none;
+  }
+
   .event-side-panel {
     order: -1;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1779,6 +1783,7 @@ textarea.contact-organiser-input {
 
   .event-side-panel .event-register-card {
     grid-column: 1 / -1;
+    display: none;
   }
 
   .event-detail-card .event-side-list p,
@@ -1918,7 +1923,7 @@ textarea.contact-organiser-input {
 
   .event-hero-panel {
     padding: 14px 16px;
-    display: grid;
+    display: none;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     column-gap: 14px;
     align-items: start;
