@@ -196,10 +196,10 @@
             <div class="form-group form-group-full">
               <label for="description" class="label-with-help">
                 Description *
-                <span class="field-help-icon" tabindex="0" aria-label="This is the short public summary shown in event listings and previews. Put full rules, inclusions, FAQs, and proof instructions in Event Details.">?</span>
+                <span class="field-help-icon" tabindex="0" aria-label="This is the short public summary shown in event listings and previews. Structured schedules, categories, fees, rewards, and proof settings appear automatically. Use Event Details for extra context, FAQs, and policies.">?</span>
               </label>
               <textarea id="description" name="description" rows="4" required placeholder="Short public summary runners will see in listings and previews."><%= formData.description %></textarea>
-              <small class="field-hint">Keep this brief. Put full rules, inclusions, FAQs, and proof instructions in Event Details below.</small>
+              <small class="field-hint">Keep this brief. Structured schedules, categories, fees, rewards, and proof settings appear automatically. Use Event Details for extra context, FAQs, and policies.</small>
             </div>
           </div>
         </div>
@@ -642,9 +642,13 @@
             <div class="form-group form-group-full">
               <label>Proof Types Allowed</label>
               <div class="checkbox-row">
-                <% const selectedProofs = formData.proofTypesAllowed && formData.proofTypesAllowed.length ? formData.proofTypesAllowed : ['running_app_sync', 'photo', 'manual']; %>
+                <% const selectedProofs = formData.proofTypesAllowed && formData.proofTypesAllowed.length ? formData.proofTypesAllowed : (locals.runningAppSyncAvailable ? ['running_app_sync', 'photo', 'manual'] : ['photo', 'manual']); %>
                 <% const hasRunningAppProof = selectedProofs.includes('running_app_sync') || selectedProofs.includes('gps'); %>
-                <label><input type="checkbox" name="proofTypesAllowed" value="running_app_sync" <%= hasRunningAppProof ? 'checked' : '' %>> Strava sync or other running app sync</label>
+                <% if (locals.runningAppSyncAvailable) { %>
+                  <label><input type="checkbox" name="proofTypesAllowed" value="running_app_sync" <%= hasRunningAppProof ? 'checked' : '' %>> Strava activity import</label>
+                <% } else { %>
+                  <p class="field-hint">Strava activity import is unavailable until the integration is configured.</p>
+                <% } %>
                 <label><input type="checkbox" name="proofTypesAllowed" value="photo" <%= selectedProofs.includes('photo') ? 'checked' : '' %>> Photo</label>
                 <label><input type="checkbox" name="proofTypesAllowed" value="manual" <%= selectedProofs.includes('manual') ? 'checked' : '' %>> Manual</label>
               </div>
@@ -1124,7 +1128,7 @@
         <div id="event-details-step" class="form-section form-section-details" tabindex="-1" data-wizard-step="event-details-step" data-builder-group="public-experience">
           <div class="section-kicker">Public Experience</div>
           <div class="section-title">Event Details</div>
-          <p class="section-helper">Use this section for full event rules, FAQs, pricing explanation, submission rules, and runner guidance.</p>
+          <p class="section-helper">Add context, FAQs, policies, route notes, and runner guidance not already covered by structured event settings.</p>
           <div class="waiver-panels">
             <div class="waiver-panel <%= errors.eventDetailsMarkdown ? 'has-error' : '' %>">
               <div class="waiver-label-row">

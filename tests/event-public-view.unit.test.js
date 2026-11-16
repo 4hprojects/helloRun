@@ -4,6 +4,8 @@ const assert = require('node:assert/strict');
 const {
   buildPublicEventSeo,
   buildPublicEventView,
+  getEffectiveProofTypes,
+  isRunningAppSyncAvailable,
   renderEventDetailsContent
 } = require('../src/utils/event-public-view');
 const {
@@ -357,6 +359,52 @@ test('buildPublicEventView uses Anywhere for virtual events without a venue', ()
 
   assert.equal(publicEvent.showLocation, false);
   assert.equal(publicEvent.location.publicLabel, 'Anywhere');
+});
+
+test('buildPublicEventView does not describe an empty hybrid venue as Anywhere', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Hybrid Community Run',
+    slug: 'hybrid-community-run',
+    eventType: 'hybrid',
+    eventTypesAllowed: ['onsite', 'virtual'],
+    feeMode: 'free'
+  });
+
+  assert.equal(publicEvent.showLocation, false);
+  assert.equal(publicEvent.location.publicLabel, 'Location details not listed');
+});
+
+test('running app proof is public only when the Strava integration is configured', () => {
+  const unconfiguredEnv = {};
+  const configuredEnv = {
+    STRAVA_CLIENT_ID: 'client-id',
+    STRAVA_CLIENT_SECRET: 'client-secret',
+    STRAVA_REDIRECT_URI: 'https://example.test/integrations/strava/callback'
+  };
+
+  assert.equal(isRunningAppSyncAvailable(unconfiguredEnv), false);
+  assert.equal(isRunningAppSyncAvailable(configuredEnv), true);
+  assert.deepEqual(
+    getEffectiveProofTypes(['running_app_sync', 'photo', 'manual'], { env: unconfiguredEnv }),
+    ['photo', 'manual']
+  );
+
+  const unavailable = buildPublicEventView({
+    title: 'Virtual Proof Event',
+    eventType: 'virtual',
+    proofTypesAllowed: ['running_app_sync', 'photo', 'manual'],
+    feeMode: 'free'
+  }, { runningAppSyncAvailable: false });
+  assert.deepEqual(unavailable.virtualRules.proofTypes, ['Fitness-app screenshot', 'Matching activity details']);
+  assert.doesNotMatch(unavailable.virtualRules.proofInstructions, /Strava|sync/i);
+
+  const available = buildPublicEventView({
+    title: 'Virtual Proof Event',
+    eventType: 'virtual',
+    proofTypesAllowed: ['running_app_sync', 'photo'],
+    feeMode: 'free'
+  }, { runningAppSyncAvailable: true });
+  assert.deepEqual(available.virtualRules.proofTypes, ['Strava activity import', 'Fitness-app screenshot']);
 });
 
 test('buildPublicEventView adds recap for ended public events', () => {

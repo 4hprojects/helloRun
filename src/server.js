@@ -40,6 +40,7 @@ const app = express();
 app.locals.getLifecycleStatus = getLifecycleStatus;
 app.locals.buildNavigation = require('./config/navigation').buildNavigation;
 app.locals.submissionReviewModeOptions = require('./utils/submission-review-mode').SUBMISSION_REVIEW_MODE_OPTIONS;
+app.locals.runningAppSyncAvailable = require('./utils/event-public-view').isRunningAppSyncAvailable();
 app.locals.assetVersion = resolveServiceWorkerVersion();
 const isProduction = process.env.NODE_ENV === 'production';
 const { attachCsrfToken } = require('./middleware/csrf.middleware');

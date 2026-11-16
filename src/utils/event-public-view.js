@@ -75,7 +75,8 @@ function buildPublicEventView(event, options = {}) {
   const pricingOptions = buildPricingOptions(event, raceCategories, now);
   const pricing = buildPricingSummary(event, packageOptions, pricingOptions);
   const timeline = buildTimeline(event);
-  const virtualRules = buildVirtualRules(event);
+  const effectiveProofTypes = getEffectiveProofTypes(event.proofTypesAllowed, options);
+  const virtualRules = buildVirtualRules(event, effectiveProofTypes);
   const location = buildLocation(event);
   const heroImageUrl = event.bannerImageUrl || event.posterImageUrl || '/images/helloRun-icon.webp';
   const posterImageUrl = event.posterImageUrl || '';
@@ -120,7 +121,7 @@ function buildPublicEventView(event, options = {}) {
       targetDistanceLabel
     }),
     challengeDates: buildChallengeDates(event),
-    participantEssentials: isAccumulatedChallenge ? buildParticipantEssentials(event, challengeConfig) : [],
+    participantEssentials: isAccumulatedChallenge ? buildParticipantEssentials(event, challengeConfig, effectiveProofTypes) : [],
     registrationState,
     pricing,
     pricingOptions,
@@ -136,7 +137,8 @@ function buildPublicEventView(event, options = {}) {
       targetDistanceLabel,
       eventTypeLabel,
       isAccumulatedChallenge,
-      isEnded
+      isEnded,
+      effectiveProofTypes
     }),
     heroImageUrl,
     posterImageUrl,
@@ -226,7 +228,7 @@ function buildChallengeDates(event) {
   ];
 }
 
-function buildParticipantEssentials(event, challengeConfig = {}) {
+function buildParticipantEssentials(event, challengeConfig = {}, effectiveProofTypes = []) {
   const description = htmlToPlainText(event.description || '');
   const sentences = description.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
   const audienceSummary = String(sentences[0] || '').trim();
@@ -237,8 +239,7 @@ function buildParticipantEssentials(event, challengeConfig = {}) {
     ? Math.max(1, Math.floor((activityEndAt - activityStartAt) / 86400000) + 1)
     : null;
   const targetSteps = Number(challengeConfig.targetSteps || 0);
-  const proofTypes = normalizeList(event.proofTypesAllowed);
-  const requiresScreenshot = proofTypes.includes('photo');
+  const requiresScreenshot = effectiveProofTypes.includes('photo');
   const items = [];
 
   if (audienceSummary) items.push({ key: 'eligibility', label: 'Who can join', value: audienceSummary });
@@ -730,11 +731,11 @@ function buildTimeline(event) {
   ].filter(Boolean);
 }
 
-function buildVirtualRules(event) {
+function buildVirtualRules(event, effectiveProofTypes = []) {
   const challengeConfig = resolveChallengeConfig(event);
   const acceptedActivities = normalizeList(event.acceptedRunTypes).map(formatActivityTypeLabel);
-  const proofTypes = normalizeList(event.proofTypesAllowed).map(formatProofTypeLabel);
-  const proofTypeKeys = normalizeList(event.proofTypesAllowed);
+  const proofTypeKeys = effectiveProofTypes;
+  const proofTypes = proofTypeKeys.map(formatProofTypeLabel);
   const supportsScreenshotAndEntry = proofTypeKeys.includes('photo') && proofTypeKeys.includes('manual');
   const venueMentionsTreadmill = /treadmill/i.test(String(event.venueName || ''));
   const minimumDistance = Number.isFinite(Number(event.minimumActivityDistanceKm)) && Number(event.minimumActivityDistanceKm) > 0
@@ -773,14 +774,13 @@ function buildVirtualRules(event) {
 function buildLocation(event) {
   const cityCountry = [event.city, getCountryName(event.country)].filter(Boolean).join(', ');
   const summary = [event.venueName, cityCountry].filter(Boolean).join(' - ');
-  const isVirtual = String(event.eventType || '').trim() === 'virtual'
-    || normalizeList(event.eventTypesAllowed).includes('virtual');
+  const isVirtualOnly = String(event.eventType || '').trim() === 'virtual';
   return {
     venueName: event.venueName || '',
     address: event.venueAddress || '',
     cityCountry,
     summary,
-    publicLabel: summary || (isVirtual ? 'Anywhere' : 'Location details not listed')
+    publicLabel: summary || (isVirtualOnly ? 'Anywhere' : 'Location details not listed')
   };
 }
 
@@ -791,7 +791,7 @@ function buildEventRecap(event, options = {}) {
   const completionLabel = options.isAccumulatedChallenge
     ? 'build verified distance across eligible activities'
     : 'complete the selected distance during the official event window';
-  const proofTypes = normalizeList(event.proofTypesAllowed).map(formatProofTypeLabel);
+  const proofTypes = normalizeList(options.effectiveProofTypes).map(formatProofTypeLabel);
 
   return {
     body: `The ${event.title || 'HelloRun event'} encouraged runners, walkers, and active community members to ${completionLabel}. Participants could join ${distanceLabel} and submit clear activity proof for organizer review.`,
@@ -904,12 +904,27 @@ function formatRaceCategoryTypeLabel(value) {
 
 function formatProofTypeLabel(value) {
   const labels = {
-    running_app_sync: 'Strava or running app sync',
+    running_app_sync: 'Strava activity import',
     gps: 'GPS activity',
     photo: 'Fitness-app screenshot',
     manual: 'Matching activity details'
   };
   return labels[value] || value;
+}
+
+function isRunningAppSyncAvailable(env = process.env) {
+  return ['STRAVA_CLIENT_ID', 'STRAVA_CLIENT_SECRET', 'STRAVA_REDIRECT_URI']
+    .every((name) => String(env?.[name] || '').trim());
+}
+
+function getEffectiveProofTypes(proofTypes, options = {}) {
+  const runningAppSyncAvailable = typeof options.runningAppSyncAvailable === 'boolean'
+    ? options.runningAppSyncAvailable
+    : isRunningAppSyncAvailable(options.env || process.env);
+
+  return normalizeList(proofTypes).filter((proofType) => (
+    proofType !== 'running_app_sync' || runningAppSyncAvailable
+  ));
 }
 
 function normalizePricingMode(value, feeMode = 'free') {
@@ -1031,5 +1046,7 @@ function firstFiniteNumber(...values) {
 module.exports = {
   buildPublicEventSeo,
   buildPublicEventView,
+  getEffectiveProofTypes,
+  isRunningAppSyncAvailable,
   renderEventDetailsContent
 };
