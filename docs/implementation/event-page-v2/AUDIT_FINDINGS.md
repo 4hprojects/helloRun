@@ -1,9 +1,12 @@
 # Event Experience v2: Phase 0 Audit
 
-Audit date: 2026-11-17  
-Base commit: `11d09645d24479c6d2075358b271b5304e27a2f5`  
-Base branch: `docs/deployment-target-preflight`  
-Feature branch: `feat/event-experience-v2`  
+Audit date: 2026-11-17
+
+Base commit: `11d09645d24479c6d2075358b271b5304e27a2f5`
+
+Base branch: `docs/deployment-target-preflight`
+
+Feature branch: `feat/event-experience-v2`
 Runtime: Node `v20.20.2`, npm `10.8.2` on Linux; `package.json` requires Node `>=22.0.0`
 
 ## Gate result
