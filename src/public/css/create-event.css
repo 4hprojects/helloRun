@@ -156,6 +156,11 @@
   align-items: start;
 }
 
+.create-event-form > input[type="hidden"],
+.create-event-form > .wizard-progress[hidden] {
+  display: none !important;
+}
+
 .create-event-form :is(input, select, textarea, button, a):focus-visible {
   outline: 2px solid var(--hr-color-brand, #c2410c);
   outline-offset: 2px;
@@ -227,6 +232,8 @@
 
 .wizard-main {
   display: flex;
+  grid-column: 2;
+  grid-row: 1;
   min-width: 0;
   flex-direction: column;
 }
@@ -3695,6 +3702,8 @@ textarea:focus {
 
 .builder-group-nav {
   position: sticky;
+  grid-column: 1;
+  grid-row: 1;
   top: var(--event-builder-sticky-top);
   z-index: 25;
   max-height: calc(100vh - var(--event-builder-sticky-top) - 1rem);
@@ -3925,11 +3934,18 @@ textarea:focus {
   .create-event-form { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
 
   .builder-group-nav {
+    grid-column: 1;
+    grid-row: 1;
     top: var(--event-builder-sticky-top);
     max-height: none;
     overflow: hidden;
     border-radius: 10px;
     padding: 0.4rem;
+  }
+
+  .wizard-main {
+    grid-column: 1;
+    grid-row: 2;
   }
 
   .builder-group-nav-heading,
