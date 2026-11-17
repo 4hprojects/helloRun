@@ -222,13 +222,16 @@ test('answers are escaped, being organiser and participant text on a public page
 
 test('the editor is on both event forms and survives a save', () => {
   const form = read('src/services/event-form.service.js');
+  const editor = read('src/views/organizer/partials/custom-question-builder.ejs');
   assert.match(form, /customQuestions: parseQuestionsFromBody\(body\)/);
   // Re-parsed from formData, not from a body that is not in scope there — that mistake
   // would have silently wiped every question on save.
   assert.match(form, /parseQuestions\(formData\.customQuestions, event\.customQuestions\)/);
   assert.match(form, /which is not in scope here/);
   for (const view of ['src/views/organizer/edit-event.ejs', 'src/views/organizer/create-event.ejs']) {
-    assert.match(read(view), /customQuestionLabel<%= qi %>/, view);
-    assert.match(read(view), /customQuestionType<%= qi %>/, view);
+    assert.match(read(view), /include\('partials\/custom-question-builder'/, view);
+    assert.match(read(view), /event-custom-question-builder\.js/, view);
   }
+  assert.match(editor, /customQuestionLabel<%= qi %>/);
+  assert.match(editor, /customQuestionType<%= qi %>/);
 });

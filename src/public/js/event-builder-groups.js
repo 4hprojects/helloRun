@@ -176,6 +176,13 @@
     });
   });
 
+  form.addEventListener('event-builder:reveal-field', (event) => {
+    const field = event.detail?.field;
+    if (!(field instanceof HTMLElement) || !form.contains(field)) return;
+    const groupId = groupForNode(field);
+    if (groupId) setActiveGroup(groupId);
+  });
+
   if ('IntersectionObserver' in window) {
     const observer = new IntersectionObserver((entries) => {
       if (mobileQuery.matches) return;
