@@ -92,6 +92,7 @@ combine several activities into one upload.
 
 - The date of the activity
 - The distance covered
+- The activity duration
 - The activity type
 - The tracking app or device used
 - The elevation gain, when your app records it
@@ -150,6 +151,7 @@ function buildCnsMoveMoreChallengeEventPayload({ organizerId, approvedBy, refere
     proofTypesAllowed: ['photo'],
     requireActivityScreenshot: true,
     requireTrackingAppDevice: true,
+    submissionReviewMode: 'manual',
     suppressDailyGuidance: true,
     virtualCompletionMode: 'accumulated_activity',
     challengeMetrics: ['distance'],

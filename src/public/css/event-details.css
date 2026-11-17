@@ -321,6 +321,71 @@
   margin: 16px 0;
 }
 
+.event-overview {
+  position: relative;
+  z-index: 2;
+  width: min(1180px, calc(100% - 32px));
+  margin: -28px auto 0;
+  border-radius: var(--hr-radius-md);
+  background: var(--hr-color-surface);
+  box-shadow: var(--hr-shadow-md);
+}
+
+.event-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+}
+
+.event-overview-grid > div {
+  min-width: 0;
+  padding: 18px 20px;
+  border-right: 1px solid var(--hr-color-border);
+}
+
+.event-overview-grid > div:last-child {
+  border-right: 0;
+}
+
+.event-overview-grid dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--hr-color-subtle);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.event-overview-grid dt svg {
+  width: 17px;
+  height: 17px;
+  color: var(--hr-color-brand);
+  stroke-width: 2;
+}
+
+.event-overview-grid dd {
+  margin: 8px 0 0;
+  color: var(--hr-color-ink);
+  font-size: 0.95rem;
+  font-weight: 750;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.event-overview-grid dd strong,
+.event-overview-grid dd small {
+  display: block;
+}
+
+.event-overview-grid dd small {
+  margin-top: 2px;
+  color: var(--hr-color-subtle);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .event-details-shell {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
@@ -779,6 +844,42 @@
 
 .event-reward-grid i {
   color: #0d9488;
+}
+
+.event-reward-details {
+  display: grid;
+  gap: var(--hr-space-2);
+  margin: var(--hr-space-4) 0 0;
+}
+
+.event-reward-details div {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.35fr) minmax(0, 1fr);
+  gap: var(--hr-space-3);
+  padding: var(--hr-space-3);
+  border: 1px solid var(--hr-color-border);
+  border-radius: var(--hr-radius-md);
+  background: var(--hr-color-page);
+}
+
+.event-reward-details dt {
+  color: var(--hr-color-ink);
+  font-weight: 700;
+}
+
+.event-reward-details dd {
+  margin: 0;
+  color: var(--hr-color-muted);
+  overflow-wrap: anywhere;
+}
+
+.event-benefit-grid {
+  margin-top: var(--hr-space-4);
+}
+
+.event-benefit-grid small {
+  display: block;
+  margin-top: var(--hr-space-2);
 }
 
 .event-badge-grid {
@@ -1623,6 +1724,18 @@ textarea.contact-organiser-input {
     grid-template-columns: 1fr;
   }
 
+  .event-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .event-overview-grid > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .event-overview-grid > div:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--hr-color-border);
+  }
+
   .event-nav-row,
   .event-stats-strip,
   .event-section-jump,
@@ -1659,6 +1772,10 @@ textarea.contact-organiser-input {
     position: static;
   }
 
+  .event-hero-panel {
+    display: none;
+  }
+
   .event-side-panel {
     order: -1;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1666,6 +1783,7 @@ textarea.contact-organiser-input {
 
   .event-side-panel .event-register-card {
     grid-column: 1 / -1;
+    display: none;
   }
 
   .event-detail-card .event-side-list p,
@@ -1733,6 +1851,32 @@ textarea.contact-organiser-input {
     gap: 12px;
   }
 
+  .event-overview {
+    width: min(100% - 24px, 1180px);
+    margin-top: -6px;
+    border-radius: var(--hr-radius-md);
+    box-shadow: var(--hr-shadow-sm);
+  }
+
+  .event-overview-grid > div {
+    padding: 12px;
+  }
+
+  .event-overview-grid dt {
+    gap: 6px;
+    font-size: 0.66rem;
+  }
+
+  .event-overview-grid dt svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .event-overview-grid dd {
+    margin-top: 5px;
+    font-size: 0.82rem;
+  }
+
   .event-chip-row {
     gap: 6px;
   }
@@ -1779,7 +1923,7 @@ textarea.contact-organiser-input {
 
   .event-hero-panel {
     padding: 14px 16px;
-    display: grid;
+    display: none;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     column-gap: 14px;
     align-items: start;
@@ -2277,6 +2421,11 @@ textarea.contact-organiser-input {
   .event-badge-card,
   .event-package-grid article {
     padding: 14px;
+  }
+
+  .event-reward-details div {
+    grid-template-columns: 1fr;
+    gap: var(--hr-space-1);
   }
 
   .event-goal-panel {

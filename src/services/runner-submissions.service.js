@@ -380,6 +380,12 @@ function formatSubmissionDetail(doc) {
     source: String(doc.source || 'manual'),
     runType: doc.runType || 'run',
     reviewNotes: doc.reviewNotes || '',
+    clarification: {
+      question: doc.clarification?.question || (doc.status === 'needs_clarification' ? doc.reviewNotes || '' : ''),
+      response: doc.clarification?.response || '',
+      requestedAt: doc.clarification?.requestedAt || null,
+      respondedAt: doc.clarification?.respondedAt || null
+    },
     reviewedByName,
     elevationGain: doc.elevationGain !== null && doc.elevationGain !== undefined ? Number(doc.elevationGain) : null,
     steps: doc.steps !== null && doc.steps !== undefined ? Number(doc.steps) : null,
@@ -428,7 +434,7 @@ function buildRunnerSubmissionDetailPresentation(submission = {}) {
       ? { type: 'resubmit', label: 'Upload new proof', registrationId: submission.registrationObjectId }
       : { type: 'correction', label: 'Correct activity details', href: '#correctionTitle' };
   } else if (submission.status === 'needs_clarification') {
-    primaryAction = { type: 'link', label: 'Go to my registrations', href: '/my-registrations' };
+    primaryAction = { type: 'correction', label: 'Respond now', href: '#clarificationResponse' };
   } else if (submission.hasCertificate) {
     primaryAction = submission.primaryAction;
   } else if (submission.status === 'approved' && submission.eventSlug) {
@@ -447,7 +453,9 @@ function buildRunnerSubmissionDetailPresentation(submission = {}) {
       ? (submission.hasCertificate ? 'Your result is approved and your certificate is ready.' : 'Your result was reviewed and accepted by the organizer.')
       : submission.status === 'rejected'
         ? 'This entry needs a correction before it can become an approved result.'
-        : 'Your entry is in the organizer review queue. No action is needed right now.',
+        : submission.status === 'needs_clarification'
+          ? 'The organizer needs your response before this activity can be reviewed again.'
+          : 'Your entry is in the organizer review queue. No action is needed right now.',
     showProofReadingDetails: Boolean(submission.ocrData),
     showLeaderboard: submission.status === 'approved' && Boolean(submission.eventSlug)
   };

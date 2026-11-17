@@ -174,7 +174,7 @@
             <div class="form-group form-group-full">
               <label for="description" class="label-with-help">
                 Description *
-                <span class="field-help-icon" tabindex="0" aria-label="This is the short public summary shown in event listings and previews. Put full rules, inclusions, FAQs, and proof instructions in Event Details.">?</span>
+                <span class="field-help-icon" tabindex="0" aria-label="This is the short public summary shown in event listings and previews. Structured schedules, categories, fees, rewards, and proof settings appear automatically. Use Event Details for extra context, FAQs, and policies.">?</span>
               </label>
               <textarea id="description" name="description" rows="4" required><%= formData.description %></textarea>
             </div>
@@ -619,7 +619,7 @@
         <div id="event-details-step" class="form-section form-section-details" tabindex="-1" data-wizard-step="event-details-step" data-builder-group="public-experience">
           <div class="section-kicker">Public Experience</div>
           <div class="section-title">Event Details</div>
-          <p class="section-helper">Use this section for full event rules, FAQs, pricing explanation, submission rules, and runner guidance.</p>
+          <p class="section-helper">Add context, FAQs, policies, route notes, and runner guidance not already covered by structured event settings.</p>
           <div class="waiver-panels">
             <div class="waiver-panel <%= errors.eventDetailsMarkdown ? 'has-error' : '' %>">
               <div class="waiver-label-row">
@@ -809,7 +809,7 @@
               </div>
               <small class="field-hint">Only ask when there is actually a shirt. Leave the stock boxes below empty for any size you do not offer — a size left blank is not shown at all, while a zero is shown as offered but sold out.</small>
             </div>
-            <div class="form-group form-group-full">
+            <div class="form-group form-group-full kit-inventory-panel" data-kit-inventory-panel <%= formData.kitSizeRequired ? '' : 'hidden' %>>
               <label>Race kit stock per size</label>
               <div class="kit-inventory-grid">
                 <% (typeof kitSizes !== 'undefined' ? kitSizes : ['XS','S','M','L','XL','2XL','3XL']).forEach(function (size) {
@@ -846,39 +846,7 @@
               <small class="field-hint">Leave blank to fall back to the registration close date, then the event start. A transfer after the gun is meaningless, so there is always a limit.</small>
             </div>
             <div class="form-group form-group-full">
-              <label>Your own questions</label>
-              <small class="field-hint">Up to ten extra questions on the registration form — a short answer, a pick from a list, or an extra agreement. Leave a label blank to remove that question. A list question with no options is dropped. Answers appear on the registrants export.</small>
-              <div class="custom-questions-list">
-                <% for (var qi = 0; qi < 10; qi++) {
-                     var q = (formData.customQuestions || [])[qi] || null;
-                     if (!q && qi > (formData.customQuestions || []).length) { continue; } %>
-                  <fieldset class="custom-question-row">
-                    <legend>Question <%= qi + 1 %></legend>
-                    <input type="hidden" name="customQuestionId<%= qi %>" value="<%= q ? q.questionId : '' %>">
-                    <label for="customQuestionLabel<%= qi %>">Question
-                      <input id="customQuestionLabel<%= qi %>" name="customQuestionLabel<%= qi %>" maxlength="160" value="<%= q ? q.label : '' %>">
-                    </label>
-                    <label for="customQuestionType<%= qi %>">Answer type
-                      <select id="customQuestionType<%= qi %>" name="customQuestionType<%= qi %>">
-                        <option value="short_text" <%= q && q.type === 'short_text' ? 'selected' : '' %>>Short answer</option>
-                        <option value="dropdown" <%= q && q.type === 'dropdown' ? 'selected' : '' %>>Pick from a list</option>
-                        <option value="single_choice" <%= q && q.type === 'single_choice' ? 'selected' : '' %>>Pick one</option>
-                        <option value="checkbox_agreement" <%= q && q.type === 'checkbox_agreement' ? 'selected' : '' %>>Agreement checkbox</option>
-                      </select>
-                    </label>
-                    <label for="customQuestionOptions<%= qi %>">Options, one per line
-                      <textarea id="customQuestionOptions<%= qi %>" name="customQuestionOptions<%= qi %>" rows="3"><%= q ? q.options : '' %></textarea>
-                    </label>
-                    <label for="customQuestionHelp<%= qi %>">Help text
-                      <input id="customQuestionHelp<%= qi %>" name="customQuestionHelp<%= qi %>" maxlength="200" value="<%= q ? q.helpText : '' %>">
-                    </label>
-                    <label class="toggle-section-label" for="customQuestionRequired<%= qi %>">
-                      <input type="checkbox" id="customQuestionRequired<%= qi %>" name="customQuestionRequired<%= qi %>" value="1" <%= q && q.required ? 'checked' : '' %>>
-                      <span class="toggle-label-text">Required</span>
-                    </label>
-                  </fieldset>
-                <% } %>
-              </div>
+              <%- include('partials/custom-question-builder', { formData: formData }) %>
             </div>
             <div class="form-group">
               <label for="registrationOpenAt">Registration Open *</label>
@@ -1070,75 +1038,7 @@
                   </div>
                   <small class="field-hint">Controls whether leaderboard recognition is advertised for this accumulated challenge.</small>
                 </div>
-                <div class="form-group form-group-full">
-                  <div class="subsection-divider">Leaderboard Settings</div>
-                  <% const leaderboardSettings = formData.leaderboardSettings || {}; %>
-                  <% const selectedLeaderboardColumns = leaderboardSettings.visibleColumns || []; %>
-                  <div class="form-grid">
-                    <div class="form-group">
-                      <label for="leaderboardSettingsType">Leaderboard Type</label>
-                      <select id="leaderboardSettingsType" name="leaderboardSettingsType">
-                        <option value="race_result" <%= leaderboardSettings.type === 'race_result' ? 'selected' : '' %>>Race result</option>
-                        <option value="accumulated_challenge" <%= leaderboardSettings.type === 'accumulated_challenge' ? 'selected' : '' %>>Accumulated challenge</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label for="leaderboardSettingsRankingBasis">Ranking Basis</label>
-                      <select id="leaderboardSettingsRankingBasis" name="leaderboardSettingsRankingBasis">
-                        <option value="fastest_time" <%= leaderboardSettings.rankingBasis === 'fastest_time' ? 'selected' : '' %>>Fastest verified time</option>
-                        <option value="highest_verified_distance" <%= leaderboardSettings.rankingBasis === 'highest_verified_distance' ? 'selected' : '' %>>Highest verified distance</option>
-                        <option value="highest_verified_steps" <%= leaderboardSettings.rankingBasis === 'highest_verified_steps' ? 'selected' : '' %>>Highest verified steps</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label for="leaderboardSettingsNameDisplayMode">Runner Name Display</label>
-                      <select id="leaderboardSettingsNameDisplayMode" name="leaderboardSettingsNameDisplayMode">
-                        <option value="full_name" <%= leaderboardSettings.nameDisplayMode === 'full_name' ? 'selected' : '' %>>Full name</option>
-                        <option value="first_name_last_initial" <%= leaderboardSettings.nameDisplayMode === 'first_name_last_initial' ? 'selected' : '' %>>First name + last initial</option>
-                        <option value="display_name" <%= leaderboardSettings.nameDisplayMode === 'display_name' ? 'selected' : '' %>>Display name</option>
-                        <option value="anonymous_runner_id" <%= leaderboardSettings.nameDisplayMode === 'anonymous_runner_id' ? 'selected' : '' %>>Anonymous runner ID</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label for="leaderboardSettingsVisibility">Visibility</label>
-                      <select id="leaderboardSettingsVisibility" name="leaderboardSettingsVisibility">
-                        <option value="public" <%= leaderboardSettings.visibility === 'public' ? 'selected' : '' %>>Public</option>
-                        <option value="registered_only" <%= leaderboardSettings.visibility === 'registered_only' ? 'selected' : '' %>>Registered runners only</option>
-                        <option value="private_until_published" <%= leaderboardSettings.visibility === 'private_until_published' ? 'selected' : '' %>>Private until published</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label for="leaderboardSettingsPublicRankCutoff">Public Rank Cutoff</label>
-                      <input id="leaderboardSettingsPublicRankCutoff" type="number" name="leaderboardSettingsPublicRankCutoff" min="0" max="1000" step="1" value="<%= leaderboardSettings.publicRankCutoff || 0 %>">
-                      <small class="field-hint">Use 0 to publish every eligible rank. A positive value publishes that rank and all exact ties while runners can still view their own standing.</small>
-                    </div>
-                    <div class="form-group form-group-full">
-                      <label>Visible Columns</label>
-                      <div class="checkbox-row">
-                        <% ['rank', 'runner', 'category', 'department', 'distance', 'elevation', 'activities', 'steps', 'time', 'pace', 'status'].forEach((column) => { %>
-                          <label><input type="checkbox" name="leaderboardSettingsVisibleColumns" value="<%= column %>" <%= selectedLeaderboardColumns.includes(column) ? 'checked' : '' %>> <%= column.charAt(0).toUpperCase() + column.slice(1) %></label>
-                        <% }) %>
-                      </div>
-                    </div>
-                    <div class="form-group form-group-full">
-                      <label>Review Visibility</label>
-                      <input type="hidden" name="leaderboardSettingsEnabled" value="0">
-                      <input type="hidden" name="leaderboardSettingsShowHighestStepsCard" value="0">
-                      <input type="hidden" name="leaderboardSettingsShowHighestElevationCard" value="0">
-                      <input type="hidden" name="leaderboardSettingsShowMostConsistentCard" value="0">
-                      <input type="hidden" name="leaderboardSettingsHideFlagged" value="0">
-                      <div class="checkbox-row">
-                        <label><input type="checkbox" name="leaderboardSettingsEnabled" value="1" <%= leaderboardSettings.enabled !== false ? 'checked' : '' %>> Enable event leaderboard</label>
-                        <label><input type="checkbox" name="leaderboardSettingsShowPending" value="1" <%= leaderboardSettings.showPending ? 'checked' : '' %>> Show pending submissions with labels</label>
-                        <span data-event-wide-recognition-setting <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'hidden' %>><label><input type="checkbox" name="leaderboardSettingsShowHighestStepsCard" value="1" <%= leaderboardSettings.showHighestStepsCard ? 'checked' : '' %> <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'disabled' %>> Recognize the overall highest verified steps</label></span>
-                        <span data-event-wide-recognition-setting <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'hidden' %>><label><input type="checkbox" name="leaderboardSettingsShowHighestElevationCard" value="1" <%= leaderboardSettings.showHighestElevationCard ? 'checked' : '' %> <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'disabled' %>> Recognize the overall highest verified elevation</label></span>
-                        <span data-event-wide-recognition-setting <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'hidden' %>><label><input type="checkbox" name="leaderboardSettingsShowMostConsistentCard" value="1" <%= leaderboardSettings.showMostConsistentCard ? 'checked' : '' %> <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'disabled' %>> Recognize the overall most consistent participant</label></span>
-                        <label><input type="checkbox" name="leaderboardSettingsHideFlagged" value="1" <%= leaderboardSettings.hideFlagged !== false ? 'checked' : '' %>> Hide suspicious submissions publicly</label>
-                      </div>
-                      <small class="field-hint">Event-wide recognition is available for accumulated challenges. Only approved, publicly eligible results across all categories count.</small>
-                    </div>
-                  </div>
-                </div>
+                <%- include('partials/leaderboard-settings', { formData: formData }) %>
               </div>
             </div>
             <div class="form-group">
@@ -1168,7 +1068,14 @@
               <div class="checkbox-row">
                 <% const selectedProofs = formData.proofTypesAllowed || []; %>
                 <% const hasRunningAppProof = selectedProofs.includes('running_app_sync') || selectedProofs.includes('gps'); %>
-                <label><input type="checkbox" name="proofTypesAllowed" value="running_app_sync" <%= hasRunningAppProof ? 'checked' : '' %>> Strava sync or other running app sync</label>
+                <% if (locals.runningAppSyncAvailable) { %>
+                  <label><input type="checkbox" name="proofTypesAllowed" value="running_app_sync" <%= hasRunningAppProof ? 'checked' : '' %>> Strava activity import</label>
+                <% } else if (hasRunningAppProof) { %>
+                  <input type="hidden" name="proofTypesAllowed" value="running_app_sync">
+                  <p class="field-hint">Strava activity import is saved for this event but is not advertised while the integration is unavailable.</p>
+                <% } else { %>
+                  <p class="field-hint">Strava activity import is unavailable until the integration is configured.</p>
+                <% } %>
                 <label><input type="checkbox" name="proofTypesAllowed" value="photo" <%= selectedProofs.includes('photo') ? 'checked' : '' %>> Photo</label>
                 <label><input type="checkbox" name="proofTypesAllowed" value="manual" <%= selectedProofs.includes('manual') ? 'checked' : '' %>> Manual</label>
               </div>
@@ -1398,11 +1305,17 @@
           <div class="review-summary-grid" id="reviewSummaryGrid" aria-live="polite">
             <% const summaryCards = typeof reviewSummary !== 'undefined' ? reviewSummary : []; %>
             <% summaryCards.forEach(function(card) { %>
+              <% const visibleRows = (card.rows || []).filter(function(row) { return row.value && !['Not set', 'None', 'Not configured'].includes(row.value); }); %>
               <article class="review-summary-card">
-                <h3><%= card.title %></h3>
-                <% (card.rows || []).forEach(function(row) { %>
-                  <p><strong><%= row.label %></strong><span><%= row.value || 'Not set' %></span></p>
-                <% }) %>
+                <div class="review-summary-card-header">
+                  <h3><%= card.title %></h3>
+                  <% if (card.sectionId) { %><button type="button" class="review-edit-button" data-review-edit-target="<%= card.sectionId %>">Edit <span class="sr-only"><%= card.title %></span></button><% } %>
+                </div>
+                <% if (visibleRows.length) { %>
+                  <% visibleRows.forEach(function(row) { %><p><strong><%= row.label %></strong><span><%= row.value %></span></p><% }) %>
+                <% } else { %>
+                  <p class="review-summary-empty"><%= card.emptyMessage || 'No optional settings configured.' %></p>
+                <% } %>
               </article>
             <% }) %>
           </div>
@@ -2467,14 +2380,21 @@
       function renderReviewSummary(cards) {
         const grid = document.getElementById('reviewSummaryGrid');
         if (!grid || !Array.isArray(cards)) return;
-        grid.innerHTML = cards.map((card) => (
-          `<article class="review-summary-card">
-            <h3>${escapeReviewHtml(card.title)}</h3>
-            ${(Array.isArray(card.rows) ? card.rows : []).map((row) => (
-              `<p><strong>${escapeReviewHtml(row.label)}</strong><span>${escapeReviewHtml(row.value || 'Not set')}</span></p>`
-            )).join('')}
-          </article>`
-        )).join('');
+        grid.innerHTML = cards.map((card) => {
+          const rows = (Array.isArray(card.rows) ? card.rows : []).filter((row) => (
+            row.value && !['Not set', 'None', 'Not configured'].includes(row.value)
+          ));
+          const editButton = card.sectionId
+            ? `<button type="button" class="review-edit-button" data-review-edit-target="${escapeReviewHtml(card.sectionId)}">Edit <span class="sr-only">${escapeReviewHtml(card.title)}</span></button>`
+            : '';
+          const content = rows.length
+            ? rows.map((row) => `<p><strong>${escapeReviewHtml(row.label)}</strong><span>${escapeReviewHtml(row.value)}</span></p>`).join('')
+            : `<p class="review-summary-empty">${escapeReviewHtml(card.emptyMessage || 'No optional settings configured.')}</p>`;
+          return `<article class="review-summary-card">
+            <div class="review-summary-card-header"><h3>${escapeReviewHtml(card.title)}</h3>${editButton}</div>
+            ${content}
+          </article>`;
+        }).join('');
       }
 
       function collectReadinessParams() {
@@ -3329,5 +3249,6 @@
     })();
   </script>
   <script nonce="<%= locals.cspNonce || String() %>" src="/js/event-builder-groups.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/event-custom-question-builder.js"></script>
 </body>
 </html>

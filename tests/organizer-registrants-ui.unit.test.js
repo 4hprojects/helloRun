@@ -17,6 +17,7 @@ const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 const view = read('src/views/organizer/event-registrants.ejs');
 const css = read('src/public/css/organizer-registrants.css');
 const script = read('src/public/js/organizer-registrants.js');
+const route = read('src/routes/organiser/registrants.js');
 
 test('registrant filters normalize roster sorting, statuses, paging, and field mode', () => {
   const event = { _id: 'event-1', raceDistances: ['25K', '50K'] };
@@ -42,6 +43,14 @@ test('invalid roster query values fail back to safe defaults', () => {
   assert.equal(filters.selectedSort, 'newest');
   assert.equal(filters.pageSize, 25);
   assert.equal(filters.requestedPage, 1);
+});
+
+test('registrants paging reuses access data and bounds database work', () => {
+  assert.match(route, /res\.locals\.user\s*\|\|\s*await User\.findById/);
+  assert.match(route, /req\.organizerEvent\s*\|\|\s*await getRegistrantAccessibleEventOrNull/);
+  assert.match(route, /\.select\('-waiver\.templateSnapshot -waiver\.renderedSnapshot'\)/);
+  assert.match(route, /const \[\s*filteredRegistrantsCount,\s*registrationSummaryCounts,\s*standardSubmissionSummaryCounts,\s*accumulatedSubmissionSummaryCounts\s*\] = await Promise\.all/);
+  assert.match(route, /registrationIds\.length && isAccumulatedEvent\s*\? await Promise\.all/);
 });
 
 test('roster template uses contextual filters, expandable records, and focused review links', () => {

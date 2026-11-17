@@ -77,12 +77,20 @@ test('group navigation exposes current, disclosure, completion, and error states
 
 test('desktop, tablet, and mobile layouts retain readable sticky actions', () => {
   assert.match(css, /grid-template-columns:\s*minmax\(220px, 236px\) minmax\(0, 1fr\)/);
+  assert.match(css, /\.wizard-main\s*\{[\s\S]*?grid-column:\s*2;[\s\S]*?grid-row:\s*1;/);
+  assert.match(css, /\.builder-group-nav\s*\{[\s\S]*?grid-column:\s*1;[\s\S]*?grid-row:\s*1;/);
   assert.match(css, /\.builder-group-nav\s*\{[\s\S]*position:\s*sticky/);
   assert.match(css, /@media \(max-width: 1024px\)[\s\S]*\.builder-group-nav-list\s*\{[\s\S]*overflow-x:\s*auto/);
   assert.match(css, /@media \(max-width: 640px\)[\s\S]*\.builder-group-menu-toggle\s*\{[\s\S]*min-height:\s*52px/);
   assert.match(css, /env\(safe-area-inset-bottom\)/);
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+});
+
+test('tablet and mobile stack navigation before full-width builder content', () => {
+  assert.match(css, /@media \(max-width: 1024px\)[\s\S]*?\.builder-group-nav\s*\{[\s\S]*?grid-column:\s*1;[\s\S]*?grid-row:\s*1;/);
+  assert.match(css, /@media \(max-width: 1024px\)[\s\S]*?\.wizard-main\s*\{[\s\S]*?grid-column:\s*1;[\s\S]*?grid-row:\s*2;/);
+  assert.match(css, /\.create-event-form\s*>\s*input\[type="hidden"\][\s\S]*?display:\s*none\s*!important/);
 });
 
 test('desktop group rail stays sticky without becoming a floating card', () => {

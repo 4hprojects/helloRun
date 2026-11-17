@@ -17,6 +17,7 @@ const submissionService = require('../src/services/submission.service');
 const accumulatedActivityService = require('../src/services/accumulated-activity.service');
 const {
   applyLinkedReview,
+  describeLinkedEntries,
   findLinkedEntries,
   formatLinkedReviewMessage
 } = require('../src/services/linked-entry-review.service');
@@ -187,6 +188,24 @@ test('an entry with no submission attempt has no linked entries and queries noth
     assert.equal(mocks.calls.length, 0);
     assert.deepEqual(result, { applied: [], skipped: [] });
   } finally {
+    mocks.restore();
+  }
+});
+
+test('manual-review linked events remain independent in the reviewer notice', async () => {
+  const automatic = linkedDoc('submitted');
+  const manual = linkedDoc('submitted');
+  const mocks = mockLinkedEntries({ submissions: [automatic, manual] });
+  const restoreEventFind = patch(Event, 'find', () => chainable([
+    { _id: automatic.eventId, title: 'Automatic Event', submissionReviewMode: 'system' },
+    { _id: manual.eventId, title: 'Manual Event', submissionReviewMode: 'manual' }
+  ]));
+  try {
+    const entries = await describeLinkedEntries(source);
+    assert.equal(entries.find((entry) => entry.eventTitle === 'Automatic Event').willFollowDecision, true);
+    assert.equal(entries.find((entry) => entry.eventTitle === 'Manual Event').willFollowDecision, false);
+  } finally {
+    restoreEventFind();
     mocks.restore();
   }
 });

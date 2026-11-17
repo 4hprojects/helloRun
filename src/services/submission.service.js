@@ -9,7 +9,7 @@ const { issueSubmissionCertificate } = require('./certificate.service');
 const { buildVerificationUrl } = require('./certificateNumber.service');
 const communicationService = require('./communication.service');
 const { notifyWithRetry } = require('./reliable-communication.service');
-const { isSubmissionWindowOpen } = require('../utils/submission-window');
+const { isSubmissionWindowOpen, isRunDateAlignedWithEvent } = require('../utils/submission-window');
 const SubmissionRemediationGrant = require('../models/SubmissionRemediationGrant');
 const { resolveAccumulatedTargetDistanceKm, resolveAccumulatedTargetSteps } = require('./accumulated-target.service');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
@@ -139,7 +139,12 @@ async function createSubmission({
 }
 
 async function editRejectedSubmissionMetadata({ submissionId, runnerId, distanceKm, elapsedMs, runDate, runLocation, runType }) {
-  const submission = await Submission.findOne({ _id: submissionId, runnerId });
+  let submission = await Submission.findOne({ _id: submissionId, runnerId });
+  let submissionKind = 'standard';
+  if (!submission) {
+    submission = await AccumulatedActivitySubmission.findOne({ _id: submissionId, runnerId });
+    submissionKind = 'accumulated';
+  }
   if (!submission) throw new Error('Submission not found or you do not have access.');
   if (submission.status !== 'rejected') throw new Error('Only rejected submissions can have their details updated.');
   if (String(submission.source || '') === 'strava') throw new Error('Strava submission metadata cannot be edited manually.');
@@ -156,8 +161,24 @@ async function editRejectedSubmissionMetadata({ submissionId, runnerId, distance
     submission.elapsedMs = parsedElapsed;
   }
 
+  const parsedRunDate = runDate ? new Date(runDate) : submission.runDate;
+  if (!parsedRunDate || Number.isNaN(parsedRunDate.getTime())) throw new Error('Activity date is invalid.');
+  assertRunDateNotFuture(parsedRunDate);
+  const event = submissionKind === 'accumulated'
+    ? await Event.findById(submission.eventId).select('slug eventStartAt eventEndAt virtualWindow acceptedRunTypes requireTrackingAppDevice').lean()
+    : null;
+  if (event && !isRunDateAlignedWithEvent({ event, runDate: parsedRunDate })) {
+    throw new Error('Activity date is outside the event window.');
+  }
+  if (event?.acceptedRunTypes?.length && runType && !event.acceptedRunTypes.includes(runType)) {
+    throw new Error('Activity type is not accepted for this event.');
+  }
+  if (event?.requireTrackingAppDevice && !String(submission.trackingAppDevice || '').trim()) {
+    throw new Error('Tracking app or device is required for this event.');
+  }
+
   submission.distanceKm = parsedDistance;
-  if (runDate) submission.runDate = new Date(runDate);
+  submission.runDate = parsedRunDate;
   if (runLocation) submission.runLocation = String(runLocation).trim().slice(0, 200);
   if (runType && ['run', 'walk', 'hike', 'trail_run'].includes(runType)) submission.runType = runType;
 
@@ -171,6 +192,18 @@ async function editRejectedSubmissionMetadata({ submissionId, runnerId, distance
   submission.submissionCount = (submission.submissionCount || 1) + 1;
 
   await submission.save();
+  syncSubmissionShadowInBackground(submission);
+  if (event?.slug) invalidateLeaderboardCache(event.slug);
+  recordCriticalAuditEventInBackground({
+    actorMongoUserId: runnerId,
+    action: submissionKind === 'accumulated' ? 'accumulated_activity.corrected_by_runner' : 'submission.corrected_by_runner',
+    targetType: submissionKind === 'accumulated' ? 'accumulated_activity_submission' : 'submission',
+    targetId: String(submission._id),
+    statusFrom: 'rejected',
+    statusTo: 'submitted',
+    notes: 'Runner corrected rejected activity metadata.',
+    occurredAt: submission.submittedAt
+  });
   return submission;
 }
 
@@ -428,14 +461,16 @@ async function reviewSubmission({
   const normalizedReviewerRole = String(reviewerRole || '').trim().toLowerCase();
   const isAdminReviewer = normalizedReviewerRole === 'admin';
   const event = await Event.findById(submission.eventId)
-    .select('organizerId title slug virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm acceptedRunTypes')
+    .select('organizerId title slug virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm acceptedRunTypes submissionReviewMode')
     .lean();
   if (!event) {
     throw new Error('Submission not found or inaccessible.');
   }
-  // A linked entry may belong to another organiser's event. The reviewer's access was checked
-  // on the source entry, and the decision is recorded against this one with linkedFrom.
-  if (!isAdminReviewer && !linkedFrom && !await resolveEventAccess({ eventId: event._id, userId: organizerId, userRole: normalizedReviewerRole })) {
+  if (linkedFrom && isManualSubmissionReview(event)) {
+    throw new Error('This event requires its own manual review.');
+  }
+  // Every target keeps its own event boundary. A linked proof never grants review access.
+  if (!isAdminReviewer && !await resolveEventAccess({ eventId: event._id, userId: organizerId, userRole: normalizedReviewerRole })) {
     throw new Error('Submission not found or inaccessible.');
   }
   // Organisers and co-organisers may join events they manage, so a reviewer can be the

@@ -1,0 +1,95 @@
+<% const leaderboardSettings = formData.leaderboardSettings || {}; %>
+<% const selectedLeaderboardColumns = leaderboardSettings.visibleColumns || []; %>
+<% const leaderboardEnabled = leaderboardSettings.enabled !== false; %>
+<% const advancedLeaderboardConfigured = leaderboardSettings.visibility !== 'public'
+  || Number(leaderboardSettings.publicRankCutoff || 0) > 0
+  || leaderboardSettings.showPending
+  || leaderboardSettings.showHighestStepsCard
+  || leaderboardSettings.showHighestElevationCard
+  || leaderboardSettings.showMostConsistentCard
+  || leaderboardSettings.hideFlagged === false; %>
+<div class="form-group form-group-full leaderboard-settings-panel" data-leaderboard-panel>
+  <div class="subsection-divider">Leaderboard Settings</div>
+  <input type="hidden" name="leaderboardSettingsEnabled" value="0">
+  <input type="hidden" name="leaderboardSettingsShowHighestStepsCard" value="0">
+  <input type="hidden" name="leaderboardSettingsShowHighestElevationCard" value="0">
+  <input type="hidden" name="leaderboardSettingsShowMostConsistentCard" value="0">
+  <input type="hidden" name="leaderboardSettingsHideFlagged" value="0">
+
+  <label class="leaderboard-enable-row" for="leaderboardSettingsEnabled">
+    <input type="checkbox" id="leaderboardSettingsEnabled" name="leaderboardSettingsEnabled" value="1" data-leaderboard-enabled <%= leaderboardEnabled ? 'checked' : '' %>>
+    <span><strong>Enable event leaderboard</strong><small>Publish eligible results using the settings below.</small></span>
+  </label>
+
+  <div class="leaderboard-dependent-settings" data-leaderboard-dependent <%= leaderboardEnabled ? '' : 'hidden' %>>
+    <div class="form-grid leaderboard-common-settings">
+      <div class="form-group">
+        <label for="leaderboardSettingsType">Leaderboard Type</label>
+        <select id="leaderboardSettingsType" name="leaderboardSettingsType">
+          <option value="race_result" <%= leaderboardSettings.type === 'race_result' ? 'selected' : '' %>>Race result</option>
+          <option value="accumulated_challenge" <%= leaderboardSettings.type === 'accumulated_challenge' ? 'selected' : '' %>>Accumulated challenge</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="leaderboardSettingsRankingBasis">Ranking Basis</label>
+        <select id="leaderboardSettingsRankingBasis" name="leaderboardSettingsRankingBasis">
+          <option value="fastest_time" <%= leaderboardSettings.rankingBasis === 'fastest_time' ? 'selected' : '' %>>Fastest verified time</option>
+          <option value="highest_verified_distance" <%= leaderboardSettings.rankingBasis === 'highest_verified_distance' ? 'selected' : '' %>>Highest verified distance</option>
+          <option value="highest_verified_steps" <%= leaderboardSettings.rankingBasis === 'highest_verified_steps' ? 'selected' : '' %>>Highest verified steps</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="leaderboardSettingsNameDisplayMode">Runner Name Display</label>
+        <select id="leaderboardSettingsNameDisplayMode" name="leaderboardSettingsNameDisplayMode">
+          <option value="full_name" <%= leaderboardSettings.nameDisplayMode === 'full_name' ? 'selected' : '' %>>Full name</option>
+          <option value="first_name_last_initial" <%= leaderboardSettings.nameDisplayMode === 'first_name_last_initial' ? 'selected' : '' %>>First name + last initial</option>
+          <option value="display_name" <%= leaderboardSettings.nameDisplayMode === 'display_name' ? 'selected' : '' %>>Display name</option>
+          <option value="anonymous_runner_id" <%= leaderboardSettings.nameDisplayMode === 'anonymous_runner_id' ? 'selected' : '' %>>Anonymous runner ID</option>
+        </select>
+      </div>
+    </div>
+
+    <details class="builder-disclosure leaderboard-advanced-settings" <%= advancedLeaderboardConfigured ? 'open' : '' %>>
+      <summary>
+        <span><strong>Advanced visibility and recognition</strong><small>Privacy, columns, pending results, and event-wide recognition.</small></span>
+        <i data-lucide="chevron-down" aria-hidden="true"></i>
+      </summary>
+      <div class="builder-disclosure-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="leaderboardSettingsVisibility">Visibility</label>
+            <select id="leaderboardSettingsVisibility" name="leaderboardSettingsVisibility">
+              <option value="public" <%= leaderboardSettings.visibility === 'public' ? 'selected' : '' %>>Public</option>
+              <option value="registered_only" <%= leaderboardSettings.visibility === 'registered_only' ? 'selected' : '' %>>Registered runners only</option>
+              <option value="private_until_published" <%= leaderboardSettings.visibility === 'private_until_published' ? 'selected' : '' %>>Private until published</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="leaderboardSettingsPublicRankCutoff">Public Rank Cutoff</label>
+            <input id="leaderboardSettingsPublicRankCutoff" type="number" name="leaderboardSettingsPublicRankCutoff" min="0" max="1000" step="1" value="<%= leaderboardSettings.publicRankCutoff || 0 %>">
+            <small class="field-hint">Use 0 to publish every eligible rank. A positive value includes exact ties at the cutoff.</small>
+          </div>
+          <fieldset class="leaderboard-option-group form-group form-group-full">
+            <legend>Visible Columns</legend>
+            <div class="checkbox-row leaderboard-column-options">
+              <% ['rank', 'runner', 'category', 'department', 'distance', 'elevation', 'activities', 'steps', 'time', 'pace', 'status'].forEach((column) => { %>
+                <label><input type="checkbox" name="leaderboardSettingsVisibleColumns" value="<%= column %>" <%= selectedLeaderboardColumns.includes(column) ? 'checked' : '' %>> <%= column.charAt(0).toUpperCase() + column.slice(1) %></label>
+              <% }) %>
+            </div>
+          </fieldset>
+          <fieldset class="leaderboard-option-group form-group form-group-full">
+            <legend>Review Visibility</legend>
+            <div class="leaderboard-toggle-list">
+              <label><input type="checkbox" name="leaderboardSettingsShowPending" value="1" <%= leaderboardSettings.showPending ? 'checked' : '' %>><span>Show pending submissions with labels</span></label>
+              <label><input type="checkbox" name="leaderboardSettingsHideFlagged" value="1" <%= leaderboardSettings.hideFlagged !== false ? 'checked' : '' %>><span>Hide suspicious submissions publicly</span></label>
+              <span data-event-wide-recognition-setting <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'hidden' %>><label><input type="checkbox" name="leaderboardSettingsShowHighestStepsCard" value="1" <%= leaderboardSettings.showHighestStepsCard ? 'checked' : '' %> <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'disabled' %>><span>Recognize the overall highest verified steps</span></label></span>
+              <span data-event-wide-recognition-setting <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'hidden' %>><label><input type="checkbox" name="leaderboardSettingsShowHighestElevationCard" value="1" <%= leaderboardSettings.showHighestElevationCard ? 'checked' : '' %> <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'disabled' %>><span>Recognize the overall highest verified elevation</span></label></span>
+              <span data-event-wide-recognition-setting <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'hidden' %>><label><input type="checkbox" name="leaderboardSettingsShowMostConsistentCard" value="1" <%= leaderboardSettings.showMostConsistentCard ? 'checked' : '' %> <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'disabled' %>><span>Recognize the overall most consistent participant</span></label></span>
+            </div>
+            <small class="field-hint">Only approved, publicly eligible results count toward event-wide recognition.</small>
+          </fieldset>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>

@@ -1567,8 +1567,8 @@
 .sub-side-icon svg { width: 21px; height: 21px; }
 .sub-copy-status { min-height: 1rem; margin: 0; color: #087443; font-size: .68rem; }
 
-.sub-history-page :is(a, button, summary, input, select):focus-visible,
-.sub-detail-page :is(a, button, summary, input, select):focus-visible { outline: 3px solid #ef9a50; outline-offset: 3px; }
+.sub-history-page :is(a, button, summary, input, select, textarea):focus-visible,
+.sub-detail-page :is(a, button, summary, input, select, textarea):focus-visible { outline: 3px solid #ef9a50; outline-offset: 3px; }
 
 @media (max-width: 900px) {
   .sub-history-table th:nth-child(4), .sub-history-table td:nth-child(4) { display: none; }

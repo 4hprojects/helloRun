@@ -62,6 +62,7 @@ const AccumulatedActivitySubmission = require('../../models/AccumulatedActivityS
 
 const {
   createAccumulatedActivitySubmission,
+  respondToAccumulatedClarification,
   getAccumulatedActivitiesForRegistrations,
   buildAccumulatedProgress
 } = require('../../services/accumulated-activity.service');
@@ -212,6 +213,7 @@ module.exports = {
   PERSONAL_RECORD_REGISTRATION_ID,
   AccumulatedActivitySubmission,
   createAccumulatedActivitySubmission,
+  respondToAccumulatedClarification,
   getAccumulatedActivitiesForRegistrations,
   buildAccumulatedProgress,
   acquireSubmissionIdempotencyLock,

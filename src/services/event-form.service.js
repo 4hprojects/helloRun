@@ -1844,6 +1844,8 @@ function formatCurrencyAmount(amount, currency = 'PHP') {
 
 function getEventReviewSummary(formData = {}) {
   const currency = formData.feeCurrency || 'PHP';
+  const includesOnsite = formData.eventType === 'onsite' || formData.eventType === 'hybrid';
+  const includesVirtual = formData.eventType === 'virtual' || formData.eventType === 'hybrid';
   const categories = Array.isArray(formData.raceCategories) ? formData.raceCategories : [];
   const categorySummary = categories.length
     ? categories.map((category) => {
@@ -1910,6 +1912,7 @@ function getEventReviewSummary(formData = {}) {
   return [
     {
       title: 'Event',
+      sectionId: 'core-details-step',
       rows: [
         { label: 'Title', value: formData.title || 'Not set' },
         { label: 'Type', value: formData.eventType || 'Not set' },
@@ -1918,26 +1921,31 @@ function getEventReviewSummary(formData = {}) {
     },
     {
       title: 'Schedule',
+      sectionId: 'schedule-step',
       rows: [
         { label: 'Registration', value: formatSummaryWindow(formData.registrationOpenAt, formData.registrationCloseAt) },
         { label: 'Public Posting', value: formData.publicListingAvailableAt ? formatSummaryDate(formData.publicListingAvailableAt) : 'Immediately after approval' },
         { label: 'Event Window', value: formatSummaryWindow(formData.eventStartAt, formData.eventEndAt) },
-        { label: 'Virtual', value: formatSummaryWindow(formData.virtualStartAt, formData.virtualEndAt) }
+        ...(includesVirtual ? [{ label: 'Virtual', value: formatSummaryWindow(formData.virtualStartAt, formData.virtualEndAt) }] : [])
       ]
     },
     {
       title: 'Location / Virtual',
+      sectionId: 'location-virtual-step',
       rows: [
-        { label: 'Venue', value: [formData.venueName, formData.city, formData.country].filter(Boolean).join(', ') || 'Not set' },
-        { label: 'Completion', value: formData.virtualCompletionMode || 'Not set' },
-        { label: 'Metrics', value: metrics.join(' + ') },
-        { label: 'Official ranking', value: primaryMetric },
-        { label: 'Primary goal', value: primaryGoal },
-        { label: 'Proof', value: (formData.proofTypesAllowed || []).join(', ') || 'Not set' }
+        ...(includesOnsite ? [{ label: 'Venue', value: [formData.venueName, formData.city, formData.country].filter(Boolean).join(', ') || 'Not set' }] : []),
+        ...(includesVirtual ? [
+          { label: 'Completion', value: formData.virtualCompletionMode || 'Not set' },
+          { label: 'Metrics', value: metrics.join(' + ') },
+          { label: 'Official ranking', value: primaryMetric },
+          { label: 'Primary goal', value: primaryGoal },
+          { label: 'Proof', value: (formData.proofTypesAllowed || []).join(', ') || 'Not set' }
+        ] : [])
       ]
     },
     {
       title: 'Pricing',
+      sectionId: 'pricing-step',
       rows: [
         { label: 'Mode', value: formData.feeMode === 'paid' ? formData.pricingMode : 'free' },
         { label: 'Options', value: pricingOptions },
@@ -1946,14 +1954,17 @@ function getEventReviewSummary(formData = {}) {
     },
     {
       title: 'Payment',
-      rows: [
+      sectionId: 'payment-setup-step',
+      rows: formData.feeMode === 'paid' ? [
         { label: 'Payee', value: formData.feeMode === 'paid' ? (formData.paymentAccountName || 'Not set') : 'Not required' },
         { label: 'QR', value: formData.feeMode === 'paid' ? (formData.paymentQrImageUrl ? 'Uploaded' : 'Missing') : 'Not required' },
         { label: 'Instructions', value: formData.paymentInstructions || 'Not set' }
-      ]
+      ] : [],
+      emptyMessage: 'No payment setup is required for a free event.'
     },
     {
       title: 'Rewards',
+      sectionId: 'rewards-step',
       rows: [
         { label: 'Digital', value: digitalRewards },
         { label: 'Physical', value: formData.physicalRewardsEnabled ? (physicalRewardItems.join(', ') || 'Enabled') : 'None' },
@@ -1962,6 +1973,7 @@ function getEventReviewSummary(formData = {}) {
     },
     {
       title: 'Content',
+      sectionId: 'event-details-step',
       rows: [
         { label: 'Details', value: detailsText ? `${detailsText.length} plain-text chars` : 'Not set' },
         { label: 'Waiver', value: waiverText ? `${waiverText.length} plain-text chars` : 'Not set' },

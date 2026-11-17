@@ -1,0 +1,107 @@
+<% const builderQuestions = Array.isArray(formData.customQuestions) ? formData.customQuestions : []; %>
+<section class="custom-question-builder" data-custom-question-builder data-max-questions="10" data-max-options="20" aria-labelledby="customQuestionBuilderTitle">
+  <div class="custom-question-builder-header">
+    <div>
+      <h3 id="customQuestionBuilderTitle">Your own questions</h3>
+      <p>Ask for registration details that HelloRun does not already collect. Answers appear in the registrants export.</p>
+    </div>
+    <span class="custom-question-count" data-question-count role="status" aria-live="polite"><%= builderQuestions.length %> of 10 questions</span>
+  </div>
+
+  <div class="custom-question-empty" data-question-empty <%= builderQuestions.length ? 'hidden' : '' %>>
+    <strong>No custom questions yet</strong>
+    <p>Add a question only when the answer is needed to operate this event.</p>
+  </div>
+
+  <div class="custom-questions-list" data-question-list>
+    <% builderQuestions.forEach(function (q, qi) {
+         const questionType = ['short_text', 'dropdown', 'single_choice', 'checkbox_agreement'].includes(q.type) ? q.type : 'short_text';
+         const questionOptions = Array.isArray(q.options)
+           ? q.options
+           : String(q.options || '').split(/\r?\n/).map(function (option) { return option.trim(); }).filter(Boolean);
+         const needsOptions = questionType === 'dropdown' || questionType === 'single_choice'; %>
+      <fieldset class="custom-question-card" data-question-card data-question-committed="true">
+        <legend class="builder-visually-hidden">Question <%= qi + 1 %></legend>
+        <div class="custom-question-card-header">
+          <button type="button" class="custom-question-drag" data-question-drag draggable="true" aria-label="Reorder question <%= qi + 1 %>" title="Drag to reorder">
+            <i data-lucide="grip-vertical" aria-hidden="true"></i>
+          </button>
+          <strong data-question-number>Question <%= qi + 1 %></strong>
+          <div class="custom-question-actions" aria-label="Question <%= qi + 1 %> actions">
+            <button type="button" data-question-action="up" aria-label="Move question <%= qi + 1 %> up" title="Move up"><i data-lucide="arrow-up" aria-hidden="true"></i></button>
+            <button type="button" data-question-action="down" aria-label="Move question <%= qi + 1 %> down" title="Move down"><i data-lucide="arrow-down" aria-hidden="true"></i></button>
+            <button type="button" data-question-action="duplicate" aria-label="Duplicate question <%= qi + 1 %>" title="Duplicate"><i data-lucide="copy" aria-hidden="true"></i></button>
+            <button type="button" data-question-action="delete" aria-label="Delete question <%= qi + 1 %>" title="Delete"><i data-lucide="trash-2" aria-hidden="true"></i></button>
+          </div>
+        </div>
+
+        <input type="hidden" data-question-field="id" name="customQuestionId<%= qi %>" value="<%= q.questionId || '' %>">
+        <div class="custom-question-primary-fields">
+          <label>
+            <span>Question</span>
+            <input type="text" data-question-field="label" id="customQuestionLabel<%= qi %>" name="customQuestionLabel<%= qi %>" maxlength="160" value="<%= q.label || '' %>">
+          </label>
+          <label>
+            <span>Answer type</span>
+            <select data-question-field="type" id="customQuestionType<%= qi %>" name="customQuestionType<%= qi %>">
+              <option value="short_text" <%= questionType === 'short_text' ? 'selected' : '' %>>Short answer</option>
+              <option value="dropdown" <%= questionType === 'dropdown' ? 'selected' : '' %>>Pick from a list</option>
+              <option value="single_choice" <%= questionType === 'single_choice' ? 'selected' : '' %>>Pick one</option>
+              <option value="checkbox_agreement" <%= questionType === 'checkbox_agreement' ? 'selected' : '' %>>Agreement checkbox</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="custom-question-options" data-question-options <%= needsOptions ? '' : 'hidden' %>>
+          <div class="custom-question-options-heading">
+            <span>Answer options</span>
+            <small data-option-count><%= questionOptions.length %> of 20 options</small>
+          </div>
+          <div data-option-list>
+            <% questionOptions.forEach(function (option, optionIndex) { %>
+              <div class="custom-question-option" data-option-row>
+                <button type="button" data-option-action="up" aria-label="Move option <%= optionIndex + 1 %> up" title="Move option up"><i data-lucide="arrow-up" aria-hidden="true"></i></button>
+                <button type="button" data-option-action="down" aria-label="Move option <%= optionIndex + 1 %> down" title="Move option down"><i data-lucide="arrow-down" aria-hidden="true"></i></button>
+                <input type="text" data-option-input maxlength="80" value="<%= option %>" aria-label="Option <%= optionIndex + 1 %>">
+                <button type="button" data-option-action="remove" aria-label="Remove option <%= optionIndex + 1 %>" title="Remove option"><i data-lucide="x" aria-hidden="true"></i></button>
+              </div>
+            <% }); %>
+          </div>
+          <button type="button" class="custom-question-add-option" data-question-action="add-option"><i data-lucide="plus" aria-hidden="true"></i> Add option</button>
+        </div>
+        <textarea class="builder-visually-hidden" data-question-field="options" id="customQuestionOptions<%= qi %>" name="customQuestionOptions<%= qi %>" tabindex="-1" aria-hidden="true"><%= questionOptions.join('\n') %></textarea>
+
+        <details class="custom-question-help" <%= q.helpText ? 'open' : '' %>>
+          <summary>Help text <span>Optional</span></summary>
+          <label>
+            <span class="builder-visually-hidden">Help text for question <%= qi + 1 %></span>
+            <input type="text" data-question-field="help" id="customQuestionHelp<%= qi %>" name="customQuestionHelp<%= qi %>" maxlength="200" value="<%= q.helpText || '' %>" placeholder="Explain what information you need">
+          </label>
+        </details>
+
+        <div class="custom-question-preview" data-question-preview aria-live="polite"></div>
+        <div class="custom-question-card-footer">
+          <p class="custom-question-error" data-question-error role="alert" hidden></p>
+          <label class="custom-question-required">
+            <input type="checkbox" data-question-field="required" id="customQuestionRequired<%= qi %>" name="customQuestionRequired<%= qi %>" value="1" <%= q.required ? 'checked' : '' %>>
+            <span>Required</span>
+          </label>
+        </div>
+      </fieldset>
+    <% }); %>
+  </div>
+
+  <div class="custom-question-builder-footer">
+    <details class="custom-question-add-menu" data-question-add-menu>
+      <summary><i data-lucide="plus" aria-hidden="true"></i> Add question</summary>
+      <div role="menu" aria-label="Choose question type">
+        <button type="button" role="menuitem" data-add-question-type="short_text"><i data-lucide="text-cursor-input" aria-hidden="true"></i><span><strong>Short answer</strong><small>One line of text</small></span></button>
+        <button type="button" role="menuitem" data-add-question-type="dropdown"><i data-lucide="list" aria-hidden="true"></i><span><strong>Pick from a list</strong><small>Compact dropdown</small></span></button>
+        <button type="button" role="menuitem" data-add-question-type="single_choice"><i data-lucide="circle-dot" aria-hidden="true"></i><span><strong>Pick one</strong><small>Visible radio choices</small></span></button>
+        <button type="button" role="menuitem" data-add-question-type="checkbox_agreement"><i data-lucide="square-check" aria-hidden="true"></i><span><strong>Agreement checkbox</strong><small>Confirmation or consent</small></span></button>
+      </div>
+    </details>
+    <p data-question-limit-message hidden>Ten questions is the maximum for one event.</p>
+  </div>
+  <div class="custom-question-status" data-question-status role="status" aria-live="polite" hidden></div>
+</section>

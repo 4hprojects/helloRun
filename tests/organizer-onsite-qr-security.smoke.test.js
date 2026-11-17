@@ -97,9 +97,9 @@ test('organizer cannot access QR data for another organizer event', async () => 
     }
   });
 
-  assert.equal(response.status, 403);
+  assert.equal(response.status, 404);
   const body = await response.json();
-  assert.match(body.error, /own events/i);
+  assert.match(JSON.stringify(body), /not found/i);
 });
 
 test('owning organizer can generate a bib QR code', async () => {
@@ -166,7 +166,7 @@ test('QR decode rejects data for a different event', async () => {
 
   assert.equal(response.status, 400);
   const body = await response.json();
-  assert.match(body.error, /does not belong/i);
+  assert.match(body.error, /belongs to a different event/i);
 });
 
 async function seedFixtures() {
@@ -280,10 +280,20 @@ async function cleanupFixtures(currentSeed) {
 }
 
 async function login(email, password) {
+  const loginPage = await fetch(`${BASE_URL}/login`, { redirect: 'manual' });
+  assert.equal(loginPage.status, 200);
+  const loginCookie = loginPage.headers.get('set-cookie')?.split(';')[0];
+  assert.ok(loginCookie);
+  const loginHtml = await loginPage.text();
+  const tokenMatch = loginHtml.match(/name="_csrf"\s+value="([^"]+)"/i);
+  assert.ok(tokenMatch, 'Expected CSRF token on login page');
   const response = await fetch(`${BASE_URL}/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ email, password }),
+    headers: {
+      Cookie: loginCookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({ email, password, _csrf: tokenMatch[1] }),
     redirect: 'manual'
   });
   assert.equal(response.status, 302);

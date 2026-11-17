@@ -79,7 +79,7 @@ function humanizeStatus(value) {
 
 router.get('/events/:id/registrants', protectEventReviewRead, async (req, res) => {
   try {
-    const user = await User.findById(req.session.userId);
+    const user = res.locals.user || await User.findById(req.session.userId);
     if (!user) {
       return res.status(404).render('error', {
         title: '404 - User Not Found',
@@ -96,7 +96,7 @@ router.get('/events/:id/registrants', protectEventReviewRead, async (req, res) =
       });
     }
 
-    const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
+    const event = req.organizerEvent || await getRegistrantAccessibleEventOrNull(req.params.id, user);
     if (!event) {
       return res.status(404).render('error', {
         title: '404 - Event Not Found',
@@ -126,13 +126,27 @@ router.get('/events/:id/registrants', protectEventReviewRead, async (req, res) =
       };
     }
 
-    const filteredRegistrantsCount = await Registration.countDocuments(registrantQuery);
+    const isAccumulatedEvent = isAccumulatedChallenge(event);
+    const [
+      filteredRegistrantsCount,
+      registrationSummaryCounts,
+      standardSubmissionSummaryCounts,
+      accumulatedSubmissionSummaryCounts
+    ] = await Promise.all([
+      Registration.countDocuments(registrantQuery),
+      getEventRegistrationSummaryCounts(event._id),
+      getEventSubmissionSummaryCounts(Submission, event._id),
+      isAccumulatedEvent
+        ? getEventSubmissionSummaryCounts(AccumulatedActivitySubmission, event._id)
+        : Promise.resolve({ submitted: 0, approved: 0, rejected: 0 })
+    ]);
     const totalPages = Math.max(1, Math.ceil(filteredRegistrantsCount / pageSize));
     const page = Math.min(requestedPage, totalPages);
     const pageStart = (page - 1) * pageSize;
 
     const registrationsRaw = filteredRegistrantsCount > 0
       ? await Registration.find(registrantQuery)
+        .select('-waiver.templateSnapshot -waiver.renderedSnapshot')
         .sort(getRegistrantSortSpec(selectedSort))
         .skip(pageStart)
         .limit(pageSize)
@@ -159,7 +173,7 @@ router.get('/events/:id/registrants', protectEventReviewRead, async (req, res) =
     const [
       accumulatedActivities,
       accumulatedProgressActivities
-    ] = registrationIds.length
+    ] = registrationIds.length && isAccumulatedEvent
       ? await Promise.all([
         getAccumulatedActivitiesForRegistrations(registrationIds, selectedResultStatus ? { status: selectedResultStatus } : {}),
         selectedResultStatus
@@ -203,7 +217,7 @@ router.get('/events/:id/registrants', protectEventReviewRead, async (req, res) =
       expectedPaymentLabel: formatExpectedPaymentLabel(item, event),
       signupOptionLabel: item.pricingSnapshot?.optionDescription || '',
       pricingPeriodLabel: item.pricingSnapshot?.pricingPeriodLabel || '',
-      accumulatedProgress: isAccumulatedChallenge(event)
+      accumulatedProgress: isAccumulatedEvent
         ? buildAccumulatedProgress({
           activities: accumulatedProgressActivitiesByRegistrationId.get(String(item._id)) || [],
           targetDistanceKm: resolveAccumulatedTargetDistanceKm(item, event),
@@ -244,25 +258,12 @@ router.get('/events/:id/registrants', protectEventReviewRead, async (req, res) =
         : '';
     });
 
-    const [
-      registrationSummaryCounts,
-      standardSubmissionSummaryCounts,
-      accumulatedSubmissionSummaryCounts
-    ] = await Promise.all([
-      getEventRegistrationSummaryCounts(event._id),
-      getEventSubmissionSummaryCounts(Submission, event._id),
-      isAccumulatedChallenge(event)
-        ? getEventSubmissionSummaryCounts(AccumulatedActivitySubmission, event._id)
-        : { submitted: 0, approved: 0, rejected: 0 }
-    ]);
-
     const allowedModes = new Set([event.eventType, ...(event.eventTypesAllowed || [])]);
     if (allowedModes.has('hybrid')) {
       allowedModes.add('virtual');
       allowedModes.add('onsite');
     }
     const isPaidEvent = event.feeMode === 'paid';
-    const isAccumulatedEvent = isAccumulatedChallenge(event);
     const supportsOnsite = allowedModes.has('onsite');
     const supportsVirtual = allowedModes.has('virtual');
     const hasAdvancedFilters = Boolean(

@@ -73,6 +73,14 @@
             <span class="status-badge <%= statusBadgeClass %>"><%= statusLabel %></span>
           </div>
 
+          <% if (submission.clarification && submission.clarification.response) { %>
+            <section class="submission-review-section" aria-labelledby="clarification-response-heading">
+              <h3 id="clarification-response-heading"><i data-lucide="message-circle-reply"></i> Runner clarification response</h3>
+              <p><strong>Your question:</strong> <%= submission.clarification.question %></p>
+              <blockquote><%= submission.clarification.response %></blockquote>
+            </section>
+          <% } %>
+
           <section class="submission-review-section evidence-stage" aria-labelledby="evidence-heading">
             <div class="evidence-stage-heading">
               <div><h3 id="evidence-heading"><i data-lucide="scan-search"></i> Submitted evidence</h3><p>Zoom in, then compare every event-relevant value below.</p></div>

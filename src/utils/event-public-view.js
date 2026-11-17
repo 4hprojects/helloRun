@@ -71,11 +71,12 @@ function buildPublicEventView(event, options = {}) {
     ? options.eventBadges.length > 0
     : options.hasPublicBadges;
   const rewardItems = buildRewardItems(event, { hasPublicBadges });
-  const packageOptions = buildPackageOptions(event);
+  const packageOptions = buildPackageOptions(event, now);
   const pricingOptions = buildPricingOptions(event, raceCategories, now);
   const pricing = buildPricingSummary(event, packageOptions, pricingOptions);
   const timeline = buildTimeline(event);
-  const virtualRules = buildVirtualRules(event);
+  const effectiveProofTypes = getEffectiveProofTypes(event.proofTypesAllowed, options);
+  const virtualRules = buildVirtualRules(event, effectiveProofTypes);
   const location = buildLocation(event);
   const heroImageUrl = event.bannerImageUrl || event.posterImageUrl || '/images/helloRun-icon.webp';
   const posterImageUrl = event.posterImageUrl || '';
@@ -120,11 +121,12 @@ function buildPublicEventView(event, options = {}) {
       targetDistanceLabel
     }),
     challengeDates: buildChallengeDates(event),
-    participantEssentials: isAccumulatedChallenge ? buildParticipantEssentials(event, challengeConfig) : [],
+    participantEssentials: isAccumulatedChallenge ? buildParticipantEssentials(event, challengeConfig, effectiveProofTypes) : [],
     registrationState,
     pricing,
     pricingOptions,
     rewardItems,
+    rewardDetails: buildRewardDetails(event),
     packageOptions,
     timeline,
     virtualRules,
@@ -136,7 +138,8 @@ function buildPublicEventView(event, options = {}) {
       targetDistanceLabel,
       eventTypeLabel,
       isAccumulatedChallenge,
-      isEnded
+      isEnded,
+      effectiveProofTypes
     }),
     heroImageUrl,
     posterImageUrl,
@@ -226,7 +229,7 @@ function buildChallengeDates(event) {
   ];
 }
 
-function buildParticipantEssentials(event, challengeConfig = {}) {
+function buildParticipantEssentials(event, challengeConfig = {}, effectiveProofTypes = []) {
   const description = htmlToPlainText(event.description || '');
   const sentences = description.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
   const audienceSummary = String(sentences[0] || '').trim();
@@ -237,8 +240,7 @@ function buildParticipantEssentials(event, challengeConfig = {}) {
     ? Math.max(1, Math.floor((activityEndAt - activityStartAt) / 86400000) + 1)
     : null;
   const targetSteps = Number(challengeConfig.targetSteps || 0);
-  const proofTypes = normalizeList(event.proofTypesAllowed);
-  const requiresScreenshot = proofTypes.includes('photo');
+  const requiresScreenshot = effectiveProofTypes.includes('photo');
   const items = [];
 
   if (audienceSummary) items.push({ key: 'eligibility', label: 'Who can join', value: audienceSummary });
@@ -291,8 +293,89 @@ function buildPublicEventSeo(event, baseUrl = '') {
     ogImage,
     ogImageWidth: 1200,
     ogImageHeight: 630,
-    ogImageType: preferredImage.toLowerCase().endsWith('.webp') ? 'image/webp' : undefined
+    ogImageType: preferredImage.toLowerCase().endsWith('.webp') ? 'image/webp' : undefined,
+    structuredDataJson: buildEventStructuredDataJson(event, {
+      canonicalUrl,
+      description,
+      imageUrl: ogImage
+    })
   };
+}
+
+function buildEventStructuredDataJson(event, options = {}) {
+  const eventType = String(event.eventType || '').trim();
+  if (!['onsite', 'hybrid'].includes(eventType)) return '';
+
+  const startDate = parseDate(event.eventStartAt);
+  const endDate = parseDate(event.eventEndAt);
+  const locationName = String(event.venueName || '').trim();
+  const streetAddress = String(event.venueAddress || '').trim();
+  const addressLocality = String(event.city || '').trim();
+  const addressRegion = String(event.province || '').trim();
+  const addressCountry = getCountryName(event.country) || String(event.country || '').trim();
+  if (!startDate || !endDate || (!locationName && !streetAddress && !addressLocality)) return '';
+
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name: String(event.title || 'HelloRun Event').trim(),
+    description: options.description || undefined,
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+    eventStatus: String(event.status || '').trim().toLowerCase() === 'cancelled'
+      ? 'https://schema.org/EventCancelled'
+      : 'https://schema.org/EventScheduled',
+    eventAttendanceMode: eventType === 'hybrid'
+      ? 'https://schema.org/MixedEventAttendanceMode'
+      : 'https://schema.org/OfflineEventAttendanceMode',
+    location: {
+      '@type': 'Place',
+      name: locationName || streetAddress || addressLocality,
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: streetAddress || undefined,
+        addressLocality: addressLocality || undefined,
+        addressRegion: addressRegion || undefined,
+        addressCountry: addressCountry || undefined
+      }
+    },
+    image: options.imageUrl ? [options.imageUrl] : undefined,
+    organizer: {
+      '@type': 'Organization',
+      name: String(event.organiserName || 'HelloRun').trim(),
+      url: options.canonicalUrl || undefined
+    },
+    url: options.canonicalUrl || undefined
+  };
+
+  const fixedAmount = firstFiniteNumber(event.feeAmount);
+  const pricingMode = normalizePricingMode(event.pricingMode, event.feeMode);
+  const hasVariablePriceConfiguration = (Array.isArray(event.distancePricing) && event.distancePricing.length > 0)
+    || (Array.isArray(event.customizedOptions) && event.customizedOptions.length > 0)
+    || (Array.isArray(event.registrationPackages) && event.registrationPackages.length > 0);
+  if (options.canonicalUrl && (event.feeMode !== 'paid' || (
+    fixedAmount !== null
+    && pricingMode === 'distance_based'
+    && !hasVariablePriceConfiguration
+  ))) {
+    structuredData.offers = {
+      '@type': 'Offer',
+      url: `${options.canonicalUrl}/register`,
+      price: event.feeMode === 'paid' ? fixedAmount : 0,
+      priceCurrency: String(event.feeCurrency || 'PHP').trim().toUpperCase() || 'PHP'
+    };
+  }
+
+  return safeJsonForHtml(structuredData);
+}
+
+function safeJsonForHtml(value) {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 }
 
 function looksLikeHtml(value) {
@@ -307,6 +390,17 @@ function buildRegistrationState(event, now) {
   const isNotOpenYet = registrationOpenAt && registrationOpenAt > now;
   const isClosed = registrationCloseAt && registrationCloseAt < now;
   const canRegisterNow = !isPast && !isNotOpenYet && !isClosed;
+
+  if (event.status && event.status !== 'published') {
+    return {
+      label: event.status === 'cancelled' ? 'Event Cancelled' : 'Registration Unavailable',
+      tone: 'closed',
+      canRegisterNow: false,
+      helper: event.status === 'cancelled'
+        ? 'This event has been cancelled by the organizer.'
+        : 'This event is not currently published for registration.'
+    };
+  }
 
   if (isPast) {
     return {
@@ -361,6 +455,19 @@ function buildPricingSummary(event, packageOptions, pricingOptions = []) {
       registrationAmount: 0,
       deliveryAmount,
       hasOptionalCosts: deliveryAmount !== null || hasPackages
+    };
+  }
+
+  if ((pricingMode === 'package_period' || pricingMode === 'distance_based_period') && !hasPricingOptions) {
+    return {
+      label: 'Registration pricing',
+      amountLabel: 'Not currently available',
+      helper: 'No registration price is active for the current date.',
+      currency,
+      registrationAmount: null,
+      deliveryAmount,
+      hasOptionalCosts: deliveryAmount !== null || hasPackages,
+      availableNow: false
     };
   }
 
@@ -476,21 +583,14 @@ function buildPricingOptions(event, raceCategories = [], now = new Date()) {
         const label = String(packageOption?.name || '').trim();
         const activePeriod = getActivePricingPeriod(packageOption?.pricingPeriods, now);
         const activeAmount = activePeriod ? firstFiniteNumber(activePeriod.amount) : null;
-        const prices = (Array.isArray(packageOption?.pricingPeriods) ? packageOption.pricingPeriods : [])
-          .map((period) => firstFiniteNumber(period?.amount))
-          .filter((value) => value !== null);
-        const amount = activeAmount !== null ? activeAmount : (prices.length ? Math.min(...prices) : null);
+        const amount = activeAmount;
         if (!label || amount === null) return null;
         return {
           type: 'registration_package',
           label,
           amount,
-          amountLabel: activeAmount !== null
-            ? formatMoney(amount, currency)
-            : (prices.length > 1 ? `From ${formatMoney(amount, currency)}` : formatMoney(amount, currency)),
-          helper: activeAmount !== null
-            ? 'Current package amount'
-            : 'Based on selected package and registration date',
+          amountLabel: formatMoney(amount, currency),
+          helper: 'Current package amount',
           pricingPeriodBadge: activePeriod?.label || ''
         };
       })
@@ -519,18 +619,15 @@ function buildPricingOptions(event, raceCategories = [], now = new Date()) {
         const activeAmount = activePeriod
           ? firstFiniteNumber(getDistancePeriodAmount(item, activePeriod.code))
           : null;
-        const prices = [item?.amount, item?.earlyBirdAmount, item?.regularAmount, item?.lateAmount]
-          .map((value) => firstFiniteNumber(value))
-          .filter((value) => value !== null);
-        const amount = activeAmount !== null ? activeAmount : (prices.length ? Math.min(...prices) : null);
+        const amount = pricingMode === 'distance_based_period'
+          ? activeAmount
+          : firstFiniteNumber(item?.amount, item?.regularAmount);
         if (!label || amount === null) return null;
         return {
           type: 'distance_based',
           label,
           amount,
-          amountLabel: activeAmount !== null
-            ? formatMoney(amount, currency)
-            : (prices.length > 1 ? `From ${formatMoney(amount, currency)}` : formatMoney(amount, currency)),
+          amountLabel: formatMoney(amount, currency),
           helper: pricingMode === 'distance_based_period'
             ? (activeAmount !== null ? 'Current active period amount' : 'Based on selected distance and registration date')
             : 'Based on selected distance',
@@ -564,6 +661,32 @@ function buildRewardItems(event, options = {}) {
   }
 
   return items;
+}
+
+function buildRewardDetails(event) {
+  return {
+    description: String(event.physicalRewardsDescription || '').trim(),
+    claimingNotes: String(event.physicalRewardsClaimingNotes || '').trim(),
+    deliveryDescription: String(event.deliveryFeeDescription || '').trim(),
+    claimingMethodLabel: {
+      pickup: 'Pickup',
+      delivery: 'Delivery',
+      both: 'Delivery or pickup'
+    }[event.claimingMethod] || '',
+    leaderboardRecognitionEnabled: event.leaderboardRecognitionEnabled !== false,
+    specialBenefits: (Array.isArray(event.specialRewardBenefits) ? event.specialRewardBenefits : [])
+      .map((benefit) => {
+        const title = String(benefit?.title || '').trim();
+        if (!title) return null;
+        return {
+          title,
+          description: String(benefit?.description || '').trim(),
+          validUntil: benefit?.validUntil ? formatDate(benefit.validUntil) : '',
+          appliesToPackageNames: normalizeList(benefit?.appliesToPackageNames)
+        };
+      })
+      .filter(Boolean)
+  };
 }
 
 function buildCategoryGoalOptions(raceCategories = []) {
@@ -631,10 +754,18 @@ function buildRaceCategorySummaries(event) {
       const targetStepsLabel = targetSteps > 0 ? `${formatNumber(targetSteps)} steps` : '';
       const slots = firstFiniteNumber(category?.slots);
       const slotsLabel = slots !== null && slots > 0 ? `${formatNumber(slots)} slots` : '';
+      const reserved = Math.max(0, firstFiniteNumber(category?.reserved) || 0);
+      const remainingSlots = slots !== null && slots > 0 ? Math.max(0, slots - reserved) : null;
+      const isFull = remainingSlots === 0;
+      const availabilityLabel = remainingSlots === null
+        ? ''
+        : (isFull
+          ? (event.waitlistEnabled ? 'Full · Waitlist available' : 'Full')
+          : `${formatNumber(remainingSlots)} of ${formatNumber(slots)} spots available`);
       const cutoffTime = String(category?.cutoffTime || '').trim();
       const ageGroup = String(category?.ageGroup || '').trim();
       const rewardsDescription = String(category?.rewardsDescription || '').trim();
-      const details = [distanceLabel, distanceKmLabel, targetStepsLabel, slotsLabel, cutoffTime, ageGroup].filter(Boolean);
+      const details = [distanceLabel, distanceKmLabel, targetStepsLabel, availabilityLabel, cutoffTime, ageGroup].filter(Boolean);
 
       return {
         id: String(category?.categoryId || category?._id || category?.id || `category-${index + 1}`).trim(),
@@ -651,6 +782,10 @@ function buildRaceCategorySummaries(event) {
           : (distanceKm > 0 ? distanceKmLabel : targetStepsLabel),
         slots,
         slotsLabel,
+        reserved,
+        remainingSlots,
+        isFull,
+        availabilityLabel,
         cutoffTime,
         ageGroup,
         rewardsDescription,
@@ -698,20 +833,26 @@ function parseLeadingDistanceKm(value) {
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
-function buildPackageOptions(event) {
+function buildPackageOptions(event, now = new Date()) {
   return (Array.isArray(event.registrationPackages) ? event.registrationPackages : [])
     .map((packageOption) => {
       const name = String(packageOption.name || '').trim();
       if (!name) return null;
       const periods = Array.isArray(packageOption.pricingPeriods) ? packageOption.pricingPeriods : [];
-      const prices = periods
+      const activePeriod = getActivePricingPeriod(periods, now);
+      const activeAmount = activePeriod ? firstFiniteNumber(activePeriod.amount) : null;
+      const listedPrices = periods
         .map((period) => firstFiniteNumber(period.amount))
         .filter((amount) => amount !== null);
-      const lowestAmount = prices.length ? Math.min(...prices) : null;
+      const lowestListedAmount = listedPrices.length ? Math.min(...listedPrices) : null;
+      const usesPeriodPricing = normalizePricingMode(event.pricingMode, event.feeMode) === 'package_period';
       return {
         name,
         notes: String(packageOption.notes || '').trim(),
-        amountLabel: lowestAmount !== null ? `From ${formatMoney(lowestAmount, event.feeCurrency || 'PHP')}` : 'Price not listed',
+        amountLabel: usesPeriodPricing
+          ? (activeAmount !== null ? formatMoney(activeAmount, event.feeCurrency || 'PHP') : 'Not currently available')
+          : (lowestListedAmount !== null ? `From ${formatMoney(lowestListedAmount, event.feeCurrency || 'PHP')}` : 'Price shown during registration'),
+        availableNow: !usesPeriodPricing || activeAmount !== null,
         includedItems: formatIncludedItems(packageOption.includedItems)
       };
     })
@@ -730,11 +871,11 @@ function buildTimeline(event) {
   ].filter(Boolean);
 }
 
-function buildVirtualRules(event) {
+function buildVirtualRules(event, effectiveProofTypes = []) {
   const challengeConfig = resolveChallengeConfig(event);
   const acceptedActivities = normalizeList(event.acceptedRunTypes).map(formatActivityTypeLabel);
-  const proofTypes = normalizeList(event.proofTypesAllowed).map(formatProofTypeLabel);
-  const proofTypeKeys = normalizeList(event.proofTypesAllowed);
+  const proofTypeKeys = effectiveProofTypes;
+  const proofTypes = proofTypeKeys.map(formatProofTypeLabel);
   const supportsScreenshotAndEntry = proofTypeKeys.includes('photo') && proofTypeKeys.includes('manual');
   const venueMentionsTreadmill = /treadmill/i.test(String(event.venueName || ''));
   const minimumDistance = Number.isFinite(Number(event.minimumActivityDistanceKm)) && Number(event.minimumActivityDistanceKm) > 0
@@ -773,14 +914,13 @@ function buildVirtualRules(event) {
 function buildLocation(event) {
   const cityCountry = [event.city, getCountryName(event.country)].filter(Boolean).join(', ');
   const summary = [event.venueName, cityCountry].filter(Boolean).join(' - ');
-  const isVirtual = String(event.eventType || '').trim() === 'virtual'
-    || normalizeList(event.eventTypesAllowed).includes('virtual');
+  const isVirtualOnly = String(event.eventType || '').trim() === 'virtual';
   return {
     venueName: event.venueName || '',
     address: event.venueAddress || '',
     cityCountry,
     summary,
-    publicLabel: summary || (isVirtual ? 'Anywhere' : 'Location details not listed')
+    publicLabel: summary || (isVirtualOnly ? 'Anywhere' : 'Location details not listed')
   };
 }
 
@@ -791,7 +931,7 @@ function buildEventRecap(event, options = {}) {
   const completionLabel = options.isAccumulatedChallenge
     ? 'build verified distance across eligible activities'
     : 'complete the selected distance during the official event window';
-  const proofTypes = normalizeList(event.proofTypesAllowed).map(formatProofTypeLabel);
+  const proofTypes = normalizeList(options.effectiveProofTypes).map(formatProofTypeLabel);
 
   return {
     body: `The ${event.title || 'HelloRun event'} encouraged runners, walkers, and active community members to ${completionLabel}. Participants could join ${distanceLabel} and submit clear activity proof for organizer review.`,
@@ -904,12 +1044,27 @@ function formatRaceCategoryTypeLabel(value) {
 
 function formatProofTypeLabel(value) {
   const labels = {
-    running_app_sync: 'Strava or running app sync',
+    running_app_sync: 'Strava activity import',
     gps: 'GPS activity',
     photo: 'Fitness-app screenshot',
     manual: 'Matching activity details'
   };
   return labels[value] || value;
+}
+
+function isRunningAppSyncAvailable(env = process.env) {
+  return ['STRAVA_CLIENT_ID', 'STRAVA_CLIENT_SECRET', 'STRAVA_REDIRECT_URI']
+    .every((name) => String(env?.[name] || '').trim());
+}
+
+function getEffectiveProofTypes(proofTypes, options = {}) {
+  const runningAppSyncAvailable = typeof options.runningAppSyncAvailable === 'boolean'
+    ? options.runningAppSyncAvailable
+    : isRunningAppSyncAvailable(options.env || process.env);
+
+  return normalizeList(proofTypes).filter((proofType) => (
+    proofType !== 'running_app_sync' || runningAppSyncAvailable
+  ));
 }
 
 function normalizePricingMode(value, feeMode = 'free') {
@@ -1031,5 +1186,7 @@ function firstFiniteNumber(...values) {
 module.exports = {
   buildPublicEventSeo,
   buildPublicEventView,
+  getEffectiveProofTypes,
+  isRunningAppSyncAvailable,
   renderEventDetailsContent
 };

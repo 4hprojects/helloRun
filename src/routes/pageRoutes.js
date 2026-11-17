@@ -184,6 +184,14 @@ router.post(
   requireCsrfProtection,
   pageController.postEditSubmissionMetadata
 );
+router.post(
+  '/runner/submissions/:submissionId/respond-clarification',
+  requireAuth,
+  requireRunnerWorkspace,
+  resultSubmissionLimiter,
+  requireCsrfProtection,
+  pageController.postRespondToSubmissionClarification
+);
 router.get('/my-submissions/:submissionId/certificate', requireAuth, requireRunnerWorkspace, pageController.getSubmissionCertificateDownload);
 router.get('/runners/:userId/badges/share-image.svg', pageController.getPublicRunnerBadgeCollectionShareImage);
 router.get('/runners/:userId/badges', pageController.getPublicRunnerBadgeCollection);

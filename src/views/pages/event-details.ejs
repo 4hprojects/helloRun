@@ -20,6 +20,18 @@
     ? runnerCardPrimaryAction
     : (details.primaryCta && !details.primaryCta.disabled ? { ...details.primaryCta, type: 'link' } : null);
   const showMobileStickyCta = Boolean(!isPreviewMode && pagePrimaryAction);
+  const isVirtualEvent = details.eventTypeLabel === 'Virtual';
+  const isOnsiteEvent = details.eventTypeLabel === 'Onsite';
+  const isHybridEvent = details.eventTypeLabel === 'Hybrid';
+  const supportsVirtualParticipation = isVirtualEvent || isHybridEvent;
+  const supportsOnsiteParticipation = isOnsiteEvent || isHybridEvent;
+  const timelineByLabel = new Map((details.timeline || []).map((item) => [item.label, item.value]));
+  const activityPeriod = details.challengeDates?.find((item) => item.key === 'activity')?.value
+    || [timelineByLabel.get('Event Starts'), timelineByLabel.get('Event Ends')].filter(Boolean).join(' – ')
+    || 'Dates not listed';
+  const registrationDeadline = details.challengeDates?.find((item) => item.key === 'registration')?.value
+    || timelineByLabel.get('Registration Closes')
+    || 'Deadline not listed';
   const hasEventShopSidebar = Boolean(!isPreviewMode && typeof eventShop !== 'undefined' && eventShop && eventShop.count > 0);
   const hasEventSidebarAd = Boolean(
     !isPreviewMode
@@ -40,11 +52,14 @@
   <%- include('../layouts/head', { title: title, seo: typeof seo !== 'undefined' ? seo : null }) %>
   <link rel="stylesheet" href="/css/events.css">
   <link rel="stylesheet" href="/css/event-details.css">
+  <% if (!isPreviewMode && typeof seo !== 'undefined' && seo?.structuredDataJson) { %>
+    <script nonce="<%= locals.cspNonce || String() %>" type="application/ld+json"><%- seo.structuredDataJson %></script>
+  <% } %>
 </head>
 <body class="event-details-body<%= details.isAccumulatedChallenge ? ' is-accumulated-challenge' : '' %><%= locals.isAuthenticated ? ' is-authenticated' : '' %><%= locals.isAuthenticated && locals.isRunnerWorkspace ? ' has-runner-mobile-nav' : '' %><%= showMobileStickyCta ? ' has-event-mobile-sticky-cta' : '' %>">
   <%- include('../layouts/nav') %>
 
-  <main class="event-details-page">
+  <main class="event-details-page" id="main-content" tabindex="-1">
     <%
       const registrationToneClass = details.registrationState ? `event-status-${details.registrationState.tone}` : 'event-status-neutral';
       const defaultEventImageUrl = '/images/helloRun-icon.webp';
@@ -156,10 +171,6 @@
             <% if (isPreviewMode) { %>
               <a href="<%= previewReturnHref %>" class="btn btn-outline btn-hero-secondary"><i data-lucide="arrow-left"></i><span>Back to Editor</span></a>
             <% } else { %>
-              <a href="/events" class="btn btn-outline btn-hero-secondary"><i data-lucide="search"></i><span>Browse Events</span></a>
-              <% if (details.secondaryCtas?.[0]) { %>
-                <a href="<%= details.secondaryCtas[0].href %>" class="btn btn-outline btn-hero-secondary"><i data-lucide="trophy"></i><span><%= details.secondaryCtas[0].label %></span></a>
-              <% } %>
               <%- include('../partials/event-share-menu', {
                 instanceId: `eventHeroShare-${details.slug}`,
                 url: share.url,
@@ -215,6 +226,28 @@
           <% } %>
         </aside>
       </div>
+    </section>
+
+    <section class="event-overview" aria-labelledby="eventOverviewTitle">
+      <h2 id="eventOverviewTitle" class="sr-only">Event at a glance</h2>
+      <dl class="event-overview-grid">
+        <div>
+          <dt><i data-lucide="calendar-days" aria-hidden="true"></i><span>Event period</span></dt>
+          <dd><%= activityPeriod %></dd>
+        </div>
+        <div>
+          <dt><i data-lucide="map-pin" aria-hidden="true"></i><span><%= supportsOnsiteParticipation ? 'Venue / access' : 'Participation' %></span></dt>
+          <dd><%= details.location?.publicLabel || details.location?.summary || 'Location not listed' %></dd>
+        </div>
+        <div>
+          <dt><i data-lucide="target" aria-hidden="true"></i><span><%= details.isAccumulatedChallenge ? 'Goal options' : 'Categories' %></span></dt>
+          <dd><%= details.distanceSummaryLabel || details.completionGoalLabel || details.targetDistanceLabel || 'Options not listed' %></dd>
+        </div>
+        <div>
+          <dt><i data-lucide="ticket" aria-hidden="true"></i><span>Registration</span></dt>
+          <dd><strong><%= details.pricing?.amountLabel || 'Pricing not listed' %></strong><small><%= details.registrationState?.canRegisterNow ? `Closes ${registrationDeadline}` : (details.registrationState?.helper || registrationDeadline) %></small></dd>
+        </div>
+      </dl>
     </section>
 
     <section class="event-details-shell<%= showEventSidebar ? '' : ' event-details-shell-wide' %>">
@@ -364,27 +397,6 @@
         </section>
       <% } %>
 
-      <section class="event-stats-strip<%= details.isAccumulatedChallenge ? ' event-challenge-timeline' : '' %>" aria-label="<%= details.isAccumulatedChallenge ? 'Event timeline' : 'Event highlights' %>">
-        <% if (details.isAccumulatedChallenge) { %>
-          <% (details.challengeDates || []).forEach((item) => { %>
-            <article class="event-stat event-stat-<%= item.key %>">
-              <span><%= item.label %></span>
-              <strong><%= item.value %></strong>
-              <small><%= item.helper %></small>
-            </article>
-          <% }) %>
-        <% } else { %>
-          <% (details.stats || []).filter((stat) => stat.label !== 'Registration Options').forEach((stat) => { %>
-            <% const statClass = stat.label === 'Signups' ? 'event-stat-signups' : (stat.label === 'Duration' ? 'event-stat-duration' : 'event-stat-detail'); %>
-            <article class="event-stat <%= statClass %>">
-              <span><%= stat.label %></span>
-              <strong><%= stat.value %></strong>
-              <small><%= stat.helper %></small>
-            </article>
-          <% }) %>
-        <% } %>
-      </section>
-
       <details class="event-section-jump">
         <summary>Jump to section</summary>
         <nav class="event-section-nav" aria-label="Event page sections">
@@ -400,21 +412,6 @@
         </nav>
       </details>
 
-      <% if (!details.isAccumulatedChallenge) { %><section class="event-mobile-key-facts" id="event-summary" aria-labelledby="eventMobileFactsTitle">
-        <div class="event-mobile-key-facts-heading">
-          <p>At a glance</p>
-          <h2 id="eventMobileFactsTitle">Key event facts</h2>
-        </div>
-        <div class="event-mobile-facts-grid">
-          <% (details.timeline || []).forEach((item) => { %>
-            <p><span><%= item.label %></span><strong><%= item.value %></strong></p>
-          <% }) %>
-          <p><span>Mode</span><strong><%= (details.allowedModes || []).join(' / ') || details.eventTypeLabel || 'Not listed' %></strong></p>
-          <p><span><%= details.isAccumulatedChallenge ? 'Registration options' : 'Distance' %></span><strong><%= details.distanceSummaryLabel || details.targetDistanceLabel || 'Not listed' %></strong></p>
-          <p><span>Location</span><strong><%= details.location?.publicLabel || details.location?.summary || 'Not listed' %></strong></p>
-        </div>
-      </section><% } %>
-
       <div class="event-main-layout">
         <div class="event-main-content">
           <section class="event-section" id="event-how-it-works">
@@ -422,7 +419,7 @@
               <span class="event-section-icon"><i data-lucide="route"></i></span>
               <div>
                 <h2>How This Event Works</h2>
-                <p><%= details.isAccumulatedChallenge ? (hasSingleAccumulatedGoal ? 'Complete eligible virtual activities anywhere during the event window. Approved submissions build your official event total.' : 'Complete eligible virtual activities anywhere during the event window. Approved submissions build your selected goal or goals.') : 'Register, complete the event, then submit your result for review.' %></p>
+                <p><%= isOnsiteEvent ? 'Register, attend the scheduled venue, complete your category, and review the official results.' : (isHybridEvent ? 'Register for an available participation mode, complete the event, and follow the proof or result process for that mode.' : (details.isAccumulatedChallenge ? (hasSingleAccumulatedGoal ? 'Complete eligible virtual activities anywhere during the event window. Approved submissions build your official event total.' : 'Complete eligible virtual activities anywhere during the event window. Approved submissions build your selected goal or goals.') : 'Register, complete an eligible activity during the event window, then submit your result for review.')) %></p>
               </div>
             </div>
 
@@ -434,18 +431,18 @@
               </article>
               <article>
                 <span>2</span>
-                <h3><%= details.isAccumulatedChallenge ? 'Complete Virtual Activities' : 'Complete Activities' %></h3>
-                <p><%= details.virtualRules?.acceptedActivitiesSummary ? `${details.isAccumulatedChallenge ? 'Complete them anywhere. ' : ''}${details.virtualRules.acceptedActivitiesSummary}.` : 'Complete the configured event distance during the event window.' %></p>
+                <h3><%= isOnsiteEvent ? 'Attend Race Day' : (isHybridEvent ? 'Complete Your Event' : (details.isAccumulatedChallenge ? 'Complete Virtual Activities' : 'Complete Your Activity')) %></h3>
+                <p><%= isOnsiteEvent ? `Arrive at ${details.location?.publicLabel || 'the listed venue'} and complete your registered category.` : (isHybridEvent ? 'Follow the venue instructions for onsite participation or the activity rules for virtual participation.' : (details.virtualRules?.acceptedActivitiesSummary ? `${details.isAccumulatedChallenge ? 'Complete them anywhere. ' : ''}${details.virtualRules.acceptedActivitiesSummary}.` : 'Complete the configured event distance during the event window.')) %></p>
               </article>
               <article>
                 <span>3</span>
-                <h3>Submit Proof</h3>
-                <p><%= details.virtualRules?.proofInstructions || 'Submit your result through HelloRun for review.' %></p>
+                <h3><%= isOnsiteEvent ? 'Record Your Result' : 'Submit Proof' %></h3>
+                <p><%= isOnsiteEvent ? 'Your official race-day result is recorded through the event result process.' : (details.virtualRules?.proofInstructions || 'Submit your result through HelloRun for review.') %></p>
               </article>
               <article>
                 <span>4</span>
-                <h3>Earn Recognition</h3>
-                <p><%= details.isAccumulatedChallenge ? 'Reach every target in your selected goal using approved activities.' : (details.virtualRules?.recognitionMode || 'Finishers receive the recognition configured for this event.') %></p>
+                <h3><%= details.rewardItems?.length ? 'Earn Recognition' : 'Review Your Result' %></h3>
+                <p><%= details.rewardItems?.length ? (details.isAccumulatedChallenge ? 'Reach every target in your selected goal using approved activities.' : 'Complete the event requirements to receive the configured finisher recognition.') : 'Check event standings or your participant records when results become available.' %></p>
               </article>
             </div>
           </section>
@@ -458,18 +455,21 @@
             <div class="event-section-heading">
               <span class="event-section-icon"><i data-lucide="upload-cloud"></i></span>
               <div>
-                <h2>Activities & Submission Rules</h2>
-                <p><%= details.isAccumulatedChallenge ? 'Log eligible virtual activities from anywhere and submit clear proof so verified progress counts toward your goal.' : 'Use eligible activities and clear proof so verified progress counts toward your goal.' %></p>
+                <h2><%= isOnsiteEvent ? 'Race Day & Results' : (isHybridEvent ? 'Participation & Submission Rules' : 'Activities & Submission Rules') %></h2>
+                <p><%= isOnsiteEvent ? 'Use the listed venue, schedule, and category details for race day. Official results follow the event result process.' : (details.isAccumulatedChallenge ? 'Log eligible virtual activities from anywhere and submit clear proof so verified progress counts toward your goal.' : 'Use eligible activities and clear proof so verified progress counts toward your goal.') %></p>
               </div>
             </div>
 
             <dl class="event-rule-list">
-              <div><dt>Event window</dt><dd><%= details.virtualRules?.virtualWindowLabel || 'Not listed' %></dd></div>
-              <div><dt>What counts</dt><dd><%= details.virtualRules?.acceptedActivitiesSummary || 'Not specified' %><%= details.slug === 'cns-move-more-challenge-2026' ? '. Cycling does not count.' : '' %></dd></div>
-              <div><dt>What to submit</dt><dd><%= details.virtualRules?.proofInstructions || 'Not specified' %></dd></div>
-              <div><dt>When to submit</dt><dd><%= details.virtualRules?.submissionTimingInstructions || details.virtualRules?.finalSubmissionDeadline || 'Not listed' %></dd></div>
-              <div><dt>What becomes official</dt><dd>Only your own approved, accurate, non-duplicate activities count toward your goal.</dd></div>
-              <div><dt>Leaderboard privacy</dt><dd><%= details.isAccumulatedChallenge ? 'Choose during registration to show your full name, an abbreviated name, or stay off the public leaderboard.' : (details.virtualRules?.leaderboardMode || 'Not available') %></dd></div>
+              <div><dt>Event period</dt><dd><%= activityPeriod %></dd></div>
+              <% if (supportsOnsiteParticipation) { %><div><dt>Venue</dt><dd><%= details.location?.publicLabel || 'Venue details not listed' %></dd></div><% } %>
+              <% if (supportsVirtualParticipation) { %>
+                <div><dt>What counts</dt><dd><%= details.virtualRules?.acceptedActivitiesSummary || 'Eligible activities are listed in the organizer details.' %><%= details.slug === 'cns-move-more-challenge-2026' ? '. Cycling does not count.' : '' %></dd></div>
+                <div><dt>What to submit</dt><dd><%= details.virtualRules?.proofInstructions || 'Submit your result through HelloRun for review.' %></dd></div>
+                <div><dt>When to submit</dt><dd><%= details.virtualRules?.submissionTimingInstructions || details.virtualRules?.finalSubmissionDeadline || 'Not listed' %></dd></div>
+                <div><dt>What becomes official</dt><dd>Only your own approved, accurate, non-duplicate activities count toward your goal.</dd></div>
+              <% } %>
+              <div><dt>Results & privacy</dt><dd><%= details.isAccumulatedChallenge ? 'Choose during registration to show your full name, an abbreviated name, or stay off the public leaderboard.' : (details.virtualRules?.leaderboardMode || 'Official results follow the event settings.') %></dd></div>
               <% if (details.slug === 'cns-move-more-challenge-2026') { %>
                 <div><dt>Who can join</dt><dd>An exclusive event of the College of Natural Sciences, open to CNS faculty and staff.</dd></div>
                 <div><dt>Tracking apps and devices</dt><dd>Use Strava, Garmin, or another sports tracking app or device capable of recording distance and elevation. A phone step counter that shows distance also works.</dd></div>
@@ -580,15 +580,36 @@
                   </article>
                 <% }) %>
               </div>
-              <% if (details.isAccumulatedChallenge && event.leaderboardRecognitionEnabled !== false) { %>
+              <% if (details.isAccumulatedChallenge && details.rewardDetails?.leaderboardRecognitionEnabled) { %>
                 <p class="event-supporting-copy">Your approved progress can appear on the event leaderboards based on the privacy option you choose during registration.</p>
               <% } %>
             <% } else { %>
               <p class="event-muted">Rewards have not been listed by the organizer yet.</p>
             <% } %>
 
-            <% if (event.physicalRewardsDescription) { %>
-              <p class="event-supporting-copy"><%= event.physicalRewardsDescription %></p>
+            <% if (details.rewardDetails?.description) { %>
+              <p class="event-supporting-copy"><%= details.rewardDetails.description %></p>
+            <% } %>
+
+            <% if (details.rewardDetails?.claimingNotes || details.rewardDetails?.deliveryDescription || details.rewardDetails?.claimingMethodLabel) { %>
+              <dl class="event-reward-details">
+                <% if (details.rewardDetails.claimingMethodLabel) { %><div><dt>Claiming method</dt><dd><%= details.rewardDetails.claimingMethodLabel %></dd></div><% } %>
+                <% if (details.rewardDetails.claimingNotes) { %><div><dt>Claiming instructions</dt><dd><%= details.rewardDetails.claimingNotes %></dd></div><% } %>
+                <% if (details.rewardDetails.deliveryDescription) { %><div><dt>Delivery details</dt><dd><%= details.rewardDetails.deliveryDescription %></dd></div><% } %>
+              </dl>
+            <% } %>
+
+            <% if ((details.rewardDetails?.specialBenefits || []).length) { %>
+              <div class="event-package-grid event-benefit-grid">
+                <% details.rewardDetails.specialBenefits.forEach((benefit) => { %>
+                  <article>
+                    <h3><%= benefit.title %></h3>
+                    <% if (benefit.description) { %><p><%= benefit.description %></p><% } %>
+                    <% if (benefit.appliesToPackageNames.length) { %><small>For: <%= benefit.appliesToPackageNames.join(', ') %></small><% } %>
+                    <% if (benefit.validUntil) { %><small>Valid until <%= benefit.validUntil %></small><% } %>
+                  </article>
+                <% }) %>
+              </div>
             <% } %>
 
             <% const eventBadges = badges || []; %>

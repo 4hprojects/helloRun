@@ -40,24 +40,6 @@ async function finalizeDueAccumulatedCertificates(options = {}) {
   const summary = { eventsChecked: events.length, blockedByReviews: 0, issued: 0, revoked: 0, skipped: 0, failed: 0 };
 
   for (const event of events) {
-    const pendingCount = await AccumulatedActivitySubmission.countDocuments({
-      eventId: event._id,
-      status: { $in: ['submitted', 'needs_clarification'] }
-    });
-    if (pendingCount > 0) {
-      summary.blockedByReviews += 1;
-      await Registration.updateMany(
-        {
-          eventId: event._id,
-          status: 'confirmed',
-          paymentStatus: 'paid',
-          'accumulatedCertificateFinalization.state': { $ne: 'generated' }
-        },
-        { $set: { 'accumulatedCertificateFinalization.state': 'waiting_reviews' } }
-      );
-      continue;
-    }
-
     const registrations = await Registration.find({
       eventId: event._id,
       status: 'confirmed',
@@ -65,7 +47,21 @@ async function finalizeDueAccumulatedCertificates(options = {}) {
     }).limit(Math.max(1, Math.min(1000, Number(options.registrationLimit || 500))));
 
     for (const registration of registrations) {
+      let finalReviewComplete = false;
       try {
+        const pendingCount = await AccumulatedActivitySubmission.countDocuments({
+          registrationId: registration._id,
+          status: { $in: ['submitted', 'needs_clarification'] }
+        });
+        if (pendingCount > 0) {
+          summary.blockedByReviews += 1;
+          await Registration.updateOne(
+            { _id: registration._id, 'accumulatedCertificateFinalization.state': { $ne: 'generated' } },
+            { $set: { 'accumulatedCertificateFinalization.state': 'waiting_reviews' } }
+          );
+          continue;
+        }
+        finalReviewComplete = true;
         const result = await finalizeRegistrationCertificate({ registration, event, now });
         summary[result] += 1;
       } catch (error) {
@@ -78,7 +74,7 @@ async function finalizeDueAccumulatedCertificates(options = {}) {
       } finally {
         await refreshAccumulatedChallengeProgress(registration, {
           performedBy: event.approvedBy || event.organizerId,
-          finalReviewComplete: true
+          finalReviewComplete
         }).catch((error) => {
           logger.error('[accumulated-certificate] Final reward reconciliation failed:', {
             eventId: String(event._id),
@@ -328,7 +324,7 @@ async function reconcilePrematureAccumulatedCertificates(options = {}) {
       summary.revoked += 1;
     }
 
-    const pendingCount = await AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: { $in: ['submitted', 'needs_clarification'] } });
+    const pendingCount = await AccumulatedActivitySubmission.countDocuments({ registrationId: activity.registrationId, status: { $in: ['submitted', 'needs_clarification'] } });
     const state = isAccumulatedCertificateFinalizationDue(event, now)
       ? (pendingCount > 0 ? 'waiting_reviews' : '')
       : 'waiting_deadline';
