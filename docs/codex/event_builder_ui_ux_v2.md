@@ -1,11 +1,11 @@
 # HelloRun Event Builder UI/UX v2
 
 **Status:** Implemented and verified; deployment review pending
-**Created:** November 17, 2026  
-**Routes:** `/organizer/create-event`, `/organizer/events/:id/edit`  
-**Audience:** First-time and repeat event organizers  
-**Implementation branch:** `feat/event-builder-ui-v2`  
-**Required base:** `feat/event-experience-v2` at `cd816f5`  
+**Created:** November 17, 2026
+**Routes:** `/organizer/create-event`, `/organizer/events/:id/edit`
+**Audience:** First-time and repeat event organizers
+**Implementation branch:** `feat/event-builder-ui-v2`
+**Required base:** `feat/event-experience-v2` at `cd816f5`
 
 ## Document Role
 
@@ -555,4 +555,3 @@ The future implementation is complete only when:
 - All existing event and participant behavior remains compatible.
 - Automated and manual evidence is recorded honestly.
 - The feature branch is ready for deployment review but is not deployed.
-

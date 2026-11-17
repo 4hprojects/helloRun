@@ -67,6 +67,7 @@ test('question fields reindex after move, duplicate, delete, and undo', () => {
 
   cards[1].querySelector('[data-question-action="delete"]').click();
   assert.equal(controller.cards().length, 2);
+  assert.equal(builder.ownerDocument.activeElement, builder.querySelector('[data-question-undo]'));
   builder.querySelector('[data-question-undo]').click();
   assert.equal(controller.cards().length, 3);
   assert.equal(controller.cards()[1].querySelector('[data-question-field="label"]').value, 'Club');
@@ -85,6 +86,7 @@ test('choice options add, move, remove, serialize, and stop at twenty', () => {
 
   optionInputs[1].closest('[data-option-row]').querySelector('[data-option-action="up"]').click();
   assert.equal(card.querySelector('[data-question-field="options"]').value, 'Vegetarian\nChicken');
+  assert.equal(card.ownerDocument.activeElement.value, 'Vegetarian');
   card.querySelector('[data-option-row] [data-option-action="remove"]').click();
   assert.equal(card.querySelectorAll('[data-option-row]').length, 1);
 

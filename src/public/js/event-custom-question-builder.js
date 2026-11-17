@@ -212,12 +212,14 @@
       status.replaceChildren();
       status.hidden = false;
       status.appendChild(documentObject.createTextNode(message));
+      let undo = null;
       if (undoAvailable) {
-        const undo = element(documentObject, 'button', '', 'Undo');
+        undo = element(documentObject, 'button', '', 'Undo');
         undo.type = 'button';
         undo.dataset.questionUndo = '';
         status.append(' ', undo);
       }
+      return undo;
     }
 
     function syncOptions(card) {
@@ -438,7 +440,7 @@
         lastDeleted = { card, index: cards().indexOf(card) };
         card.remove();
         syncAll();
-        showStatus('Question deleted.', true);
+        showStatus('Question deleted.', true)?.focus();
       } else if (action === 'add-option') {
         const rows = optionRows(card);
         if (rows.length >= maxOptions) return;
@@ -455,15 +457,19 @@
       const row = button.closest('[data-option-row]');
       const action = button.dataset.optionAction;
       if (!card || !row) return;
+      let focusRow = row;
       if (action === 'remove') {
+        const removedIndex = optionRows(card).indexOf(row);
         row.remove();
         if (!optionRows(card).length) card.querySelector('[data-option-list]').appendChild(createOptionRow(documentObject));
+        const remainingRows = optionRows(card);
+        focusRow = remainingRows[Math.min(removedIndex, remainingRows.length - 1)];
       } else {
         moveNode(row, action === 'up' ? -1 : 1);
       }
       card.dataset.questionTouched = 'true';
       syncAll();
-      card.querySelector('[data-option-input]')?.focus();
+      focusRow?.querySelector('[data-option-input]')?.focus();
     }
 
     builder.addEventListener('click', (event) => {

@@ -716,6 +716,17 @@ test('buildPublicEventSeo emits safe Event schema only for physical attendance',
   assert.equal(structuredData.location.name, 'City Track');
   assert.equal(structuredData.offers.price, 0);
 
+  const cancelledSeo = buildPublicEventSeo({
+    title: 'Cancelled Community Run',
+    slug: 'cancelled-community-run',
+    status: 'cancelled',
+    eventType: 'onsite',
+    eventStartAt: '2026-09-01T00:00:00+08:00',
+    eventEndAt: '2026-09-01T09:00:00+08:00',
+    venueName: 'City Track'
+  }, 'https://hellorun.online');
+  assert.equal(JSON.parse(cancelledSeo.structuredDataJson).eventStatus, 'https://schema.org/EventCancelled');
+
   const virtualSeo = buildPublicEventSeo({
     title: 'Virtual Event',
     slug: 'virtual-event',

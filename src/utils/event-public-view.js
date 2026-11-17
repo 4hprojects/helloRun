@@ -322,7 +322,9 @@ function buildEventStructuredDataJson(event, options = {}) {
     description: options.description || undefined,
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),
-    eventStatus: 'https://schema.org/EventScheduled',
+    eventStatus: String(event.status || '').trim().toLowerCase() === 'cancelled'
+      ? 'https://schema.org/EventCancelled'
+      : 'https://schema.org/EventScheduled',
     eventAttendanceMode: eventType === 'hybrid'
       ? 'https://schema.org/MixedEventAttendanceMode'
       : 'https://schema.org/OfflineEventAttendanceMode',

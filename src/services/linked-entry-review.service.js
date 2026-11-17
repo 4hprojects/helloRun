@@ -2,6 +2,7 @@ const logger = require('../utils/logger');
 const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const Event = require('../models/Event');
+const { isManualSubmissionReview } = require('../utils/submission-review-mode');
 
 // A runner can send one proof to several events in a single request. Each target gets its
 // own entry, and the entries share a submissionAttemptId. A review decision may apply to a
@@ -60,14 +61,15 @@ async function describeLinkedEntries(entry) {
   if (!linked.length) return [];
   const eventIds = [...new Set(linked.map((doc) => String(doc.eventId)))];
   const events = await Event.find({ _id: { $in: eventIds } }).select('title submissionReviewMode').lean();
-  const titleById = new Map((events || []).map((event) => [String(event._id), event.title || 'Event']));
+  const eventById = new Map((events || []).map((event) => [String(event._id), event]));
   return linked.map((doc) => ({
     id: String(doc._id),
     kind: doc.kind,
     eventId: String(doc.eventId),
-    eventTitle: titleById.get(String(doc.eventId)) || 'Event',
+    eventTitle: eventById.get(String(doc.eventId))?.title || 'Event',
     status: doc.status,
     willFollowDecision: PENDING_STATUSES_BY_ACTION.approve[doc.kind].has(doc.status)
+      && !isManualSubmissionReview(eventById.get(String(doc.eventId)))
   }));
 }
 
