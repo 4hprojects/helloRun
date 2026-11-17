@@ -1,6 +1,6 @@
 # HelloRun Event Builder UI/UX v2
 
-**Status:** Proposed; documentation only  
+**Status:** Implemented and verified; deployment review pending
 **Created:** November 17, 2026  
 **Routes:** `/organizer/create-event`, `/organizer/events/:id/edit`  
 **Audience:** First-time and repeat event organizers  
@@ -9,15 +9,111 @@
 
 ## Document Role
 
-This document records the approved UI/UX improvement contract for the HelloRun
-event builder. It is the source for future phased implementation work. Creating
-this file does not authorize application code, style, schema, test, production
-data, deployment, or publishing changes.
+This document records the approved UI/UX improvement contract and the completed
+implementation evidence for the HelloRun event builder. The implementation did
+not change the database schema, event URLs, production data, or publication
+state. It has not been deployed or merged.
 
 The current repository remains the source of truth for behavior. Future work
 must preserve existing event IDs, URLs, field names, stored records,
 registration, payment, proof, leaderboard, badge, certificate, organizer-role,
 participant-state, preview, and export behavior.
+
+## Implementation Record
+
+Implementation used the isolated worktree
+`/home/henz/Documents/MyProjects/helloRun-event-builder-ui-v2` and branch
+`feat/event-builder-ui-v2`, based on `feat/event-experience-v2` at `cd816f5`.
+The original dirty checkout was not modified.
+
+### Phase Checkpoints
+
+- Phase 1, builder foundation: `7069cea`
+- Phase 2, registration question builder: `2cf7c8c`
+- Phase 3, dense sections and review: `7332ca0`
+- Phase 4 records the final verification, worktree build metadata fix, and test
+  harness corrections in the final branch commit.
+
+### Delivered Files
+
+- Builder presentation and responsive rules:
+  `src/public/css/create-event.css`
+- Five-group behavior, conditional leaderboard and kit sections, and review
+  navigation: `src/public/js/event-builder-groups.js`
+- Custom question controller:
+  `src/public/js/event-custom-question-builder.js`
+- Create and edit parity:
+  `src/views/organizer/create-event.ejs` and
+  `src/views/organizer/edit-event.ejs`
+- Shared question and leaderboard markup:
+  `src/views/organizer/partials/custom-question-builder.ejs` and
+  `src/views/organizer/partials/leaderboard-settings.ejs`
+- Lifecycle-aware review summaries:
+  `src/services/event-form.service.js`
+- Focused coverage:
+  `tests/event-custom-question-builder.unit.test.js` and
+  `tests/event-builder-dense-sections.unit.test.js`
+- Release-gate support:
+  `src/utils/build-info.js`, `package.json`, and
+  `tests/organizer-onsite-qr-security.smoke.test.js`
+
+### Actual Verification Results
+
+All commands used the existing dependency installation through `NODE_PATH`.
+Database-backed commands used the loopback-only development services and
+`.env.development` from the original checkout.
+
+```text
+Focused Phase 2 and Phase 3 unit gate: 42 passed, 0 failed
+Organizer waiver/create/edit integration gate: 31 passed, 0 failed
+npm run test:organizer: 241 passed, 0 failed
+npm run test:unit: passed, exit code 0
+npm run lint:check: 1100 JavaScript files and 185 EJS templates checked
+npm run format:check: 2 JSON files and 101 automation files checked
+npm run docs:check: 418 Markdown files audited
+git diff --check: passed
+```
+
+The first full unit run exposed a worktree-only `.git` pointer assumption and a
+unit fixture that required local environment loading. `src/utils/build-info.js`
+now resolves both normal checkouts and Git worktrees. The final full unit run
+passed. The organizer script also contained a stale unmatched `phase7` glob;
+the script now targets the existing organizer, organiser, onsite, and payment
+suites. Its CSRF-enabled QR fixture now logs in through the real protected form
+and asserts the current resource-hiding responses.
+
+### Browser Evidence
+
+Chromium 156.0.8078.79 ran against the isolated loopback server with an approved
+development organizer. Create-event was inspected at 320, 375, 768, 1024, and
+1440 pixels with an 800-pixel viewport height.
+
+- No inspected width produced horizontal document overflow.
+- Mobile showed only the active group plus the sticky review action surface.
+- Group navigation remained sticky and the bottom action bar remained fixed.
+- Action-bar bottom edges matched the viewport bottom at every width.
+- Adding a dropdown question focused its prompt, revealed its option editor,
+  updated the `1 of 10 questions` status, and stayed within the 375-pixel
+  viewport.
+- An `<img onerror>` prompt remained literal text in participant preview and
+  created no image element.
+- Screenshots at 375 and 1440 pixels were captured to temporary files and
+  visually inspected. They are test artifacts, not repository assets.
+
+### Decisions and Limitations
+
+- Existing four question types, indexed field names, stable IDs, and
+  newline-serialized options remain authoritative.
+- Disabling leaderboard display or kit-size collection hides dependent controls
+  without clearing stored values.
+- Review cards suppress repetitive absent values but retain meaningful missing
+  payment warnings and lifecycle summaries.
+- No automated screen-reader session or instrumented contrast scanner was
+  available. Semantic source checks, keyboard/focus tests, rendered target
+  measurements, reduced-motion rules, and manual Chromium inspection cover the
+  release gate.
+- Local development fixtures were created only in loopback development
+  databases. No production data was read or changed.
 
 ## Evidence Reviewed
 

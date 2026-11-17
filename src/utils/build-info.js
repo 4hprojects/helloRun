@@ -23,7 +23,20 @@ const BUILD_METADATA_PATH = path.resolve(__dirname, '..', '..', 'tmp', 'build-in
  */
 function readCommitFromGitDir() {
   try {
-    const gitDir = path.resolve(__dirname, '..', '..', '.git');
+    const gitMarker = path.resolve(__dirname, '..', '..', '.git');
+    let gitDir = gitMarker;
+    if (fs.statSync(gitMarker).isFile()) {
+      const pointer = fs.readFileSync(gitMarker, 'utf8').trim();
+      if (!pointer.startsWith('gitdir:')) return '';
+      gitDir = path.resolve(path.dirname(gitMarker), pointer.slice(7).trim());
+    }
+    let commonGitDir = gitDir;
+    try {
+      const commonPointer = fs.readFileSync(path.join(gitDir, 'commondir'), 'utf8').trim();
+      commonGitDir = path.resolve(gitDir, commonPointer);
+    } catch (_) {
+      // A standard checkout stores refs beside HEAD.
+    }
     const head = fs.readFileSync(path.join(gitDir, 'HEAD'), 'utf8').trim();
 
     // Detached HEAD holds the SHA directly; otherwise it points at a ref to follow.
@@ -31,10 +44,13 @@ function readCommitFromGitDir() {
 
     const ref = head.slice(4).trim();
     try {
-      return fs.readFileSync(path.join(gitDir, ref), 'utf8').trim();
+      const looseRef = fs.existsSync(path.join(gitDir, ref))
+        ? path.join(gitDir, ref)
+        : path.join(commonGitDir, ref);
+      return fs.readFileSync(looseRef, 'utf8').trim();
     } catch (_) {
       // A packed ref, once the loose file has been gc'd.
-      const packed = fs.readFileSync(path.join(gitDir, 'packed-refs'), 'utf8');
+      const packed = fs.readFileSync(path.join(commonGitDir, 'packed-refs'), 'utf8');
       const line = packed.split('\n').find((entry) => entry.endsWith(` ${ref}`));
       return line ? line.split(' ')[0] : '';
     }
