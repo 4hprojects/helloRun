@@ -20,7 +20,11 @@
   const mobileTitle = nav.querySelector('#builderMobileTitle');
   const mobileQuery = window.matchMedia('(max-width: 640px)');
   const leaderboardType = form.querySelector('#leaderboardSettingsType');
+  const leaderboardEnabled = form.querySelector('[data-leaderboard-enabled]');
+  const leaderboardDependent = form.querySelector('[data-leaderboard-dependent]');
   const recognitionSettings = Array.from(form.querySelectorAll('[data-event-wide-recognition-setting]'));
+  const kitSizeRequired = form.querySelector('#kitSizeRequired');
+  const kitInventoryPanel = form.querySelector('[data-kit-inventory-panel]');
   let activeGroup = 'basics';
   const errorFieldFallbacks = [
     [/^(raceCategor|raceDistances)/, 'race-categories-step'],
@@ -99,6 +103,17 @@
       checkbox.disabled = !available;
       if (!available) checkbox.checked = false;
     });
+  }
+
+  function syncLeaderboardDisclosure() {
+    if (!leaderboardEnabled || !leaderboardDependent) return;
+    leaderboardDependent.hidden = !leaderboardEnabled.checked;
+    leaderboardEnabled.setAttribute('aria-expanded', String(leaderboardEnabled.checked));
+  }
+
+  function syncKitInventory() {
+    if (!kitSizeRequired || !kitInventoryPanel) return;
+    kitInventoryPanel.hidden = !kitSizeRequired.checked;
   }
 
   function applyMobileDisclosure() {
@@ -183,6 +198,20 @@
     if (groupId) setActiveGroup(groupId);
   });
 
+  form.addEventListener('click', (event) => {
+    const editButton = event.target.closest('[data-review-edit-target]');
+    if (!editButton || !form.contains(editButton)) return;
+    const targetId = editButton.dataset.reviewEditTarget;
+    const section = targetId ? document.getElementById(targetId) : null;
+    if (!section || !form.contains(section)) return;
+    const groupId = groupForNode(section);
+    if (groupId) setActiveGroup(groupId);
+    requestAnimationFrame(() => {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      section.focus({ preventScroll: true });
+    });
+  });
+
   if ('IntersectionObserver' in window) {
     const observer = new IntersectionObserver((entries) => {
       if (mobileQuery.matches) return;
@@ -196,6 +225,8 @@
   form.addEventListener('input', updateGroupStates);
   form.addEventListener('change', updateGroupStates);
   leaderboardType?.addEventListener('change', syncEventWideRecognitionSettings);
+  leaderboardEnabled?.addEventListener('change', syncLeaderboardDisclosure);
+  kitSizeRequired?.addEventListener('change', syncKitInventory);
   mobileQuery.addEventListener?.('change', () => {
     applyMobileDisclosure();
     closeMenu();
@@ -205,6 +236,8 @@
   const invalidField = form.querySelector('.has-error input, .has-error select, .has-error textarea, [aria-invalid="true"]');
   const initialGroup = groupForNode(hashField) || groupForNode(invalidField) || 'basics';
   syncEventWideRecognitionSettings();
+  syncLeaderboardDisclosure();
+  syncKitInventory();
   updateGroupStates();
   setActiveGroup(initialGroup);
   if (invalidField) requestAnimationFrame(() => invalidField.focus({ preventScroll: true }));

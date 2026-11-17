@@ -498,10 +498,40 @@
   padding: 0.85rem;
 }
 
+.review-summary-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
 .review-summary-card h3 {
-  margin: 0 0 0.6rem;
+  margin: 0;
   font-size: 0.95rem;
   color: var(--text-primary);
+}
+
+.review-edit-button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.review-edit-button:hover {
+  text-decoration: underline;
+}
+
+.review-edit-button:focus-visible {
+  border-radius: 6px;
+  outline: 3px solid rgba(37, 99, 235, 0.3);
+  outline-offset: 1px;
 }
 
 .review-summary-grid strong,
@@ -519,6 +549,178 @@
   color: var(--text-secondary);
   font-size: 0.8rem;
   line-height: 1.4;
+}
+
+.review-summary-card .review-summary-empty {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* ----- DENSE BUILDER SECTIONS ----- */
+.leaderboard-settings-panel,
+.kit-inventory-panel {
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--bg-white);
+  padding: 1rem;
+}
+
+.leaderboard-enable-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.leaderboard-enable-row input {
+  margin-top: 0.2rem;
+}
+
+.leaderboard-enable-row span,
+.leaderboard-enable-row strong,
+.leaderboard-enable-row small {
+  display: block;
+}
+
+.leaderboard-enable-row small {
+  margin-top: 0.2rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.leaderboard-dependent-settings {
+  margin-top: 1rem;
+}
+
+.builder-disclosure {
+  margin-top: 1rem;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.builder-disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 52px;
+  padding: 0.75rem 0.9rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.builder-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.builder-disclosure > summary span,
+.builder-disclosure > summary strong,
+.builder-disclosure > summary small {
+  display: block;
+}
+
+.builder-disclosure > summary small {
+  margin-top: 0.15rem;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.builder-disclosure > summary i {
+  flex: 0 0 auto;
+  transition: transform 160ms ease;
+}
+
+.builder-disclosure[open] > summary i {
+  transform: rotate(180deg);
+}
+
+.builder-disclosure-body {
+  border-top: 1px solid var(--border-light);
+  padding: 1rem 0.9rem;
+}
+
+.leaderboard-option-group {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.leaderboard-option-group legend {
+  margin-bottom: 0.55rem;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.leaderboard-column-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.35rem 0.75rem;
+}
+
+.leaderboard-column-options label,
+.leaderboard-toggle-list label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  margin: 0;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.leaderboard-toggle-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.2rem 1rem;
+}
+
+.kit-inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(76px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.kit-inventory-cell {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.kit-inventory-cell span {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.kit-inventory-cell input {
+  min-width: 0;
+}
+
+.kit-inventory-cell small {
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  line-height: 1.35;
 }
 
 /* ----- SUBMIT READINESS CHECKLIST ----- */
@@ -4447,5 +4649,32 @@ textarea:focus {
 @media (max-width: 640px) {
   .review-mode-options {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .kit-inventory-grid {
+    grid-template-columns: repeat(4, minmax(76px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .leaderboard-settings-panel,
+  .kit-inventory-panel {
+    padding: 0.8rem;
+  }
+
+  .leaderboard-toggle-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kit-inventory-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .builder-disclosure > summary i {
+    transition: none;
   }
 }

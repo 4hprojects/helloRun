@@ -61,16 +61,18 @@ test('event-wide recognition settings stay off for race-result leaderboards', ()
 });
 
 test('organizer create and edit forms expose recognition and public-rank controls', () => {
+  const leaderboardSettings = fs.readFileSync(path.join(ROOT, 'src/views/organizer/partials/leaderboard-settings.ejs'), 'utf8');
   for (const relativePath of ['src/views/organizer/create-event.ejs', 'src/views/organizer/edit-event.ejs']) {
     const view = fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
-    assert.match(view, /name="leaderboardSettingsShowHighestStepsCard" value="1"/);
-    assert.match(view, /name="leaderboardSettingsShowHighestElevationCard" value="1"/);
-    assert.match(view, /name="leaderboardSettingsShowMostConsistentCard" value="1"/);
-    assert.match(view, /data-event-wide-recognition-setting/);
-    assert.match(view, /Only approved, publicly eligible results across all categories count/);
-    assert.match(view, /name="leaderboardSettingsPublicRankCutoff"/);
-    assert.match(view, /positive value publishes that rank and all exact ties/);
+    assert.match(view, /include\('partials\/leaderboard-settings'/);
   }
+  assert.match(leaderboardSettings, /name="leaderboardSettingsShowHighestStepsCard" value="1"/);
+  assert.match(leaderboardSettings, /name="leaderboardSettingsShowHighestElevationCard" value="1"/);
+  assert.match(leaderboardSettings, /name="leaderboardSettingsShowMostConsistentCard" value="1"/);
+  assert.match(leaderboardSettings, /data-event-wide-recognition-setting/);
+  assert.match(leaderboardSettings, /Only approved, publicly eligible results count toward event-wide recognition/);
+  assert.match(leaderboardSettings, /name="leaderboardSettingsPublicRankCutoff"/);
+  assert.match(leaderboardSettings, /positive value includes exact ties at the cutoff/);
 });
 
 test('organizer controls clear and disable all event-wide settings for race results', () => {

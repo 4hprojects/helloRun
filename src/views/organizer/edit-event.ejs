@@ -809,7 +809,7 @@
               </div>
               <small class="field-hint">Only ask when there is actually a shirt. Leave the stock boxes below empty for any size you do not offer — a size left blank is not shown at all, while a zero is shown as offered but sold out.</small>
             </div>
-            <div class="form-group form-group-full">
+            <div class="form-group form-group-full kit-inventory-panel" data-kit-inventory-panel <%= formData.kitSizeRequired ? '' : 'hidden' %>>
               <label>Race kit stock per size</label>
               <div class="kit-inventory-grid">
                 <% (typeof kitSizes !== 'undefined' ? kitSizes : ['XS','S','M','L','XL','2XL','3XL']).forEach(function (size) {
@@ -1038,75 +1038,7 @@
                   </div>
                   <small class="field-hint">Controls whether leaderboard recognition is advertised for this accumulated challenge.</small>
                 </div>
-                <div class="form-group form-group-full">
-                  <div class="subsection-divider">Leaderboard Settings</div>
-                  <% const leaderboardSettings = formData.leaderboardSettings || {}; %>
-                  <% const selectedLeaderboardColumns = leaderboardSettings.visibleColumns || []; %>
-                  <div class="form-grid">
-                    <div class="form-group">
-                      <label for="leaderboardSettingsType">Leaderboard Type</label>
-                      <select id="leaderboardSettingsType" name="leaderboardSettingsType">
-                        <option value="race_result" <%= leaderboardSettings.type === 'race_result' ? 'selected' : '' %>>Race result</option>
-                        <option value="accumulated_challenge" <%= leaderboardSettings.type === 'accumulated_challenge' ? 'selected' : '' %>>Accumulated challenge</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label for="leaderboardSettingsRankingBasis">Ranking Basis</label>
-                      <select id="leaderboardSettingsRankingBasis" name="leaderboardSettingsRankingBasis">
-                        <option value="fastest_time" <%= leaderboardSettings.rankingBasis === 'fastest_time' ? 'selected' : '' %>>Fastest verified time</option>
-                        <option value="highest_verified_distance" <%= leaderboardSettings.rankingBasis === 'highest_verified_distance' ? 'selected' : '' %>>Highest verified distance</option>
-                        <option value="highest_verified_steps" <%= leaderboardSettings.rankingBasis === 'highest_verified_steps' ? 'selected' : '' %>>Highest verified steps</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label for="leaderboardSettingsNameDisplayMode">Runner Name Display</label>
-                      <select id="leaderboardSettingsNameDisplayMode" name="leaderboardSettingsNameDisplayMode">
-                        <option value="full_name" <%= leaderboardSettings.nameDisplayMode === 'full_name' ? 'selected' : '' %>>Full name</option>
-                        <option value="first_name_last_initial" <%= leaderboardSettings.nameDisplayMode === 'first_name_last_initial' ? 'selected' : '' %>>First name + last initial</option>
-                        <option value="display_name" <%= leaderboardSettings.nameDisplayMode === 'display_name' ? 'selected' : '' %>>Display name</option>
-                        <option value="anonymous_runner_id" <%= leaderboardSettings.nameDisplayMode === 'anonymous_runner_id' ? 'selected' : '' %>>Anonymous runner ID</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label for="leaderboardSettingsVisibility">Visibility</label>
-                      <select id="leaderboardSettingsVisibility" name="leaderboardSettingsVisibility">
-                        <option value="public" <%= leaderboardSettings.visibility === 'public' ? 'selected' : '' %>>Public</option>
-                        <option value="registered_only" <%= leaderboardSettings.visibility === 'registered_only' ? 'selected' : '' %>>Registered runners only</option>
-                        <option value="private_until_published" <%= leaderboardSettings.visibility === 'private_until_published' ? 'selected' : '' %>>Private until published</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label for="leaderboardSettingsPublicRankCutoff">Public Rank Cutoff</label>
-                      <input id="leaderboardSettingsPublicRankCutoff" type="number" name="leaderboardSettingsPublicRankCutoff" min="0" max="1000" step="1" value="<%= leaderboardSettings.publicRankCutoff || 0 %>">
-                      <small class="field-hint">Use 0 to publish every eligible rank. A positive value publishes that rank and all exact ties while runners can still view their own standing.</small>
-                    </div>
-                    <div class="form-group form-group-full">
-                      <label>Visible Columns</label>
-                      <div class="checkbox-row">
-                        <% ['rank', 'runner', 'category', 'department', 'distance', 'elevation', 'activities', 'steps', 'time', 'pace', 'status'].forEach((column) => { %>
-                          <label><input type="checkbox" name="leaderboardSettingsVisibleColumns" value="<%= column %>" <%= selectedLeaderboardColumns.includes(column) ? 'checked' : '' %>> <%= column.charAt(0).toUpperCase() + column.slice(1) %></label>
-                        <% }) %>
-                      </div>
-                    </div>
-                    <div class="form-group form-group-full">
-                      <label>Review Visibility</label>
-                      <input type="hidden" name="leaderboardSettingsEnabled" value="0">
-                      <input type="hidden" name="leaderboardSettingsShowHighestStepsCard" value="0">
-                      <input type="hidden" name="leaderboardSettingsShowHighestElevationCard" value="0">
-                      <input type="hidden" name="leaderboardSettingsShowMostConsistentCard" value="0">
-                      <input type="hidden" name="leaderboardSettingsHideFlagged" value="0">
-                      <div class="checkbox-row">
-                        <label><input type="checkbox" name="leaderboardSettingsEnabled" value="1" <%= leaderboardSettings.enabled !== false ? 'checked' : '' %>> Enable event leaderboard</label>
-                        <label><input type="checkbox" name="leaderboardSettingsShowPending" value="1" <%= leaderboardSettings.showPending ? 'checked' : '' %>> Show pending submissions with labels</label>
-                        <span data-event-wide-recognition-setting <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'hidden' %>><label><input type="checkbox" name="leaderboardSettingsShowHighestStepsCard" value="1" <%= leaderboardSettings.showHighestStepsCard ? 'checked' : '' %> <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'disabled' %>> Recognize the overall highest verified steps</label></span>
-                        <span data-event-wide-recognition-setting <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'hidden' %>><label><input type="checkbox" name="leaderboardSettingsShowHighestElevationCard" value="1" <%= leaderboardSettings.showHighestElevationCard ? 'checked' : '' %> <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'disabled' %>> Recognize the overall highest verified elevation</label></span>
-                        <span data-event-wide-recognition-setting <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'hidden' %>><label><input type="checkbox" name="leaderboardSettingsShowMostConsistentCard" value="1" <%= leaderboardSettings.showMostConsistentCard ? 'checked' : '' %> <%= leaderboardSettings.type === 'accumulated_challenge' ? '' : 'disabled' %>> Recognize the overall most consistent participant</label></span>
-                        <label><input type="checkbox" name="leaderboardSettingsHideFlagged" value="1" <%= leaderboardSettings.hideFlagged !== false ? 'checked' : '' %>> Hide suspicious submissions publicly</label>
-                      </div>
-                      <small class="field-hint">Event-wide recognition is available for accumulated challenges. Only approved, publicly eligible results across all categories count.</small>
-                    </div>
-                  </div>
-                </div>
+                <%- include('partials/leaderboard-settings', { formData: formData }) %>
               </div>
             </div>
             <div class="form-group">
@@ -1373,11 +1305,17 @@
           <div class="review-summary-grid" id="reviewSummaryGrid" aria-live="polite">
             <% const summaryCards = typeof reviewSummary !== 'undefined' ? reviewSummary : []; %>
             <% summaryCards.forEach(function(card) { %>
+              <% const visibleRows = (card.rows || []).filter(function(row) { return row.value && !['Not set', 'None', 'Not configured'].includes(row.value); }); %>
               <article class="review-summary-card">
-                <h3><%= card.title %></h3>
-                <% (card.rows || []).forEach(function(row) { %>
-                  <p><strong><%= row.label %></strong><span><%= row.value || 'Not set' %></span></p>
-                <% }) %>
+                <div class="review-summary-card-header">
+                  <h3><%= card.title %></h3>
+                  <% if (card.sectionId) { %><button type="button" class="review-edit-button" data-review-edit-target="<%= card.sectionId %>">Edit <span class="sr-only"><%= card.title %></span></button><% } %>
+                </div>
+                <% if (visibleRows.length) { %>
+                  <% visibleRows.forEach(function(row) { %><p><strong><%= row.label %></strong><span><%= row.value %></span></p><% }) %>
+                <% } else { %>
+                  <p class="review-summary-empty"><%= card.emptyMessage || 'No optional settings configured.' %></p>
+                <% } %>
               </article>
             <% }) %>
           </div>
@@ -2442,14 +2380,21 @@
       function renderReviewSummary(cards) {
         const grid = document.getElementById('reviewSummaryGrid');
         if (!grid || !Array.isArray(cards)) return;
-        grid.innerHTML = cards.map((card) => (
-          `<article class="review-summary-card">
-            <h3>${escapeReviewHtml(card.title)}</h3>
-            ${(Array.isArray(card.rows) ? card.rows : []).map((row) => (
-              `<p><strong>${escapeReviewHtml(row.label)}</strong><span>${escapeReviewHtml(row.value || 'Not set')}</span></p>`
-            )).join('')}
-          </article>`
-        )).join('');
+        grid.innerHTML = cards.map((card) => {
+          const rows = (Array.isArray(card.rows) ? card.rows : []).filter((row) => (
+            row.value && !['Not set', 'None', 'Not configured'].includes(row.value)
+          ));
+          const editButton = card.sectionId
+            ? `<button type="button" class="review-edit-button" data-review-edit-target="${escapeReviewHtml(card.sectionId)}">Edit <span class="sr-only">${escapeReviewHtml(card.title)}</span></button>`
+            : '';
+          const content = rows.length
+            ? rows.map((row) => `<p><strong>${escapeReviewHtml(row.label)}</strong><span>${escapeReviewHtml(row.value)}</span></p>`).join('')
+            : `<p class="review-summary-empty">${escapeReviewHtml(card.emptyMessage || 'No optional settings configured.')}</p>`;
+          return `<article class="review-summary-card">
+            <div class="review-summary-card-header"><h3>${escapeReviewHtml(card.title)}</h3>${editButton}</div>
+            ${content}
+          </article>`;
+        }).join('');
       }
 
       function collectReadinessParams() {
