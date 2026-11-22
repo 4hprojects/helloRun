@@ -1,5 +1,144 @@
 # November 2026 Changelog
 
+## November 22 — Event page landing layout verification
+
+The verification ran against the loopback-only isolated environment
+(`.env.development`, Mongo `127.0.0.1:27018`, Postgres `127.0.0.1:5433`,
+in-memory uploads). It touched no production service.
+
+### Results
+
+- **Isolated integration gate.** On `HEAD` plus only this change set, 547/547
+  pass. That includes a new organiser-route case that covers the full upload
+  and save path:
+  - a multipart edit that uploads a package photo from a non-first card
+  - saving the tagline and authored FAQ
+  - preview rendering
+  - edit-form round-trip
+  - a rejected tampered photo URL
+- **DB-free unit gate.** Everything passes in the main checkout except two OCR
+  admin UI tests. Those also fail at `HEAD`, so this change set did not cause
+  them.
+- **Pre-existing failures outside this change.** Six integration tests in
+  `runner-dashboard-modal` and `submission.service` fail only with the
+  separate, uncommitted OCR work-in-progress present.
+- **Browser checks.**
+  - A free accumulated event and a paid onsite event were checked at 320, 390,
+    720, 980, and 1280px. There was no horizontal overflow. The sticky CTA
+    appeared only at 720px and below, and it was never disabled.
+  - The browser console showed no app errors.
+  - The FAQ builder handled add, remove, the 8-item limit, and renumbering
+    correctly in the browser.
+
+### Fixes from verification
+
+- A single bundle photo was dwarfing the card on wide layouts. Wide layouts now
+  place the photo beside the details.
+- Onsite-only events showed "Activity period" and "Submit proof by". Their key
+  dates are now Registration closes, Race day, and Venue, and the venue is no
+  longer repeated in the meta row.
+- Same-day date ranges rendered as "Dec 6–6, 2026". They now render as one date.
+
+## November 22 — Event page landing layout (Phase B)
+
+Phase B adds organiser-editable fields behind the Phase A layout.
+
+### Organiser-editable fields
+
+- **Model.** Three new fields on `Event`:
+  - `tagline`: up to 140 characters.
+  - `faqItems`: up to 8 `{question, answer}` items.
+  - `registrationPackages[].imageUrl`: one photo per package.
+
+  These need no migration. The Postgres event shadow uses an explicit column
+  whitelist, so it ignores the new fields.
+- **Builder.** The create, edit, and admin builders now include:
+  - A "Hero tagline" input under Description.
+  - A FAQ editor in Event Details. It is the new `event-faq-fields` partial,
+    backed by `event-faq-builder.js`.
+  - An optional "Bundle Photo" on each package card. In edit there is also a
+    current-photo preview and a remove checkbox.
+- **Validation.** A FAQ row must have both a question and an answer. A package
+  photo URL must be absolute http(s).
+
+### Package photo uploads
+
+- Files post as `registrationPackageImageFile_<cardIndex>` through the existing
+  branding upload limits: JPEG/PNG/WebP, the upload size limit, and webp
+  conversion. They are stored under the R2 category `event-branding/package`.
+- Normalized packages carry a non-persisted `formIndex`, so a skipped empty card
+  cannot shift an upload onto the wrong package.
+- New helpers live in `src/services/event-package-images.service.js`.
+- Saves keep only package URLs the event already owned or that were uploaded in
+  the same request. A tampered hidden URL therefore cannot claim another
+  event's R2 object and later trigger its deletion.
+- Edit and admin saves delete the R2 objects of replaced photos. Create and
+  clone start with no inherited package photos.
+
+### Public page
+
+- An authored tagline replaces the derived one.
+- Authored FAQs replace the generated set entirely. The generated set remains
+  the fallback when no FAQ is written.
+- Bundle cards show the package photo. Only http(s) URLs are exposed.
+
+### Not done and found issues
+
+- **Deferred by decision.** Completion-gated bundle purchases ("available after
+  verified completion") need a Postgres shop migration and checkout checks.
+- **Not added.** FAQPage structured data, because FAQ rich results are limited
+  to authoritative sites.
+- **Found, not fixed.** `specialRewardBenefits` has no builder inputs, and
+  `applyEventFormData` resets it to `[]`. Any builder save therefore erases
+  benefits that were set by script.
+
+### Tests
+
+- Added `tests/event-landing-phase-b.unit.test.js` with 9 cases.
+- The full DB-free unit suite passes except the two OCR admin UI failures that
+  were already present.
+- Builder integration suites were not run because they need a database.
+
+## November 22 — Event page landing layout (Phase A)
+
+Adapted a focused landing-page mockup for public event pages. This changes only
+the view, the view model, and CSS. It needs no schema change and no migration.
+
+- **Hero.** The H1 is followed by a goal subtitle, a one-sentence tagline, the
+  actions, and then a small "Hosted by" line.
+  - The subtitle uses the organiser `shortTitle` when set. Otherwise
+    single-goal accumulated challenges get "Cover 2,027 km in 2027".
+  - The tagline is the first sentence of the description, capped at 140
+    characters. It replaces the "About this event" lead box.
+  - The CTA reads "Register for free" when registration is free.
+- **Key dates.** A three-date strip shows Registration closes, Activity period,
+  and Submit proof by. Location, goal, and price move to a compact meta row
+  below it. The strip stacks into rows at 720px and below.
+- **How it works.** The four steps now use Lucide icons. Accumulated
+  challenges end with "Track Your Distance" or "Track Your Steps", and a
+  one-line accepted-activities note follows. The full rules sit in a
+  collapsed "Full submission rules" disclosure.
+- **Finisher rewards.** Free digital rewards appear as one line, and
+  registration packages appear as priced bundle cards. The cards show
+  delivery-fee and Philippines-only notes when the organiser configured them;
+  the page never states free shipping that was not configured. Packages and
+  delivery now live here instead of in Pricing.
+- **FAQ.** Up to four generated questions cover international eligibility,
+  accepted activities, how to get the package, and the proof deadline. They
+  render as escaped `<details>`, appear in the jump nav, and use existing
+  event fields only.
+- **Order and CTAs.** Rewards now come before goal and category details. The
+  non-accumulated closing row keeps only onward navigation, because the
+  sidebar card and the mobile sticky bar already offer registration.
+- **Tests.** Added view-model coverage for the subtitle, tagline, CTA label, key
+  dates, reward logistics, and FAQ. Updated the layout source assertions to
+  the new intent. Focused event, escaping, and responsive suites pass (216).
+  The full unit run shows only the unrelated OCR admin UI failures, which also
+  fail at `HEAD`.
+- **Not done (Phase B).** Per-event organiser-authored FAQ, reward and package
+  images, a "requires verified completion" package flag, and an optional
+  tagline field.
+
 ## November 15 — Security and reliability baseline
 
 - Merged documentation PR #44 after required GitHub CI passed.
