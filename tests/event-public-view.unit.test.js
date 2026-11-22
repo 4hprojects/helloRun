@@ -725,3 +725,106 @@ test('buildPublicEventSeo emits safe Event schema only for physical attendance',
   }, 'https://hellorun.online');
   assert.equal(virtualSeo.structuredDataJson, '');
 });
+
+test('buildPublicEventView builds the focused landing hero, key dates, rewards, and FAQ for a free year-long challenge', () => {
+  const publicEvent = buildPublicEventView({
+    title: '2027k HelloRun Challenge',
+    slug: '2027k-hellorun-challenge',
+    organiserName: 'HelloRun',
+    description: '<p>Free virtual challenge. Join from anywhere. Log every kilometre you cover.</p>',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    virtualCompletionMode: 'accumulated_distance',
+    targetDistanceKm: 2027,
+    acceptedRunTypes: ['run', 'walk', 'hike', 'treadmill'],
+    feeMode: 'free',
+    status: 'published',
+    registrationOpenAt: new Date('2026-11-01T00:00:00+08:00'),
+    registrationCloseAt: new Date('2027-11-30T23:59:00+08:00'),
+    eventStartAt: new Date('2027-01-01T00:00:00+08:00'),
+    eventEndAt: new Date('2027-12-31T23:59:00+08:00'),
+    finalSubmissionDeadlineAt: new Date('2028-01-14T23:59:00+08:00'),
+    digitalCertificateEnabled: true,
+    digitalBadgeEnabled: true,
+    physicalRewardsEnabled: true,
+    physicalRewardMedalEnabled: true,
+    physicalRewardShirtEnabled: true,
+    claimingMethod: 'delivery',
+    deliveryFeeEnabled: true,
+    deliveryFeeAmount: 0,
+    requiresPhilippineDeliveryAddress: true,
+    registrationPackages: [
+      {
+        name: 'Finisher Shirt + Medal Bundle',
+        includedItems: { shirt: true, medal: true },
+        pricingPeriods: [{ code: 'regular', label: 'Regular', amount: 1099 }]
+      }
+    ]
+  }, { now: new Date('2026-11-22T00:00:00+08:00'), eventBadges: [{ name: '2027k Finisher' }] });
+
+  assert.equal(publicEvent.heroSubtitle, 'Cover 2,027 km in 2027');
+  assert.equal(publicEvent.heroTagline, 'Free virtual challenge.');
+  assert.equal(publicEvent.primaryCta.label, 'Register for free');
+  assert.deepEqual(
+    publicEvent.keyDates.map((item) => [item.label, item.value]),
+    [
+      ['Registration closes', 'Nov 30, 2027'],
+      ['Activity period', 'Jan 1–Dec 31, 2027'],
+      ['Submit proof by', 'Jan 14, 2028']
+    ]
+  );
+  assert.equal(publicEvent.digitalRewardsLabel, 'Free digital certificate and badge for verified finishers');
+  assert.equal(publicEvent.rewardLogistics.applies, true);
+  assert.deepEqual(publicEvent.rewardLogistics.notes, ['Free delivery', 'Delivery within the Philippines only']);
+  assert.deepEqual(publicEvent.packageOptions[0].includedItems, ['Medal', 'Shirt']);
+  assert.deepEqual(publicEvent.faqItems.map((item) => item.question), [
+    'Can I join from outside the Philippines?',
+    'Which activities count?',
+    'How do I get the Finisher Shirt + Medal Bundle?',
+    'When is the last day to submit proof?'
+  ]);
+  assert.match(publicEvent.faqItems[0].answer, /Physical rewards are delivered to Philippine addresses only/);
+  assert.match(publicEvent.faqItems[1].answer, /treadmill/);
+  assert.match(publicEvent.faqItems[2].answer, /^Choose your package when you register\. Rewards are claimed by delivery\./);
+});
+
+test('buildPublicEventView keeps the hero honest for paid onsite events', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Baguio Fun Run',
+    slug: 'baguio-fun-run',
+    shortTitle: '',
+    description: 'A 5K and 10K morning race around Burnham Park. Gun start at 5:30 AM.',
+    eventType: 'onsite',
+    feeMode: 'paid',
+    feeAmount: 650,
+    status: 'published',
+    registrationOpenAt: new Date('2026-11-01T00:00:00+08:00'),
+    registrationCloseAt: new Date('2026-12-01T00:00:00+08:00'),
+    eventStartAt: new Date('2026-12-06T05:30:00+08:00'),
+    eventEndAt: new Date('2026-12-06T10:00:00+08:00')
+  }, { now: new Date('2026-11-22T00:00:00+08:00') });
+
+  assert.equal(publicEvent.heroSubtitle, '');
+  assert.equal(publicEvent.heroTagline, 'A 5K and 10K morning race around Burnham Park.');
+  assert.equal(publicEvent.primaryCta.label, 'Register Now');
+  assert.equal(publicEvent.rewardLogistics.applies, false);
+  assert.deepEqual(publicEvent.faqItems, []);
+  assert.deepEqual(
+    publicEvent.keyDates.map((item) => [item.label, item.value]),
+    [['Registration closes', 'Dec 1, 2026'], ['Race day', 'Dec 6, 2026'], ['Venue', 'Location details not listed']]
+  );
+});
+
+test('buildPublicEventView prefers an organiser short title and clips long taglines', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Mountain Province Trail Series',
+    shortTitle: 'Three trails, one season',
+    description: `${'Explore the ridges and rice terraces of the Cordillera on foot with your running community '.repeat(3)}every weekend.`,
+    eventType: 'virtual',
+    feeMode: 'free'
+  });
+
+  assert.equal(publicEvent.heroSubtitle, 'Three trails, one season');
+  assert.ok(publicEvent.heroTagline.length <= 140);
+  assert.match(publicEvent.heroTagline, /…$/);
+});

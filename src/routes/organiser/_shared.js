@@ -1661,6 +1661,8 @@ function mapUploadFieldToFormField(fieldName) {
   if (normalizedField === 'posterImageFile') return 'posterImageUrl';
   if (normalizedField === 'paymentQrImageFile') return 'paymentQrImageUrl';
   if (normalizedField === 'galleryImageFiles') return 'galleryImageUrls';
+  const packageImageMatch = /^registrationPackageImageFile_(\d+)$/.exec(normalizedField);
+  if (packageImageMatch) return `registrationPackageImage${packageImageMatch[1]}`;
   return 'bannerImageUrl';
 }
 

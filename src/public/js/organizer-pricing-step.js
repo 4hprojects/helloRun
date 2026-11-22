@@ -82,6 +82,17 @@
             const input = Array.from(card.querySelectorAll('input[type="checkbox"]')).find((checkbox) => checkbox.name.startsWith(prefix));
             if (input) input.name = prefix + index;
           });
+          // Per-card photo inputs carry the card index so the server can match each file
+          // (and its remove checkbox) to the right package after cards are added or removed.
+          const imageFileInput = card.querySelector('input[type="file"][name^="registrationPackageImageFile_"]');
+          if (imageFileInput) {
+            imageFileInput.name = 'registrationPackageImageFile_' + index;
+            imageFileInput.id = 'registrationPackageImageFile_' + index;
+            const imageLabel = card.querySelector('.registration-package-image-field > label');
+            if (imageLabel) imageLabel.setAttribute('for', imageFileInput.id);
+          }
+          const removeImageInput = card.querySelector('input[type="checkbox"][name^="registrationPackageRemoveImage_"]');
+          if (removeImageInput) removeImageInput.name = 'registrationPackageRemoveImage_' + index;
         });
         updateRegistrationPackageSummaries();
       }

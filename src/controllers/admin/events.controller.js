@@ -14,6 +14,7 @@ const {
   verifyAdminDeletionPassword, getTestDataCounts, purgeTestData, isFullAdminTier
   , escapeRegex
 } = require('./_shared');
+const eventPackageImages = require('../../services/event-package-images.service');
 const {
   buildCsvContent,
   buildMultiSheetXlsxBuffer,
@@ -343,7 +344,11 @@ exports.updateEvent = async (req, res) => {
     const posterImageFile = req.files?.posterImageFile?.[0] || null;
     const paymentQrImageFile = incomingPaymentQrFile;
     const galleryImageFiles = req.files?.galleryImageFiles || [];
-    if (bannerImageFile || logoFile || posterImageFile || paymentQrImageFile || galleryImageFiles.length) {
+    const previousPackageImages = (event.registrationPackages || []).map((item) => ({ imageUrl: item.imageUrl || '' }));
+    eventPackageImages.restrictPackageImageUrls(formData.registrationPackages, event.registrationPackages);
+    const packageImageFiles = eventPackageImages.getPackageImageFilesForPackages(req.files, formData.registrationPackages);
+    const hasPackageImageFiles = Object.keys(packageImageFiles).length > 0;
+    if (bannerImageFile || logoFile || posterImageFile || paymentQrImageFile || galleryImageFiles.length || hasPackageImageFiles) {
       const uploadedBranding = await uploadService.uploadEventBrandingToR2({
         userId: actor?._id || event.organizerId?._id || event.organizerId,
         slug: event.slug,
@@ -351,7 +356,8 @@ exports.updateEvent = async (req, res) => {
         logoFile: logoFile || undefined,
         posterImageFile: posterImageFile || undefined,
         paymentQrImageFile: paymentQrImageFile || undefined,
-        galleryImageFiles: galleryImageFiles.length ? galleryImageFiles : undefined
+        galleryImageFiles: galleryImageFiles.length ? galleryImageFiles : undefined,
+        packageImageFiles: hasPackageImageFiles ? packageImageFiles : undefined
       });
       if (uploadedBranding.banner) {
         uploadedKeys.push(uploadedBranding.banner.key);
@@ -374,6 +380,10 @@ exports.updateEvent = async (req, res) => {
         uploadedKeys.push(...uploadedBranding.gallery.map((item) => item.key));
         formData.galleryImageUrls = Array.from(new Set([...(formData.galleryImageUrls || []), ...uploadedBranding.gallery.map((item) => item.url)]));
       }
+      uploadedKeys.push(...eventPackageImages.applyUploadedPackageImages(
+        formData.registrationPackages,
+        uploadedBranding.packageImages
+      ));
     }
 
     applyEventFormData(event, formData, actor || event.organizerId);
@@ -396,6 +406,12 @@ exports.updateEvent = async (req, res) => {
     }
     event.adminNotes = String(req.body.adminNotes || event.adminNotes || '').trim().slice(0, 1000);
     await event.save();
+    const replacedPackageImageKeys = eventPackageImages.getReplacedPackageImageKeys(
+      previousPackageImages,
+      event.registrationPackages,
+      uploadService.extractObjectKeyFromPublicUrl
+    );
+    if (replacedPackageImageKeys.length) await uploadService.deleteObjects(replacedPackageImageKeys);
     if (isActiveQuestEdition) {
       recordCriticalAuditEventInBackground({
         actorMongoUserId: actor._id,

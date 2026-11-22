@@ -1,0 +1,37 @@
+<%
+  const faqFormItems = Array.isArray(formData.faqItems) ? formData.faqItems : [];
+  const faqMaxItems = 8;
+  // Always offer at least one empty row so organisers can start without JavaScript.
+  const faqRows = faqFormItems.length < faqMaxItems
+    ? faqFormItems.concat([{ question: '', answer: '' }])
+    : faqFormItems.slice(0, faqMaxItems);
+%>
+<div class="form-group form-group-full event-faq-builder" data-faq-builder data-faq-max="<%= faqMaxItems %>">
+  <div class="waiver-label-row">
+    <label id="faqBuilderLabel">Frequently asked questions</label>
+    <button type="button" class="btn btn-outline waiver-icon-btn" data-faq-add aria-label="Add a question" title="Add a question">
+      <i data-lucide="plus"></i>
+    </button>
+  </div>
+  <small class="field-hint">Up to <%= faqMaxItems %> questions, shown as an accordion on the public event page. Leave empty to show answers generated from your event settings.</small>
+  <div class="faq-builder-list" data-faq-list aria-labelledby="faqBuilderLabel">
+    <% faqRows.forEach(function(faqItem, faqIndex) { %>
+      <div class="faq-builder-row" data-faq-row>
+        <div class="faq-builder-row-header">
+          <strong data-faq-row-title>Question <%= faqIndex + 1 %></strong>
+          <button type="button" class="btn btn-outline waiver-icon-btn" data-faq-remove aria-label="Remove question <%= faqIndex + 1 %>" title="Remove question">
+            <i data-lucide="trash-2"></i>
+          </button>
+        </div>
+        <div class="<%= errors['faqQuestion' + faqIndex] ? 'has-error' : '' %>">
+          <input name="faqQuestion" type="text" maxlength="160" value="<%= faqItem.question || '' %>" placeholder="Can I join from outside the Philippines?" aria-label="Question <%= faqIndex + 1 %>">
+          <% if (errors['faqQuestion' + faqIndex]) { %><small class="error-text"><%= errors['faqQuestion' + faqIndex] %></small><% } %>
+        </div>
+        <div class="<%= errors['faqAnswer' + faqIndex] ? 'has-error' : '' %>">
+          <textarea name="faqAnswer" rows="2" maxlength="1000" placeholder="Answer in plain text." aria-label="Answer <%= faqIndex + 1 %>"><%= faqItem.answer || '' %></textarea>
+          <% if (errors['faqAnswer' + faqIndex]) { %><small class="error-text"><%= errors['faqAnswer' + faqIndex] %></small><% } %>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+</div>

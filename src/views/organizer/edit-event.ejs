@@ -178,6 +178,12 @@
               </label>
               <textarea id="description" name="description" rows="4" required><%= formData.description %></textarea>
             </div>
+            <div class="form-group form-group-full <%= errors.tagline ? 'has-error' : '' %>">
+              <label for="tagline">Hero tagline (optional)</label>
+              <input id="tagline" name="tagline" type="text" maxlength="140" value="<%= formData.tagline || '' %>" placeholder="Free virtual challenge. Join from anywhere.">
+              <small class="field-hint">One short line under the event title. Leave empty to use the first sentence of the description.</small>
+              <% if (errors.tagline) { %><small class="error-text"><%= errors.tagline %></small><% } %>
+            </div>
           </div>
         </div>
 
@@ -416,6 +422,19 @@
                   <% if (errors['registrationPackage' + packageIndex + 'PricingPeriods']) { %><small class="error-text"><%= errors['registrationPackage' + packageIndex + 'PricingPeriods'] %></small><% } %>
                   <label class="registration-package-notes-label">Runner Notes</label>
                   <textarea name="registrationPackageNotes" rows="2" maxlength="500" placeholder="Optional notes runners should see."><%= packageOption.notes || '' %></textarea>
+                  <div class="form-group registration-package-image-field <%= errors['registrationPackageImage' + packageIndex] ? 'has-error' : '' %>">
+                    <label for="registrationPackageImageFile_<%= packageIndex %>">Bundle Photo (optional)</label>
+                    <input type="hidden" name="registrationPackageImageUrl" value="<%= packageOption.imageUrl || '' %>">
+                    <% if (packageOption.imageUrl) { %>
+                      <div class="registration-package-image-current">
+                        <img src="<%= packageOption.imageUrl %>" alt="Current photo for package <%= packageIndex + 1 %>" loading="lazy">
+                        <label><input type="checkbox" name="registrationPackageRemoveImage_<%= packageIndex %>" value="1"> Remove current photo</label>
+                      </div>
+                    <% } %>
+                    <input id="registrationPackageImageFile_<%= packageIndex %>" name="registrationPackageImageFile_<%= packageIndex %>" type="file" accept="image/jpeg,image/png,image/webp">
+                    <small class="form-hint">JPG, PNG, or WebP up to 5 MB. Shown on the public finisher rewards card.</small>
+                    <% if (errors['registrationPackageImage' + packageIndex]) { %><small class="error-text"><%= errors['registrationPackageImage' + packageIndex] %></small><% } %>
+                  </div>
                 </div>
               <% }) %>
             </div>
@@ -477,6 +496,12 @@
                 </div>
                 <label class="registration-package-notes-label">Runner Notes</label>
                 <textarea name="registrationPackageNotes" rows="2" maxlength="500" placeholder="Optional notes runners should see."></textarea>
+                <div class="form-group registration-package-image-field">
+                  <label for="registrationPackageImageFile___INDEX__">Bundle Photo (optional)</label>
+                  <input type="hidden" name="registrationPackageImageUrl" value="">
+                  <input id="registrationPackageImageFile___INDEX__" name="registrationPackageImageFile___INDEX__" type="file" accept="image/jpeg,image/png,image/webp">
+                  <small class="form-hint">JPG, PNG, or WebP up to 5 MB. Shown on the public finisher rewards card.</small>
+                </div>
               </div>
             </template>
             <% if (errors.registrationPackages) { %><small class="error-text"><%= errors.registrationPackages %></small><% } %>
@@ -639,6 +664,7 @@
               <small class="field-hint">Preview of the formatted content as it will appear on the event page.</small>
             </div>
           </div>
+          <%- include('partials/event-faq-fields') %>
         </div>
 
         <!-- BADGES STEP -->
@@ -3336,5 +3362,6 @@
     })();
   </script>
   <script nonce="<%= locals.cspNonce || String() %>" src="/js/event-builder-groups.js"></script>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/event-faq-builder.js"></script>
 </body>
 </html>

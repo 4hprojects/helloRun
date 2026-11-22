@@ -93,6 +93,9 @@ function buildPublicEventView(event, options = {}) {
     : targetDistanceLabel;
   const eventEndAt = parseDate(event.eventEndAt);
   const isEnded = Boolean(eventEndAt && eventEndAt < now);
+  const isFreeRegistration = event.feeMode !== 'paid';
+  const descriptionText = htmlToPlainText(event.description || '');
+  const rewardLogistics = buildRewardLogistics(event, { packageOptions, pricing });
 
   return {
     title: event.title || 'HelloRun Event',
@@ -100,7 +103,13 @@ function buildPublicEventView(event, options = {}) {
     organizerName: event.organiserName || 'HelloRun',
     coOrganizerNames: Array.isArray(options.coOrganizerNames) ? options.coOrganizerNames.filter(Boolean) : [],
     description: event.description || '',
-    descriptionText: htmlToPlainText(event.description || ''),
+    descriptionText,
+    heroSubtitle: buildHeroSubtitle(event, {
+      isAccumulatedChallenge,
+      hasCategorySpecificGoals,
+      targetSteps: challengeConfig.targetSteps
+    }),
+    heroTagline: String(event.tagline || '').trim() || buildHeroTagline(descriptionText),
     eventTypeLabel,
     allowedModes,
     raceDistances,
@@ -121,12 +130,15 @@ function buildPublicEventView(event, options = {}) {
       targetDistanceLabel
     }),
     challengeDates: buildChallengeDates(event),
+    keyDates: buildKeyDates(event, { location }),
     participantEssentials: isAccumulatedChallenge ? buildParticipantEssentials(event, challengeConfig, effectiveProofTypes) : [],
     registrationState,
     pricing,
     pricingOptions,
     rewardItems,
     rewardDetails: buildRewardDetails(event),
+    digitalRewardsLabel: buildDigitalRewardsLabel(rewardItems, isFreeRegistration),
+    rewardLogistics,
     packageOptions,
     timeline,
     virtualRules,
@@ -147,8 +159,17 @@ function buildPublicEventView(event, options = {}) {
     logoUrl: event.logoUrl || '',
     stats: buildStats({ event, registrationCount, targetDistanceLabel, raceDistances, distanceSummaryLabel }),
     primaryCta: registrationState.canRegisterNow
-      ? { label: 'Register Now', href: `/events/${event.slug}/register`, disabled: false }
+      ? { label: isFreeRegistration ? 'Register for free' : 'Register Now', href: `/events/${event.slug}/register`, disabled: false }
       : { label: registrationState.label, href: '', disabled: true },
+    // Organiser-authored questions replace the generated set entirely, so answers never
+    // contradict each other. Generated answers remain the fallback when none are written.
+    faqItems: buildAuthoredFaqItems(event) || buildEventFaqItems(event, {
+      virtualRules,
+      packageOptions,
+      rewardItems,
+      rewardLogistics,
+      eventType: String(event.eventType || '').trim()
+    }),
     // Which capped categories have filled up, so a full category can offer the waitlist
     // instead of a dead end. Empty unless the organiser switched the waitlist on.
     waitlistCategories: buildWaitlistCategories(event),
@@ -227,6 +248,206 @@ function buildChallengeDates(event) {
       helper: 'Final proof submission deadline'
     }
   ];
+}
+
+// The three dates a participant plans around, labelled for the page's key-dates strip.
+// The proof deadline is kept separate from the activity window because it usually ends later.
+function buildKeyDates(event, options = {}) {
+  const activityStart = event.virtualWindow?.startAt || event.eventStartAt;
+  const activityEnd = event.virtualWindow?.endAt || event.eventEndAt;
+  // Onsite-only events have a race day, not an activity window or a proof deadline.
+  if (String(event.eventType || '').trim() === 'onsite') {
+    return [
+      {
+        key: 'registration',
+        label: 'Registration closes',
+        value: formatDate(event.registrationCloseAt),
+        icon: 'calendar-x'
+      },
+      {
+        key: 'activity',
+        label: 'Race day',
+        value: formatCompactDateRange(event.eventStartAt, event.eventEndAt),
+        icon: 'flag'
+      },
+      {
+        key: 'location',
+        label: 'Venue',
+        value: options.location?.publicLabel || 'Venue not listed',
+        icon: 'map-pin'
+      }
+    ];
+  }
+  return [
+    {
+      key: 'registration',
+      label: 'Registration closes',
+      value: formatDate(event.registrationCloseAt) || 'Not listed',
+      icon: 'calendar-x'
+    },
+    {
+      key: 'activity',
+      label: 'Activity period',
+      value: formatCompactDateRange(activityStart, activityEnd) || 'Not listed',
+      icon: 'calendar-days'
+    },
+    {
+      key: 'submission',
+      label: 'Submit proof by',
+      value: formatDate(event.finalSubmissionDeadlineAt || event.eventEndAt) || 'Not listed',
+      icon: 'upload-cloud'
+    }
+  ];
+}
+
+// A short line under the title. An organiser-set short title wins; otherwise accumulated
+// challenges with one shared goal get "Cover 2,027 km in 2027". Nothing is invented for
+// other events, so the hero simply omits the line.
+function buildHeroSubtitle(event, options = {}) {
+  const shortTitle = String(event.shortTitle || '').trim();
+  if (shortTitle && shortTitle.toLowerCase() !== String(event.title || '').trim().toLowerCase()) {
+    return shortTitle;
+  }
+  if (!options.isAccumulatedChallenge || options.hasCategorySpecificGoals) return '';
+
+  const targetKm = Number(event.targetDistanceKm);
+  const targetSteps = Number(options.targetSteps || 0);
+  let goal = '';
+  if (Number.isFinite(targetKm) && targetKm > 0) goal = `Cover ${formatNumber(targetKm)} km`;
+  else if (targetSteps > 0) goal = `Reach ${formatNumber(targetSteps)} steps`;
+  if (!goal) return '';
+
+  // Read the years from the same platform-formatted dates the key-dates strip shows, so a
+  // Manila-midnight start (still the previous day in UTC) cannot produce the wrong year.
+  const startValue = event.virtualWindow?.startAt || event.eventStartAt;
+  const endValue = event.virtualWindow?.endAt || event.eventEndAt;
+  const start = parseDate(startValue);
+  const end = parseDate(endValue);
+  const startYear = (formatDate(startValue).match(/(\d{4})$/) || [])[1];
+  const endYear = (formatDate(endValue).match(/(\d{4})$/) || [])[1];
+  if (start && end && startYear && startYear === endYear) {
+    const spanDays = (end.getTime() - start.getTime()) / 86400000;
+    if (spanDays >= 300) return `${goal} in ${startYear}`;
+  }
+  return goal;
+}
+
+// First sentence of the description, capped so the hero stays a single short line.
+function buildHeroTagline(descriptionText) {
+  const text = String(descriptionText || '').replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  const firstSentence = (text.match(/^[^.!?]+[.!?]?/) || [text])[0].trim();
+  if (firstSentence.length <= 140) return firstSentence;
+  const clipped = firstSentence.slice(0, 137);
+  const lastSpace = clipped.lastIndexOf(' ');
+  return `${(lastSpace > 80 ? clipped.slice(0, lastSpace) : clipped).replace(/[,;:\s]+$/, '')}…`;
+}
+
+function buildDigitalRewardsLabel(rewardItems = [], isFreeRegistration = false) {
+  const labels = rewardItems
+    .filter((item) => item.type === 'digital' && item.label !== 'Leaderboard recognition')
+    .map((item) => item.label.replace(/^Digital /, '').toLowerCase());
+  if (!labels.length) return '';
+  const joined = labels.length > 1
+    ? `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`
+    : labels[0];
+  return `${isFreeRegistration ? 'Free digital' : 'Digital'} ${joined} for verified finishers`;
+}
+
+// Shipping and claiming facts shown beside paid reward bundles. Only states what the
+// organiser configured; it never promises free shipping when no fee was set.
+function buildRewardLogistics(event, options = {}) {
+  const packageOptions = Array.isArray(options.packageOptions) ? options.packageOptions : [];
+  const hasPhysicalRewards = Boolean(event.physicalRewardsEnabled) || packageOptions.some((item) => item.includedItems.length);
+  if (!hasPhysicalRewards) return { applies: false, notes: [] };
+
+  const notes = [];
+  const claimingMethod = String(event.claimingMethod || '').trim();
+  const deliveryAmount = options.pricing?.deliveryAmount;
+  if (claimingMethod === 'pickup') {
+    notes.push('Claim at the organizer pickup point');
+  } else {
+    if (deliveryAmount !== null && deliveryAmount !== undefined) {
+      notes.push(Number(deliveryAmount) > 0
+        ? `Delivery fee: ${formatMoney(deliveryAmount, options.pricing?.currency || event.feeCurrency || 'PHP')}`
+        : 'Free delivery');
+    }
+    if (event.requiresPhilippineDeliveryAddress) notes.push('Delivery within the Philippines only');
+    if (claimingMethod === 'both') notes.push('Pickup is also available');
+  }
+  return { applies: true, notes };
+}
+
+function buildAuthoredFaqItems(event) {
+  const items = (Array.isArray(event.faqItems) ? event.faqItems : [])
+    .map((item) => ({
+      question: String(item?.question || '').trim(),
+      answer: String(item?.answer || '').trim()
+    }))
+    .filter((item) => item.question && item.answer)
+    .slice(0, 8);
+  return items.length ? items : null;
+}
+
+function buildEventFaqItems(event, options = {}) {
+  const items = [];
+  const virtualRules = options.virtualRules || {};
+  const eventType = options.eventType || '';
+  const allowedModes = normalizeList(event.eventTypesAllowed);
+  const supportsVirtual = eventType === 'virtual' || (eventType === 'hybrid' && (!allowedModes.length || allowedModes.includes('virtual')));
+
+  if (supportsVirtual) {
+    const shipsInPhOnly = Boolean(options.rewardLogistics?.applies && event.requiresPhilippineDeliveryAddress);
+    items.push({
+      question: 'Can I join from outside the Philippines?',
+      answer: event.internationalRunnersAllowed === false
+        ? 'No. This event is open to participants based in the Philippines.'
+        : `Yes. You can complete eligible activities from anywhere.${shipsInPhOnly ? ' Physical rewards are delivered to Philippine addresses only.' : ''}`
+    });
+  }
+
+  if (supportsVirtual && virtualRules.acceptedActivitiesSummary) {
+    const summary = virtualRules.acceptedActivitiesSummary;
+    items.push({
+      question: 'Which activities count?',
+      answer: [
+        `${summary.charAt(0).toUpperCase()}${summary.slice(1)}.`,
+        virtualRules.minimumDistance ? `${virtualRules.minimumDistance.charAt(0).toUpperCase()}${virtualRules.minimumDistance.slice(1)}.` : '',
+        virtualRules.proofInstructions || ''
+      ].filter(Boolean).join(' ')
+    });
+  }
+
+  const packageOptions = Array.isArray(options.packageOptions) ? options.packageOptions : [];
+  const claimingMethodLabel = { pickup: 'pickup', delivery: 'delivery', both: 'delivery or pickup' }[event.claimingMethod] || '';
+  if (packageOptions.length) {
+    items.push({
+      question: packageOptions.length > 1 ? 'How do I get a reward package?' : `How do I get the ${packageOptions[0].name}?`,
+      answer: [
+        'Choose your package when you register.',
+        claimingMethodLabel ? `Rewards are claimed by ${claimingMethodLabel}.` : '',
+        String(event.physicalRewardsClaimingNotes || '').trim()
+      ].filter(Boolean).join(' ')
+    });
+  } else if ((options.rewardItems || []).some((item) => item.type === 'physical')) {
+    items.push({
+      question: 'How do I claim physical rewards?',
+      answer: [
+        'Physical rewards go to verified finishers.',
+        claimingMethodLabel ? `They are claimed by ${claimingMethodLabel}.` : '',
+        String(event.physicalRewardsClaimingNotes || '').trim()
+      ].filter(Boolean).join(' ')
+    });
+  }
+
+  if (supportsVirtual && event.finalSubmissionDeadlineAt) {
+    items.push({
+      question: 'When is the last day to submit proof?',
+      answer: `Submit all proof by ${formatDate(event.finalSubmissionDeadlineAt)}. Activities must fall within the activity period to count.`
+    });
+  }
+
+  return items.slice(0, 4);
 }
 
 function buildParticipantEssentials(event, challengeConfig = {}, effectiveProofTypes = []) {
@@ -851,7 +1072,8 @@ function buildPackageOptions(event, now = new Date()) {
           ? (activeAmount !== null ? formatMoney(activeAmount, event.feeCurrency || 'PHP') : 'Not currently available')
           : (lowestListedAmount !== null ? `From ${formatMoney(lowestListedAmount, event.feeCurrency || 'PHP')}` : 'Price shown during registration'),
         availableNow: !usesPeriodPricing || activeAmount !== null,
-        includedItems: formatIncludedItems(packageOption.includedItems)
+        includedItems: formatIncludedItems(packageOption.includedItems),
+        imageUrl: /^https?:\/\//i.test(String(packageOption.imageUrl || '').trim()) ? String(packageOption.imageUrl).trim() : ''
       };
     })
     .filter(Boolean);
@@ -1108,6 +1330,7 @@ function formatCompactDateRange(startValue, endValue) {
   const endParts = end.match(/^([A-Z][a-z]{2}) (\d{1,2}), (\d{4})$/);
 
   if (!startParts || !endParts) return formatDateRange(startValue, endValue);
+  if (start === end) return start;
   if (startParts[3] === endParts[3] && startParts[1] === endParts[1]) {
     return `${startParts[1]} ${startParts[2]}–${endParts[2]}, ${startParts[3]}`;
   }

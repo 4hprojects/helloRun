@@ -1,4 +1,5 @@
 // src/routes/organiser/event-management.js
+const eventPackageImages = require('../../services/event-package-images.service');
 const express = require('express');
 const router = express.Router();
 const CertificateTemplate = require('../../models/CertificateTemplate');
@@ -566,8 +567,12 @@ router.post('/events/:id/edit', requireOrganizerWorkspace, uploadService.uploadE
     const previousPosterUrl = event.posterImageUrl || '';
     const previousPaymentQrUrl = event.paymentQrImageUrl || '';
     const previousGalleryUrls = Array.isArray(event.galleryImageUrls) ? event.galleryImageUrls : [];
+    const previousPackageImages = (event.registrationPackages || []).map((item) => ({ imageUrl: item.imageUrl || '' }));
+    eventPackageImages.restrictPackageImageUrls(formData.registrationPackages, event.registrationPackages);
+    const packageImageFiles = eventPackageImages.getPackageImageFilesForPackages(req.files, formData.registrationPackages);
+    const hasPackageImageFiles = Object.keys(packageImageFiles).length > 0;
 
-    if (bannerImageFile || logoFile || posterImageFile || paymentQrImageFile || galleryImageFiles.length) {
+    if (bannerImageFile || logoFile || posterImageFile || paymentQrImageFile || galleryImageFiles.length || hasPackageImageFiles) {
       const uploadedBranding = await uploadService.uploadEventBrandingToR2({
         userId: user._id,
         slug: event.slug,
@@ -575,7 +580,8 @@ router.post('/events/:id/edit', requireOrganizerWorkspace, uploadService.uploadE
         logoFile: logoFile || undefined,
         posterImageFile: posterImageFile || undefined,
         paymentQrImageFile: paymentQrImageFile || undefined,
-        galleryImageFiles: galleryImageFiles.length ? galleryImageFiles : undefined
+        galleryImageFiles: galleryImageFiles.length ? galleryImageFiles : undefined,
+        packageImageFiles: hasPackageImageFiles ? packageImageFiles : undefined
       });
 
       if (uploadedBranding.banner) {
@@ -606,6 +612,10 @@ router.post('/events/:id/edit', requireOrganizerWorkspace, uploadService.uploadE
         );
         formData.galleryImageUrlsText = formData.galleryImageUrls.join('\n');
       }
+      uploadedBrandingKeys.push(...eventPackageImages.applyUploadedPackageImages(
+        formData.registrationPackages,
+        uploadedBranding.packageImages
+      ));
     }
 
     // Explicit removals are applied only when no new file upload is provided.
@@ -797,6 +807,11 @@ router.post('/events/:id/edit', requireOrganizerWorkspace, uploadService.uploadE
         if (previousGalleryKey) keysToDelete.push(previousGalleryKey);
       }
     }
+    keysToDelete.push(...eventPackageImages.getReplacedPackageImageKeys(
+      previousPackageImages,
+      event.registrationPackages,
+      uploadService.extractObjectKeyFromPublicUrl
+    ));
     if (keysToDelete.length) {
       await uploadService.deleteObjects(keysToDelete);
     }

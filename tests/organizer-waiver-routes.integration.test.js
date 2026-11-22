@@ -1233,6 +1233,82 @@ test('create-event paid publish persists fee payment and reward setup', async ()
   assert.match(event.eventDetailsMarkdown, /Paid Event Details/);
 });
 
+test('edit-event saves tagline, authored FAQ, and an uploaded package photo, and rejects foreign photo URLs', async () => {
+  const sharp = require('sharp');
+  const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
+  const event = await seedEditableEvent(seed, { status: 'draft', title: `Landing Phase B ${seed.stamp}` });
+  const png = await sharp({ create: { width: 40, height: 30, channels: 3, background: { r: 200, g: 120, b: 40 } } }).png().toBuffer();
+
+  async function postEdit(configure) {
+    const params = buildValidCreateEventPayload({ title: `Landing Phase B ${seed.stamp}`, actionType: 'draft' });
+    await appendEditEventCsrf(params, cookie, event._id);
+    const form = new FormData();
+    for (const [key, value] of params.entries()) form.append(key, value);
+    configure(form);
+    const response = await fetch(`${BASE_URL}/organizer/events/${event._id}/edit`, {
+      method: 'POST',
+      headers: { Cookie: cookie },
+      body: form,
+      redirect: 'manual'
+    });
+    assert.equal(response.status, 302, `edit save should redirect, got ${response.status}`);
+    await ensureConnected();
+    return Event.findById(event._id).lean();
+  }
+
+  // Card 0 is left empty, so the package comes from card 1. Its photo must still land on it.
+  const saved = await postEdit((form) => {
+    form.set('tagline', 'Free virtual challenge. Join from anywhere.');
+    form.append('faqQuestion', 'Which activities count?');
+    form.append('faqAnswer', 'Running, walking, and hiking.');
+    form.append('faqQuestion', '');
+    form.append('faqAnswer', '');
+    form.append('registrationPackageName', '');
+    form.append('registrationPackageNotes', '');
+    form.append('registrationPackageImageUrl', '');
+    form.append('registrationPackageName', 'Finisher Bundle');
+    form.append('registrationPackageNotes', 'Shirt and medal.');
+    form.append('registrationPackageImageUrl', '');
+    form.set('registrationPackageMedal_1', '1');
+    form.append('registrationPackageImageFile_1', new Blob([png], { type: 'image/png' }), 'bundle.png');
+  });
+
+  assert.equal(saved.tagline, 'Free virtual challenge. Join from anywhere.');
+  assert.deepEqual(saved.faqItems.map(({ question, answer }) => ({ question, answer })), [
+    { question: 'Which activities count?', answer: 'Running, walking, and hiking.' }
+  ]);
+  assert.equal(saved.registrationPackages.length, 1);
+  assert.equal(saved.registrationPackages[0].name, 'Finisher Bundle');
+  const uploadedUrl = saved.registrationPackages[0].imageUrl;
+  assert.match(uploadedUrl, /^https:\/\/test-uploads\.invalid\/.*event-branding\/package\//);
+
+  const previewResponse = await fetch(`${BASE_URL}/organizer/preview-event?eventId=${event._id}&previewSource=edit`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(previewResponse.status, 200);
+  const previewHtml = await previewResponse.text();
+  assert.match(previewHtml, /class="event-hero-tagline">Free virtual challenge\. Join from anywhere\./);
+  assert.match(previewHtml, /<summary>Which activities count\?<\/summary>/);
+  assert.ok(previewHtml.includes(`class="event-bundle-image" src="${uploadedUrl}"`), 'bundle card shows the uploaded photo');
+
+  const editHtml = await (await fetch(`${BASE_URL}/organizer/events/${event._id}/edit`, { headers: { Cookie: cookie } })).text();
+  assert.ok(editHtml.includes(`name="registrationPackageImageUrl" value="${uploadedUrl}"`), 'edit form keeps the current photo');
+  assert.match(editHtml, /name="faqQuestion"[^>]*value="Which activities count\?"/);
+
+  // A tampered hidden URL pointing at another object is dropped instead of being saved.
+  const tampered = await postEdit((form) => {
+    form.append('registrationPackageName', 'Finisher Bundle');
+    form.append('registrationPackageNotes', '');
+    form.append('registrationPackageImageUrl', 'https://test-uploads.invalid/event-branding/package/someone-else.webp');
+  });
+  assert.equal(tampered.registrationPackages[0].imageUrl, '');
+  assert.equal(tampered.tagline, '');
+  assert.deepEqual(tampered.faqItems, []);
+});
+
 test('create-event rejects invalid organizer setup amounts and pricing periods', async () => {
   const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
   const ready = await waitForSessionReady('/organizer/dashboard', cookie);

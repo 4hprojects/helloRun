@@ -63,6 +63,23 @@ const eventSchema = new mongoose.Schema(
       maxlength: 80,
       default: ''
     },
+    // One-line hero copy. When empty the public page uses the description's first sentence.
+    tagline: {
+      type: String,
+      trim: true,
+      maxlength: 140,
+      default: ''
+    },
+    // Organiser-authored FAQ. When empty the public page generates answers from event settings.
+    faqItems: {
+      type: [
+        {
+          question: { type: String, trim: true, maxlength: 160 },
+          answer: { type: String, trim: true, maxlength: 1000 }
+        }
+      ],
+      default: []
+    },
     organiserName: {
       type: String,
       required: true,
@@ -687,7 +704,9 @@ const eventSchema = new mongoose.Schema(
             ],
             default: []
           },
-          notes: { type: String, trim: true, maxlength: 500, default: '' }
+          notes: { type: String, trim: true, maxlength: 500, default: '' },
+          // Optional product photo shown on the public bundle card (R2 URL).
+          imageUrl: { type: String, trim: true, maxlength: 1000, default: '' }
         }
       ],
       default: []
