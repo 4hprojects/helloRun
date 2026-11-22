@@ -5,6 +5,7 @@ const Event = require('../models/Event');
 const User = require('../models/User');
 const communicationService = require('./communication.service');
 const { notifyWithRetry } = require('./reliable-communication.service');
+const { createNotificationSafe } = require('./notification.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 const { recordReviewDecisionInBackground } = require('./review-decision.service');
 const { applyLinkedReview } = require('./linked-entry-review.service');
@@ -40,7 +41,7 @@ async function createAccumulatedActivitySubmission(input) {
     runnerId: input.runnerId
   });
   const event = await Event.findById(registration.eventId)
-    .select('virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm minimumActivityDistanceKm acceptedRunTypes raceCategories title requireActivityScreenshot requireTrackingAppDevice submissionReviewMode')
+    .select('virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm minimumActivityDistanceKm acceptedRunTypes raceCategories title slug requireActivityScreenshot requireTrackingAppDevice submissionReviewMode')
     .lean();
 
   assertAccumulatedEvent(event);
@@ -108,14 +109,16 @@ async function reviewAccumulatedActivitySubmission({
   const normalizedReviewerRole = String(reviewerRole || '').trim().toLowerCase();
   const isAdminReviewer = normalizedReviewerRole === 'admin';
   const event = await Event.findById(activity.eventId)
-    .select('organizerId title targetDistanceKm targetSteps challengeMetrics primaryChallengeMetric virtualCompletionMode acceptedRunTypes')
+    .select('organizerId title slug targetDistanceKm targetSteps challengeMetrics primaryChallengeMetric virtualCompletionMode acceptedRunTypes submissionReviewMode')
     .lean();
   if (!event || !isAccumulatedChallenge(event)) {
     throw new Error('Activity submission not found or inaccessible.');
   }
-  // A linked entry may belong to another organiser's event. The reviewer's access was checked
-  // on the source entry, and the decision is recorded against this one with linkedFrom.
-  if (!isAdminReviewer && !linkedFrom && !await resolveEventAccess({ eventId: event._id, userId: organizerId, userRole: normalizedReviewerRole })) {
+  if (linkedFrom && isManualSubmissionReview(event)) {
+    throw new Error('This event requires its own manual review.');
+  }
+  // Every target keeps its own event boundary. A linked proof never grants review access.
+  if (!isAdminReviewer && !await resolveEventAccess({ eventId: event._id, userId: organizerId, userRole: normalizedReviewerRole })) {
     throw new Error('Activity submission not found or inaccessible.');
   }
   // Organisers and co-organisers may join events they manage, so a reviewer can be the
@@ -167,6 +170,13 @@ async function reviewAccumulatedActivitySubmission({
       throw new Error('Explain what needs clarification so the runner knows what to fix.');
     }
     update.status = 'needs_clarification';
+    update.clarification = {
+      question: safeReviewNotes,
+      requestedAt: reviewedAt,
+      requestedBy: organizerId,
+      response: '',
+      respondedAt: null
+    };
   }
 
   const reviewMutation = { $set: update };
@@ -179,6 +189,8 @@ async function reviewAccumulatedActivitySubmission({
   if (!reviewedActivity) {
     throw new Error('This submission was already reviewed by someone else. Refresh and try again.');
   }
+
+  invalidateAccumulatedLeaderboard(event.slug);
 
   const auditActionByAction = {
     approve: 'submission.approved',
@@ -286,6 +298,81 @@ async function reconcileAccumulatedCertificateAfterReview(registrationId, event)
   if (!registration) return;
   const { finalizeRegistrationCertificate } = require('./accumulated-certificate-finalization.service');
   await finalizeRegistrationCertificate({ registration, event, now: new Date() });
+}
+
+async function respondToAccumulatedClarification({ activityId, runnerId, response }) {
+  const safeResponse = String(response || '').trim().slice(0, 1200);
+  if (safeResponse.length < 10) {
+    throw new Error('Your clarification response must be at least 10 characters.');
+  }
+  const activity = await AccumulatedActivitySubmission.findOne({
+    _id: activityId,
+    runnerId,
+    status: 'needs_clarification'
+  });
+  if (!activity) throw new Error('Clarification request not found or already answered.');
+
+  const event = await Event.findById(activity.eventId)
+    .select('title slug organizerId')
+    .lean();
+  if (!event) throw new Error('Event not found.');
+
+  const respondedAt = new Date();
+  activity.clarification = {
+    question: activity.clarification?.question || activity.reviewNotes || '',
+    requestedAt: activity.clarification?.requestedAt || activity.reviewedAt,
+    requestedBy: activity.clarification?.requestedBy || activity.reviewedBy,
+    response: safeResponse,
+    respondedAt
+  };
+  activity.status = 'submitted';
+  activity.reviewNotes = '';
+  activity.reviewedAt = null;
+  activity.reviewedBy = null;
+  activity.submittedAt = respondedAt;
+  await activity.save();
+
+  recordCriticalAuditEventInBackground({
+    actorMongoUserId: runnerId,
+    action: 'submission.clarification_responded',
+    targetType: 'accumulated_activity_submission',
+    targetId: String(activity._id),
+    statusFrom: 'needs_clarification',
+    statusTo: 'submitted',
+    notes: safeResponse,
+    occurredAt: respondedAt
+  });
+  invalidateAccumulatedLeaderboard(event.slug);
+
+  const [runner, organizer] = await Promise.all([
+    User.findById(runnerId).select('firstName lastName email').lean(),
+    User.findById(event.organizerId).select('firstName email').lean()
+  ]);
+  await createNotificationSafe({
+    userId: event.organizerId,
+    type: 'result_clarification_response',
+    title: 'Runner Responded to Clarification',
+    message: `${[runner?.firstName, runner?.lastName].filter(Boolean).join(' ') || 'A runner'} responded about ${event.title}.`,
+    href: `/organizer/events/${String(event._id)}/submissions/${String(activity._id)}/review`,
+    metadata: { activityId: String(activity._id), eventId: String(event._id), runnerId: String(runnerId) }
+  }, 'clarification response notification');
+  if (organizer?.email) {
+    await communicationService.notify('organiser.runner_contact', {
+      email: {
+        to: organizer.email,
+        firstName: organizer.firstName || 'Organizer',
+        subject: `[HelloRun] Clarification response for ${event.title}`,
+        senderName: [runner?.firstName, runner?.lastName].filter(Boolean).join(' ') || 'A HelloRun runner',
+        senderEmail: runner?.email || '',
+        eventTitle: event.title,
+        message: safeResponse,
+        replyTo: runner?.email || undefined,
+        recipientUserId: event.organizerId,
+        metadata: { activityId: String(activity._id), eventId: String(event._id), runnerId: String(runnerId) }
+      }
+    }).catch((error) => logger.error('Clarification response email failed:', { activityId: String(activity._id), error: error.message }));
+  }
+  return activity;
 }
 
 async function getRegistrationAccumulatedProgress(registrationId) {
@@ -463,7 +550,7 @@ async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
   }
 
   const eventDoc = event || await Event.findById(activity.eventId)
-    .select('title targetDistanceKm targetSteps challengeMetrics primaryChallengeMetric virtualCompletionMode submissionReviewMode')
+    .select('title slug targetDistanceKm targetSteps challengeMetrics primaryChallengeMetric virtualCompletionMode submissionReviewMode')
     .lean();
   if (!eventDoc || !isAccumulatedChallenge(eventDoc)) {
     return activity;
@@ -489,6 +576,8 @@ async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
   activity.rejectionReason = '';
   activity.rejectionCode = '';
   await activity.save();
+
+  invalidateAccumulatedLeaderboard(eventDoc.slug);
 
   recordCriticalAuditEventInBackground({
     actorMongoUserId: '',
@@ -607,9 +696,12 @@ async function sendActivityReviewNotifications({ activity, eventTitle, action, c
         : reversed
           ? `Your approved activity for ${eventTitle} was reviewed again and no longer counts toward your total.`
           : `Your activity for ${eventTitle} was rejected. Please review and submit another activity.`);
-    // Needs-clarification does not yet have a dedicated email template, so it
-    // sends the in-app notification only until one is built.
-    await notifyWithRetry(approved ? 'result.approved' : (reversed ? 'result.approval_reversed' : 'result.rejected'), {
+    // Clarification reuses the organizer-message template so the runner receives
+    // the exact question by email as well as in the in-app notification.
+    const notificationEvent = approved
+      ? 'result.approved'
+      : needsClarification ? 'organiser.direct_message' : reversed ? 'result.approval_reversed' : 'result.rejected';
+    await notifyWithRetry(notificationEvent, {
       notification: {
         userId: activity.runnerId,
         type: approved
@@ -619,7 +711,9 @@ async function sendActivityReviewNotifications({ activity, eventTitle, action, c
             : reversed ? 'result_approval_reversed' : 'result_rejected'),
         title: notificationTitle,
         message: notificationMessage,
-        href: '/my-registrations',
+        href: needsClarification
+          ? `/runner/submissions/${String(activity._id)}`
+          : '/my-registrations',
         metadata: {
           activityId: String(activity._id),
           registrationId: String(activity.registrationId),
@@ -627,7 +721,7 @@ async function sendActivityReviewNotifications({ activity, eventTitle, action, c
           eventTitle
         }
       },
-      email: (runner.email && !needsClarification) ? {
+      email: runner.email ? {
         to: runner.email,
         firstName: runner.firstName || 'Runner',
         eventTitle,
@@ -635,6 +729,10 @@ async function sendActivityReviewNotifications({ activity, eventTitle, action, c
         elapsedLabel: '',
         rejectionReason: activity.rejectionReason || '',
         reviewNotes: activity.reviewNotes || '',
+        ...(needsClarification ? {
+          organiserName: 'The event organizer',
+          message: activity.reviewNotes || 'Please review your activity and respond to the clarification request.'
+        } : {}),
         recipientUserId: activity.runnerId,
         metadata: {
           activityId: String(activity._id),
@@ -710,10 +808,17 @@ function getSubmissionServiceHelpers() {
   return require('./submission.service');
 }
 
+function invalidateAccumulatedLeaderboard(eventSlug) {
+  if (!eventSlug) return;
+  // leaderboard.service imports this module, so load it lazily to avoid a require cycle.
+  require('./leaderboard.service').invalidateLeaderboardCache(eventSlug);
+}
+
 module.exports = {
   applyAccumulatedAutoApprovalIfEligible,
   createAccumulatedActivitySubmission,
   reviewAccumulatedActivitySubmission,
+  respondToAccumulatedClarification,
   reconcileAccumulatedCertificateAfterReview,
   getRegistrationAccumulatedProgress,
   getAccumulatedActivitiesForRegistrations,

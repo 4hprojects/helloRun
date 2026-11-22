@@ -556,6 +556,7 @@ function normalizeRegistrationPackages(body = {}) {
   const names = normalizeToArray(body.registrationPackageName);
   const notes = normalizeToArray(body.registrationPackageNotes);
   const otherItemNames = normalizeToArray(body.registrationPackageOtherItemNames);
+  const imageUrls = normalizeToArray(body.registrationPackageImageUrl);
   const earlyStartAt = normalizeToArray(body.registrationPackageEarlyBirdStartAt);
   const earlyEndAt = normalizeToArray(body.registrationPackageEarlyBirdEndAt);
   const earlyAmount = normalizeToArray(body.registrationPackageEarlyBirdAmount);
@@ -569,6 +570,7 @@ function normalizeRegistrationPackages(body = {}) {
     names.length,
     notes.length,
     otherItemNames.length,
+    imageUrls.length,
     earlyStartAt.length,
     earlyEndAt.length,
     earlyAmount.length,
@@ -618,14 +620,22 @@ function normalizeRegistrationPackages(body = {}) {
       key === 'otherItemNames' ? value.length > 0 : Boolean(value)
     ));
     const note = String(notes[index] || '').trim().slice(0, 500);
+    const removeImage = normalizeBoolean(body[`registrationPackageRemoveImage_${index}`]);
+    const imageUrl = removeImage ? '' : String(imageUrls[index] || '').trim().slice(0, 1000);
     if (!name && !pricingPeriods.length && !hasIncludedItem && !note) continue;
-    packages.push({
+    const packageItem = {
       packageId: String(ids[index] || '').trim().slice(0, 80) || buildRegistrationPackageId(packages.length, name),
       name,
       includedItems,
       pricingPeriods,
-      notes: note
-    });
+      notes: note,
+      imageUrl
+    };
+    // Rows can be skipped above, so remember which builder card this package came from.
+    // Upload routes use it to match `registrationPackageImageFile_<formIndex>` to the
+    // right package. Non-enumerable so it never reaches Mongo or re-rendered form data.
+    Object.defineProperty(packageItem, 'formIndex', { value: index, enumerable: false });
+    packages.push(packageItem);
   }
   return packages.slice(0, 10);
 }
@@ -673,6 +683,22 @@ function normalizeCustomizedOptions(body = {}) {
   }
 
   return items.slice(0, 30);
+}
+
+const MAX_FAQ_ITEMS = 8;
+
+function normalizeFaqItems(body = {}) {
+  const questions = normalizeToArray(body.faqQuestion);
+  const answers = normalizeToArray(body.faqAnswer);
+  const max = Math.max(questions.length, answers.length);
+  const items = [];
+  for (let index = 0; index < max; index += 1) {
+    const question = String(questions[index] || '').trim().slice(0, 160);
+    const answer = String(answers[index] || '').trim().slice(0, 1000);
+    if (!question && !answer) continue;
+    items.push({ question, answer });
+  }
+  return items.slice(0, MAX_FAQ_ITEMS);
 }
 
 function normalizeSpecialRewardBenefits(body = {}) {
@@ -910,6 +936,8 @@ function getCreateEventFormData(body = {}, options = {}) {
   return {
     title: String(body.title || '').trim(),
     shortTitle: String(body.shortTitle || '').trim().slice(0, 80),
+    tagline: String(body.tagline || '').replace(/\s+/g, ' ').trim().slice(0, 140),
+    faqItems: normalizeFaqItems(body),
     organiserName: String(body.organiserName || '').trim(),
     description: String(body.description || '').trim(),
     eventDetailsMarkdown: String(body.eventDetailsMarkdown || '').trim().slice(0, 20000),
@@ -1055,7 +1083,8 @@ function getCreateEventFormDataFromEvent(event) {
       endAt: formatDateForInput(period.endAt),
       amount: Number.isFinite(period.amount) ? period.amount : null
     })),
-    notes: packageOption.notes || ''
+    notes: packageOption.notes || '',
+    imageUrl: packageOption.imageUrl || ''
   }));
   const specialRewardBenefits = (Array.isArray(event.specialRewardBenefits) ? event.specialRewardBenefits : []).map((benefit) => ({
     title: benefit.title || '',
@@ -1078,6 +1107,11 @@ function getCreateEventFormDataFromEvent(event) {
   return {
     title: event.title || '',
     shortTitle: event.shortTitle || '',
+    tagline: event.tagline || '',
+    faqItems: (Array.isArray(event.faqItems) ? event.faqItems : []).map((item) => ({
+      question: item.question || '',
+      answer: item.answer || ''
+    })),
     organiserName: event.organiserName || '',
     description: event.description || '',
     eventDetailsMarkdown: event.eventDetailsMarkdown || '',
@@ -1242,6 +1276,16 @@ function isValidUrl(url) {
   }
 }
 
+// Package images come from a hidden input, so accept only absolute http(s) URLs.
+function isHttpUrl(url) {
+  try {
+    const parsed = new URL(String(url || ''));
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch (error) {
+    return false;
+  }
+}
+
 function validateOptionalCreateEventFields(formData, errors) {
   if (!isValidUrl(formData.bannerImageUrl)) errors.bannerImageUrl = 'Banner URL must be a valid URL.';
   if (!isValidUrl(formData.logoUrl)) errors.logoUrl = 'Logo URL must be a valid URL.';
@@ -1252,6 +1296,16 @@ function validateOptionalCreateEventFields(formData, errors) {
   }
   if (Array.isArray(formData.galleryImageUrls) && formData.galleryImageUrls.find((url) => !isValidUrl(url))) {
     errors.galleryImageUrls = 'Each gallery URL must be a valid URL.';
+  }
+
+  for (const [index, packageOption] of (formData.registrationPackages || []).entries()) {
+    if (packageOption.imageUrl && !isHttpUrl(packageOption.imageUrl)) {
+      errors[`registrationPackageImage${index}`] = 'Package image must be an http(s) URL.';
+    }
+  }
+  for (const [index, item] of (formData.faqItems || []).entries()) {
+    if (!item.question) errors[`faqQuestion${index}`] = 'Add the question for this answer, or clear both fields.';
+    if (!item.answer) errors[`faqAnswer${index}`] = 'Add an answer for this question, or clear both fields.';
   }
 
   for (const field of ['registrationOpenAt', 'registrationCloseAt', 'publicListingAvailableAt', 'homeFeaturedUntil', 'eventStartAt', 'eventEndAt', 'virtualStartAt', 'virtualEndAt', 'finalSubmissionDeadlineAt']) {
@@ -2003,6 +2057,8 @@ function applyEventFormData(event, formData, user) {
   const primaryChallengeMetric = normalizePrimaryChallengeMetric(formData.primaryChallengeMetric, challengeMetrics);
   event.title = formData.title;
   event.shortTitle = formData.shortTitle || '';
+  event.tagline = formData.tagline || '';
+  event.faqItems = Array.isArray(formData.faqItems) ? formData.faqItems : [];
   event.organiserName = formData.organiserName || organiserNameFromUser || 'HelloRun Organizer';
   event.description = formData.description;
   event.eventDetailsMarkdown = formData.eventDetailsMarkdown || '';

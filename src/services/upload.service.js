@@ -136,13 +136,37 @@ exports.uploadOrganizerDocs = (req, res, next) => {
   });
 };
 
+// One optional photo per registration package card. The builder caps packages at 10,
+// and each card posts `registrationPackageImageFile_<cardIndex>`.
+const MAX_REGISTRATION_PACKAGE_IMAGES = 10;
+const REGISTRATION_PACKAGE_IMAGE_FIELD_PATTERN = /^registrationPackageImageFile_(\d+)$/;
+exports.REGISTRATION_PACKAGE_IMAGE_FIELD_PATTERN = REGISTRATION_PACKAGE_IMAGE_FIELD_PATTERN;
+
+/**
+ * Collect uploaded package photos from a multer `fields()` result, keyed by builder
+ * card index so routes can match them to normalized packages via `formIndex`.
+ */
+exports.getRegistrationPackageImageFiles = (files = {}) => {
+  const byIndex = {};
+  Object.entries(files || {}).forEach(([fieldName, list]) => {
+    const match = REGISTRATION_PACKAGE_IMAGE_FIELD_PATTERN.exec(fieldName);
+    if (!match || !Array.isArray(list) || !list[0]) return;
+    byIndex[Number(match[1])] = list[0];
+  });
+  return byIndex;
+};
+
 exports.uploadEventBranding = (req, res, next) => {
   const uploadFields = brandingUpload.fields([
     { name: 'bannerImageFile', maxCount: 1 },
     { name: 'logoFile', maxCount: 1 },
     { name: 'posterImageFile', maxCount: 1 },
     { name: 'paymentQrImageFile', maxCount: 1 },
-    { name: 'galleryImageFiles', maxCount: 12 }
+    { name: 'galleryImageFiles', maxCount: 12 },
+    ...Array.from({ length: MAX_REGISTRATION_PACKAGE_IMAGES }, (_, index) => ({
+      name: `registrationPackageImageFile_${index}`,
+      maxCount: 1
+    }))
   ]);
 
   uploadFields(req, res, (err) => {
@@ -346,7 +370,8 @@ exports.uploadEventBrandingToR2 = async ({
   logoFile,
   posterImageFile,
   paymentQrImageFile,
-  galleryImageFiles
+  galleryImageFiles,
+  packageImageFiles
 }) => {
   assertR2Configured();
 
@@ -424,6 +449,22 @@ exports.uploadEventBrandingToR2 = async ({
         });
         result.gallery.push(uploadedGallery);
         uploadedKeys.push(uploadedGallery.key);
+      }
+    }
+
+    const packageEntries = Object.entries(packageImageFiles || {});
+    if (packageEntries.length) {
+      result.packageImages = {};
+      for (const [cardIndex, packageFile] of packageEntries) {
+        // eslint-disable-next-line no-await-in-loop
+        const uploadedPackage = await uploadFileToR2({
+          userId,
+          file: packageFile,
+          category: 'event-branding/package',
+          label: safeSlug ? `${safeSlug}-package-${Number(cardIndex) + 1}` : `package-${Number(cardIndex) + 1}`
+        });
+        result.packageImages[cardIndex] = uploadedPackage;
+        uploadedKeys.push(uploadedPackage.key);
       }
     }
   } catch (error) {

@@ -1,4 +1,5 @@
 // src/routes/organiser/event-creation.js
+const eventPackageImages = require('../../services/event-package-images.service');
 const express = require('express');
 const router = express.Router();
 const { isAccumulatedChallenge } = require('../../utils/challenge-metrics');
@@ -348,7 +349,11 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     const posterImageFile = req.files?.posterImageFile?.[0] || null;
     const paymentQrImageFile = incomingPaymentQrFile;
     const galleryImageFiles = req.files?.galleryImageFiles || [];
-    if (bannerImageFile || logoFile || posterImageFile || paymentQrImageFile || galleryImageFiles.length) {
+    // A new event owns no package photos yet, so only same-request uploads are kept.
+    eventPackageImages.restrictPackageImageUrls(formData.registrationPackages, []);
+    const packageImageFiles = eventPackageImages.getPackageImageFilesForPackages(req.files, formData.registrationPackages);
+    const hasPackageImageFiles = Object.keys(packageImageFiles).length > 0;
+    if (bannerImageFile || logoFile || posterImageFile || paymentQrImageFile || galleryImageFiles.length || hasPackageImageFiles) {
       slug = await generateUniqueSlug(formData.title || `event-upload-${Date.now()}`);
       const uploadedBranding = await uploadService.uploadEventBrandingToR2({
         userId: user._id,
@@ -357,7 +362,8 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
         logoFile: logoFile || undefined,
         posterImageFile: posterImageFile || undefined,
         paymentQrImageFile: paymentQrImageFile || undefined,
-        galleryImageFiles: galleryImageFiles.length ? galleryImageFiles : undefined
+        galleryImageFiles: galleryImageFiles.length ? galleryImageFiles : undefined,
+        packageImageFiles: hasPackageImageFiles ? packageImageFiles : undefined
       });
       if (uploadedBranding.banner) {
         uploadedBrandingKeys.push(uploadedBranding.banner.key);
@@ -387,6 +393,10 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
         );
         formData.galleryImageUrlsText = formData.galleryImageUrls.join('\n');
       }
+      uploadedBrandingKeys.push(...eventPackageImages.applyUploadedPackageImages(
+        formData.registrationPackages,
+        uploadedBranding.packageImages
+      ));
     }
 
     if ((formData.galleryImageUrls || []).length > MAX_GALLERY_IMAGES) {

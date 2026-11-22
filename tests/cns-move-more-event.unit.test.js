@@ -39,6 +39,8 @@ test('CNS payload is free, screenshot-backed, and distance-only', () => {
   assert.deepEqual(payload.proofTypesAllowed, ['photo']);
   assert.equal(payload.requireActivityScreenshot, true);
   assert.equal(payload.requireTrackingAppDevice, true);
+  assert.equal(payload.submissionReviewMode, 'manual');
+  assert.equal(selectEventUpdate(payload).submissionReviewMode, 'manual');
   assert.equal(selectEventUpdate(payload).posterImageUrl, '/images/events/cns-move-more-challenge-2026/cns-move-more-social.webp');
   assert.equal(payload.suppressDailyGuidance, true);
   assert.equal(payload.participationCertificateEnabled, true);
@@ -54,6 +56,7 @@ test('CNS payload is free, screenshot-backed, and distance-only', () => {
   assert.ok(Event.schema.path('awardingAt'));
   assert.ok(Event.schema.path('requiredRegistrationFields'));
   assert.ok(AccumulatedActivitySubmission.schema.path('trackingAppDevice'));
+  assert.ok(AccumulatedActivitySubmission.schema.path('clarification.response'));
   assert.deepEqual(AccumulatedActivitySubmission.schema.path('certificate.type').enumValues, ['finisher', 'participation', '']);
 });
 
@@ -103,6 +106,7 @@ test('the challenge guide is structured as scannable steps rather than dense pro
   // Beginners need to know a plain phone is enough.
   assert.match(EVENT_DETAILS_MARKDOWN, /step counter/i);
   assert.match(EVENT_DETAILS_MARKDOWN, /Not sure yet/i);
+  assert.match(EVENT_DETAILS_MARKDOWN, /activity duration/i);
 
   const bulletCount = EVENT_DETAILS_MARKDOWN.split('\n').filter((line) => line.startsWith('- ')).length;
   assert.ok(bulletCount >= 20, `expected a bulleted guide, found ${bulletCount} bullets`);

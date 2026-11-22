@@ -202,6 +202,23 @@ production services.
 
 ## Implemented, Production or Live Verification Pending
 
+- **The event page landing layout (Phases A and B) is repository-complete and
+  not deployed.** Phase B adds organiser-editable fields: a hero tagline,
+  authored FAQs, and one photo per registration package. The Phase B upload
+  route needs a supervised check with R2 configured. The November 22 isolated
+  verification passed: integration 547/547 on this change set, and a browser
+  check at 320 to 1280px with no overflow. It was finished on November 22 on `feat/event-experience-v2`.
+  The public event page now has:
+  - a goal subtitle and one-line tagline in the hero
+  - a three-date key-dates strip
+  - icon steps
+  - a consolidated finisher-rewards section with bundle cards
+  - generated FAQs
+
+  DB-free unit tests pass. A browser check at 320–1280px on free accumulated,
+  paid onsite, hybrid, ended, registered, restricted, and organiser preview
+  states is still pending. See `UX-03` for that check.
+
 - **Active Quest is publicly launched but not fully verified.** A November 15
   read-only check found the [November event](https://hellorun.online/events/november-active-quest-2026)
   published with registration open through November 22, activity dates of

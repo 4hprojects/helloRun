@@ -1260,6 +1260,57 @@
   color: var(--text-primary);
 }
 
+.registration-package-image-field {
+  margin-top: 0.75rem;
+}
+
+.registration-package-image-field input[type="file"] {
+  max-width: 100%;
+}
+
+.registration-package-image-current {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.registration-package-image-current img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border: 1px solid var(--border-color, #d9e2ef);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.faq-builder-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.faq-builder-row {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border-color, #d9e2ef);
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.faq-builder-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.faq-builder-row textarea {
+  width: 100%;
+  resize: vertical;
+}
+
 /* ----- FORM GRID ----- */
 .form-grid {
   display: grid;

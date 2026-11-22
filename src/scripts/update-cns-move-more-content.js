@@ -36,7 +36,7 @@ const EVENT_UPDATE_FIELDS = [
   'title', 'shortTitle', 'organiserName', 'description', 'eventDetailsMarkdown', 'posterImageUrl', 'status', 'eventType', 'eventTypesAllowed',
   'raceDistances', 'raceCategories', 'registrationOpenAt', 'registrationCloseAt', 'publicListingAvailableAt', 'eventStartAt',
   'eventEndAt', 'virtualWindow', 'venueName', 'awardingAt', 'awardingVenue', 'proofTypesAllowed', 'requireActivityScreenshot',
-  'requireTrackingAppDevice', 'suppressDailyGuidance', 'virtualCompletionMode', 'challengeMetrics', 'primaryChallengeMetric', 'targetDistanceKm', 'targetSteps',
+  'requireTrackingAppDevice', 'submissionReviewMode', 'suppressDailyGuidance', 'virtualCompletionMode', 'challengeMetrics', 'primaryChallengeMetric', 'targetDistanceKm', 'targetSteps',
   'minimumActivityDistanceKm', 'acceptedRunTypes', 'finalSubmissionDeadlineAt', 'milestoneDistancesKm', 'recognitionMode',
   'leaderboardMode', 'awardSettings', 'participationCertificateEnabled', 'noActivityCertificateEnabled', 'requiredRegistrationFields',
   'feeMode', 'feeAmount', 'feeCurrency', 'pricingMode', 'digitalBadgeEnabled', 'digitalCertificateEnabled',
@@ -166,6 +166,10 @@ async function main() {
     mode: APPLY ? 'apply' : 'dry-run',
     slug: event.slug,
     countsBefore,
+    submissionReviewMode: {
+      from: String(event.submissionReviewMode || 'system'),
+      to: payload.submissionReviewMode
+    },
     eventWillChange: EVENT_UPDATE_FIELDS.some((key) => comparableEventValue(event.get(key)) !== comparableEventValue(payload[key])),
     registrationsToMap: registrations.filter((row) => row.raceDistance !== '50K' || row.pricingSnapshot?.raceCategoryId !== CATEGORY.categoryId).length,
     activitiesToMap: activities.filter((row) => row.raceDistance !== '50K').length,

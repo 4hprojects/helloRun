@@ -11,6 +11,7 @@ const cssSource = fs.readFileSync(path.join(ROOT, 'src/public/css/event-details.
 
 test('event details template compiles and exposes task-first section navigation', () => {
   assert.doesNotThrow(() => ejs.compile(viewSource, { filename: viewPath }));
+  assert.match(viewSource, /<main class="event-details-page" id="main-content" tabindex="-1">/);
   assert.match(viewSource, /<details class="event-section-jump">/);
   assert.match(viewSource, /<summary>Jump to section<\/summary>/);
   assert.match(viewSource, /class="event-section-nav" aria-label="Event page sections"/);
@@ -34,9 +35,14 @@ test('section disclosure is mobile-only, touch-friendly, and closes after select
   assert.match(viewSource, /jump\.open = false/);
 });
 
-test('hero description and summary card expose clear mobile content hierarchy', () => {
-  assert.match(viewSource, /class="event-lead-label">About this event/);
-  assert.match(viewSource, /details\.descriptionText \|\| details\.challengeSummary \|\| details\.description/);
+test('hero leads with title, goal subtitle, one-line tagline, and summary card', () => {
+  assert.doesNotMatch(viewSource, /About this event/);
+  assert.match(viewSource, /<h1><%= details\.title %><\/h1>[\s\S]*class="event-hero-subtitle"><%= details\.heroSubtitle %>/);
+  assert.match(viewSource, /class="event-hero-tagline"><%= details\.heroTagline \|\| details\.challengeSummary/);
+  const actionsIndex = viewSource.indexOf('class="event-hero-actions"');
+  const hostIndex = viewSource.indexOf('<p class="event-organizer">Hosted by');
+  assert.ok(actionsIndex >= 0 && hostIndex > actionsIndex, 'host line follows the hero actions');
+  assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*\.event-hero-tagline\s*\{[\s\S]*-webkit-line-clamp:\s*3/);
   assert.match(viewSource, /event-hero-panel-group event-hero-panel-price/);
   assert.match(viewSource, /event-hero-panel-group event-hero-panel-registration/);
   assert.match(viewSource, /class="event-panel-status"/);
@@ -71,20 +77,27 @@ test('desktop layout lifts the right panel into the shell top rows', () => {
   assert.match(cssSource, /@media \(max-width: 980px\)[\s\S]*\.event-main-layout\s*\{[\s\S]*display:\s*grid/);
 });
 
-test('mobile navigation and highlight cards use the requested paired rows', () => {
+test('mobile navigation and event overview use compact paired rows', () => {
   assert.match(viewSource, /event-nav-back/);
   assert.match(viewSource, /event-nav-registrations/);
   assert.match(cssSource, /\.event-nav-row[\s\S]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
-  assert.match(cssSource, /\.event-stats-strip \.event-stat-duration[\s\S]*order:\s*2/);
-  assert.match(cssSource, /\.event-stats-strip \.event-stat-detail[\s\S]*grid-column:\s*1 \/ -1/);
+  assert.match(viewSource, /class="event-overview" aria-labelledby="eventOverviewTitle"/);
+  assert.match(cssSource, /\.event-overview-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*\.event-key-dates\s*\{[\s\S]*grid-template-columns:\s*1fr/);
 });
 
-test('accumulated challenge dates become one balanced mobile timeline', () => {
-  assert.match(viewSource, /event-stats-strip<%= details\.isAccumulatedChallenge \? ' event-challenge-timeline' : '' %>/);
-  assert.match(viewSource, /details\.isAccumulatedChallenge \? 'Event timeline' : 'Event highlights'/);
-  assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*\.event-challenge-timeline\s*\{[\s\S]*grid-template-columns:\s*1fr[\s\S]*gap:\s*0/);
-  assert.match(cssSource, /\.event-challenge-timeline \.event-stat\s*\{[\s\S]*grid-template-columns:\s*minmax\(92px, 0\.42fr\) minmax\(0, 1fr\)/);
-  assert.match(cssSource, /\.event-challenge-timeline \.event-stat:last-child\s*\{[\s\S]*border-bottom:\s*0/);
+test('event overview shows the three key dates, then place, goals, and price without a second stats strip', () => {
+  assert.match(viewSource, /const activityPeriod = details\.challengeDates/);
+  assert.match(viewSource, /class="event-overview-grid event-key-dates"/);
+  assert.match(viewSource, /details\.keyDates \|\| \[\]\)\.forEach/);
+  assert.match(viewSource, /<span><%= keyDate\.label %><\/span>/);
+  assert.match(viewSource, /class="event-overview-meta"/);
+  assert.match(viewSource, /details\.location\?\.publicLabel/);
+  assert.match(viewSource, /details\.distanceSummaryLabel \|\| details\.completionGoalLabel/);
+  assert.match(viewSource, /details\.pricing\?\.amountLabel/);
+  assert.doesNotMatch(viewSource, /class="event-stats-strip/);
+  assert.match(cssSource, /@media \(max-width: 980px\)[\s\S]*\.event-hero-panel\s*\{[\s\S]*display:\s*none/);
+  assert.match(cssSource, /@media \(max-width: 980px\)[\s\S]*\.event-side-panel \.event-register-card\s*\{[\s\S]*display:\s*none/);
 });
 
 test('participant essentials keep their content while omitting only the mobile heading', () => {
@@ -94,10 +107,11 @@ test('participant essentials keep their content while omitting only the mobile h
   assert.doesNotMatch(cssSource, /\.event-participant-essentials\s*\{\s*display:\s*none/);
 });
 
-test('registration options highlight card is omitted as redundant', () => {
-  assert.match(viewSource, /filter\(\(stat\) => stat\.label !== 'Registration Options'\)/);
-  assert.match(viewSource, /event-stat-signups/);
-  assert.match(viewSource, /event-stat-duration/);
+test('registration overview omits promotional signup counts and repeated highlight cards', () => {
+  assert.doesNotMatch(viewSource, /event-stat-signups/);
+  assert.doesNotMatch(viewSource, /event-stat-duration/);
+  assert.doesNotMatch(viewSource, /class="event-mobile-key-facts/);
+  assert.match(viewSource, /class="event-overview-meta"[\s\S]*details\.pricing\?\.amountLabel/);
 });
 
 test('how-this-event-works becomes a compact mobile step list', () => {
@@ -145,9 +159,11 @@ test('race categories are deduplicated unless they contain additional runner det
 test('recap, submission rules, and organizer details use compact semantic patterns', () => {
   assert.match(viewSource, /class="event-recap-body"/);
   assert.match(viewSource, /class="event-recap-list"/);
+  assert.match(viewSource, /<details class="event-section event-rules-disclosure" id="event-submission-rules">/);
+  assert.match(viewSource, /Full submission rules/);
   assert.match(viewSource, /<dl class="event-rule-list">/);
-  assert.match(viewSource, /<dt>Event window<\/dt>/);
-  assert.match(viewSource, /<dd><%= details\.virtualRules/);
+  assert.match(viewSource, /<dt>Event period<\/dt>/);
+  assert.match(viewSource, /<dd><%= activityPeriod %><\/dd>/);
   assert.match(viewSource, /<details class="event-section event-details-description" id="event-full-details" open>/);
   assert.match(viewSource, /Complete challenge guide/);
   assert.match(viewSource, /structured sections above are the current event settings/);
@@ -158,15 +174,32 @@ test('recap, submission rules, and organizer details use compact semantic patter
   assert.match(viewSource, /JPG, PNG, or WebP image up to 5 MB/);
 });
 
+test('event page renders safe Event schema and structured reward logistics', () => {
+  assert.match(viewSource, /seo\?\.structuredDataJson/);
+  assert.match(viewSource, /type="application\/ld\+json"><%- seo\.structuredDataJson %>/);
+  assert.match(viewSource, /details\.rewardDetails\?\.claimingNotes/);
+  assert.match(viewSource, /details\.rewardDetails\?\.deliveryDescription/);
+  assert.match(viewSource, /details\.rewardDetails\?\.specialBenefits/);
+  assert.doesNotMatch(viewSource, /event\.physicalRewardsDescription/);
+  assert.match(cssSource, /\.event-reward-details div[\s\S]*grid-template-columns:\s*minmax\(120px, 0\.35fr\) minmax\(0, 1fr\)/);
+  assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*\.event-reward-details div[\s\S]*grid-template-columns:\s*1fr/);
+});
+
 test('supporting content follows the decision-first semantic order', () => {
+  const howIndex = viewSource.indexOf('id="event-how-it-works"');
   const rewardsIndex = viewSource.indexOf('id="event-rewards"');
+  const goalIndex = viewSource.indexOf('class="event-section event-goal-section');
   const detailsIndex = viewSource.indexOf('id="event-full-details"');
+  const faqIndex = viewSource.indexOf('id="event-faq"');
   const posterIndex = viewSource.indexOf('id="event-poster"');
   const recapIndex = viewSource.indexOf('id="event-recap"');
 
-  assert.ok(rewardsIndex >= 0);
-  assert.ok(detailsIndex > rewardsIndex);
-  assert.ok(posterIndex > detailsIndex);
+  assert.ok(howIndex >= 0);
+  assert.ok(rewardsIndex > howIndex);
+  assert.ok(goalIndex > rewardsIndex, 'goal details follow the rewards');
+  assert.ok(detailsIndex > goalIndex);
+  assert.ok(faqIndex > detailsIndex);
+  assert.ok(posterIndex > faqIndex);
   assert.ok(recapIndex > posterIndex);
   assert.match(viewSource, /<details class="event-section event-details-description" id="event-full-details" open>/);
   assert.doesNotMatch(cssSource, /\.event-recap-section\s*\{[^}]*order:/s);
@@ -201,7 +234,7 @@ test('accumulated challenges prioritize goal choice and personalized progress', 
   assert.match(viewSource, /metric\.pendingLabel/);
   assert.match(viewSource, /role="progressbar"/);
   assert.match(viewSource, /data-run-proof-surface="event-detail"/);
-  assert.match(viewSource, /details\.secondaryCtas\?\.\[0\]/);
+  assert.doesNotMatch(viewSource, /details\.secondaryCtas\?\.\[0\]/);
   assert.match(viewSource, /const showEventSidebar = Boolean/);
   assert.match(viewSource, /event-details-shell<%= showEventSidebar \? '' : ' event-details-shell-wide' %>/);
   assert.match(viewSource, /if \(showEventSidebar\) \{ %><aside class="event-side-panel">/);
@@ -216,6 +249,19 @@ test('accumulated challenges prioritize goal choice and personalized progress', 
   assert.match(cssSource, /@media \(max-width: 340px\)[\s\S]*\.event-details-shell \.event-challenge-goal-grid[\s\S]*grid-template-columns:\s*1fr/);
   assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*\.event-challenge-goal-grid strong[\s\S]*white-space:\s*normal/);
   assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*\.event-challenge-decision-action[\s\S]*display:\s*none/);
+});
+
+test('event mechanics distinguish onsite, virtual, and hybrid participation', () => {
+  assert.match(viewSource, /const supportsVirtualParticipation = isVirtualEvent \|\| isHybridEvent/);
+  assert.match(viewSource, /const supportsOnsiteParticipation = isOnsiteEvent \|\| isHybridEvent/);
+  assert.match(viewSource, /Attend Race Day/);
+  assert.match(viewSource, /Record Workouts/);
+  assert.match(viewSource, /'Track Your Distance'/);
+  assert.match(viewSource, /data-lucide="clipboard-check"/);
+  assert.match(viewSource, /class="event-mechanics-note"/);
+  assert.match(viewSource, /Participation & Submission Rules/);
+  assert.match(viewSource, /if \(supportsOnsiteParticipation\)/);
+  assert.match(viewSource, /if \(supportsVirtualParticipation\)/);
 });
 
 test('recap, rules, and full event details compact safely on mobile', () => {
@@ -300,4 +346,23 @@ test('the challenge guide separates its steps on mobile instead of running toget
 test('the CNS event page states that it is exclusive to CNS', () => {
   assert.match(viewSource, /An exclusive event of the College of Natural Sciences, open to CNS faculty and staff/);
   assert.match(viewSource, /<dt>Who can join<\/dt>/);
+});
+
+test('finisher rewards group free digital rewards with priced bundle cards', () => {
+  assert.match(viewSource, /<h2>Finisher rewards<\/h2>/);
+  assert.match(viewSource, /class="event-rewards-free"[\s\S]*details\.digitalRewardsLabel/);
+  assert.match(viewSource, /class="event-bundle-card<%= packageOption\.imageUrl \? ' has-image' : '' %>"/);
+  assert.match(viewSource, /details\.rewardLogistics\.notes\.forEach/);
+  assert.match(viewSource, /const showPricingSection = Boolean/);
+  assert.doesNotMatch(viewSource, /Register for This Event/);
+  assert.match(cssSource, /\.event-bundle-grid\s*\{[\s\S]*repeat\(auto-fit, minmax\(min\(100%, 240px\), 1fr\)\)/);
+});
+
+test('generated FAQ renders as escaped native disclosures', () => {
+  assert.match(viewSource, /id="event-faq"/);
+  assert.match(viewSource, /href="#event-faq">FAQ<\/a>/);
+  assert.match(viewSource, /<summary><%= faqItem\.question %><\/summary>/);
+  assert.match(viewSource, /<p><%= faqItem\.answer %><\/p>/);
+  assert.match(cssSource, /\.event-faq-item summary\s*\{[\s\S]*min-height:\s*48px/);
+  assert.match(cssSource, /\.event-faq-item summary:focus-visible/);
 });

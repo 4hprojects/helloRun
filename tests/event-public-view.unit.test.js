@@ -4,6 +4,8 @@ const assert = require('node:assert/strict');
 const {
   buildPublicEventSeo,
   buildPublicEventView,
+  getEffectiveProofTypes,
+  isRunningAppSyncAvailable,
   renderEventDetailsContent
 } = require('../src/utils/event-public-view');
 const {
@@ -359,6 +361,52 @@ test('buildPublicEventView uses Anywhere for virtual events without a venue', ()
   assert.equal(publicEvent.location.publicLabel, 'Anywhere');
 });
 
+test('buildPublicEventView does not describe an empty hybrid venue as Anywhere', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Hybrid Community Run',
+    slug: 'hybrid-community-run',
+    eventType: 'hybrid',
+    eventTypesAllowed: ['onsite', 'virtual'],
+    feeMode: 'free'
+  });
+
+  assert.equal(publicEvent.showLocation, false);
+  assert.equal(publicEvent.location.publicLabel, 'Location details not listed');
+});
+
+test('running app proof is public only when the Strava integration is configured', () => {
+  const unconfiguredEnv = {};
+  const configuredEnv = {
+    STRAVA_CLIENT_ID: 'client-id',
+    STRAVA_CLIENT_SECRET: 'client-secret',
+    STRAVA_REDIRECT_URI: 'https://example.test/integrations/strava/callback'
+  };
+
+  assert.equal(isRunningAppSyncAvailable(unconfiguredEnv), false);
+  assert.equal(isRunningAppSyncAvailable(configuredEnv), true);
+  assert.deepEqual(
+    getEffectiveProofTypes(['running_app_sync', 'photo', 'manual'], { env: unconfiguredEnv }),
+    ['photo', 'manual']
+  );
+
+  const unavailable = buildPublicEventView({
+    title: 'Virtual Proof Event',
+    eventType: 'virtual',
+    proofTypesAllowed: ['running_app_sync', 'photo', 'manual'],
+    feeMode: 'free'
+  }, { runningAppSyncAvailable: false });
+  assert.deepEqual(unavailable.virtualRules.proofTypes, ['Fitness-app screenshot', 'Matching activity details']);
+  assert.doesNotMatch(unavailable.virtualRules.proofInstructions, /Strava|sync/i);
+
+  const available = buildPublicEventView({
+    title: 'Virtual Proof Event',
+    eventType: 'virtual',
+    proofTypesAllowed: ['running_app_sync', 'photo'],
+    feeMode: 'free'
+  }, { runningAppSyncAvailable: true });
+  assert.deepEqual(available.virtualRules.proofTypes, ['Strava activity import', 'Fitness-app screenshot']);
+});
+
 test('buildPublicEventView adds recap for ended public events', () => {
   const publicEvent = buildPublicEventView({
     title: 'Past Community Run',
@@ -469,6 +517,7 @@ test('buildPublicEventView surfaces structured race category summaries and prici
         distanceLabel: '10K',
         distanceKm: 10,
         slots: 150,
+        reserved: 42,
         cutoffTime: '2 hours',
         ageGroup: '18+',
         rewardsDescription: 'Medal for finishers'
@@ -494,7 +543,9 @@ test('buildPublicEventView surfaces structured race category summaries and prici
   assert.equal(publicEvent.raceCategories.length, 2);
   assert.equal(publicEvent.raceCategories[0].name, '10K Open');
   assert.equal(publicEvent.raceCategories[0].typeLabel, 'Distance');
-  assert.equal(publicEvent.raceCategories[0].summary, '10K | 10 km | 150 slots | 2 hours | 18+');
+  assert.equal(publicEvent.raceCategories[0].summary, '10K | 10 km | 108 of 150 spots available | 2 hours | 18+');
+  assert.equal(publicEvent.raceCategories[0].remainingSlots, 108);
+  assert.equal(publicEvent.raceCategories[0].isFull, false);
   assert.equal(publicEvent.raceCategories[0].rewardsDescription, 'Medal for finishers');
   assert.deepEqual(publicEvent.pricingOptions.map((option) => `${option.label}:${option.amountLabel}`), ['10K Open (10K):PHP 750', 'Kids Dash (1K):PHP 250']);
 });
@@ -515,17 +566,101 @@ test('buildPublicEventView surfaces package period pricing options', () => {
         name: 'Medal + Shirt',
         includedItems: { medal: true, shirt: true },
         pricingPeriods: [
-          { label: 'Early Bird', amount: 899 },
-          { label: 'Regular', amount: 999 }
+          { label: 'Early Bird', code: 'early_bird', startAt: '2026-01-01T00:00:00.000Z', endAt: '2026-01-31T23:59:59.000Z', amount: 899 },
+          { label: 'Regular', code: 'regular', startAt: '2026-02-01T00:00:00.000Z', endAt: '2026-02-28T23:59:59.000Z', amount: 999 }
         ]
       }
     ]
-  });
+  }, { now: new Date('2026-01-15T00:00:00.000Z') });
 
   assert.equal(publicEvent.pricing.label, 'Registration pricing');
   assert.equal(publicEvent.pricing.amountLabel, 'PHP 899');
   assert.equal(publicEvent.pricingOptions.length, 1);
-  assert.deepEqual(publicEvent.pricingOptions.map((option) => `${option.label}:${option.amountLabel}`), ['Medal + Shirt:From PHP 899']);
+  assert.deepEqual(publicEvent.pricingOptions.map((option) => `${option.label}:${option.amountLabel}`), ['Medal + Shirt:PHP 899']);
+  assert.equal(publicEvent.pricingOptions[0].pricingPeriodBadge, 'Early Bird');
+});
+
+test('period pricing never advertises a historical minimum outside an active period', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Package Pricing Race',
+    eventType: 'virtual',
+    feeMode: 'paid',
+    pricingMode: 'package_period',
+    feeCurrency: 'PHP',
+    registrationPackages: [{
+      name: 'Medal + Shirt',
+      pricingPeriods: [
+        { label: 'Early Bird', code: 'early_bird', startAt: '2026-01-01T00:00:00.000Z', endAt: '2026-01-31T23:59:59.000Z', amount: 899 }
+      ]
+    }]
+  }, { now: new Date('2026-03-01T00:00:00.000Z') });
+
+  assert.equal(publicEvent.pricingOptions.length, 0);
+  assert.equal(publicEvent.pricing.amountLabel, 'Not currently available');
+  assert.equal(publicEvent.pricing.availableNow, false);
+  assert.equal(publicEvent.packageOptions[0].amountLabel, 'Not currently available');
+});
+
+test('category availability and waitlist use the same slots and reserved fields', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Capacity Race',
+    eventType: 'onsite',
+    waitlistEnabled: true,
+    raceCategories: [
+      { categoryId: '5k', name: '5K', distanceLabel: '5K', slots: 20, reserved: 20 },
+      { categoryId: '10k', name: '10K', distanceLabel: '10K', slots: 50, reserved: 47 }
+    ],
+    feeMode: 'free'
+  });
+
+  assert.equal(publicEvent.raceCategories[0].availabilityLabel, 'Full · Waitlist available');
+  assert.equal(publicEvent.raceCategories[0].isFull, true);
+  assert.equal(publicEvent.raceCategories[1].availabilityLabel, '3 of 50 spots available');
+  assert.deepEqual(publicEvent.waitlistCategories, [{ categoryId: '5k', label: '5K' }]);
+});
+
+test('public reward details include claiming, delivery, and special benefits', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Reward Race',
+    eventType: 'onsite',
+    physicalRewardsEnabled: true,
+    physicalRewardMedalEnabled: true,
+    physicalRewardsDescription: 'Every verified finisher receives the listed kit.',
+    physicalRewardsClaimingNotes: 'Bring your bib to the claiming desk.',
+    claimingMethod: 'both',
+    deliveryFeeDescription: 'Metro Manila delivery takes five business days.',
+    specialRewardBenefits: [{
+      title: 'Partner discount',
+      description: 'Ten percent off one purchase.',
+      validUntil: '2026-12-31T00:00:00.000Z',
+      appliesToPackageNames: ['Premium Kit']
+    }],
+    feeMode: 'free'
+  });
+
+  assert.equal(publicEvent.rewardDetails.description, 'Every verified finisher receives the listed kit.');
+  assert.equal(publicEvent.rewardDetails.claimingNotes, 'Bring your bib to the claiming desk.');
+  assert.equal(publicEvent.rewardDetails.claimingMethodLabel, 'Delivery or pickup');
+  assert.equal(publicEvent.rewardDetails.specialBenefits[0].title, 'Partner discount');
+  assert.equal(publicEvent.rewardDetails.specialBenefits[0].validUntil, 'Dec 31, 2026');
+});
+
+test('registration lifecycle distinguishes future, open, closed, ended, and cancelled states', () => {
+  const base = {
+    title: 'Lifecycle Event',
+    status: 'published',
+    eventType: 'onsite',
+    feeMode: 'free',
+    registrationOpenAt: '2026-06-01T00:00:00.000Z',
+    registrationCloseAt: '2026-06-30T23:59:59.000Z',
+    eventEndAt: '2026-07-15T23:59:59.000Z'
+  };
+
+  assert.equal(buildPublicEventView(base, { now: new Date('2026-05-01T00:00:00.000Z') }).registrationState.tone, 'upcoming');
+  assert.equal(buildPublicEventView(base, { now: new Date('2026-06-15T00:00:00.000Z') }).registrationState.tone, 'open');
+  assert.equal(buildPublicEventView(base, { now: new Date('2026-07-01T00:00:00.000Z') }).registrationState.label, 'Registration Closed');
+  assert.equal(buildPublicEventView(base, { now: new Date('2026-08-01T00:00:00.000Z') }).registrationState.label, 'Event Ended');
+  assert.equal(buildPublicEventView({ ...base, status: 'cancelled' }, { now: new Date('2026-06-15T00:00:00.000Z') }).registrationState.label, 'Event Cancelled');
 });
 
 test('buildPublicEventSeo uses event image and canonical URL', () => {
@@ -557,4 +692,139 @@ test('buildPublicEventSeo prefers a social poster and resolves local artwork URL
   assert.equal(seo.ogImageWidth, 1200);
   assert.equal(seo.ogImageHeight, 630);
   assert.equal(seo.ogImageType, 'image/webp');
+});
+
+test('buildPublicEventSeo emits safe Event schema only for physical attendance', () => {
+  const seo = buildPublicEventSeo({
+    title: '</script><script>alert(1)</script> Community Run',
+    slug: 'community-run',
+    description: 'A safe community event.',
+    eventType: 'onsite',
+    eventStartAt: '2026-09-01T00:00:00+08:00',
+    eventEndAt: '2026-09-01T09:00:00+08:00',
+    venueName: 'City Track',
+    venueAddress: '1 Run Road',
+    city: 'Baguio',
+    country: 'PH',
+    feeMode: 'free'
+  }, 'https://hellorun.online');
+
+  assert.doesNotMatch(seo.structuredDataJson, /<\/script>/i);
+  const structuredData = JSON.parse(seo.structuredDataJson);
+  assert.equal(structuredData['@type'], 'Event');
+  assert.equal(structuredData.eventAttendanceMode, 'https://schema.org/OfflineEventAttendanceMode');
+  assert.equal(structuredData.location.name, 'City Track');
+  assert.equal(structuredData.offers.price, 0);
+
+  const virtualSeo = buildPublicEventSeo({
+    title: 'Virtual Event',
+    slug: 'virtual-event',
+    eventType: 'virtual',
+    eventStartAt: '2026-09-01T00:00:00+08:00',
+    eventEndAt: '2026-09-30T00:00:00+08:00'
+  }, 'https://hellorun.online');
+  assert.equal(virtualSeo.structuredDataJson, '');
+});
+
+test('buildPublicEventView builds the focused landing hero, key dates, rewards, and FAQ for a free year-long challenge', () => {
+  const publicEvent = buildPublicEventView({
+    title: '2027k HelloRun Challenge',
+    slug: '2027k-hellorun-challenge',
+    organiserName: 'HelloRun',
+    description: '<p>Free virtual challenge. Join from anywhere. Log every kilometre you cover.</p>',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    virtualCompletionMode: 'accumulated_distance',
+    targetDistanceKm: 2027,
+    acceptedRunTypes: ['run', 'walk', 'hike', 'treadmill'],
+    feeMode: 'free',
+    status: 'published',
+    registrationOpenAt: new Date('2026-11-01T00:00:00+08:00'),
+    registrationCloseAt: new Date('2027-11-30T23:59:00+08:00'),
+    eventStartAt: new Date('2027-01-01T00:00:00+08:00'),
+    eventEndAt: new Date('2027-12-31T23:59:00+08:00'),
+    finalSubmissionDeadlineAt: new Date('2028-01-14T23:59:00+08:00'),
+    digitalCertificateEnabled: true,
+    digitalBadgeEnabled: true,
+    physicalRewardsEnabled: true,
+    physicalRewardMedalEnabled: true,
+    physicalRewardShirtEnabled: true,
+    claimingMethod: 'delivery',
+    deliveryFeeEnabled: true,
+    deliveryFeeAmount: 0,
+    requiresPhilippineDeliveryAddress: true,
+    registrationPackages: [
+      {
+        name: 'Finisher Shirt + Medal Bundle',
+        includedItems: { shirt: true, medal: true },
+        pricingPeriods: [{ code: 'regular', label: 'Regular', amount: 1099 }]
+      }
+    ]
+  }, { now: new Date('2026-11-22T00:00:00+08:00'), eventBadges: [{ name: '2027k Finisher' }] });
+
+  assert.equal(publicEvent.heroSubtitle, 'Cover 2,027 km in 2027');
+  assert.equal(publicEvent.heroTagline, 'Free virtual challenge.');
+  assert.equal(publicEvent.primaryCta.label, 'Register for free');
+  assert.deepEqual(
+    publicEvent.keyDates.map((item) => [item.label, item.value]),
+    [
+      ['Registration closes', 'Nov 30, 2027'],
+      ['Activity period', 'Jan 1–Dec 31, 2027'],
+      ['Submit proof by', 'Jan 14, 2028']
+    ]
+  );
+  assert.equal(publicEvent.digitalRewardsLabel, 'Free digital certificate and badge for verified finishers');
+  assert.equal(publicEvent.rewardLogistics.applies, true);
+  assert.deepEqual(publicEvent.rewardLogistics.notes, ['Free delivery', 'Delivery within the Philippines only']);
+  assert.deepEqual(publicEvent.packageOptions[0].includedItems, ['Medal', 'Shirt']);
+  assert.deepEqual(publicEvent.faqItems.map((item) => item.question), [
+    'Can I join from outside the Philippines?',
+    'Which activities count?',
+    'How do I get the Finisher Shirt + Medal Bundle?',
+    'When is the last day to submit proof?'
+  ]);
+  assert.match(publicEvent.faqItems[0].answer, /Physical rewards are delivered to Philippine addresses only/);
+  assert.match(publicEvent.faqItems[1].answer, /treadmill/);
+  assert.match(publicEvent.faqItems[2].answer, /^Choose your package when you register\. Rewards are claimed by delivery\./);
+});
+
+test('buildPublicEventView keeps the hero honest for paid onsite events', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Baguio Fun Run',
+    slug: 'baguio-fun-run',
+    shortTitle: '',
+    description: 'A 5K and 10K morning race around Burnham Park. Gun start at 5:30 AM.',
+    eventType: 'onsite',
+    feeMode: 'paid',
+    feeAmount: 650,
+    status: 'published',
+    registrationOpenAt: new Date('2026-11-01T00:00:00+08:00'),
+    registrationCloseAt: new Date('2026-12-01T00:00:00+08:00'),
+    eventStartAt: new Date('2026-12-06T05:30:00+08:00'),
+    eventEndAt: new Date('2026-12-06T10:00:00+08:00')
+  }, { now: new Date('2026-11-22T00:00:00+08:00') });
+
+  assert.equal(publicEvent.heroSubtitle, '');
+  assert.equal(publicEvent.heroTagline, 'A 5K and 10K morning race around Burnham Park.');
+  assert.equal(publicEvent.primaryCta.label, 'Register Now');
+  assert.equal(publicEvent.rewardLogistics.applies, false);
+  assert.deepEqual(publicEvent.faqItems, []);
+  assert.deepEqual(
+    publicEvent.keyDates.map((item) => [item.label, item.value]),
+    [['Registration closes', 'Dec 1, 2026'], ['Race day', 'Dec 6, 2026'], ['Venue', 'Location details not listed']]
+  );
+});
+
+test('buildPublicEventView prefers an organiser short title and clips long taglines', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Mountain Province Trail Series',
+    shortTitle: 'Three trails, one season',
+    description: `${'Explore the ridges and rice terraces of the Cordillera on foot with your running community '.repeat(3)}every weekend.`,
+    eventType: 'virtual',
+    feeMode: 'free'
+  });
+
+  assert.equal(publicEvent.heroSubtitle, 'Three trails, one season');
+  assert.ok(publicEvent.heroTagline.length <= 140);
+  assert.match(publicEvent.heroTagline, /…$/);
 });

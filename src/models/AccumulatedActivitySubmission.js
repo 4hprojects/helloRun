@@ -191,6 +191,13 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
       default: '',
       maxlength: 1200
     },
+    clarification: {
+      question: { type: String, trim: true, default: '', maxlength: 1200 },
+      requestedAt: { type: Date, default: null },
+      requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+      response: { type: String, trim: true, default: '', maxlength: 1200 },
+      respondedAt: { type: Date, default: null }
+    },
     rejectionReason: {
       type: String,
       trim: true,

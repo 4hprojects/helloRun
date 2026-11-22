@@ -16,7 +16,7 @@ const { normalizeSubmissionHubFilters } = require('../../services/submission-hub
 const { reverseSubmissionApproval } = require('../../services/approval-reversal.service');
 const { describeLinkedEntries, formatLinkedReviewMessage } = require('../../services/linked-entry-review.service');
 const { resolveChallengeConfig } = require('../../utils/challenge-metrics');
-const { normalizeSubmissionReviewMode, getSubmissionReviewModeLabel } = require('../../utils/submission-review-mode');
+const { normalizeSubmissionReviewMode, getSubmissionReviewModeLabel, isManualSubmissionReview } = require('../../utils/submission-review-mode');
 const {
   REVIEW_CHECKLIST_VERSION,
   buildRunProofVerificationCriteria,
@@ -718,6 +718,10 @@ async function approveCleanSubmission({ submissionId, eventIds, user, reviewNote
   }
   if (!submission) throw new Error('Submission is no longer available or accessible.');
   if (submission.status !== 'submitted') throw new Error('Submission has already been reviewed.');
+  const event = await Event.findById(submission.eventId).select('submissionReviewMode').lean();
+  if (isManualSubmissionReview(event)) {
+    throw new Error('This event requires individual review with the verification checklist.');
+  }
   const reviewSignal = buildSubmissionReviewSignal(submission);
   if (submission.suspiciousFlag || reviewSignal.label) {
     throw new Error('This submission requires individual review.');

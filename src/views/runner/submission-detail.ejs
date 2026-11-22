@@ -32,6 +32,17 @@
       <div><h2 id="submissionOutcomeTitle"><%= view.outcomeTitle %></h2><p><%= view.outcomeText %></p><% if (submission.reviewedAtLabel !== '–') { %><small>Decision recorded <%= submission.reviewedAtLabel %></small><% } %></div>
     </section>
 
+    <% if (submission.status === 'needs_clarification') { %>
+      <section class="sub-correction-panel" id="clarificationResponse" aria-labelledby="clarificationResponseTitle">
+        <div class="sub-correction-heading"><span><i data-lucide="message-circle-question" aria-hidden="true"></i></span><div><h2 id="clarificationResponseTitle">Organizer clarification request</h2><p><%= submission.clarification.question || submission.reviewNotes %></p></div></div>
+        <form method="POST" action="/runner/submissions/<%= submission.submissionId %>/respond-clarification" class="sub-metadata-edit-form">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <label class="sub-metadata-edit-wide"><span>Your response</span><textarea class="form-input" name="response" rows="5" minlength="10" maxlength="1200" required placeholder="Answer the organizer's question or explain the activity details."></textarea></label>
+          <button type="submit" class="btn btn-primary">Send response for review</button>
+        </form>
+      </section>
+    <% } %>
+
     <% if (submission.status === 'rejected') { %>
       <section class="sub-correction-panel" aria-labelledby="correctionTitle">
         <div class="sub-correction-heading"><span><i data-lucide="wrench" aria-hidden="true"></i></span><div><h2 id="correctionTitle">What to fix</h2><p><%= correction.guidance %></p></div></div>
