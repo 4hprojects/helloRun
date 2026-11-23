@@ -1,5 +1,59 @@
 # November 2026 Changelog
 
+## November 23 — Finisher-only merchandise gate
+
+- **Added.** `src/services/shop/finisher-eligibility.service.js`. A product with an
+  active `finisher` row in the existing `achievement_merchandise_rules` table can
+  be bought only by a runner who meets all of these for the rule's event:
+  - a `confirmed` registration;
+  - `paymentStatus: paid` (free events count as paid);
+  - approved accumulated progress that is `completed`.
+- **Enforcement points.** The gate runs on `POST /shop/cart/add`, on every cart
+  read, so checkout and stale carts are covered, and on payment-proof upload.
+- **Failure handling.** A rule whose event cannot be resolved fails closed.
+  Products without a rule behave as before. No schema change was needed.
+- **Verification.**
+  - Eight DB-free cases cover open products, non-finishers, finishers, another
+    event or another runner, an unresolved event, anonymous shoppers, order-level
+    checks and the entry-point wiring.
+  - The rule query ran against the isolated PostgreSQL schema.
+  - The isolated shop cart and payment integration tests pass (9/9).
+- **Still to do.** The quote and PayPal invoice workflow, private payment-method
+  configuration, tracking, and duplicate-reference checks remain under
+  `SHOP-FIN-01`. The 2027k card stays in `preview`.
+
+## November 23 — 2027k HelloRun Challenge production publication
+
+- **Published.** The owner confirmed `--apply`, which ran from `main` at `776a790`
+  against production.
+  - Event `6b03f0e6828e10075486eb83`, reference `2HC-262311`, slug
+    `2027k-hellorun-challenge`, owned by the existing HelloRun organiser account
+    and approved by the HelloRun admin.
+  - Publication and registration opening happened together: November 23, 2026,
+    3:53:10 PM Manila (`2026-11-23T07:53:10.109Z`). The listing date is null.
+  - Stored Manila cutoffs: registration closes November 30, 2027 23:59:59;
+    activity runs January 1, 2027 00:00 to December 31, 2027 23:59:59; proof
+    closes January 14, 2028 23:59:59.
+  - The run created the certificate template `6b03f0e6828e10075486eb8e` and 13
+    badges, and uploaded five WebP objects to `cdn.hellorun.online`. The bundle
+    is set to `orderingState: preview`.
+- **Signed-out checks.**
+  - The canonical URL returns 200 with "Register for free" and "Registration
+    Open", and no "Coming soon" or December 1 date.
+  - `/events` lists the event, and all five media URLs return 200 `image/webp`.
+  - Exactly one 2027k event exists, and `/events/2026k-hellorun-challenge-4`
+    returns 200.
+  - Browser checks at 390px and 1280px show no horizontal overflow.
+- **Not yet verified.** At the time of writing, no registration exists for the
+  event. The owner's test sign-up had not reached the database, so live
+  sign-ups are not yet proven by a completed registration.
+- **Not yet deployed.** `776a790` is not deployed. Until it is, the live
+  build:
+  - hides the bundle card;
+  - rejects treadmill proofs, which matters only from January 1;
+  - returns 403 when the builder saves this event, because the event has
+    badges.
+
 ## November 23 — 2027k HelloRun Challenge registration release
 
 ### Added

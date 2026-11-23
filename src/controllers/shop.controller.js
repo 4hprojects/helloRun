@@ -4,6 +4,7 @@ const productService = require('../services/shop/product.service');
 const orderService = require('../services/shop/order.service');
 const variantService = require('../services/shop/variant.service');
 const paymentReviewService = require('../services/shop/payment-review.service');
+const finisherEligibility = require('../services/shop/finisher-eligibility.service');
 const uploadService = require('../services/upload.service');
 const Event = require('../models/Event');
 const User = require('../models/User');
@@ -256,7 +257,7 @@ exports.getPlatformProductDetail = async (req, res, next) => {
 exports.getCart = async (req, res, next) => {
   try {
     const cart = getCartFromSession(req);
-    const lines = await loadCartLines(cart);
+    const lines = await loadCartLines(cart, req.session.userId);
     req.session.shopCart = cart;
     const summary = summarizeCartLines(lines);
 
@@ -286,6 +287,11 @@ exports.addToCart = async (req, res, next) => {
     const product = await productService.getProductWithEventById(productId);
     if (!product || product.status !== 'active' || product.is_visible === false || product.show_in_event_shop !== true) {
       return res.status(404).json({ success: false, message: 'This product is not available in the event shop.' });
+    }
+
+    const eligibility = await finisherEligibility.checkProductEligibility({ userId: req.session.userId, productId: product.id });
+    if (!eligibility.eligible) {
+      return res.status(403).json({ success: false, message: eligibility.message });
     }
 
     const cartBucketKey = getCartBucketKeyForProduct(product);
@@ -387,7 +393,7 @@ exports.deleteCartItem = async (req, res, next) => {
 exports.getCheckout = async (req, res, next) => {
   try {
     const cart = getCartFromSession(req);
-    const lines = await loadCartLines(cart);
+    const lines = await loadCartLines(cart, req.session.userId);
     req.session.shopCart = cart;
 
     if (!lines.length) {
@@ -418,7 +424,7 @@ exports.postCheckout = async (req, res, next) => {
     }
 
     const cart = getCartFromSession(req);
-    const lines = await loadCartLines(cart);
+    const lines = await loadCartLines(cart, req.session.userId);
     req.session.shopCart = cart;
 
     if (!lines.length) {
@@ -558,6 +564,14 @@ exports.postOrderPaymentProof = async (req, res, next) => {
 
     if (!canSubmitPaymentProof(order)) {
       return res.status(409).json({ success: false, message: 'Payment proof upload is not available for this order.' });
+    }
+
+    const eligibility = await finisherEligibility.assertProductsEligible({
+      userId: req.session.userId,
+      productIds: (order.items || []).map((item) => item.product_id)
+    });
+    if (!eligibility.eligible) {
+      return res.status(403).json({ success: false, message: eligibility.message });
     }
 
     if (req.uploadError) {
@@ -821,7 +835,9 @@ function variantAvailableQuantity(variant) {
   return Math.max(0, stockQuantity - reservedQuantity - soldQuantity);
 }
 
-async function loadCartLines(cart) {
+// Every cart read re-checks finisher-only products, so a stale cart or a direct checkout
+// request cannot carry an item the shopper is no longer (or never was) eligible for.
+async function loadCartLines(cart, userId) {
   const lines = [];
   const keptItems = [];
 
@@ -830,6 +846,8 @@ async function loadCartLines(cart) {
     if (!product || product.status !== 'active' || product.is_visible === false || product.show_in_event_shop !== true) {
       continue;
     }
+    const eligibility = await finisherEligibility.checkProductEligibility({ userId, productId: product.id });
+    if (!eligibility.eligible) continue;
 
     let variant = null;
     if (item.variantId) {
