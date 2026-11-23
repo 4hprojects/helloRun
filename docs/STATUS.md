@@ -202,7 +202,14 @@ production services.
 
 ## Implemented, Production or Live Verification Pending
 
-- **2027k HelloRun Challenge is ready for activation, not yet live (November 23, 2026).**
+- **2027k HelloRun Challenge is published in production (November 23, 2026, 3:53:10 PM
+  Manila). The production test registration is still pending.** Event `6b03f0e6828e10075486eb83`
+  (reference `2HC-262311`) was created from `main` at `776a790`. It is live at
+  <https://hellorun.online/events/2027k-hellorun-challenge>. Signed-out checks show HTTP 200,
+  a "Register for free" CTA, an `/events` listing, all five media objects, exactly one 2027k
+  event, and the 2026k URL still resolving. `776a790` is merged but not deployed, so the
+  bundle card, the treadmill-proof fix and the badge-form fix are not live yet.
+- **2027k HelloRun Challenge build record (November 23, 2026).**
   The free worldwide 2,027 km challenge is defined in
   `src/content/events/2027k-hellorun-challenge.js` and created by
   `src/scripts/create-2027k-hellorun-challenge.js`. Registration opens at publication.
