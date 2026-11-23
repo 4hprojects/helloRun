@@ -2,6 +2,7 @@
 
 const { isAccumulatedChallenge, resolveChallengeConfig } = require('../../utils/challenge-metrics');
 const { getClientIp } = require('../../utils/client-ip');
+const { normalizeRunType } = require('../../utils/activity-types');
 
 const {
   crypto,
@@ -1062,8 +1063,7 @@ function parseOcrDate(value) {
 }
 
 function parseRunTypeOrBlank(value) {
-  const safe = String(value || '').trim().toLowerCase();
-  return ['run', 'walk', 'hike', 'trail_run'].includes(safe) ? safe : '';
+  return normalizeRunType(value);
 }
 
 function cleanOcrNameCandidate(value) {
@@ -1088,9 +1088,8 @@ function cleanOcrNameCandidate(value) {
 }
 
 function parseRunType(value) {
-  const safe = String(value || '').trim().toLowerCase();
-  const allowed = ['run', 'walk', 'hike', 'trail_run'];
-  if (!allowed.includes(safe)) throw new Error('Select a valid activity type.');
+  const safe = normalizeRunType(value);
+  if (!safe) throw new Error('Select a valid activity type.');
   return safe;
 }
 

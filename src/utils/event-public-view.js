@@ -72,6 +72,7 @@ function buildPublicEventView(event, options = {}) {
     : options.hasPublicBadges;
   const rewardItems = buildRewardItems(event, { hasPublicBadges });
   const packageOptions = buildPackageOptions(event, now);
+  const merchandiseOffer = buildMerchandiseOffer(event);
   const pricingOptions = buildPricingOptions(event, raceCategories, now);
   const pricing = buildPricingSummary(event, packageOptions, pricingOptions);
   const timeline = buildTimeline(event);
@@ -140,6 +141,7 @@ function buildPublicEventView(event, options = {}) {
     digitalRewardsLabel: buildDigitalRewardsLabel(rewardItems, isFreeRegistration),
     rewardLogistics,
     packageOptions,
+    merchandiseOffer,
     timeline,
     virtualRules,
     location,
@@ -1079,6 +1081,37 @@ function buildPackageOptions(event, now = new Date()) {
     .filter(Boolean);
 }
 
+/**
+ * Optional merchandise sold only after verified completion. It is presented next to the
+ * finisher rewards and never touches registration pricing. While ordering is in preview,
+ * the card carries the preview note and no order action; the order action itself lives in
+ * the finisher's dashboard, not on the public page.
+ */
+function buildMerchandiseOffer(event) {
+  const merchandise = event?.finisherMerchandise;
+  if (!merchandise || merchandise.enabled !== true) return null;
+  const name = String(merchandise.name || '').trim();
+  const amount = firstFiniteNumber(merchandise.priceAmount);
+  if (!name || amount === null) return null;
+  const orderingOpen = merchandise.orderingState === 'open';
+  return {
+    name,
+    priceLabel: formatMoney(amount, merchandise.currency || 'PHP', { symbol: true }),
+    description: String(merchandise.description || '').trim(),
+    shippingNote: String(merchandise.shippingNote || '').trim(),
+    availabilityLabel: 'Available after verified completion',
+    orderingOpen,
+    note: String((orderingOpen ? merchandise.openNote : merchandise.previewNote) || '').trim(),
+    images: (Array.isArray(merchandise.imageItems) ? merchandise.imageItems : [])
+      .map((item) => ({
+        url: String(item?.url || '').trim(),
+        alt: String(item?.alt || '').trim()
+      }))
+      .filter((item) => /^https?:\/\//i.test(item.url))
+      .slice(0, 4)
+  };
+}
+
 function buildTimeline(event) {
   return [
     { label: 'Registration Opens', value: formatDate(event.registrationOpenAt), icon: 'calendar-plus' },
@@ -1344,10 +1377,13 @@ function formatDate(value) {
   return formatPlatformDate(value, 'Date not listed');
 }
 
-function formatMoney(amount, currency = 'PHP') {
+// `symbol: true` renders pesos as "₱1,099" for product copy; other currencies keep the code.
+function formatMoney(amount, currency = 'PHP', { symbol = false } = {}) {
   const value = Number(amount);
   if (!Number.isFinite(value)) return 'Amount not listed';
-  return `${currency || 'PHP'} ${value.toLocaleString('en-US', {
+  const code = currency || 'PHP';
+  const prefix = symbol && String(code).toUpperCase() === 'PHP' ? '₱' : `${code} `;
+  return `${prefix}${value.toLocaleString('en-US', {
     minimumFractionDigits: value % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2
   })}`;

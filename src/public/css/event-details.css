@@ -842,6 +842,43 @@
   line-height: 1.6;
 }
 
+/* Finisher merchandise: up to two product photos share the image slot. */
+.event-merch-card {
+  margin-bottom: 16px;
+}
+
+.event-merch-media {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 8px;
+  aspect-ratio: auto;
+  max-height: none;
+  padding: 8px;
+}
+
+.event-merch-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 260px;
+  object-fit: contain;
+}
+
+@media (min-width: 721px) {
+  .event-bundle-card.event-merch-card.has-image {
+    grid-template-columns: minmax(240px, 420px) minmax(0, 1fr);
+  }
+}
+
+.event-merch-availability {
+  margin: 0 0 6px;
+  color: #047857;
+  font-size: 0.85rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
 .event-reward-logistics {
   margin: 0 0 14px;
 }
