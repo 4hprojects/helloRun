@@ -57,7 +57,7 @@
 <head>
   <%- include('../layouts/head', { title: title, seo: typeof seo !== 'undefined' ? seo : null }) %>
   <link rel="stylesheet" href="/css/events.css">
-  <link rel="stylesheet" href="/css/event-details.css">
+  <link rel="stylesheet" href="/css/event-details.css?v=<%= encodeURIComponent(locals.assetVersion || 'dev') %>">
   <% if (!isPreviewMode && typeof seo !== 'undefined' && seo?.structuredDataJson) { %>
     <script nonce="<%= locals.cspNonce || String() %>" type="application/ld+json"><%- seo.structuredDataJson %></script>
   <% } %>
