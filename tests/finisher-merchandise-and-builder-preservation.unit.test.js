@@ -163,7 +163,7 @@ test('public view keeps one, two, or four merchandise images without exceeding t
   }
 });
 
-test('event page renders the merchandise card with escaped text and no order link', async () => {
+test('event page renders zoomable merchandise images with escaped text and no order action', async () => {
   const template = fs.readFileSync(path.join(ROOT, 'src/views/pages/event-details.ejs'), 'utf8');
   const start = template.indexOf('<% if (details.merchandiseOffer) { %>');
   const end = template.indexOf('<% if (details.rewardDetails?.description) { %>', start);
@@ -180,7 +180,10 @@ test('event page renders the merchandise card with escaped text and no order lin
         availabilityLabel: 'Available after verified completion',
         orderingOpen: false,
         note: 'Orders open later.',
-        images: [{ url: 'https://cdn.example.test/medal.webp', alt: 'Bronze medal' }]
+        images: [
+          { url: 'https://cdn.example.test/medal.webp', alt: 'Bronze medal' },
+          { url: 'https://cdn.example.test/shirt.webp', alt: 'Black finisher shirt' }
+        ]
       }
     }
   }, { async: true });
@@ -188,9 +191,13 @@ test('event page renders the merchandise card with escaped text and no order lin
   assert.match(html, /₱1,099/);
   assert.match(html, /Bundle &lt;b&gt;/);
   assert.match(html, /alt="Bronze medal"/);
-  assert.match(html, /class="event-bundle-image event-merch-media event-merch-media-count-1"/);
+  assert.match(html, /alt="Black finisher shirt"/);
+  assert.match(html, /class="event-bundle-image event-merch-media event-merch-media-count-2"/);
+  assert.equal((html.match(/class="event-merch-image-button event-image-zoom-trigger"/g) || []).length, 2);
+  assert.match(html, /data-image-zoom-src="https:\/\/cdn\.example\.test\/medal\.webp"/);
+  assert.match(html, /aria-label="View Bronze medal full size"/);
   assert.match(html, /class="event-merch-content"/);
-  assert.doesNotMatch(html, /<a\b|<button\b|<form\b/);
+  assert.doesNotMatch(html, /<a\b|<form\b|data-order|order-button/);
 });
 
 test('event page shows four badges first and progressively discloses any additional badges', async () => {

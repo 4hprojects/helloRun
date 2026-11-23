@@ -218,6 +218,22 @@ test('a single gallery image is balanced on desktop and full-width on mobile', (
   assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*\.event-gallery-grid\s*\{[\s\S]*grid-template-columns:\s*1fr/);
 });
 
+test('merchandise and posters share an accessible reusable image zoom viewer', () => {
+  assert.match(viewSource, /class="event-merch-image-button event-image-zoom-trigger"/);
+  assert.match(viewSource, /class="event-poster-thumb-btn event-image-zoom-trigger"/);
+  assert.match(viewSource, /details\.posterImageUrl \|\| details\.merchandiseOffer\?\.images\?\.length/);
+  assert.match(viewSource, /id="imageZoomLightbox"[\s\S]*role="dialog" aria-modal="true" aria-label="Image viewer"/);
+  assert.match(viewSource, /querySelectorAll\('\.event-image-zoom-trigger'\)/);
+  assert.match(viewSource, /data-image-zoom-src/);
+  assert.match(viewSource, /Math\.max\(1, Math\.min\(3/);
+  assert.match(viewSource, /imageZoomLevel[\s\S]*aria-live="polite"/);
+  assert.match(viewSource, /if \(event\.key === 'Escape'\) closeLightbox\(\)/);
+  assert.match(viewSource, /keepFocusInside\(event\)/);
+  assert.match(cssSource, /\.event-merch-image-button:focus-visible[\s\S]*box-shadow:/);
+  assert.match(cssSource, /\.image-zoom-btn\s*\{[\s\S]*min-height:\s*44px/);
+  assert.match(cssSource, /\.gallery-lightbox-image\.is-zoomed[\s\S]*touch-action:\s*none/);
+});
+
 test('accumulated challenges prioritize goal choice and personalized progress', () => {
   assert.match(viewSource, /class="event-challenge-decision/);
   assert.match(viewSource, /hasSingleAccumulatedGoal/);

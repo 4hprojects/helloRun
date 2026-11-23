@@ -559,7 +559,15 @@
                   <% if (merch.images.length) { %>
                     <div class="event-bundle-image event-merch-media event-merch-media-count-<%= merch.images.length %>">
                       <% merch.images.forEach((image) => { %>
-                        <img src="<%= image.url %>" alt="<%= image.alt %>" loading="lazy" decoding="async">
+                        <button
+                          type="button"
+                          class="event-merch-image-button event-image-zoom-trigger"
+                          data-image-zoom-src="<%= image.url %>"
+                          aria-label="View <%= image.alt %> full size"
+                        >
+                          <img src="<%= image.url %>" alt="<%= image.alt %>" loading="lazy" decoding="async">
+                          <span class="event-merch-zoom-label" aria-hidden="true"><i data-lucide="zoom-in"></i>View full size</span>
+                        </button>
                       <% }) %>
                     </div>
                   <% } %>
@@ -850,8 +858,9 @@
               </div>
               <button
                 type="button"
-                class="event-poster-thumb-btn"
+                class="event-poster-thumb-btn event-image-zoom-trigger"
                 data-poster-src="<%= details.posterImageUrl %>"
+                data-image-zoom-src="<%= details.posterImageUrl %>"
                 aria-label="Open promotional poster"
               >
                 <img class="event-details-poster-inline" src="<%= details.posterImageUrl %>" alt="<%= details.title %> promotional poster" loading="lazy">
@@ -1010,8 +1019,9 @@
               <h3>Event Poster</h3>
               <button
                 type="button"
-                class="event-poster-thumb-btn"
+                class="event-poster-thumb-btn event-image-zoom-trigger"
                 data-poster-src="<%= details.posterImageUrl %>"
+                data-image-zoom-src="<%= details.posterImageUrl %>"
                 aria-label="Open promotional poster"
               >
                 <img class="event-details-poster-inline" src="<%= details.posterImageUrl %>" alt="<%= details.title %> promotional poster">
@@ -1139,17 +1149,18 @@
         </div>
       <% } %>
 
-      <% if (details.posterImageUrl) { %>
-        <div id="posterLightbox" class="gallery-lightbox hidden" aria-hidden="true">
-          <div class="gallery-lightbox-backdrop" data-close-poster-lightbox="1"></div>
-          <div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Promotional poster viewer">
-            <button type="button" class="gallery-lightbox-close" id="posterCloseBtn" aria-label="Close poster">&times;</button>
-            <div class="poster-zoom-controls">
-              <button type="button" class="poster-zoom-btn" id="posterZoomOutBtn" aria-label="Zoom out">-</button>
-              <button type="button" class="poster-zoom-btn" id="posterZoomInBtn" aria-label="Zoom in">+</button>
-              <button type="button" class="poster-zoom-btn" id="posterResetBtn" aria-label="Reset zoom">Reset</button>
+      <% if (details.posterImageUrl || details.merchandiseOffer?.images?.length) { %>
+        <div id="imageZoomLightbox" class="gallery-lightbox hidden" aria-hidden="true">
+          <div class="gallery-lightbox-backdrop" data-close-image-zoom="1"></div>
+          <div class="gallery-lightbox-dialog image-zoom-dialog" role="dialog" aria-modal="true" aria-label="Image viewer" tabindex="-1">
+            <button type="button" class="gallery-lightbox-close" id="imageZoomCloseBtn" aria-label="Close image viewer">&times;</button>
+            <div class="image-zoom-controls">
+              <button type="button" class="image-zoom-btn" id="imageZoomOutBtn" aria-label="Zoom out">&minus;</button>
+              <output class="image-zoom-level" id="imageZoomLevel" aria-live="polite">100%</output>
+              <button type="button" class="image-zoom-btn" id="imageZoomInBtn" aria-label="Zoom in">&plus;</button>
+              <button type="button" class="image-zoom-btn image-zoom-reset" id="imageZoomResetBtn">Reset</button>
             </div>
-            <img id="posterLightboxImage" class="gallery-lightbox-image" src="" alt="">
+            <img id="imageZoomLightboxImage" class="gallery-lightbox-image" src="" alt="">
           </div>
         </div>
       <% } %>
@@ -1420,20 +1431,19 @@
       });
     })();
 
-    (function initPosterLightbox() {
-      const posterBtn = document.querySelector('.event-poster-thumb-btn');
-      const lightbox = document.getElementById('posterLightbox');
-      if (!posterBtn || !lightbox) return;
+    (function initImageZoomLightbox() {
+      const triggerButtons = Array.from(document.querySelectorAll('.event-image-zoom-trigger'));
+      const lightbox = document.getElementById('imageZoomLightbox');
+      if (!triggerButtons.length || !lightbox) return;
 
       const body = document.body;
-      const imageEl = document.getElementById('posterLightboxImage');
-      const closeBtn = document.getElementById('posterCloseBtn');
-      const zoomInBtn = document.getElementById('posterZoomInBtn');
-      const zoomOutBtn = document.getElementById('posterZoomOutBtn');
-      const resetBtn = document.getElementById('posterResetBtn');
-      const closeBackdrop = lightbox.querySelector('[data-close-poster-lightbox="1"]');
-      const posterSrc = posterBtn.getAttribute('data-poster-src') || '';
-      const posterAlt = posterBtn.querySelector('img')?.alt || 'Promotional poster';
+      const imageEl = document.getElementById('imageZoomLightboxImage');
+      const closeBtn = document.getElementById('imageZoomCloseBtn');
+      const zoomInBtn = document.getElementById('imageZoomInBtn');
+      const zoomOutBtn = document.getElementById('imageZoomOutBtn');
+      const resetBtn = document.getElementById('imageZoomResetBtn');
+      const zoomLevelOutput = document.getElementById('imageZoomLevel');
+      const closeBackdrop = lightbox.querySelector('[data-close-image-zoom="1"]');
       let zoomLevel = 1;
       let translateX = 0;
       let translateY = 0;
@@ -1463,6 +1473,7 @@
         imageEl.style.cursor = zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in';
         if (zoomInBtn) zoomInBtn.disabled = zoomLevel >= 3;
         if (zoomOutBtn) zoomOutBtn.disabled = zoomLevel <= 1;
+        if (zoomLevelOutput) zoomLevelOutput.value = `${Math.round(zoomLevel * 100)}%`;
       }
 
       function setZoom(nextZoomLevel) {
@@ -1480,10 +1491,13 @@
         setZoom(1);
       }
 
-      function openLightbox() {
-        lastFocusedElement = document.activeElement;
-        imageEl.src = posterSrc;
-        imageEl.alt = posterAlt;
+      function openLightbox(trigger) {
+        const image = trigger.querySelector('img');
+        const imageSrc = trigger.getAttribute('data-image-zoom-src') || image?.currentSrc || image?.src || '';
+        if (!imageSrc) return;
+        lastFocusedElement = trigger;
+        imageEl.src = imageSrc;
+        imageEl.alt = image?.alt || 'Event image';
         resetZoom();
         lightbox.classList.remove('hidden');
         lightbox.setAttribute('aria-hidden', 'false');
@@ -1499,7 +1513,7 @@
         if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') lastFocusedElement.focus();
       }
 
-      posterBtn.addEventListener('click', openLightbox);
+      triggerButtons.forEach((trigger) => trigger.addEventListener('click', () => openLightbox(trigger)));
       closeBtn.addEventListener('click', closeLightbox);
       if (zoomInBtn) zoomInBtn.addEventListener('click', () => setZoom(zoomLevel + 0.25));
       if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => setZoom(zoomLevel - 0.25));
