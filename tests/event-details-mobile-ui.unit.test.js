@@ -350,12 +350,34 @@ test('the CNS event page states that it is exclusive to CNS', () => {
 
 test('finisher rewards group free digital rewards with priced bundle cards', () => {
   assert.match(viewSource, /<h2>Finisher rewards<\/h2>/);
+  assert.match(viewSource, /<h3>Included with verified completion<\/h3>/);
   assert.match(viewSource, /class="event-rewards-free"[\s\S]*details\.digitalRewardsLabel/);
   assert.match(viewSource, /class="event-bundle-card<%= packageOption\.imageUrl \? ' has-image' : '' %>"/);
   assert.match(viewSource, /details\.rewardLogistics\.notes\.forEach/);
   assert.match(viewSource, /const showPricingSection = Boolean/);
   assert.doesNotMatch(viewSource, /Register for This Event/);
   assert.match(cssSource, /\.event-bundle-grid\s*\{[\s\S]*repeat\(auto-fit, minmax\(min\(100%, 240px\), 1fr\)\)/);
+});
+
+test('finisher merchandise uses a bounded two-column card without implicit row spanning', () => {
+  assert.match(viewSource, /<h3>Optional finisher merchandise<\/h3>/);
+  assert.match(viewSource, /class="event-bundle-image event-merch-media event-merch-media-count-<%= merch\.images\.length %>"/);
+  assert.match(viewSource, /class="event-merch-content"/);
+  assert.match(cssSource, /\.event-bundle-card\.has-image:not\(\.event-merch-card\) \.event-bundle-image[\s\S]*grid-row:\s*1 \/ span 6/);
+  assert.doesNotMatch(cssSource, /\.event-merch-card\.has-image \.event-merch-media\s*\{[^}]*span 6/s);
+  assert.match(cssSource, /\.event-bundle-card\.event-merch-card\.has-image[\s\S]*grid-template-rows:\s*auto/);
+  assert.match(cssSource, /\.event-merch-card\.has-image \.event-merch-media[\s\S]*grid-row:\s*1/);
+  assert.match(cssSource, /\.event-merch-media[\s\S]*overflow:\s*hidden/);
+  assert.match(cssSource, /\.event-merch-media img[\s\S]*aspect-ratio:\s*4 \/ 3/);
+});
+
+test('badge overflow uses a native keyboard-accessible disclosure', () => {
+  assert.match(viewSource, /eventBadges\.slice\(0, 4\)/);
+  assert.match(viewSource, /eventBadges\.slice\(4\)/);
+  assert.match(viewSource, /<details class="event-badge-disclosure">/);
+  assert.match(viewSource, /<summary>Show all <%= eventBadges\.length %> badges<\/summary>/);
+  assert.match(cssSource, /\.event-badge-disclosure summary[\s\S]*min-height:\s*44px/);
+  assert.match(cssSource, /\.event-badge-disclosure summary:focus-visible[\s\S]*box-shadow:/);
 });
 
 test('generated FAQ renders as escaped native disclosures', () => {

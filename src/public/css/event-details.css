@@ -738,6 +738,36 @@
   color: var(--hr-color-brand, #c2410c);
 }
 
+#event-rewards .event-reward-group {
+  min-width: 0;
+}
+
+#event-rewards .event-reward-group + .event-reward-group,
+#event-rewards .event-supporting-copy + .event-reward-group,
+#event-rewards .event-benefit-grid + .event-reward-group {
+  margin-top: var(--hr-space-6, 24px);
+  padding-top: var(--hr-space-6, 24px);
+  border-top: 1px solid var(--hr-color-border, #dfe7f1);
+}
+
+.event-reward-group-heading {
+  margin-bottom: var(--hr-space-3, 12px);
+}
+
+.event-reward-group-heading h3 {
+  margin: 0;
+  color: var(--hr-color-ink, #0f172a);
+  font-size: 1.15rem;
+  line-height: 1.3;
+}
+
+.event-reward-group-heading p {
+  max-width: 68ch;
+  margin: var(--hr-space-1, 4px) 0 0;
+  color: var(--hr-color-muted, #56657a);
+  line-height: 1.5;
+}
+
 .event-rewards-free {
   display: flex;
   align-items: center;
@@ -784,7 +814,7 @@
 /* Wide layouts: photo beside the details, like a product card, instead of a
    full-width image that dwarfs a single bundle. */
 @media (min-width: 721px) {
-  .event-bundle-card.has-image {
+  .event-bundle-card.has-image:not(.event-merch-card) {
     display: grid;
     grid-template-columns: minmax(160px, 260px) minmax(0, 1fr);
     grid-auto-rows: min-content;
@@ -792,13 +822,13 @@
     align-items: start;
   }
 
-  .event-bundle-card.has-image .event-bundle-image {
+  .event-bundle-card.has-image:not(.event-merch-card) .event-bundle-image {
     grid-column: 1;
     grid-row: 1 / span 6;
     margin-bottom: 0;
   }
 
-  .event-bundle-card.has-image > :not(.event-bundle-image) {
+  .event-bundle-card.has-image:not(.event-merch-card) > :not(.event-bundle-image) {
     grid-column: 2;
   }
 }
@@ -844,29 +874,57 @@
 
 /* Finisher merchandise: up to two product photos share the image slot. */
 .event-merch-card {
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .event-merch-media {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   aspect-ratio: auto;
   max-height: none;
   padding: 8px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.event-merch-media-count-1 {
+  grid-template-columns: 1fr;
 }
 
 .event-merch-media img {
   display: block;
+  min-width: 0;
   width: 100%;
   height: auto;
-  max-height: 260px;
+  aspect-ratio: 4 / 3;
   object-fit: contain;
+  border-radius: calc(var(--hr-radius-sm, 8px) - 4px);
+  background: #f8f3ec;
+}
+
+.event-merch-content {
+  min-width: 0;
 }
 
 @media (min-width: 721px) {
   .event-bundle-card.event-merch-card.has-image {
-    grid-template-columns: minmax(240px, 420px) minmax(0, 1fr);
+    display: grid;
+    grid-template-columns: minmax(240px, 420px) minmax(260px, 1fr);
+    grid-template-rows: auto;
+    gap: var(--hr-space-6, 24px);
+    align-items: start;
+  }
+
+  .event-merch-card.has-image .event-merch-media {
+    grid-column: 1;
+    grid-row: 1;
+    margin-bottom: 0;
+  }
+
+  .event-merch-card.has-image > .event-merch-content {
+    grid-column: 2;
+    grid-row: 1;
   }
 }
 
@@ -1227,6 +1285,51 @@
   display: block;
   margin-bottom: 3px;
   color: #25344a;
+}
+
+.event-badge-disclosure {
+  margin-top: var(--hr-space-3, 12px);
+}
+
+.event-badge-disclosure summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hr-space-3, 12px);
+  padding: var(--hr-space-2, 8px) var(--hr-space-3, 12px);
+  border: 1px solid var(--hr-color-border, #dfe7f1);
+  border-radius: var(--hr-radius-sm, 8px);
+  background: var(--hr-color-page, #f8fafc);
+  color: var(--hr-color-ink, #0f172a);
+  font-weight: 750;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.event-badge-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.event-badge-disclosure summary::after {
+  content: '+';
+  flex: 0 0 auto;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.event-badge-disclosure[open] summary::after {
+  content: '−';
+}
+
+.event-badge-disclosure summary:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.24);
+}
+
+.event-badge-disclosure .event-badge-grid {
+  margin-top: var(--hr-space-3, 12px);
 }
 
 .event-pricing-summary {

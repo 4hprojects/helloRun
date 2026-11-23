@@ -490,90 +490,119 @@
               </div>
             </div>
 
-            <% if (details.digitalRewardsLabel) { %>
-              <p class="event-rewards-free"><i data-lucide="badge-check" aria-hidden="true"></i><span><%= details.digitalRewardsLabel %></span></p>
+            <% if (details.digitalRewardsLabel || (details.rewardItems || []).length || (details.isAccumulatedChallenge && details.rewardDetails?.leaderboardRecognitionEnabled)) { %>
+              <div class="event-reward-group event-reward-included">
+                <div class="event-reward-group-heading">
+                  <h3>Included with verified completion</h3>
+                  <p>Complete the event requirements to receive the listed finisher recognition.</p>
+                </div>
+                <% if (details.digitalRewardsLabel) { %>
+                  <p class="event-rewards-free"><i data-lucide="badge-check" aria-hidden="true"></i><span><%= details.digitalRewardsLabel %></span></p>
+                <% } %>
+                <% if ((details.rewardItems || []).length) { %>
+                  <div class="event-reward-grid">
+                    <% details.rewardItems.forEach((reward) => { %>
+                      <article>
+                        <i data-lucide="<%= reward.type === 'physical' ? 'package' : 'award' %>"></i>
+                        <span><%= reward.label %></span>
+                      </article>
+                    <% }) %>
+                  </div>
+                <% } %>
+                <% if (details.isAccumulatedChallenge && details.rewardDetails?.leaderboardRecognitionEnabled) { %>
+                  <p class="event-supporting-copy">Your approved progress can appear on the event leaderboards based on the privacy option you choose during registration.</p>
+                <% } %>
+              </div>
+            <% } else if (!details.merchandiseOffer && !(details.packageOptions || []).length) { %>
+              <p class="event-muted">Rewards have not been listed by the organizer yet.</p>
             <% } %>
 
             <% if ((details.packageOptions || []).length) { %>
-              <div class="event-bundle-grid">
-                <% details.packageOptions.forEach((packageOption) => { %>
-                  <article class="event-bundle-card<%= packageOption.imageUrl ? ' has-image' : '' %>">
-                    <% if (packageOption.imageUrl) { %>
-                      <img class="event-bundle-image" src="<%= packageOption.imageUrl %>" alt="<%= packageOption.name %>" loading="lazy" decoding="async">
-                    <% } %>
-                    <h3><%= packageOption.name %></h3>
-                    <strong class="event-bundle-price"><%= packageOption.amountLabel %></strong>
-                    <% if (packageOption.includedItems.length) { %>
-                      <p class="event-bundle-includes">Includes: <%= packageOption.includedItems.join(', ') %></p>
-                    <% } %>
-                    <% if ((details.rewardLogistics?.notes || []).length) { %>
-                      <ul class="event-bundle-notes">
-                        <% details.rewardLogistics.notes.forEach((note) => { %>
-                          <li><%= note %></li>
-                        <% }) %>
-                      </ul>
-                    <% } %>
-                    <% if (packageOption.notes) { %><small><%= packageOption.notes %></small><% } %>
-                  </article>
-                <% }) %>
+              <div class="event-reward-group event-reward-packages">
+                <div class="event-reward-group-heading">
+                  <h3>Reward packages</h3>
+                  <p>Compare the physical reward options available with registration.</p>
+                </div>
+                <div class="event-bundle-grid">
+                  <% details.packageOptions.forEach((packageOption) => { %>
+                    <article class="event-bundle-card<%= packageOption.imageUrl ? ' has-image' : '' %>">
+                      <% if (packageOption.imageUrl) { %>
+                        <img class="event-bundle-image" src="<%= packageOption.imageUrl %>" alt="<%= packageOption.name %>" loading="lazy" decoding="async">
+                      <% } %>
+                      <h3><%= packageOption.name %></h3>
+                      <strong class="event-bundle-price"><%= packageOption.amountLabel %></strong>
+                      <% if (packageOption.includedItems.length) { %>
+                        <p class="event-bundle-includes">Includes: <%= packageOption.includedItems.join(', ') %></p>
+                      <% } %>
+                      <% if ((details.rewardLogistics?.notes || []).length) { %>
+                        <ul class="event-bundle-notes">
+                          <% details.rewardLogistics.notes.forEach((note) => { %>
+                            <li><%= note %></li>
+                          <% }) %>
+                        </ul>
+                      <% } %>
+                      <% if (packageOption.notes) { %><small><%= packageOption.notes %></small><% } %>
+                    </article>
+                  <% }) %>
+                </div>
               </div>
-            <% } else if ((details.rewardLogistics?.notes || []).length) { %>
-              <ul class="event-bundle-notes event-reward-logistics">
-                <% details.rewardLogistics.notes.forEach((note) => { %>
-                  <li><%= note %></li>
-                <% }) %>
-              </ul>
             <% } %>
 
             <% if (details.merchandiseOffer) { %>
               <% const merch = details.merchandiseOffer; %>
-              <article class="event-bundle-card event-merch-card<%= merch.images.length ? ' has-image' : '' %>" aria-labelledby="event-merch-title">
-                <% if (merch.images.length) { %>
-                  <div class="event-bundle-image event-merch-media">
-                    <% merch.images.forEach((image) => { %>
-                      <img src="<%= image.url %>" alt="<%= image.alt %>" loading="lazy" decoding="async">
-                    <% }) %>
+              <div class="event-reward-group event-merchandise-group">
+                <div class="event-reward-group-heading">
+                  <h3>Optional finisher merchandise</h3>
+                  <p>Available separately after your completion is verified.</p>
+                </div>
+                <article class="event-bundle-card event-merch-card<%= merch.images.length ? ' has-image' : '' %>" aria-labelledby="event-merch-title">
+                  <% if (merch.images.length) { %>
+                    <div class="event-bundle-image event-merch-media event-merch-media-count-<%= merch.images.length %>">
+                      <% merch.images.forEach((image) => { %>
+                        <img src="<%= image.url %>" alt="<%= image.alt %>" loading="lazy" decoding="async">
+                      <% }) %>
+                    </div>
+                  <% } %>
+                  <div class="event-merch-content">
+                    <p class="event-merch-availability"><%= merch.availabilityLabel %></p>
+                    <h3 id="event-merch-title"><%= merch.name %></h3>
+                    <strong class="event-bundle-price"><%= merch.priceLabel %></strong>
+                    <% if (merch.shippingNote) { %>
+                      <ul class="event-bundle-notes"><li><%= merch.shippingNote %></li></ul>
+                    <% } %>
+                    <% if (merch.description) { %>
+                      <p class="event-bundle-includes"><%= merch.description %></p>
+                    <% } %>
+                    <% if (merch.note) { %><small><%= merch.note %></small><% } %>
                   </div>
-                <% } %>
-                <p class="event-merch-availability"><%= merch.availabilityLabel %></p>
-                <h3 id="event-merch-title"><%= merch.name %></h3>
-                <strong class="event-bundle-price"><%= merch.priceLabel %></strong>
-                <% if (merch.shippingNote) { %>
-                  <ul class="event-bundle-notes"><li><%= merch.shippingNote %></li></ul>
-                <% } %>
-                <% if (merch.description) { %>
-                  <p class="event-bundle-includes"><%= merch.description %></p>
-                <% } %>
-                <% if (merch.note) { %><small><%= merch.note %></small><% } %>
-              </article>
-            <% } %>
-
-            <% if ((details.rewardItems || []).length) { %>
-              <div class="event-reward-grid">
-                <% details.rewardItems.forEach((reward) => { %>
-                  <article>
-                    <i data-lucide="<%= reward.type === 'physical' ? 'package' : 'award' %>"></i>
-                    <span><%= reward.label %></span>
-                  </article>
-                <% }) %>
+                </article>
               </div>
-              <% if (details.isAccumulatedChallenge && details.rewardDetails?.leaderboardRecognitionEnabled) { %>
-                <p class="event-supporting-copy">Your approved progress can appear on the event leaderboards based on the privacy option you choose during registration.</p>
-              <% } %>
-            <% } else { %>
-              <p class="event-muted">Rewards have not been listed by the organizer yet.</p>
             <% } %>
 
             <% if (details.rewardDetails?.description) { %>
               <p class="event-supporting-copy"><%= details.rewardDetails.description %></p>
             <% } %>
 
-            <% if (details.rewardDetails?.claimingNotes || details.rewardDetails?.deliveryDescription || details.rewardDetails?.claimingMethodLabel) { %>
-              <dl class="event-reward-details">
-                <% if (details.rewardDetails.claimingMethodLabel) { %><div><dt>Claiming method</dt><dd><%= details.rewardDetails.claimingMethodLabel %></dd></div><% } %>
-                <% if (details.rewardDetails.claimingNotes) { %><div><dt>Claiming instructions</dt><dd><%= details.rewardDetails.claimingNotes %></dd></div><% } %>
-                <% if (details.rewardDetails.deliveryDescription) { %><div><dt>Delivery details</dt><dd><%= details.rewardDetails.deliveryDescription %></dd></div><% } %>
-              </dl>
+            <% if (((details.rewardLogistics?.notes || []).length && !(details.packageOptions || []).length && !details.merchandiseOffer) || details.rewardDetails?.claimingNotes || details.rewardDetails?.deliveryDescription || details.rewardDetails?.claimingMethodLabel) { %>
+              <div class="event-reward-group event-reward-logistics-group">
+                <div class="event-reward-group-heading">
+                  <h3>Delivery and claiming</h3>
+                </div>
+                <% if ((details.rewardLogistics?.notes || []).length && !(details.packageOptions || []).length && !details.merchandiseOffer) { %>
+                  <ul class="event-bundle-notes event-reward-logistics">
+                    <% details.rewardLogistics.notes.forEach((note) => { %>
+                      <li><%= note %></li>
+                    <% }) %>
+                  </ul>
+                <% } %>
+                <% if (details.rewardDetails?.claimingNotes || details.rewardDetails?.deliveryDescription || details.rewardDetails?.claimingMethodLabel) { %>
+                  <dl class="event-reward-details">
+                    <% if (details.rewardDetails.claimingMethodLabel) { %><div><dt>Claiming method</dt><dd><%= details.rewardDetails.claimingMethodLabel %></dd></div><% } %>
+                    <% if (details.rewardDetails.claimingNotes) { %><div><dt>Claiming instructions</dt><dd><%= details.rewardDetails.claimingNotes %></dd></div><% } %>
+                    <% if (details.rewardDetails.deliveryDescription) { %><div><dt>Delivery details</dt><dd><%= details.rewardDetails.deliveryDescription %></dd></div><% } %>
+                  </dl>
+                <% } %>
+              </div>
             <% } %>
 
             <% if ((details.rewardDetails?.specialBenefits || []).length) { %>
@@ -591,23 +620,54 @@
 
             <% const eventBadges = badges || []; %>
             <% if (eventBadges.length) { %>
-              <div class="event-badge-grid" aria-label="Event badges">
-                <% eventBadges.forEach((badge) => { %>
-                  <article class="event-badge-card">
-                    <span class="event-badge-icon">
-                      <% if (badge.imageUrl) { %>
-                        <img src="<%= badge.imageUrl %>" alt="" loading="lazy">
-                      <% } else { %>
-                        <i data-lucide="award"></i>
-                      <% } %>
-                    </span>
-                    <div>
-                      <h3><%= badge.name %></h3>
-                      <p><%= badge.description || 'Awarded after verified event activity.' %></p>
-                      <small><%= badge.badgeType ? badge.badgeType.replace(/_/g, ' ') : 'achievement' %></small>
+              <% const visibleBadges = eventBadges.slice(0, 4); %>
+              <% const additionalBadges = eventBadges.slice(4); %>
+              <div class="event-reward-group event-badges-group">
+                <div class="event-reward-group-heading">
+                  <h3>Badges you can earn</h3>
+                  <p>Badge awards depend on verified completion and leaderboard results.</p>
+                </div>
+                <div class="event-badge-grid" aria-label="Featured event badges">
+                  <% visibleBadges.forEach((badge) => { %>
+                    <article class="event-badge-card">
+                      <span class="event-badge-icon">
+                        <% if (badge.imageUrl) { %>
+                          <img src="<%= badge.imageUrl %>" alt="" loading="lazy">
+                        <% } else { %>
+                          <i data-lucide="award"></i>
+                        <% } %>
+                      </span>
+                      <div>
+                        <h3><%= badge.name %></h3>
+                        <p><%= badge.description || 'Awarded after verified event activity.' %></p>
+                        <small><%= badge.badgeType ? badge.badgeType.replace(/_/g, ' ') : 'achievement' %></small>
+                      </div>
+                    </article>
+                  <% }) %>
+                </div>
+                <% if (additionalBadges.length) { %>
+                  <details class="event-badge-disclosure">
+                    <summary>Show all <%= eventBadges.length %> badges</summary>
+                    <div class="event-badge-grid" aria-label="Additional event badges">
+                      <% additionalBadges.forEach((badge) => { %>
+                        <article class="event-badge-card">
+                          <span class="event-badge-icon">
+                            <% if (badge.imageUrl) { %>
+                              <img src="<%= badge.imageUrl %>" alt="" loading="lazy">
+                            <% } else { %>
+                              <i data-lucide="award"></i>
+                            <% } %>
+                          </span>
+                          <div>
+                            <h3><%= badge.name %></h3>
+                            <p><%= badge.description || 'Awarded after verified event activity.' %></p>
+                            <small><%= badge.badgeType ? badge.badgeType.replace(/_/g, ' ') : 'achievement' %></small>
+                          </div>
+                        </article>
+                      <% }) %>
                     </div>
-                  </article>
-                <% }) %>
+                  </details>
+                <% } %>
               </div>
             <% } else if (event.digitalBadgeEnabled) { %>
               <div class="event-badge-empty">
