@@ -45,14 +45,16 @@ test('/healthz reports the running commit, so a deploy is checkable rather than 
   assert.ok(!Number.isNaN(Date.parse(info.startedAt)));
 });
 
-test('changed registration assets use the deployed build version instead of a stale static URL', () => {
+test('changed page assets use the deployed build version instead of a stale static URL', () => {
   const server = read('src/server.js');
   const registration = read('src/views/pages/event-register.ejs');
+  const eventDetails = read('src/views/pages/event-details.ejs');
   const footer = read('src/views/layouts/footer.ejs');
 
   assert.match(server, /app\.locals\.assetVersion = resolveServiceWorkerVersion\(\)/);
   assert.match(registration, /\/css\/event-register\.css\?v=<%= encodeURIComponent\(locals\.assetVersion \|\| 'dev'\) %>/);
   assert.match(registration, /\/js\/event-register\.js\?v=<%= encodeURIComponent\(locals\.assetVersion \|\| 'dev'\) %>/);
+  assert.match(eventDetails, /\/css\/event-details\.css\?v=<%= encodeURIComponent\(locals\.assetVersion \|\| 'dev'\) %>/);
   assert.match(footer, /\/js\/run-proof-modal\.js\?v=<%= encodeURIComponent\(locals\.assetVersion \|\| 'dev'\) %>/);
 });
 

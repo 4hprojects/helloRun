@@ -148,10 +148,25 @@ test('public view switches to the open note, and hides disabled or incomplete me
   assert.equal(noPrice.merchandiseOffer, null);
 });
 
-test('event page renders the merchandise card with escaped text and no order link', async () => {
+test('public view keeps one, two, or four merchandise images without exceeding the public cap', () => {
+  for (const count of [1, 2, 4]) {
+    const event = eventWithMerchAndBenefits();
+    event.finisherMerchandise.imageItems = Array.from({ length: count }, (_, index) => ({
+      url: `https://cdn.example.test/item-${index + 1}.webp`,
+      key: `k/item-${index + 1}.webp`,
+      alt: `Merchandise view ${index + 1}`
+    }));
+
+    const offer = buildPublicEventView(event.toObject()).merchandiseOffer;
+    assert.equal(offer.images.length, count);
+    assert.equal(offer.images.at(-1).alt, `Merchandise view ${count}`);
+  }
+});
+
+test('event page renders zoomable merchandise images with escaped text and no order action', async () => {
   const template = fs.readFileSync(path.join(ROOT, 'src/views/pages/event-details.ejs'), 'utf8');
   const start = template.indexOf('<% if (details.merchandiseOffer) { %>');
-  const end = template.indexOf('<% if ((details.rewardItems || []).length) { %>');
+  const end = template.indexOf('<% if (details.rewardDetails?.description) { %>', start);
   assert.ok(start > -1 && end > start);
   const fragment = template.slice(start, end);
   const html = await ejs.render(fragment, {
@@ -165,7 +180,10 @@ test('event page renders the merchandise card with escaped text and no order lin
         availabilityLabel: 'Available after verified completion',
         orderingOpen: false,
         note: 'Orders open later.',
-        images: [{ url: 'https://cdn.example.test/medal.webp', alt: 'Bronze medal' }]
+        images: [
+          { url: 'https://cdn.example.test/medal.webp', alt: 'Bronze medal' },
+          { url: 'https://cdn.example.test/shirt.webp', alt: 'Black finisher shirt' }
+        ]
       }
     }
   }, { async: true });
@@ -173,7 +191,50 @@ test('event page renders the merchandise card with escaped text and no order lin
   assert.match(html, /₱1,099/);
   assert.match(html, /Bundle &lt;b&gt;/);
   assert.match(html, /alt="Bronze medal"/);
-  assert.doesNotMatch(html, /<a\b|<button\b|<form\b/);
+  assert.match(html, /alt="Black finisher shirt"/);
+  assert.match(html, /class="event-bundle-image event-merch-media event-merch-media-count-2"/);
+  assert.equal((html.match(/class="event-merch-image-button event-image-zoom-trigger"/g) || []).length, 2);
+  assert.match(html, /data-image-zoom-src="https:\/\/cdn\.example\.test\/medal\.webp"/);
+  assert.match(html, /aria-label="View Bronze medal full size"/);
+  assert.match(html, /class="event-merch-content"/);
+  assert.doesNotMatch(html, /<a\b|<form\b|data-order|order-button/);
+});
+
+test('event page shows four badges first and progressively discloses any additional badges', async () => {
+  const template = fs.readFileSync(path.join(ROOT, 'src/views/pages/event-details.ejs'), 'utf8');
+  const start = template.indexOf('<% const eventBadges = badges || []; %>');
+  const end = template.indexOf('          </section>', start);
+  assert.ok(start > -1 && end > start);
+  const fragment = template.slice(start, end);
+  const badge = (index) => ({
+    name: `Badge ${index}`,
+    description: `Badge description ${index}`,
+    badgeType: 'challenge_finisher',
+    imageUrl: ''
+  });
+
+  const emptyHtml = await ejs.render(fragment, {
+    badges: [],
+    event: { digitalBadgeEnabled: true }
+  }, { async: true });
+  assert.match(emptyHtml, /class="event-badge-empty"/);
+  assert.doesNotMatch(emptyHtml, /event-badge-disclosure/);
+
+  const fourHtml = await ejs.render(fragment, {
+    badges: Array.from({ length: 4 }, (_, index) => badge(index + 1)),
+    event: { digitalBadgeEnabled: true }
+  }, { async: true });
+  assert.equal((fourHtml.match(/class="event-badge-card"/g) || []).length, 4);
+  assert.doesNotMatch(fourHtml, /event-badge-disclosure/);
+
+  const sixHtml = await ejs.render(fragment, {
+    badges: Array.from({ length: 6 }, (_, index) => badge(index + 1)),
+    event: { digitalBadgeEnabled: true }
+  }, { async: true });
+  assert.equal((sixHtml.match(/class="event-badge-card"/g) || []).length, 6);
+  assert.match(sixHtml, /<details class="event-badge-disclosure">/);
+  assert.match(sixHtml, /<summary>Show all 6 badges<\/summary>/);
+  assert.match(sixHtml, /aria-label="Additional event badges"/);
 });
 
 test('editing a rejected accumulated activity keeps treadmill as the activity type', async (t) => {

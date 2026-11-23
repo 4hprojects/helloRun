@@ -57,7 +57,7 @@
 <head>
   <%- include('../layouts/head', { title: title, seo: typeof seo !== 'undefined' ? seo : null }) %>
   <link rel="stylesheet" href="/css/events.css">
-  <link rel="stylesheet" href="/css/event-details.css">
+  <link rel="stylesheet" href="/css/event-details.css?v=<%= encodeURIComponent(locals.assetVersion || 'dev') %>">
   <% if (!isPreviewMode && typeof seo !== 'undefined' && seo?.structuredDataJson) { %>
     <script nonce="<%= locals.cspNonce || String() %>" type="application/ld+json"><%- seo.structuredDataJson %></script>
   <% } %>
@@ -490,90 +490,127 @@
               </div>
             </div>
 
-            <% if (details.digitalRewardsLabel) { %>
-              <p class="event-rewards-free"><i data-lucide="badge-check" aria-hidden="true"></i><span><%= details.digitalRewardsLabel %></span></p>
+            <% if (details.digitalRewardsLabel || (details.rewardItems || []).length || (details.isAccumulatedChallenge && details.rewardDetails?.leaderboardRecognitionEnabled)) { %>
+              <div class="event-reward-group event-reward-included">
+                <div class="event-reward-group-heading">
+                  <h3>Included with verified completion</h3>
+                  <p>Complete the event requirements to receive the listed finisher recognition.</p>
+                </div>
+                <% if (details.digitalRewardsLabel) { %>
+                  <p class="event-rewards-free"><i data-lucide="badge-check" aria-hidden="true"></i><span><%= details.digitalRewardsLabel %></span></p>
+                <% } %>
+                <% if ((details.rewardItems || []).length) { %>
+                  <div class="event-reward-grid">
+                    <% details.rewardItems.forEach((reward) => { %>
+                      <article>
+                        <i data-lucide="<%= reward.type === 'physical' ? 'package' : 'award' %>"></i>
+                        <span><%= reward.label %></span>
+                      </article>
+                    <% }) %>
+                  </div>
+                <% } %>
+                <% if (details.isAccumulatedChallenge && details.rewardDetails?.leaderboardRecognitionEnabled) { %>
+                  <p class="event-supporting-copy">Your approved progress can appear on the event leaderboards based on the privacy option you choose during registration.</p>
+                <% } %>
+              </div>
+            <% } else if (!details.merchandiseOffer && !(details.packageOptions || []).length) { %>
+              <p class="event-muted">Rewards have not been listed by the organizer yet.</p>
             <% } %>
 
             <% if ((details.packageOptions || []).length) { %>
-              <div class="event-bundle-grid">
-                <% details.packageOptions.forEach((packageOption) => { %>
-                  <article class="event-bundle-card<%= packageOption.imageUrl ? ' has-image' : '' %>">
-                    <% if (packageOption.imageUrl) { %>
-                      <img class="event-bundle-image" src="<%= packageOption.imageUrl %>" alt="<%= packageOption.name %>" loading="lazy" decoding="async">
-                    <% } %>
-                    <h3><%= packageOption.name %></h3>
-                    <strong class="event-bundle-price"><%= packageOption.amountLabel %></strong>
-                    <% if (packageOption.includedItems.length) { %>
-                      <p class="event-bundle-includes">Includes: <%= packageOption.includedItems.join(', ') %></p>
-                    <% } %>
-                    <% if ((details.rewardLogistics?.notes || []).length) { %>
-                      <ul class="event-bundle-notes">
-                        <% details.rewardLogistics.notes.forEach((note) => { %>
-                          <li><%= note %></li>
-                        <% }) %>
-                      </ul>
-                    <% } %>
-                    <% if (packageOption.notes) { %><small><%= packageOption.notes %></small><% } %>
-                  </article>
-                <% }) %>
+              <div class="event-reward-group event-reward-packages">
+                <div class="event-reward-group-heading">
+                  <h3>Reward packages</h3>
+                  <p>Compare the physical reward options available with registration.</p>
+                </div>
+                <div class="event-bundle-grid">
+                  <% details.packageOptions.forEach((packageOption) => { %>
+                    <article class="event-bundle-card<%= packageOption.imageUrl ? ' has-image' : '' %>">
+                      <% if (packageOption.imageUrl) { %>
+                        <img class="event-bundle-image" src="<%= packageOption.imageUrl %>" alt="<%= packageOption.name %>" loading="lazy" decoding="async">
+                      <% } %>
+                      <h3><%= packageOption.name %></h3>
+                      <strong class="event-bundle-price"><%= packageOption.amountLabel %></strong>
+                      <% if (packageOption.includedItems.length) { %>
+                        <p class="event-bundle-includes">Includes: <%= packageOption.includedItems.join(', ') %></p>
+                      <% } %>
+                      <% if ((details.rewardLogistics?.notes || []).length) { %>
+                        <ul class="event-bundle-notes">
+                          <% details.rewardLogistics.notes.forEach((note) => { %>
+                            <li><%= note %></li>
+                          <% }) %>
+                        </ul>
+                      <% } %>
+                      <% if (packageOption.notes) { %><small><%= packageOption.notes %></small><% } %>
+                    </article>
+                  <% }) %>
+                </div>
               </div>
-            <% } else if ((details.rewardLogistics?.notes || []).length) { %>
-              <ul class="event-bundle-notes event-reward-logistics">
-                <% details.rewardLogistics.notes.forEach((note) => { %>
-                  <li><%= note %></li>
-                <% }) %>
-              </ul>
             <% } %>
 
             <% if (details.merchandiseOffer) { %>
               <% const merch = details.merchandiseOffer; %>
-              <article class="event-bundle-card event-merch-card<%= merch.images.length ? ' has-image' : '' %>" aria-labelledby="event-merch-title">
-                <% if (merch.images.length) { %>
-                  <div class="event-bundle-image event-merch-media">
-                    <% merch.images.forEach((image) => { %>
-                      <img src="<%= image.url %>" alt="<%= image.alt %>" loading="lazy" decoding="async">
-                    <% }) %>
+              <div class="event-reward-group event-merchandise-group">
+                <div class="event-reward-group-heading">
+                  <h3>Optional finisher merchandise</h3>
+                  <p>Available separately after your completion is verified.</p>
+                </div>
+                <article class="event-bundle-card event-merch-card<%= merch.images.length ? ' has-image' : '' %>" aria-labelledby="event-merch-title">
+                  <% if (merch.images.length) { %>
+                    <div class="event-bundle-image event-merch-media event-merch-media-count-<%= merch.images.length %>">
+                      <% merch.images.forEach((image) => { %>
+                        <button
+                          type="button"
+                          class="event-merch-image-button event-image-zoom-trigger"
+                          data-image-zoom-src="<%= image.url %>"
+                          aria-label="View <%= image.alt %> full size"
+                        >
+                          <img src="<%= image.url %>" alt="<%= image.alt %>" loading="lazy" decoding="async">
+                          <span class="event-merch-zoom-label" aria-hidden="true"><i data-lucide="zoom-in"></i>View full size</span>
+                        </button>
+                      <% }) %>
+                    </div>
+                  <% } %>
+                  <div class="event-merch-content">
+                    <p class="event-merch-availability"><%= merch.availabilityLabel %></p>
+                    <h3 id="event-merch-title"><%= merch.name %></h3>
+                    <strong class="event-bundle-price"><%= merch.priceLabel %></strong>
+                    <% if (merch.shippingNote) { %>
+                      <ul class="event-bundle-notes"><li><%= merch.shippingNote %></li></ul>
+                    <% } %>
+                    <% if (merch.description) { %>
+                      <p class="event-bundle-includes"><%= merch.description %></p>
+                    <% } %>
+                    <% if (merch.note) { %><small><%= merch.note %></small><% } %>
                   </div>
-                <% } %>
-                <p class="event-merch-availability"><%= merch.availabilityLabel %></p>
-                <h3 id="event-merch-title"><%= merch.name %></h3>
-                <strong class="event-bundle-price"><%= merch.priceLabel %></strong>
-                <% if (merch.shippingNote) { %>
-                  <ul class="event-bundle-notes"><li><%= merch.shippingNote %></li></ul>
-                <% } %>
-                <% if (merch.description) { %>
-                  <p class="event-bundle-includes"><%= merch.description %></p>
-                <% } %>
-                <% if (merch.note) { %><small><%= merch.note %></small><% } %>
-              </article>
-            <% } %>
-
-            <% if ((details.rewardItems || []).length) { %>
-              <div class="event-reward-grid">
-                <% details.rewardItems.forEach((reward) => { %>
-                  <article>
-                    <i data-lucide="<%= reward.type === 'physical' ? 'package' : 'award' %>"></i>
-                    <span><%= reward.label %></span>
-                  </article>
-                <% }) %>
+                </article>
               </div>
-              <% if (details.isAccumulatedChallenge && details.rewardDetails?.leaderboardRecognitionEnabled) { %>
-                <p class="event-supporting-copy">Your approved progress can appear on the event leaderboards based on the privacy option you choose during registration.</p>
-              <% } %>
-            <% } else { %>
-              <p class="event-muted">Rewards have not been listed by the organizer yet.</p>
             <% } %>
 
             <% if (details.rewardDetails?.description) { %>
               <p class="event-supporting-copy"><%= details.rewardDetails.description %></p>
             <% } %>
 
-            <% if (details.rewardDetails?.claimingNotes || details.rewardDetails?.deliveryDescription || details.rewardDetails?.claimingMethodLabel) { %>
-              <dl class="event-reward-details">
-                <% if (details.rewardDetails.claimingMethodLabel) { %><div><dt>Claiming method</dt><dd><%= details.rewardDetails.claimingMethodLabel %></dd></div><% } %>
-                <% if (details.rewardDetails.claimingNotes) { %><div><dt>Claiming instructions</dt><dd><%= details.rewardDetails.claimingNotes %></dd></div><% } %>
-                <% if (details.rewardDetails.deliveryDescription) { %><div><dt>Delivery details</dt><dd><%= details.rewardDetails.deliveryDescription %></dd></div><% } %>
-              </dl>
+            <% if (((details.rewardLogistics?.notes || []).length && !(details.packageOptions || []).length && !details.merchandiseOffer) || details.rewardDetails?.claimingNotes || details.rewardDetails?.deliveryDescription || details.rewardDetails?.claimingMethodLabel) { %>
+              <div class="event-reward-group event-reward-logistics-group">
+                <div class="event-reward-group-heading">
+                  <h3>Delivery and claiming</h3>
+                </div>
+                <% if ((details.rewardLogistics?.notes || []).length && !(details.packageOptions || []).length && !details.merchandiseOffer) { %>
+                  <ul class="event-bundle-notes event-reward-logistics">
+                    <% details.rewardLogistics.notes.forEach((note) => { %>
+                      <li><%= note %></li>
+                    <% }) %>
+                  </ul>
+                <% } %>
+                <% if (details.rewardDetails?.claimingNotes || details.rewardDetails?.deliveryDescription || details.rewardDetails?.claimingMethodLabel) { %>
+                  <dl class="event-reward-details">
+                    <% if (details.rewardDetails.claimingMethodLabel) { %><div><dt>Claiming method</dt><dd><%= details.rewardDetails.claimingMethodLabel %></dd></div><% } %>
+                    <% if (details.rewardDetails.claimingNotes) { %><div><dt>Claiming instructions</dt><dd><%= details.rewardDetails.claimingNotes %></dd></div><% } %>
+                    <% if (details.rewardDetails.deliveryDescription) { %><div><dt>Delivery details</dt><dd><%= details.rewardDetails.deliveryDescription %></dd></div><% } %>
+                  </dl>
+                <% } %>
+              </div>
             <% } %>
 
             <% if ((details.rewardDetails?.specialBenefits || []).length) { %>
@@ -591,23 +628,54 @@
 
             <% const eventBadges = badges || []; %>
             <% if (eventBadges.length) { %>
-              <div class="event-badge-grid" aria-label="Event badges">
-                <% eventBadges.forEach((badge) => { %>
-                  <article class="event-badge-card">
-                    <span class="event-badge-icon">
-                      <% if (badge.imageUrl) { %>
-                        <img src="<%= badge.imageUrl %>" alt="" loading="lazy">
-                      <% } else { %>
-                        <i data-lucide="award"></i>
-                      <% } %>
-                    </span>
-                    <div>
-                      <h3><%= badge.name %></h3>
-                      <p><%= badge.description || 'Awarded after verified event activity.' %></p>
-                      <small><%= badge.badgeType ? badge.badgeType.replace(/_/g, ' ') : 'achievement' %></small>
+              <% const visibleBadges = eventBadges.slice(0, 4); %>
+              <% const additionalBadges = eventBadges.slice(4); %>
+              <div class="event-reward-group event-badges-group">
+                <div class="event-reward-group-heading">
+                  <h3>Badges you can earn</h3>
+                  <p>Badge awards depend on verified completion and leaderboard results.</p>
+                </div>
+                <div class="event-badge-grid" aria-label="Featured event badges">
+                  <% visibleBadges.forEach((badge) => { %>
+                    <article class="event-badge-card">
+                      <span class="event-badge-icon">
+                        <% if (badge.imageUrl) { %>
+                          <img src="<%= badge.imageUrl %>" alt="" loading="lazy">
+                        <% } else { %>
+                          <i data-lucide="award"></i>
+                        <% } %>
+                      </span>
+                      <div>
+                        <h3><%= badge.name %></h3>
+                        <p><%= badge.description || 'Awarded after verified event activity.' %></p>
+                        <small><%= badge.badgeType ? badge.badgeType.replace(/_/g, ' ') : 'achievement' %></small>
+                      </div>
+                    </article>
+                  <% }) %>
+                </div>
+                <% if (additionalBadges.length) { %>
+                  <details class="event-badge-disclosure">
+                    <summary>Show all <%= eventBadges.length %> badges</summary>
+                    <div class="event-badge-grid" aria-label="Additional event badges">
+                      <% additionalBadges.forEach((badge) => { %>
+                        <article class="event-badge-card">
+                          <span class="event-badge-icon">
+                            <% if (badge.imageUrl) { %>
+                              <img src="<%= badge.imageUrl %>" alt="" loading="lazy">
+                            <% } else { %>
+                              <i data-lucide="award"></i>
+                            <% } %>
+                          </span>
+                          <div>
+                            <h3><%= badge.name %></h3>
+                            <p><%= badge.description || 'Awarded after verified event activity.' %></p>
+                            <small><%= badge.badgeType ? badge.badgeType.replace(/_/g, ' ') : 'achievement' %></small>
+                          </div>
+                        </article>
+                      <% }) %>
                     </div>
-                  </article>
-                <% }) %>
+                  </details>
+                <% } %>
               </div>
             <% } else if (event.digitalBadgeEnabled) { %>
               <div class="event-badge-empty">
@@ -790,8 +858,9 @@
               </div>
               <button
                 type="button"
-                class="event-poster-thumb-btn"
+                class="event-poster-thumb-btn event-image-zoom-trigger"
                 data-poster-src="<%= details.posterImageUrl %>"
+                data-image-zoom-src="<%= details.posterImageUrl %>"
                 aria-label="Open promotional poster"
               >
                 <img class="event-details-poster-inline" src="<%= details.posterImageUrl %>" alt="<%= details.title %> promotional poster" loading="lazy">
@@ -950,8 +1019,9 @@
               <h3>Event Poster</h3>
               <button
                 type="button"
-                class="event-poster-thumb-btn"
+                class="event-poster-thumb-btn event-image-zoom-trigger"
                 data-poster-src="<%= details.posterImageUrl %>"
+                data-image-zoom-src="<%= details.posterImageUrl %>"
                 aria-label="Open promotional poster"
               >
                 <img class="event-details-poster-inline" src="<%= details.posterImageUrl %>" alt="<%= details.title %> promotional poster">
@@ -1079,17 +1149,18 @@
         </div>
       <% } %>
 
-      <% if (details.posterImageUrl) { %>
-        <div id="posterLightbox" class="gallery-lightbox hidden" aria-hidden="true">
-          <div class="gallery-lightbox-backdrop" data-close-poster-lightbox="1"></div>
-          <div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Promotional poster viewer">
-            <button type="button" class="gallery-lightbox-close" id="posterCloseBtn" aria-label="Close poster">&times;</button>
-            <div class="poster-zoom-controls">
-              <button type="button" class="poster-zoom-btn" id="posterZoomOutBtn" aria-label="Zoom out">-</button>
-              <button type="button" class="poster-zoom-btn" id="posterZoomInBtn" aria-label="Zoom in">+</button>
-              <button type="button" class="poster-zoom-btn" id="posterResetBtn" aria-label="Reset zoom">Reset</button>
+      <% if (details.posterImageUrl || details.merchandiseOffer?.images?.length) { %>
+        <div id="imageZoomLightbox" class="gallery-lightbox hidden" aria-hidden="true">
+          <div class="gallery-lightbox-backdrop" data-close-image-zoom="1"></div>
+          <div class="gallery-lightbox-dialog image-zoom-dialog" role="dialog" aria-modal="true" aria-label="Image viewer" tabindex="-1">
+            <button type="button" class="gallery-lightbox-close" id="imageZoomCloseBtn" aria-label="Close image viewer">&times;</button>
+            <div class="image-zoom-controls">
+              <button type="button" class="image-zoom-btn" id="imageZoomOutBtn" aria-label="Zoom out">&minus;</button>
+              <output class="image-zoom-level" id="imageZoomLevel" aria-live="polite">100%</output>
+              <button type="button" class="image-zoom-btn" id="imageZoomInBtn" aria-label="Zoom in">&plus;</button>
+              <button type="button" class="image-zoom-btn image-zoom-reset" id="imageZoomResetBtn">Reset</button>
             </div>
-            <img id="posterLightboxImage" class="gallery-lightbox-image" src="" alt="">
+            <img id="imageZoomLightboxImage" class="gallery-lightbox-image" src="" alt="">
           </div>
         </div>
       <% } %>
@@ -1360,20 +1431,19 @@
       });
     })();
 
-    (function initPosterLightbox() {
-      const posterBtn = document.querySelector('.event-poster-thumb-btn');
-      const lightbox = document.getElementById('posterLightbox');
-      if (!posterBtn || !lightbox) return;
+    (function initImageZoomLightbox() {
+      const triggerButtons = Array.from(document.querySelectorAll('.event-image-zoom-trigger'));
+      const lightbox = document.getElementById('imageZoomLightbox');
+      if (!triggerButtons.length || !lightbox) return;
 
       const body = document.body;
-      const imageEl = document.getElementById('posterLightboxImage');
-      const closeBtn = document.getElementById('posterCloseBtn');
-      const zoomInBtn = document.getElementById('posterZoomInBtn');
-      const zoomOutBtn = document.getElementById('posterZoomOutBtn');
-      const resetBtn = document.getElementById('posterResetBtn');
-      const closeBackdrop = lightbox.querySelector('[data-close-poster-lightbox="1"]');
-      const posterSrc = posterBtn.getAttribute('data-poster-src') || '';
-      const posterAlt = posterBtn.querySelector('img')?.alt || 'Promotional poster';
+      const imageEl = document.getElementById('imageZoomLightboxImage');
+      const closeBtn = document.getElementById('imageZoomCloseBtn');
+      const zoomInBtn = document.getElementById('imageZoomInBtn');
+      const zoomOutBtn = document.getElementById('imageZoomOutBtn');
+      const resetBtn = document.getElementById('imageZoomResetBtn');
+      const zoomLevelOutput = document.getElementById('imageZoomLevel');
+      const closeBackdrop = lightbox.querySelector('[data-close-image-zoom="1"]');
       let zoomLevel = 1;
       let translateX = 0;
       let translateY = 0;
@@ -1403,6 +1473,7 @@
         imageEl.style.cursor = zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in';
         if (zoomInBtn) zoomInBtn.disabled = zoomLevel >= 3;
         if (zoomOutBtn) zoomOutBtn.disabled = zoomLevel <= 1;
+        if (zoomLevelOutput) zoomLevelOutput.value = `${Math.round(zoomLevel * 100)}%`;
       }
 
       function setZoom(nextZoomLevel) {
@@ -1420,10 +1491,13 @@
         setZoom(1);
       }
 
-      function openLightbox() {
-        lastFocusedElement = document.activeElement;
-        imageEl.src = posterSrc;
-        imageEl.alt = posterAlt;
+      function openLightbox(trigger) {
+        const image = trigger.querySelector('img');
+        const imageSrc = trigger.getAttribute('data-image-zoom-src') || image?.currentSrc || image?.src || '';
+        if (!imageSrc) return;
+        lastFocusedElement = trigger;
+        imageEl.src = imageSrc;
+        imageEl.alt = image?.alt || 'Event image';
         resetZoom();
         lightbox.classList.remove('hidden');
         lightbox.setAttribute('aria-hidden', 'false');
@@ -1439,7 +1513,7 @@
         if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') lastFocusedElement.focus();
       }
 
-      posterBtn.addEventListener('click', openLightbox);
+      triggerButtons.forEach((trigger) => trigger.addEventListener('click', () => openLightbox(trigger)));
       closeBtn.addEventListener('click', closeLightbox);
       if (zoomInBtn) zoomInBtn.addEventListener('click', () => setZoom(zoomLevel + 0.25));
       if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => setZoom(zoomLevel - 0.25));
