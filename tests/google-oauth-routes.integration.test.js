@@ -150,13 +150,21 @@ test('Google callback rotates the session and preserves the safe return path', a
     family_name: user.lastName
   };
 
-  const initResponse = await fetch(`${BASE_URL}/auth/google?returnTo=%2Frunner%2Fprofile`, {
+  const protectedPath = '/events/google-race/register?category=21k&source=calendar';
+  const protectedResponse = await fetch(`${BASE_URL}${protectedPath}`, {
     redirect: 'manual'
   });
-  const anonymousCookie = String(initResponse.headers.get('set-cookie') || '').split(';')[0];
+  assert.equal(protectedResponse.status, 302);
+  assert.equal(protectedResponse.headers.get('location'), '/login');
+  const anonymousCookie = String(protectedResponse.headers.get('set-cookie') || '').split(';')[0];
+  assert.ok(anonymousCookie);
+
+  const initResponse = await fetch(`${BASE_URL}/auth/google`, {
+    headers: { Cookie: anonymousCookie },
+    redirect: 'manual'
+  });
   const authorizationUrl = new URL(String(initResponse.headers.get('location') || ''));
   const state = authorizationUrl.searchParams.get('state');
-  assert.ok(anonymousCookie);
   assert.ok(state);
 
   const callback = await fetch(
@@ -165,7 +173,7 @@ test('Google callback rotates the session and preserves the safe return path', a
   );
 
   assert.equal(callback.status, 302);
-  assert.equal(callback.headers.get('location'), '/runner/profile');
+  assert.equal(callback.headers.get('location'), protectedPath);
   const authenticatedCookie = String(callback.headers.get('set-cookie') || '').split(';')[0];
   assert.match(authenticatedCookie, /hr\.sid=/i);
   assert.notEqual(authenticatedCookie, anonymousCookie, 'Google login must rotate the OAuth session ID');

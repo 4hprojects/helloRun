@@ -93,10 +93,23 @@ const signupEmailLimiter = createRateLimiter({
 });
 
 function resolveSafeReturnTo(value, fallback = null) {
-  if (typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')) {
+  if (
+    typeof value === 'string'
+    && value.startsWith('/')
+    && !value.startsWith('//')
+    && !value.includes('\\')
+    && !/[\u0000-\u001F\u007F]/.test(value)
+  ) {
     return value;
   }
   return fallback;
+}
+
+function resolveLoginReturnTo(explicitValue, sessionValue, fallback = null) {
+  if (typeof explicitValue === 'string' && explicitValue.length > 0) {
+    return resolveSafeReturnTo(explicitValue, fallback);
+  }
+  return resolveSafeReturnTo(sessionValue, fallback);
 }
 
 function resolveSignupRole(value) {
@@ -214,7 +227,10 @@ function renderLoginPage(req, res, options = {}) {
 router.get('/login', redirectIfAuth, (req, res) => {
   const queryMessage = typeof req.query.message === 'string' ? req.query.message : null;
   const queryType = typeof req.query.type === 'string' ? req.query.type : '';
-  const returnTo = resolveSafeReturnTo(req.query.redirect, resolveSafeReturnTo(req.query.returnTo, ''));
+  const explicitReturnTo = typeof req.query.redirect === 'string' && req.query.redirect.length > 0
+    ? req.query.redirect
+    : req.query.returnTo;
+  const returnTo = resolveLoginReturnTo(explicitReturnTo, req.session?.returnTo, '');
   const suspendedError = req.query.suspended === '1' ? 'Your account has been suspended. Please contact support for assistance.' : null;
   renderLoginPage(req, res, {
     error: suspendedError || (queryType === 'error' ? queryMessage : null),
@@ -228,7 +244,7 @@ router.post('/login', redirectIfAuth, requireCsrfProtection, loginLimiter, async
   try {
     const email = normalizeEmail(req.body.email);
     const { password } = req.body;
-    const returnTo = resolveSafeReturnTo(req.body.returnTo, '');
+    const returnTo = resolveLoginReturnTo(req.body.returnTo, req.session?.returnTo, '');
     const remoteIp = getRequestIpAddress(req);
     const storedLoginFailureCount = await getStoredLoginFailureCount({ email, remoteIp });
     const requireTurnstile = isTurnstileConfigured()
@@ -557,7 +573,7 @@ router.get('/auth/google', redirectIfAuth, (req, res) => {
   req.session.googleOAuthState = state;
   req.session.googleOAuthStateCreatedAt = Date.now();
 
-  const maybeReturnTo = resolveSafeReturnTo(req.query.returnTo, null);
+  const maybeReturnTo = resolveLoginReturnTo(req.query.returnTo, req.session?.returnTo, null);
   if (maybeReturnTo) {
     req.session.googleOAuthReturnTo = maybeReturnTo;
   } else {

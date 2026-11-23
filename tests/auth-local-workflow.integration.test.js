@@ -73,6 +73,78 @@ test('login trims and lowercases email before credential lookup', async () => {
   assert.notEqual(authenticatedCookie, anonymousCookie, 'login must rotate the anonymous session ID');
 });
 
+test('login returns a logged-out runner to the exact protected race registration URL', async () => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const email = `auth.local.return.${stamp}@example.com`;
+  const password = 'Pass1234.';
+  await createUser({ email, password, emailVerified: true });
+
+  const protectedPath = '/events/autumn-10k/register?category=10k&source=featured';
+  const protectedResponse = await fetch(`${BASE_URL}${protectedPath}`, { redirect: 'manual' });
+  assert.equal(protectedResponse.status, 302);
+  assert.equal(protectedResponse.headers.get('location'), '/login');
+  const anonymousCookie = String(protectedResponse.headers.get('set-cookie') || '').split(';')[0];
+  assert.ok(anonymousCookie);
+
+  const loginPage = await fetch(`${BASE_URL}/login`, {
+    headers: { Cookie: anonymousCookie }
+  });
+  assert.equal(loginPage.status, 200);
+  const loginHtml = await loginPage.text();
+  assert.match(loginHtml, /name="returnTo" value="\/events\/autumn-10k\/register\?category=10k&amp;source=featured"/);
+  assert.match(loginHtml, /\/auth\/google\?intent=login&amp;returnTo=%2Fevents%2Fautumn-10k%2Fregister%3Fcategory%3D10k%26source%3Dfeatured/);
+
+  const response = await fetch(`${BASE_URL}/login`, {
+    method: 'POST',
+    headers: {
+      Cookie: anonymousCookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({ email, password }),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get('location'), protectedPath);
+  const authenticatedCookie = String(response.headers.get('set-cookie') || '').split(';')[0];
+  assert.match(authenticatedCookie, /hr\.sid=/i);
+  assert.notEqual(authenticatedCookie, anonymousCookie, 'login must rotate the anonymous session ID');
+});
+
+test('explicit safe returnTo overrides session destination and unsafe values use dashboard', async () => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const password = 'Pass1234.';
+  const safeEmail = `auth.local.explicit.${stamp}@example.com`;
+  const unsafeEmail = `auth.local.unsafe.${stamp}@example.com`;
+  await createUser({ email: safeEmail, password, emailVerified: true });
+  await createUser({ email: unsafeEmail, password, emailVerified: true });
+
+  const staleCookie = await getSessionCookie('/events/stale-race/register?category=5k');
+  const explicitPath = '/runner/profile?section=integrations';
+  const safeResponse = await fetch(`${BASE_URL}/login`, {
+    method: 'POST',
+    headers: {
+      Cookie: staleCookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({ email: safeEmail, password, returnTo: explicitPath }),
+    redirect: 'manual'
+  });
+  assert.equal(safeResponse.status, 302);
+  assert.equal(safeResponse.headers.get('location'), explicitPath);
+
+  for (const returnTo of ['https://evil.example/phish', '//evil.example/phish', '/\\evil.example/phish']) {
+    const unsafeResponse = await fetch(`${BASE_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ email: unsafeEmail, password, returnTo }),
+      redirect: 'manual'
+    });
+    assert.equal(unsafeResponse.status, 302);
+    assert.equal(unsafeResponse.headers.get('location'), '/runner/dashboard');
+  }
+});
+
 test('unverified local login preserves email and offers verification resend', async () => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const email = `auth.local.unverified.${stamp}@example.com`;
