@@ -368,7 +368,7 @@ function normalizeFinisherMerchandiseInput(body = {}) {
     enabled: normalizeBoolean(body.finisherMerchandiseEnabled),
     name: String(body.finisherMerchandiseName || '').trim().slice(0, 100),
     priceAmount: parseOptionalNonNegativeNumber(body.finisherMerchandisePriceAmount),
-    currency: 'PHP',
+    currency: '',
     description: String(body.finisherMerchandiseDescription || '').trim().slice(0, 500),
     shippingNote: String(body.finisherMerchandiseShippingNote || '').trim().slice(0, 200),
     orderingState: FINISHER_MERCHANDISE_ORDERING_STATES.has(orderingState) ? orderingState : 'preview',

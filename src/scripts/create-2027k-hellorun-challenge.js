@@ -7,10 +7,14 @@ require('dotenv').config({ path: process.env.DOTENV_CONFIG_PATH || '.env' });
  *   node src/scripts/create-2027k-hellorun-challenge.js --assets <dir> --apply    # write
  *   ... --no-media   skips R2 uploads (isolated stacks without object storage)
  *
+ * HELLORUN_2027K_OWNER_EMAIL (required) names the existing organiser account that owns the
+ * event. HELLORUN_ADMIN_EMAIL names the approving admin when more than one admin exists.
+ *
  * The dry run makes no writes and no uploads. --apply captures the publication instant
  * immediately before the write and stores it as registrationOpenAt, so public listing and
- * registration open together. If any step fails after the event is saved, the event, its
- * certificate template and every uploaded object are removed again.
+ * registration open together. A failure before the save removes the uploads. A failure
+ * after the save returns the event to draft so it is no longer public, and keeps it for
+ * correction in the builder; nothing is left half-published.
  *
  * Assets are read from --assets; nothing from that directory is committed to the repository.
  */
@@ -36,7 +40,7 @@ const {
 
 const APPLY = process.argv.includes('--apply');
 const NO_MEDIA = process.argv.includes('--no-media');
-const OWNER_EMAIL = String(process.env.HELLORUN_2027K_OWNER_EMAIL || 'henzoom8@gmail.com').toLowerCase();
+const OWNER_EMAIL = String(process.env.HELLORUN_2027K_OWNER_EMAIL || '').trim().toLowerCase();
 const MANILA = 'Asia/Manila';
 
 function readArg(name) {
@@ -54,17 +58,20 @@ function formatManila(date) {
 }
 
 async function resolveAdmin() {
-  const preferredEmail = String(process.env.HELLORUN_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'hellorunonline@gmail.com').toLowerCase();
-  const preferred = await User.findOne({ email: preferredEmail, role: 'admin', accountStatus: { $ne: 'closed' } });
-  if (preferred) return preferred;
+  const preferredEmail = String(process.env.HELLORUN_ADMIN_EMAIL || process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  if (preferredEmail) {
+    const preferred = await User.findOne({ email: preferredEmail, role: 'admin', accountStatus: { $ne: 'closed' } });
+    if (preferred) return preferred;
+  }
   const admins = await User.find({ role: 'admin', accountStatus: { $ne: 'closed' } }).sort({ createdAt: 1 }).limit(2);
   if (admins.length !== 1) {
-    throw new Error(`Admin account ${preferredEmail} was not found and a unique fallback admin could not be resolved.`);
+    throw new Error('Set HELLORUN_ADMIN_EMAIL: a unique admin account could not be resolved.');
   }
   return admins[0];
 }
 
 async function resolveOwner() {
+  if (!OWNER_EMAIL) throw new Error('Set HELLORUN_2027K_OWNER_EMAIL to the organiser account that owns the event.');
   const owner = await User.findOne({ email: OWNER_EMAIL, accountStatus: { $ne: 'closed' } });
   if (!owner) throw new Error(`Owner account ${OWNER_EMAIL} was not found.`);
   if (owner.role !== 'organiser' && owner.role !== 'admin') {
@@ -215,6 +222,7 @@ async function main() {
   }
 
   let event = null;
+  let saved = false;
   let uploadedKeys = [];
   try {
     let media = {};
@@ -240,7 +248,10 @@ async function main() {
       now: publishedAt
     }));
     await event.validate();
+    const liveReadinessErrors = getPublishReadinessErrors(event);
+    if (liveReadinessErrors.length) throw new Error(`Event readiness failed: ${liveReadinessErrors.join(' | ')}`);
     await event.save();
+    saved = true;
 
     const template = await getOrCreateDefaultTemplate(event._id, { event, organizer: owner });
     template.content.heading = 'Certificate of Completion';
@@ -248,7 +259,15 @@ async function main() {
     await template.save();
     await publishTemplate(template);
 
-    const badges = await generateDefaultEventBadges(event, { performedBy: admin._id });
+    // Badges are additive and can be regenerated from the builder, so a failure here is
+    // reported rather than unpublishing an event that is already correct.
+    let badgesCreated = 0;
+    let badgeError = '';
+    try {
+      badgesCreated = (await generateDefaultEventBadges(event, { performedBy: admin._id })).length;
+    } catch (error) {
+      badgeError = error?.message || String(error);
+    }
 
     console.log(JSON.stringify(summarize(event, {
       mode: 'apply',
@@ -259,13 +278,22 @@ async function main() {
       publishedAtManila: formatManila(publishedAt),
       owner: owner.email,
       certificateTemplate: String(template._id),
-      badgesCreated: badges.length,
+      badgesCreated,
+      badgeError: badgeError || undefined,
       media
     }), null, 2));
   } catch (error) {
-    if (event?._id) await CertificateTemplate.deleteMany({ eventId: event._id }).catch(() => {});
-    if (event?._id) await Event.deleteOne({ _id: event._id }).catch(() => {});
-    if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys).catch(() => {});
+    if (saved && event?._id) {
+      // The event (and its synced shadow) exists: take it out of public view instead of
+      // deleting records that other stores already reference.
+      // save() (not updateOne) so the post-save hook re-syncs the PostgreSQL shadow too.
+      event.status = 'draft';
+      await event.save().catch(() => {});
+      await CertificateTemplate.deleteMany({ eventId: event._id }).catch(() => {});
+      console.error(JSON.stringify({ rolledBackTo: 'draft', eventId: String(event._id), slug: event.slug }));
+    } else if (uploadedKeys.length) {
+      await uploadService.deleteObjects(uploadedKeys).catch(() => {});
+    }
     throw error;
   }
 }

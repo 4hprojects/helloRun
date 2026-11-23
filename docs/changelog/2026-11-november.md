@@ -35,7 +35,15 @@
 
 - **BUG-SRB-01.** Builder saves that post no benefit fields no longer erase
   `specialRewardBenefits`.
-- Editing a rejected activity no longer drops `treadmill` as the activity type.
+- **Treadmill submissions.** Before this fix, the proof controller rejected
+  `treadmill` even when an event accepted it. Editing a rejected activity also
+  dropped the type. Every submission layer now uses one list,
+  `src/utils/activity-types.js`.
+- **Event edits with badges.** Each badge editor was a `<form>` nested inside the
+  event edit form. The browser flattened them, so saving any event with badges
+  posted two `_csrf` values and returned 403. The badge editors now post through
+  standalone forms linked with the `form` attribute. A browser save on the
+  isolated stack returned 403 before the fix and now saves (302).
 
 ### Verification
 
@@ -61,6 +69,14 @@
     payment step.
   - Browser checks at 390px and 1280px showed no horizontal overflow, and the
     merchandise card rendered both photos.
+
+- **Builder round-trip on the isolated stack.** A browser save of the 2027k
+  event kept its status, dates, activity types, FAQ, tagline, merchandise
+  photos and ordering state. Two pre-existing builder behaviours showed up and
+  were left unchanged:
+  - `datetime-local` saves truncate the stored 23:59:59 cutoffs to 23:59:00;
+  - an empty listing date is stored as the Unix epoch, which still lists the
+    event immediately.
 
 Production state is recorded under `EVT-2027K`.
 

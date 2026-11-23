@@ -215,3 +215,48 @@ test('editing a rejected accumulated activity keeps treadmill as the activity ty
   assert.equal(submission.runType, 'treadmill');
   assert.deepEqual(saved, ['treadmill']);
 });
+
+test('a builder merchandise save keeps a stored non-PHP currency', () => {
+  const event = eventWithMerchAndBenefits();
+  event.finisherMerchandise.currency = 'USD';
+  applyEventFormData(event, getCreateEventFormData({
+    title: 'Year Challenge',
+    finisherMerchandiseSubmitted: '1',
+    finisherMerchandiseEnabled: '1',
+    finisherMerchandiseName: 'Bundle',
+    finisherMerchandisePriceAmount: '25'
+  }));
+  assert.equal(event.finisherMerchandise.currency, 'USD');
+});
+
+test('both the create and the edit builder render the merchandise fields', () => {
+  for (const view of ['create-event.ejs', 'edit-event.ejs']) {
+    const source = fs.readFileSync(path.join(ROOT, 'src/views/organizer', view), 'utf8');
+    assert.match(source, /include\('partials\/finisher-merchandise-fields'\)/, view);
+  }
+  const partial = fs.readFileSync(path.join(ROOT, 'src/views/organizer/partials/finisher-merchandise-fields.ejs'), 'utf8');
+  assert.match(partial, /name="finisherMerchandiseSubmitted"/);
+  assert.doesNotMatch(partial, /<%-/);
+});
+
+test('every submission layer accepts treadmill from the shared activity-type list', () => {
+  const { RUN_TYPES, normalizeRunType } = require('../src/utils/activity-types');
+  assert.deepEqual([...RUN_TYPES], ['run', 'walk', 'hike', 'trail_run', 'treadmill']);
+  assert.equal(normalizeRunType(' Treadmill '), 'treadmill');
+  assert.equal(normalizeRunType('cycling'), '');
+  const controller = fs.readFileSync(path.join(ROOT, 'src/controllers/page/submission.controller.js'), 'utf8');
+  assert.doesNotMatch(controller, /\['run', 'walk', 'hike', 'trail_run'\]/);
+});
+
+test('the event edit form contains no nested forms, so a save posts one _csrf value', () => {
+  const source = fs.readFileSync(path.join(ROOT, 'src/views/organizer/edit-event.ejs'), 'utf8');
+  const start = source.indexOf('<form id="eventEditForm"');
+  const end = source.indexOf('</form>', start);
+  assert.ok(start > -1 && end > start);
+  const body = source.slice(start + 1, end);
+  assert.doesNotMatch(body, /<form\b/);
+  assert.equal((body.match(/name="_csrf"/g) || []).length, 1);
+  // Badge editors post through standalone forms linked with the form attribute.
+  assert.match(source, /<form id="wizBadgeForm-<%= badge\.eventBadgeId %>"/);
+  assert.match(source, /name="name" value="<%= badge\.name %>" maxlength="120" form="wizBadgeForm-/);
+});

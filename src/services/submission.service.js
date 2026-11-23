@@ -47,9 +47,7 @@ const {
   getAutoApprovalReviewNote
 } = require('./submission-validation.service');
 const { sanitizeActivityEvidence, sanitizeTrainingConsent } = require('../utils/ocr/activity-evidence');
-
-// Activity types a submission may record. Event-level acceptance is enforced separately.
-const RUN_TYPES = Object.freeze(['run', 'walk', 'hike', 'trail_run', 'treadmill']);
+const { RUN_TYPES } = require('../utils/activity-types');
 
 let runSubmissionBackgroundTasksInline = false;
 let disableSubmissionSyncBackgroundTasks = false;

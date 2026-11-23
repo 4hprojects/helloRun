@@ -637,6 +637,7 @@
                 </div>
               </div>
             </details>
+            <%- include('partials/finisher-merchandise-fields') %>
           </div>
         </div>
 
@@ -711,17 +712,19 @@
                       <% if (!badge.isVisibleOnEventPage) { %><span class="wizard-badge-type-tag wizard-badge-hidden-tag">Hidden</span><% } %>
                     </div>
                   </div>
-                  <form method="POST" action="/organizer/events/<%= event._id %>/badges/<%= badge.eventBadgeId %>" class="wizard-badge-form">
-                    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                  <%# Fields belong to a standalone form rendered after eventEditForm. A nested
+                      form would be flattened into the edit form by the browser and post a
+                      second _csrf value with every event save. %>
+                  <div class="wizard-badge-form">
                     <div class="wizard-badge-fields">
                       <label>
                         <span>Name</span>
-                        <input type="text" name="name" value="<%= badge.name %>" maxlength="120">
+                        <input type="text" name="name" value="<%= badge.name %>" maxlength="120" form="wizBadgeForm-<%= badge.eventBadgeId %>">
                       </label>
                       <label>
                         <span>Custom image</span>
                         <div class="wizard-badge-img-row">
-                          <input type="url" name="imageUrl" id="wizBadgeUrl-<%= badge.eventBadgeId %>" value="<%= badge.imageUrl || '' %>" placeholder="Upload or paste URL">
+                          <input type="url" name="imageUrl" form="wizBadgeForm-<%= badge.eventBadgeId %>" id="wizBadgeUrl-<%= badge.eventBadgeId %>" value="<%= badge.imageUrl || '' %>" placeholder="Upload or paste URL">
                           <label class="badge-upload-btn" title="Upload image">
                             <input type="file" accept="image/jpeg,image/png,image/webp" class="wiz-badge-file" data-badge-id="<%= badge.eventBadgeId %>" data-event-id="<%= event._id %>" style="display:none">
                             <i data-lucide="upload"></i>
@@ -729,13 +732,13 @@
                         </div>
                       </label>
                       <label class="wizard-badge-toggle">
-                        <input type="hidden" name="isVisible" value="0">
-                        <input type="checkbox" name="isVisible" value="1" <%= badge.isVisibleOnEventPage ? 'checked' : '' %>>
+                        <input type="hidden" name="isVisible" value="0" form="wizBadgeForm-<%= badge.eventBadgeId %>">
+                        <input type="checkbox" name="isVisible" value="1" form="wizBadgeForm-<%= badge.eventBadgeId %>" <%= badge.isVisibleOnEventPage ? 'checked' : '' %>>
                         <span>Show on event page</span>
                       </label>
                     </div>
-                    <button type="submit" class="btn btn-sm btn-primary wizard-badge-save">Save</button>
-                  </form>
+                    <button type="submit" class="btn btn-sm btn-primary wizard-badge-save" form="wizBadgeForm-<%= badge.eventBadgeId %>">Save</button>
+                  </div>
                 </article>
               <% }) %>
             </div>
@@ -1503,6 +1506,13 @@
         </div>
         </div>
       </form>
+      <% if (!(typeof isAdminEdit !== 'undefined' && isAdminEdit)) { %>
+        <% (locals.eventBadges || []).forEach((badge) => { %>
+          <form id="wizBadgeForm-<%= badge.eventBadgeId %>" method="POST" action="/organizer/events/<%= event._id %>/badges/<%= badge.eventBadgeId %>" hidden>
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          </form>
+        <% }) %>
+      <% } %>
     </section>
   </main>
 

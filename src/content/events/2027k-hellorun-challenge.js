@@ -107,16 +107,8 @@ The goal averages about 39 km per week across the year.
 ## Finisher rewards
 
 Every verified finisher earns a free digital certificate and finisher badge. You can choose
-whether your result appears on the public leaderboard.
-
-### Finisher Shirt + Medal Bundle · ₱1,099
-
-Free shipping within the Philippines.
-
-The optional bundle includes an antique-bronze finisher medal and a black technical shirt
-printed with “I covered 2,027 km in 2027.”
-
-${MERCHANDISE_PREVIEW_NOTE}
+whether your result appears on the public leaderboard. The optional Finisher Shirt + Medal
+Bundle, its price, and how to order it are shown with the finisher rewards on this page.
 
 ## Event poster
 

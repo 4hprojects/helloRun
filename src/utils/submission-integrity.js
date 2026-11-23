@@ -10,6 +10,7 @@ const {
   isStepsMismatch,
   isDateMismatch
 } = require('./ocr/ocr-integrity');
+const { normalizeRunType } = require('./activity-types');
 
 function compareSubmissionWithOcr({
   distanceKm,
@@ -177,10 +178,6 @@ function detectSuspiciousActivity({
   };
 }
 
-function normalizeRunType(value) {
-  const safe = String(value || '').trim().toLowerCase();
-  return ['run', 'walk', 'hike', 'trail_run'].includes(safe) ? safe : '';
-}
 
 function parseDateOnly(value) {
   if (!value) return null;

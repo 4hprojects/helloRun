@@ -1096,9 +1096,8 @@ function buildMerchandiseOffer(event) {
   const orderingOpen = merchandise.orderingState === 'open';
   return {
     name,
-    priceLabel: formatDisplayPrice(amount, merchandise.currency || 'PHP'),
+    priceLabel: formatMoney(amount, merchandise.currency || 'PHP', { symbol: true }),
     description: String(merchandise.description || '').trim(),
-    includedItems: normalizeList(merchandise.includedItems),
     shippingNote: String(merchandise.shippingNote || '').trim(),
     availabilityLabel: 'Available after verified completion',
     orderingOpen,
@@ -1111,17 +1110,6 @@ function buildMerchandiseOffer(event) {
       .filter((item) => /^https?:\/\//i.test(item.url))
       .slice(0, 4)
   };
-}
-
-// Peso amounts read as "₱1,099" in product copy; other currencies keep the ISO code.
-function formatDisplayPrice(amount, currency = 'PHP') {
-  const code = String(currency || 'PHP').trim().toUpperCase();
-  if (code !== 'PHP') return formatMoney(amount, code);
-  const value = Number(amount);
-  return `₱${value.toLocaleString('en-US', {
-    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
-    maximumFractionDigits: 2
-  })}`;
 }
 
 function buildTimeline(event) {
@@ -1389,10 +1377,13 @@ function formatDate(value) {
   return formatPlatformDate(value, 'Date not listed');
 }
 
-function formatMoney(amount, currency = 'PHP') {
+// `symbol: true` renders pesos as "₱1,099" for product copy; other currencies keep the code.
+function formatMoney(amount, currency = 'PHP', { symbol = false } = {}) {
   const value = Number(amount);
   if (!Number.isFinite(value)) return 'Amount not listed';
-  return `${currency || 'PHP'} ${value.toLocaleString('en-US', {
+  const code = currency || 'PHP';
+  const prefix = symbol && String(code).toUpperCase() === 'PHP' ? '₱' : `${code} `;
+  return `${prefix}${value.toLocaleString('en-US', {
     minimumFractionDigits: value % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2
   })}`;

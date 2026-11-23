@@ -31,6 +31,7 @@ const { issueSubmissionCertificate } = require('./certificate.service');
 const { invalidateLeaderboardCache } = require('./leaderboard.service');
 const { notifyWithRetry } = require('./reliable-communication.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
+const { RUN_TYPES } = require('../utils/activity-types');
 
 const MIN_REASON_LENGTH = 5;
 const MAX_REASON_LENGTH = 500;
@@ -40,7 +41,6 @@ const MAX_ELAPSED_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_ELEVATION_M = 20000;
 const MAX_STEPS = 200000;
 const MAX_DEVICE_LENGTH = 120;
-const RUN_TYPES = Object.freeze(['run', 'walk', 'hike', 'trail_run', 'treadmill']);
 
 const FIELD_LABELS = Object.freeze({
   distanceKm: 'Distance',
