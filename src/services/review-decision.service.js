@@ -32,6 +32,7 @@ const RUN_EVIDENCE_FIELDS = [
   // auto-approval relies on, the optional link and its check, and duplicate review signals.
   // Absent fields are simply not copied, so older entries record exactly as before.
   'serverOcr',
+  'ocrVerification',
   'activityUrl',
   'activityUrlVerification',
   'duplicateSignals'

@@ -1,4 +1,38 @@
 (function initRunProofModal() {
+  const scriptNonce = document.currentScript ? document.currentScript.nonce : '';
+  let ocrScriptsPromise = null;
+  const OCR_SCRIPT_URLS = [
+    '/js/vendor/tesseract/tesseract.min.js',
+    '/js/ocr/ocr-source-detector.js',
+    '/js/ocr/ocr-confidence.js',
+    '/js/ocr/ocr-identity.js',
+    '/js/ocr/ocr-location-resolver.js',
+    '/js/ocr-proof-reader.js',
+    '/js/ocr/ocr-parser.js',
+    '/js/run-proof-integrity.js'
+  ];
+  const ensureOcrScriptsLoaded = () => {
+    if (window.OcrProofReader) return Promise.resolve();
+    if (ocrScriptsPromise) return ocrScriptsPromise;
+    ocrScriptsPromise = OCR_SCRIPT_URLS.reduce((chain, src) => chain.then(() => new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[src="' + src + '"]');
+      if (existing && existing.dataset.loaded === '1') return resolve();
+      const script = existing || document.createElement('script');
+      script.addEventListener('load', () => { script.dataset.loaded = '1'; resolve(); }, { once: true });
+      script.addEventListener('error', () => reject(new Error('OCR script failed to load.')), { once: true });
+      if (!existing) {
+        script.src = src;
+        script.async = false;
+        if (scriptNonce) script.nonce = scriptNonce;
+        document.head.appendChild(script);
+      }
+    })), Promise.resolve()).catch((error) => {
+      ocrScriptsPromise = null;
+      throw error;
+    });
+    return ocrScriptsPromise;
+  };
+
   const onReady = () => {
     const modal = document.getElementById('runProofModal');
     if (!modal) return;
@@ -73,6 +107,10 @@
     const ocrNameMatchStatusInput = document.getElementById('runProofOcrNameMatchStatus');
     const imageHashInput = document.getElementById('runProofImageHash');
     const autoFillBannerEl = document.getElementById('runProofAutoFillBanner');
+    const dateSuggestionEl = document.getElementById('runProofDateSuggestion');
+    const dateSuggestionText = document.getElementById('runProofDateSuggestionText');
+    const useDetectedDateBtn = document.getElementById('runProofUseDetectedDate');
+    const keepChosenDateBtn = document.getElementById('runProofKeepChosenDate');
     const detectedSourceEl = document.getElementById('runProofDetectedSource');
     const nameMatchEl = document.getElementById('runProofNameMatch');
     const nameMismatchDialog = document.getElementById('runProofNameMismatchDialog');
@@ -118,6 +156,7 @@
     const postSubmitView = document.getElementById('runProofPostSubmitView');
     const postSubmitTitle = document.getElementById('runProofPostSubmitTitle');
     const postSubmitDesc = document.getElementById('runProofPostSubmitDesc');
+    const ocrTrainingConsentCheckbox = form.querySelector('[name="ocrTrainingConsent"]');
 
     if (
       !dialog || !form || !titleEl || !descEl || !submitBtn || !messageEl || !modeInput || !selectedIdsInput || !primaryRegistrationInput ||
@@ -170,7 +209,58 @@
       phase: 'date',
       hasReachedTargetStep: false,
       preferredTargetApplied: false,
-      manuallyDeselectedTargetIds: new Set()
+      manuallyDeselectedTargetIds: new Set(),
+      ocrDateSuggestion: '',
+      flowId: '',
+      flowStartedAt: 0,
+      analysisStartedAt: 0,
+      correctedFields: new Set()
+    };
+
+    const createFlowId = () => {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+      const bytes = new Uint8Array(16);
+      window.crypto.getRandomValues(bytes);
+      return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    };
+    const deviceClass = () => window.innerWidth <= 640 ? 'mobile' : window.innerWidth <= 1024 ? 'tablet' : 'desktop';
+    const targetKind = () => {
+      if (state.selectedRegistrationIds.size > 1) return 'event_multi';
+      const mode = String(state.modeConfig?.mode || '').toLowerCase();
+      if (mode.includes('resubmit')) return 'resubmission';
+      if (mode.includes('personal')) return 'personal_record';
+      return 'standard';
+    };
+    const detectedFields = (result) => [
+      result?.distance ? 'distance' : '', result?.time ? 'duration' : '', result?.date ? 'date' : '',
+      result?.runType ? 'type' : '', result?.elevationGain ? 'elevation' : '',
+      result?.steps !== null && result?.steps !== undefined ? 'steps' : '', result?.location ? 'location' : '',
+      result?.extractedName ? 'name' : ''
+    ].filter(Boolean);
+    const recordOcrEvent = (event, details = {}) => {
+      if (!state.flowId) return;
+      const csrf = form.querySelector('[name="_csrf"]')?.value || '';
+      fetch('/runner/ocr-events', {
+        method: 'POST',
+        credentials: 'same-origin',
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+        body: JSON.stringify({
+          flowId: state.flowId,
+          event,
+          latencyMs: details.latencyMs,
+          targetKind: targetKind(),
+          deviceClass: deviceClass(),
+          resultStatus: details.resultStatus || 'none',
+          detectedPlatform: details.detectedPlatform || state.ocrResult?.detectedSource || 'unknown',
+          fieldsDetected: details.fieldsDetected || []
+        })
+      }).catch(() => {});
+    };
+    const recordCorrection = (field, event) => {
+      if (!event?.isTrusted || !state.ocrResult || state.correctedFields.has(field)) return;
+      state.correctedFields.add(field);
+      recordOcrEvent('fields_corrected', { fieldsDetected: [field] });
     };
 
     const FLOW_PHASES = Object.freeze({
@@ -741,6 +831,8 @@
       dt.items.add(file);
       fileInput.files = dt.files;
       setFilePreview(file);
+      recordOcrEvent('screenshot_selected');
+      void ensureOcrScriptsLoaded().catch(() => {});
       validateImage();
       computeImageHash(file).then((hash) => {
         if (imageHashInput) imageHashInput.value = hash;
@@ -764,12 +856,14 @@
     };
 
     const clearOcrState = () => {
+      if (state.ocrRunning) recordOcrEvent('analysis_cancelled', { latencyMs: Date.now() - state.analysisStartedAt, resultStatus: 'cancelled' });
       state.ocrRunId += 1;
       state.ocrRunning = false;
       uploadDropzone.setAttribute('aria-busy', 'false');
       if (analyseBtn) analyseBtn.setAttribute('aria-busy', 'false');
       state.ocrResult = null;
-      state.ocrDateAdjusted = null;
+      state.ocrDateSuggestion = '';
+      if (dateSuggestionEl) dateSuggestionEl.hidden = true;
       setOcrStatus(OCR_WAITING_STATUS);
       if (analyseHint) analyseHint.hidden = true;
       if (ocrResultsEl) ocrResultsEl.hidden = true;
@@ -1003,13 +1097,14 @@
 
     const applyOcrAutoFill = (result) => {
       let filled = false;
-      state.ocrDateAdjusted = null;
-      if (result.distance && result.distance.valueKm > 0) {
+      state.ocrDateSuggestion = '';
+      if (dateSuggestionEl) dateSuggestionEl.hidden = true;
+      if (result.distance && result.distance.valueKm > 0 && !String(distanceInput.value || '').trim()) {
         distanceInput.value = String(result.distance.valueKm);
         distanceInput.dispatchEvent(new Event('input', { bubbles: true }));
         filled = true;
       }
-      if (result.time && result.time.totalMs > 0) {
+      if (result.time && result.time.totalMs > 0 && ![hoursInput, minutesInput, secondsInput].some((input) => String(input.value || '').trim())) {
         hoursInput.value = String(result.time.hours);
         minutesInput.value = String(result.time.minutes).padStart(2, '0');
         secondsInput.value = String(result.time.seconds).padStart(2, '0');
@@ -1017,33 +1112,34 @@
         filled = true;
       }
       if (result.date) {
-        const previousDate = getSelectedRunDateKey();
-        runDateInput.value = result.date;
-        filled = true;
-        // The screenshot date is authoritative — re-evaluate which events this run
-        // can count toward, and flag the change so the runner notices on review.
-        if (previousDate && previousDate !== result.date) {
-          state.ocrDateAdjusted = { from: previousDate, to: result.date };
+        const chosenDate = getSelectedRunDateKey();
+        if (!chosenDate) {
+          runDateInput.value = result.date;
+          filled = true;
+          validateDate();
+          recomputeAlignment();
+        } else if (chosenDate !== result.date) {
+          state.ocrDateSuggestion = result.date;
+          if (dateSuggestionText) dateSuggestionText.textContent = 'Screenshot suggests ' + result.date + '. You chose ' + chosenDate + '.';
+          if (dateSuggestionEl) dateSuggestionEl.hidden = false;
         }
-        validateDate();
-        recomputeAlignment();
       }
-      if (result.elevationGain && result.elevationGain.value >= 0 && elevationInput) {
+      if (result.elevationGain && result.elevationGain.value >= 0 && elevationInput && !String(elevationInput.value || '').trim()) {
         elevationInput.value = String(result.elevationGain.value);
         elevationInput.dispatchEvent(new Event('input', { bubbles: true }));
         filled = true;
       }
-      if (result.steps !== null && result.steps !== undefined && stepsInput) {
+      if (result.steps !== null && result.steps !== undefined && stepsInput && !String(stepsInput.value || '').trim()) {
         stepsInput.value = String(result.steps);
         stepsInput.dispatchEvent(new Event('input', { bubbles: true }));
         filled = true;
       }
-      if (result.location && locationInput) {
+      if (result.location && locationInput && !String(locationInput.value || '').trim()) {
         locationInput.value = result.location;
         locationInput.dispatchEvent(new Event('input', { bubbles: true }));
         filled = true;
       }
-      if (result.runType && chipList && runTypeInput) {
+      if (result.runType && chipList && runTypeInput && !String(runTypeInput.value || '').trim()) {
         const chip = chipList.querySelector('[data-run-type="' + result.runType + '"]');
         if (chip) {
           runTypeInput.value = result.runType;
@@ -1056,12 +1152,25 @@
         }
       }
       if (filled && autoFillBannerEl) {
-        autoFillBannerEl.textContent = state.ocrDateAdjusted
-          ? 'Run date updated to ' + state.ocrDateAdjusted.to + ' from your screenshot (you entered ' + state.ocrDateAdjusted.from + '). Eligible events were updated to match — review them below.'
-          : 'Auto-filled from your screenshot. Review and adjust if needed.';
+        autoFillBannerEl.textContent = 'Blank fields were filled from your screenshot. Your existing values were kept.';
         autoFillBannerEl.hidden = false;
       }
     };
+
+    if (useDetectedDateBtn) useDetectedDateBtn.addEventListener('click', () => {
+      if (!state.ocrDateSuggestion) return;
+      runDateInput.value = state.ocrDateSuggestion;
+      state.ocrDateSuggestion = '';
+      if (dateSuggestionEl) dateSuggestionEl.hidden = true;
+      validateDate();
+      recomputeAlignment();
+      updateOcrComparison();
+    });
+    if (keepChosenDateBtn) keepChosenDateBtn.addEventListener('click', () => {
+      state.ocrDateSuggestion = '';
+      if (dateSuggestionEl) dateSuggestionEl.hidden = true;
+      updateOcrComparison();
+    });
 
     const focusEventSelectionPanel = () => {
       if (!eventsList || typeof eventsList.focus !== 'function') return;
@@ -1178,6 +1287,8 @@
 
       clearOcrState();
       state.ocrRunning = true;
+      state.analysisStartedAt = Date.now();
+      recordOcrEvent('analysis_started');
       setFlowPhase(FLOW_PHASES.OCR_PROCESSING);
       uploadDropzone.setAttribute('aria-busy', 'true');
       if (analyseBtn) analyseBtn.setAttribute('aria-busy', 'true');
@@ -1219,6 +1330,12 @@
         uploadDropzone.setAttribute('aria-busy', 'false');
         if (analyseBtn) analyseBtn.setAttribute('aria-busy', 'false');
         state.ocrResult = result;
+        recordOcrEvent('analysis_completed', {
+          latencyMs: Date.now() - state.analysisStartedAt,
+          resultStatus: result.confidence > 0 && (result.distance || result.time) ? 'complete' : 'partial',
+          detectedPlatform: result.detectedSource || 'unknown',
+          fieldsDetected: detectedFields(result)
+        });
 
         setOcrStatus(OCR_READY_STATUS, { hidden: true });
         if (analyseHint) analyseHint.hidden = true;
@@ -1271,6 +1388,7 @@
           errorCode: 'OCR_TIMEOUT',
           errorMessage: 'We could not read the screenshot automatically. You can continue by entering the details manually.'
         };
+        recordOcrEvent('analysis_failed', { latencyMs: Date.now() - state.analysisStartedAt, resultStatus: 'timeout' });
         setOcrStatus(OCR_READY_STATUS, { hidden: true });
         if (analyseHint) analyseHint.hidden = true;
         if (ocrResultsEl && ocrSummaryEl) {
@@ -1724,6 +1842,7 @@
               text: String(payload.message || 'Unable to save your result right now.'),
               code: String(payload.code || ''),
               retryable: payload.retryable === true,
+              proofCheckQueued: payload.proofCheckQueued === true,
               fieldErrors: payload.fieldErrors && typeof payload.fieldErrors === 'object' ? payload.fieldErrors : {},
               submittedEntries: Array.isArray(payload.submittedEntries) ? payload.submittedEntries : []
             }
@@ -1732,6 +1851,10 @@
 
         if (resultMessage.type === 'success' || isDuplicate) {
           setFlowPhase(FLOW_PHASES.SUCCESS);
+          if (resultMessage.type === 'success') {
+            recordOcrEvent('submission_succeeded', { resultStatus: 'submitted' });
+            recordOcrEvent('flow_completed', { latencyMs: Date.now() - state.flowStartedAt, resultStatus: 'submitted' });
+          }
           if (resultMessage.type === 'success' && canStoreRunProofDraft) window.localStorage.removeItem(runProofDraftKey);
           // Dashboard-specific: refresh the result card on success
           if (resultMessage.type === 'success' && state.currentSurface === 'runner-dashboard') {
@@ -1745,15 +1868,18 @@
             if (postSubmitTitle) postSubmitTitle.textContent = 'Screenshot already submitted';
             if (postSubmitDesc) postSubmitDesc.textContent = 'This exact screenshot has already been submitted. Upload a different image to submit another entry, or view your existing submissions.';
           } else {
-            if (postSubmitTitle) postSubmitTitle.textContent = 'Run result submitted!';
+            if (postSubmitTitle) postSubmitTitle.textContent = resultMessage.proofCheckQueued ? 'Checking proof' : 'Run result submitted';
             if (postSubmitDesc) {
               const names = resultMessage.submittedEntries
                 ? resultMessage.submittedEntries.map((item) => String(item.eventTitle || '')).filter(Boolean)
                 : [];
               const manualNote = manualReviewSelected ? ' ' + MANUAL_REVIEW_NOTE : '';
+              const checkingNote = resultMessage.proofCheckQueued
+                ? ' HelloRun is checking the screenshot. You will see whether it was approved, needs organizer review, or could not be read.'
+                : ' The organizer will review the screenshot.';
               postSubmitDesc.textContent = names.length
-                ? 'Submitted to: ' + names.join(', ') + '.' + manualNote + ' What would you like to do next?'
-                : 'Your activity details and evidence were received for event result review.' + manualNote + ' What would you like to do next?';
+                ? 'Submitted to: ' + names.join(', ') + '.' + checkingNote + manualNote
+                : 'Your activity details and screenshot were received.' + checkingNote + manualNote;
             }
           }
 
@@ -1791,9 +1917,11 @@
         });
         if (firstInvalid && typeof firstInvalid.focus === 'function') firstInvalid.focus();
         setFlowPhase(FLOW_PHASES.RECOVERABLE_ERROR);
+        recordOcrEvent('submission_failed', { resultStatus: 'rejected' });
         setMessage(resultMessage.text + (resultMessage.retryable ? ' Your details are safe; try again when ready.' : ''), 'error');
       } catch (_error) {
         setFlowPhase(FLOW_PHASES.RECOVERABLE_ERROR);
+        recordOcrEvent('submission_failed', { resultStatus: 'failed' });
         setMessage('Unable to save your result right now. Your details are safe; check your connection and try again.', 'error');
       } finally {
         state.isSubmitting = false;
@@ -1819,6 +1947,11 @@
 
       state.lastTrigger = triggerElement || null;
       resetFormState();
+      state.flowId = createFlowId();
+      state.flowStartedAt = Date.now();
+      state.correctedFields = new Set();
+      recordOcrEvent('modal_opened');
+      if (ocrTrainingConsentCheckbox) recordOcrEvent('consent_shown');
       if (submissionAttemptInput) submissionAttemptInput.value = createSubmissionAttemptId();
       offerRunProofDraft();
 
@@ -2107,7 +2240,10 @@
     });
 
     [runDateInput, distanceInput, locationInput, trackingAppDeviceInput].filter(Boolean).forEach((input) => {
-      input.addEventListener('input', () => {
+      input.addEventListener('input', (event) => {
+        if (input === runDateInput) recordCorrection('date', event);
+        if (input === distanceInput) recordCorrection('distance', event);
+        if (input === locationInput) recordCorrection('location', event);
         if (input === runDateInput) { validateDate(); recomputeAlignment(); updateOcrComparison(); }
         if (input === distanceInput) { validateDistance(); updateOcrComparison(); if (state.hasReachedTargetStep) recomputeAlignment(); }
         if (input === locationInput) { validateLocation(); updateOcrComparison(); }
@@ -2123,13 +2259,14 @@
 
     [elevationInput, stepsInput].forEach((input) => {
       if (!input) return;
-      input.addEventListener('input', () => { validateOptionalMetrics(); updateOcrComparison(); });
+      input.addEventListener('input', (event) => { recordCorrection(input === elevationInput ? 'elevation' : 'steps', event); validateOptionalMetrics(); updateOcrComparison(); });
       input.addEventListener('blur', () => { validateOptionalMetrics(); updateOcrComparison(); });
     });
 
     const durationInputs = [hoursInput, minutesInput, secondsInput];
     durationInputs.forEach((input, index) => {
-      input.addEventListener('input', () => {
+      input.addEventListener('input', (event) => {
+        recordCorrection('duration', event);
         const numeric = String(input.value || '').replace(/[^0-9]/g, '').slice(0, 2);
         input.value = numeric;
         if (numeric.length === 2 && index < durationInputs.length - 1) {
@@ -2150,6 +2287,7 @@
       if (!chip) return;
 
       const value = String(chip.dataset.runType || '').trim();
+      recordCorrection('type', event);
       runTypeInput.value = value;
 
       chipList.querySelectorAll('.run-proof-chip').forEach((node) => {
@@ -2187,6 +2325,8 @@
       setFilePreview(selectedFile);
       validateImage();
       if (selectedFile) {
+        recordOcrEvent('screenshot_selected');
+        void ensureOcrScriptsLoaded().catch(() => {});
         computeImageHash(selectedFile).then((hash) => {
           if (imageHashInput) imageHashInput.value = hash;
         });
@@ -2249,7 +2389,7 @@
       openFilePicker();
     });
 
-    const triggerAnalyse = () => {
+    const triggerAnalyse = async () => {
       const selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
       if (!selectedFile || state.ocrRunning) return;
       // OCR already ran for the current file — go straight to step 2
@@ -2265,6 +2405,14 @@
       if (analyseHint) {
         analyseHint.textContent = OCR_ANALYSING_HINT;
         analyseHint.hidden = false;
+      }
+      try {
+        await ensureOcrScriptsLoaded();
+      } catch (_error) {
+        state.ocrResult = { ok: false, errorCode: 'OCR_READER_MISSING', errorMessage: 'Image analysis is unavailable. Continue by entering your run details manually.' };
+        recordOcrEvent('analysis_failed', { resultStatus: 'failed' });
+        goToStep(2);
+        return;
       }
       computeImageHash(selectedFile).then((hash) => {
         if (imageHashInput) imageHashInput.value = hash;
@@ -2554,13 +2702,6 @@
       if (eventNames.length > 1) {
         submitReviewRows.appendChild(makeReviewRow('Submitting to', eventNames.length + ' events'));
       }
-      if (state.ocrDateAdjusted) {
-        submitReviewRows.appendChild(makeReviewRow(
-          'Run date',
-          'Updated to ' + state.ocrDateAdjusted.to + ' from your screenshot',
-          'warn'
-        ));
-      }
       state.targetKind = getSelectedTargetKind();
       const targetLabels = {
         standard: 'Event Result',
@@ -2680,6 +2821,7 @@
 
     const showSubmitReview = () => {
       setFlowPhase(FLOW_PHASES.CONFIRMATION);
+      recordOcrEvent('review_opened');
       buildSubmitReview();
       appendIntegrityReviewWarnings();
       if (honorSystemCheckbox) honorSystemCheckbox.checked = false;
@@ -2773,6 +2915,12 @@
       honorSystemCheckbox.addEventListener('change', () => {
         if (honorSystemConfirmedField) honorSystemConfirmedField.value = honorSystemCheckbox.checked ? '1' : '';
         if (submitReviewConfirm) submitReviewConfirm.disabled = !honorSystemCheckbox.checked;
+      });
+    }
+
+    if (ocrTrainingConsentCheckbox) {
+      ocrTrainingConsentCheckbox.addEventListener('change', () => {
+        if (ocrTrainingConsentCheckbox.checked) recordOcrEvent('consent_granted');
       });
     }
 

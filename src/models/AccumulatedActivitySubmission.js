@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const { organizerCorrectionSchema } = require('./organizer-correction.schema');
 const { serverOcrSchema } = require('./server-ocr.schema');
+const { ocrVerificationSchema } = require('./ocr-verification.schema');
 const { activityUrlSchema, activityUrlVerificationSchema, duplicateSignalSchema, ocrTrainingConsentSchema } = require('./activity-evidence.schema');
 const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 const { applyRestrictedProviderScope } = require('../utils/restricted-provider-scope');
@@ -287,6 +288,7 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
     // Server re-read of the stored proof (Phase 1 of docs/improvement-plan/ocr-platform-aware).
     // Absent on entries submitted while OCR_SERVER_PIPELINE_ENABLED was off.
     serverOcr: { type: serverOcrSchema, default: undefined },
+    ocrVerification: { type: ocrVerificationSchema, default: undefined },
     // 64-bit difference hash of the proof image for near-duplicate review flags.
     proofDifferenceHash: { type: String, trim: true, default: '', maxlength: 16 },
     // Optional activity link (Phase 2). Corroboration for reviewers, never proof on its own.

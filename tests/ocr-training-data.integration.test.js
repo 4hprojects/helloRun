@@ -82,7 +82,15 @@ test.describe('ground truth and datasets against local MongoDB', { skip }, () =>
     const [sample] = await TrainingSample.find({ fieldKey: 'distance' }).limit(1);
     await assert.rejects(samples.reviewSample({ sampleId: sample._id, version: sample.__v, action: 'approve', transcribedText: '', alignmentConfirmed: true }), { code: 'transcription_required' });
     await assert.rejects(samples.reviewSample({ sampleId: sample._id, version: sample.__v, action: 'approve', transcribedText: 'Distance 5.02 km', alignmentConfirmed: false }), { code: 'alignment_required' });
-    const approved = await samples.reviewSample({ sampleId: sample._id, version: sample.__v, action: 'approve', transcribedText: 'Distance 5.02 km', alignmentConfirmed: true });
+    const approved = await samples.reviewSample({
+      sampleId: sample._id,
+      version: sample.__v,
+      action: 'approve',
+      transcribedText: 'Distance 5.02 km',
+      alignmentConfirmed: true,
+      verifiedPlatform: 'strava',
+      verifiedLayoutId: 'activity-card'
+    });
     assert.equal(approved.sample.status, 'approved');
     assert.equal(approved.sample.eligibility, 'eligible');
     await assert.rejects(

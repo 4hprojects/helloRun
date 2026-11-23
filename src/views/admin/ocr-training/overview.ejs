@@ -7,58 +7,75 @@
 </head>
 <body>
   <%- include('../../layouts/nav') %>
-  <main class="admin-page">
+  <main class="admin-page ocr-admin-page ocr-overview-page" id="main-content">
     <section class="section admin-shell">
       <%- include('_header') %>
 
-      <h2 class="dashboard-section-title">Extraction queue</h2>
-      <div class="dashboard-grid">
+      <section class="ocr-panel" aria-labelledby="ocr-next-actions-heading">
+        <div class="ocr-section-heading">
+          <div><h2 id="ocr-next-actions-heading">System state and next actions</h2><p>Start with blocked or pending work before changing profiles, datasets or models.</p></div>
+          <span class="ocr-pill"><%= extras.rolloutState || 'Rollout state unavailable' %></span>
+        </div>
+        <ul class="ocr-action-list">
+          <% if ((queue.failed || 0) > 0 || (extras.stuckJobs || 0) > 0) { %><li><a href="/admin/ocr-training/jobs">Inspect <%= queue.failed || 0 %> failed and <%= extras.stuckJobs || 0 %> stuck jobs</a></li><% } %>
+          <% if (extras.samples && extras.samples.pending > 0) { %><li><a href="/admin/ocr-training/samples">Review <%= extras.samples.pending %> pending training samples</a></li><% } %>
+          <% if (!extras.samples || extras.samples.pending === 0) { %><li><a href="/admin/ocr-training/analytics">Check data coverage and workflow funnel</a></li><% } %>
+          <li><a href="/admin/ocr-training/models">Review dataset and model approval work</a></li>
+        </ul>
+      </section>
+
+      <div class="ocr-section-heading">
+        <div><h2>Extraction queue</h2><p>Current pipeline workload and training readiness.</p></div>
+      </div>
+      <div class="ocr-summary-grid">
         <% ['queued', 'running', 'completed', 'failed'].forEach((status) => { %>
-          <article class="metric-card">
-            <p class="metric-label"><%= status %></p>
-            <p class="metric-value"><%= queue[status] || 0 %></p>
+          <article class="ocr-summary-card">
+            <strong><%= queue[status] || 0 %></strong>
+            <span><%= status %></span>
           </article>
         <% }) %>
         <% if (extras && extras.samples) { %>
-          <article class="metric-card">
-            <p class="metric-label">Samples pending review</p>
-            <p class="metric-value"><%= extras.samples.pending || 0 %></p>
+          <article class="ocr-summary-card">
+            <strong><%= extras.samples.pending || 0 %></strong>
+            <span>Samples pending review</span>
           </article>
-          <article class="metric-card">
-            <p class="metric-label">Approved eligible samples</p>
-            <p class="metric-value"><%= extras.samples.eligible || 0 %></p>
+          <article class="ocr-summary-card">
+            <strong><%= extras.samples.eligible || 0 %></strong>
+            <span>Approved eligible samples</span>
           </article>
         <% } %>
         <% if (extras && extras.activeModel) { %>
-          <article class="metric-card">
-            <p class="metric-label">Active model</p>
-            <p class="metric-value metric-value-sm"><%= extras.activeModel.label %></p>
+          <article class="ocr-summary-card">
+            <strong><%= extras.activeModel.label %></strong>
+            <span>Active model</span>
           </article>
         <% } %>
         <% if (extras && extras.trainingJob) { %>
-          <article class="metric-card">
-            <p class="metric-label">Training job</p>
-            <p class="metric-value metric-value-sm"><%= extras.trainingJob.status %></p>
+          <article class="ocr-summary-card">
+            <strong><%= extras.trainingJob.status %></strong>
+            <span>Training job</span>
           </article>
         <% } %>
       </div>
+
+      <% if (extras.coverage) { %><section class="ocr-panel" aria-labelledby="ocr-coverage-heading"><div class="ocr-section-heading"><div><h2 id="ocr-coverage-heading">Data coverage</h2><p>Stored records observed during the last 30 days.</p></div><a href="/admin/ocr-training/analytics">Open coverage details</a></div><div class="ocr-summary-grid"><div class="ocr-summary-card"><strong><%= extras.coverage.submissionsObserved %></strong><span>Submissions</span></div><div class="ocr-summary-card"><strong><%= extras.coverage.browserOcrObserved %></strong><span>Browser readings</span></div><div class="ocr-summary-card"><strong><%= extras.coverage.serverOcrObserved %></strong><span>Server readings</span></div><div class="ocr-summary-card"><strong><%= extras.coverage.reviewedObserved %></strong><span>Reviewed</span></div></div></section><% } %>
 
       <div class="ocr-panel-grid">
         <section class="ocr-panel" aria-labelledby="ocr-detected-heading">
           <h2 id="ocr-detected-heading">Server OCR, last 30 days</h2>
           <% if (!breakdown.length) { %>
-            <p class="ocr-empty">No server extractions yet. They appear once OCR_SERVER_PIPELINE_ENABLED is on and proofs are submitted.</p>
+            <p class="ocr-empty">No server extractions yet. Enable “Server screenshot reading” in a separately approved deployment, then submit proofs in shadow mode.</p>
           <% } else { %>
             <div class="admin-users-table-wrap">
-              <table class="admin-table">
+              <table class="admin-table ocr-table ocr-responsive-table">
                 <thead><tr><th>Platform</th><th>Detection</th><th>Extractions</th><th>Avg time</th></tr></thead>
                 <tbody>
                   <% breakdown.forEach((row) => { %>
                     <tr>
-                      <td><%= row.platform %></td>
-                      <td><span class="ocr-pill ocr-pill-<%= row.detectionStatus %>"><%= row.detectionStatus || 'n/a' %></span></td>
-                      <td><%= row.count %></td>
-                      <td><%= row.avgElapsedMs === null ? 'N/A' : `${row.avgElapsedMs} ms` %></td>
+                      <td data-label="Platform"><%= row.platform %></td>
+                      <td data-label="Detection"><span class="ocr-pill ocr-pill-<%= row.detectionStatus %>"><%= row.detectionStatus || 'n/a' %></span></td>
+                      <td data-label="Extractions"><%= row.count %></td>
+                      <td data-label="Average time"><%= row.avgElapsedMs === null ? 'N/A' : `${row.avgElapsedMs} ms` %></td>
                     </tr>
                   <% }) %>
                 </tbody>
@@ -70,7 +87,7 @@
 
         <section class="ocr-panel" aria-labelledby="ocr-profiles-heading">
           <h2 id="ocr-profiles-heading">Profiles</h2>
-          <ul>
+          <ul class="ocr-profile-list">
             <% profiles.forEach((profile) => { %>
               <li><strong><%= profile.id %></strong> <%= profile.version %> <span class="ocr-pill ocr-pill-<%= profile.status %>"><%= profile.status %></span></li>
             <% }) %>
@@ -85,18 +102,18 @@
           <p class="ocr-empty">No extraction jobs yet.</p>
         <% } else { %>
           <div class="admin-users-table-wrap">
-            <table class="admin-table ocr-table">
+            <table class="admin-table ocr-table ocr-responsive-table">
               <thead><tr><th>Queued</th><th>Status</th><th>Reason</th><th>Entries</th><th>Attempts</th><th>Time</th><th>Error</th></tr></thead>
               <tbody>
                 <% recentJobs.forEach((job) => { %>
                   <tr>
-                    <td><%= formatDateTime(job.createdAt) %></td>
-                    <td><span class="ocr-pill ocr-pill-<%= job.status %>"><%= job.status %></span></td>
-                    <td><%= job.options?.reason || 'submission' %></td>
-                    <td><%= (job.targets || []).length %></td>
-                    <td><%= job.attempts %></td>
-                    <td><%= job.elapsedMs ? `${job.elapsedMs} ms` : '—' %></td>
-                    <td><%= job.errorCode || '—' %></td>
+                    <td data-label="Queued"><%= formatDateTime(job.createdAt) %></td>
+                    <td data-label="Status"><span class="ocr-pill ocr-pill-<%= job.status %>"><%= job.status %></span></td>
+                    <td data-label="Reason"><%= job.options?.reason || 'submission' %></td>
+                    <td data-label="Entries"><%= (job.targets || []).length %></td>
+                    <td data-label="Attempts"><%= job.attempts %></td>
+                    <td data-label="Time"><%= job.elapsedMs ? `${job.elapsedMs} ms` : '—' %></td>
+                    <td data-label="Error"><%= job.errorCode || '—' %></td>
                   </tr>
                 <% }) %>
               </tbody>
@@ -107,6 +124,7 @@
     </section>
   </main>
   <%- include('../../layouts/footer') %>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/admin-ocr.js"></script>
   <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 </body>
 </html>

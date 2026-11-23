@@ -56,8 +56,8 @@ function buildDatasetPlan(samples, thresholds) {
       cropKey: sample.cropKey,
       cropChecksum: sample.cropChecksum,
       transcribedText: String(sample.transcribedText || '').trim(),
-      platform: sample.platform || 'unknown',
-      layoutId: sample.layoutId || '',
+      platform: sample.verifiedPlatform,
+      layoutId: sample.verifiedLayoutId || '',
       fieldKey: sample.fieldKey || ''
     });
   }
@@ -114,9 +114,10 @@ async function loadEligibleSamples(now = new Date()) {
     cropDeletedAt: null,
     consentBasis: { $in: CONSENT_BASES },
     alignmentConfirmed: true,
+    verifiedPlatform: { $gt: '' },
     transcribedText: { $gt: '' },
     $or: [{ retentionExpiry: null }, { retentionExpiry: { $gt: now } }]
-  }).select('_id activityGroupId cropKey cropChecksum transcribedText platform layoutId fieldKey consentBasis').lean();
+  }).select('_id activityGroupId cropKey cropChecksum transcribedText verifiedPlatform verifiedLayoutId fieldKey consentBasis').lean();
 }
 
 /** Create an immutable snapshot of every currently eligible sample. */

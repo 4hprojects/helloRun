@@ -29,6 +29,7 @@ const { resolveEventAccess } = require('./event-access.service');
 const { recordReviewDecisionInBackground } = require('./review-decision.service');
 const { applyLinkedReview } = require('./linked-entry-review.service');
 const { isManualSubmissionReview, normalizeSubmissionReviewMode } = require('../utils/submission-review-mode');
+const { buildOcrVerification } = require('../utils/ocr/reviewer-verification');
 
 const APPROVABLE_STATUS = new Set(['submitted', 'rejected']);
 const REJECTABLE_STATUS = new Set(['submitted']);
@@ -393,6 +394,7 @@ async function resubmitSubmission({
   existing.duplicateSignals = payload.duplicateSignals;
   existing.ocrTrainingConsent = payload.ocrTrainingConsent;
   existing.serverOcr = undefined;
+  existing.ocrVerification = undefined;
   existing.proofDifferenceHash = '';
   existing.status = 'submitted';
   existing.submissionCount = payload.submissionCount;
@@ -428,6 +430,7 @@ async function reviewSubmission({
   rejectionCode,
   checklistVersion,
   verifiedCriteria,
+  ocrVerificationStatus,
   requireVerification = false,
   // Ordinary review treats an approved result as final. Reversing one is a separate,
   // separately-audited capability that unwinds the certificate, badges and ranking, so
@@ -489,6 +492,10 @@ async function reviewSubmission({
     rejectionReason: '',
     rejectionCode: ''
   };
+  if (!linkedFrom && !isApprovalReversal) {
+    const ocrVerification = buildOcrVerification(submission, ocrVerificationStatus, organizerId, reviewedAt);
+    if (ocrVerification) update.ocrVerification = ocrVerification;
+  }
 
   if (safeAction === 'approve') {
     // The checklist was confirmed on the source entry of a linked decision.

@@ -170,6 +170,13 @@
 
         <div id="runProofStep2" class="run-proof-final-step" hidden>
           <p class="run-proof-autofill-banner" id="runProofAutoFillBanner" hidden role="status">Auto-filled from your screenshot. Review and adjust if needed.</p>
+          <div class="run-proof-detected-suggestion" id="runProofDateSuggestion" hidden>
+            <p id="runProofDateSuggestionText" role="status"></p>
+            <div>
+              <button type="button" class="btn btn-primary" id="runProofUseDetectedDate">Use detected date</button>
+              <button type="button" class="btn btn-outline" id="runProofKeepChosenDate">Keep chosen date</button>
+            </div>
+          </div>
           <div class="run-proof-ocr-results" id="runProofOcrResults" hidden aria-live="polite">
             <span class="run-proof-ocr-summary" id="runProofOcrSummary"></span>
             <span class="run-proof-detected-source" id="runProofDetectedSource" hidden></span>

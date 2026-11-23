@@ -1,34 +1,69 @@
-<div class="admin-header-row">
-  <div>
-    <h1>OCR Training Center</h1>
-    <p>Platform-aware OCR, reviewed ground truth, manual training and model control.</p>
+<% const sectionMeta = {
+  overview: ['OCR Training Center', 'Monitor extraction health, review pending work and choose the next safe action.'],
+  analytics: ['OCR analytics', 'Measure coverage, extraction quality, reviewer effort and workflow outcomes.'],
+  audit: ['Audit trail', 'Review the latest administrative changes across OCR training and deployment.'],
+  samples: ['Training samples', 'Review literal text crops and prepare immutable dataset snapshots.'],
+  platforms: ['Platforms and test OCR', 'Manage detection profiles and inspect one-off pipeline diagnostics.'],
+  jobs: ['Training jobs and backfill', 'Check worker readiness, run controlled training and manage historical backfill.'],
+  models: ['Models and deployment', 'Compare candidates, approve evaluated models and control production activation.'],
+  settings: ['OCR settings', 'Configure reminders, quality gates, data basis, retention and training limits.']
+}; %>
+<% const currentMeta = sectionMeta[section] || sectionMeta.overview; %>
+<header class="ocr-page-header">
+  <nav class="ocr-breadcrumbs" aria-label="Breadcrumb">
+    <a href="/admin/dashboard">Admin</a><span aria-hidden="true">/</span><a href="/admin/ocr-training">OCR training</a><span aria-hidden="true">/</span><span aria-current="page"><%= currentMeta[0] %></span>
+  </nav>
+  <div class="ocr-title-row">
+    <div>
+      <h1><%= currentMeta[0] %></h1>
+      <p><%= currentMeta[1] %></p>
+    </div>
+    <a href="/admin/dashboard" class="btn btn-secondary">Admin dashboard</a>
   </div>
-  <div class="admin-user-header-actions">
-    <a href="/admin/dashboard" class="btn btn-secondary">Admin Dashboard</a>
-  </div>
-</div>
-<% const ocrTabs = [
-  ['overview', '/admin/ocr-training', 'Overview'],
-  ['samples', '/admin/ocr-training/samples', 'Samples'],
-  ['platforms', '/admin/ocr-training/platforms', 'Platforms'],
-  ['jobs', '/admin/ocr-training/jobs', 'Jobs'],
-  ['models', '/admin/ocr-training/models', 'Models'],
-  ['analytics', '/admin/ocr-training/analytics', 'Analytics'],
-  ['settings', '/admin/ocr-training/settings', 'Settings'],
-  ['audit', '/admin/ocr-training/audit', 'Audit']
+</header>
+<% const navGroups = [
+  ['monitor', 'Monitor', [
+    ['overview', '/admin/ocr-training', 'Overview'],
+    ['analytics', '/admin/ocr-training/analytics', 'Analytics'],
+    ['audit', '/admin/ocr-training/audit', 'Audit']
+  ]],
+  ['improve', 'Improve', [
+    ['samples', '/admin/ocr-training/samples', 'Samples'],
+    ['platforms', '/admin/ocr-training/platforms', 'Platforms']
+  ]],
+  ['train', 'Train', [
+    ['jobs', '/admin/ocr-training/jobs', 'Jobs'],
+    ['models', '/admin/ocr-training/models', 'Models']
+  ]],
+  ['configure', 'Configure', [
+    ['settings', '/admin/ocr-training/settings', 'Settings']
+  ]]
 ]; %>
-<nav aria-label="OCR Training Center sections">
-  <ul class="ocr-tabs">
-    <% ocrTabs.forEach(([key, href, label]) => { %>
-      <li><a href="<%= href %>" <%= section === key ? 'aria-current=page' : '' %>><%= label %></a></li>
+<nav class="ocr-section-nav" aria-label="OCR Training Center sections" data-ocr-section-nav>
+  <div class="ocr-section-nav-track">
+    <% navGroups.forEach(([groupKey, groupLabel, links]) => { %>
+      <div class="ocr-nav-group" role="group" aria-labelledby="ocr-nav-<%= groupKey %>">
+        <span class="ocr-nav-group-label" id="ocr-nav-<%= groupKey %>"><%= groupLabel %></span>
+        <ul>
+          <% links.forEach(([key, href, label]) => { %>
+            <li><a href="<%= href %>"<% if (section === key) { %> aria-current="page" data-ocr-active-tab<% } %>><%= label %></a></li>
+          <% }) %>
+        </ul>
+      </div>
+    <% }) %>
+  </div>
+</nav>
+<section class="ocr-feature-state" aria-labelledby="ocr-feature-state-heading">
+  <div>
+    <h2 id="ocr-feature-state-heading">Runtime features</h2>
+    <p>Deployment-controlled switches. Select a status to reveal its environment variable.</p>
+  </div>
+  <ul class="ocr-flags">
+    <% (flags || []).forEach((flag) => { %>
+      <li><details><summary><span class="ocr-pill <%= flag.enabled ? 'ocr-pill-on' : '' %>"><%= flag.label %>: <%= flag.enabled ? 'on' : 'off' %></span></summary><code><%= flag.name %></code></details></li>
     <% }) %>
   </ul>
-</nav>
-<ul class="ocr-flags" aria-label="Feature flags">
-  <% (flags || []).forEach((flag) => { %>
-    <li><span class="ocr-pill <%= flag.enabled ? 'ocr-pill-on' : '' %>"><%= flag.name %>: <%= flag.enabled ? 'on' : 'off' %></span></li>
-  <% }) %>
-</ul>
+</section>
 <% if (message) { %>
   <div class="admin-alert admin-alert-<%= message.type %>" role="status"><%= message.text %></div>
 <% } %>

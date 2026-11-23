@@ -7,25 +7,24 @@
 </head>
 <body>
   <%- include('../../layouts/nav') %>
-  <main class="admin-page">
+  <main class="admin-page ocr-admin-page ocr-platforms-page" id="main-content">
     <section class="section admin-shell">
       <%- include('_header') %>
 
       <section class="ocr-panel" aria-labelledby="ocr-profiles-heading">
-        <h2 id="ocr-profiles-heading">Platform and layout profiles</h2>
-        <p class="ocr-help">Only <strong>active</strong> profiles can confirm a platform in production. A <strong>test</strong> profile's anchors are unvalidated until it passes a regression run on consented, labelled screenshots. The generic fallback is always active.</p>
+        <div class="ocr-section-heading"><div><h2 id="ocr-profiles-heading">Platform and layout profiles</h2><p>Only <strong>active</strong> profiles can confirm a platform in production. Test profiles require a labelled regression run; the generic fallback remains active.</p></div></div>
         <div class="admin-users-table-wrap">
-          <table class="admin-table ocr-table">
+          <table class="admin-table ocr-table ocr-responsive-table">
             <thead><tr><th>Profile</th><th>Version</th><th>Status</th><th>Brand evidence</th><th>Layout anchors</th><th>Change status</th></tr></thead>
             <tbody>
               <% profiles.forEach((profile) => { %>
                 <tr>
-                  <td><strong><%= profile.id %></strong></td>
-                  <td><%= profile.version %></td>
-                  <td><span class="ocr-pill ocr-pill-<%= profile.status %>"><%= profile.status %></span></td>
-                  <td><%= profile.brandPatterns.join(' · ') || '—' %></td>
-                  <td><%= profile.anchorPatterns.length %> pattern<%= profile.anchorPatterns.length === 1 ? '' : 's' %></td>
-                  <td>
+                  <td data-label="Profile"><strong><%= profile.id %></strong></td>
+                  <td data-label="Version"><%= profile.version %></td>
+                  <td data-label="Status"><span class="ocr-pill ocr-pill-<%= profile.status %>"><%= profile.status %></span></td>
+                  <td data-label="Brand evidence"><%= profile.brandPatterns.join(' · ') || '—' %></td>
+                  <td data-label="Layout anchors"><%= profile.anchorPatterns.length %> pattern<%= profile.anchorPatterns.length === 1 ? '' : 's' %></td>
+                  <td data-label="Change status">
                     <% if (profile.id === 'generic') { %>
                       <span class="ocr-help">Always active</span>
                     <% } else { %>
@@ -60,9 +59,8 @@
       </section>
 
       <section class="ocr-panel" aria-labelledby="ocr-test-heading">
-        <h2 id="ocr-test-heading">Test OCR</h2>
-        <p class="ocr-help">Runs the server pipeline on one screenshot and shows the diagnostics. Nothing is stored: no file, no extraction, no training sample. Use only screenshots you are permitted to process.</p>
-        <form method="POST" action="/admin/ocr-training/platforms/test" enctype="multipart/form-data" class="ocr-form-row">
+        <div class="ocr-section-heading"><div><h2 id="ocr-test-heading">Test OCR</h2><p>Run one permitted screenshot through the server pipeline. The file, extraction and result are not stored.</p></div></div>
+        <form method="POST" action="/admin/ocr-training/platforms/test" enctype="multipart/form-data" class="ocr-form-row ocr-toolbar">
           <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
           <label>Screenshot (JPEG, PNG or WebP, up to <%= Math.round((limits.maxProofBytes || 0) / 1048576) %> MB)
             <input type="file" name="ocrTestImage" accept="image/jpeg,image/png,image/webp" required>
@@ -87,7 +85,7 @@
 
       <% if (testResult) { %>
         <section class="ocr-panel" aria-labelledby="ocr-result-heading">
-          <h2 id="ocr-result-heading">Test result <span class="ocr-pill ocr-pill-<%= testResult.status %>"><%= testResult.status %></span></h2>
+          <div class="ocr-section-heading"><div><h2 id="ocr-result-heading">Test result</h2><p>Pipeline output for this one-off diagnostic run.</p></div><span class="ocr-pill ocr-pill-<%= testResult.status %>"><%= testResult.status %></span></div>
           <% if (testResult.errorCode) { %><p>Error code: <strong><%= testResult.errorCode %></strong></p><% } %>
           <% if (testResult.detection) { %>
             <p>
@@ -103,17 +101,17 @@
           <% } %>
           <% if (testResult.fields.length) { %>
             <div class="admin-users-table-wrap">
-              <table class="admin-table ocr-table">
+              <table class="admin-table ocr-table ocr-responsive-table">
                 <thead><tr><th>Field</th><th>Value</th><th>Kind</th><th>Pass</th><th>Line text</th><th>Line confidence</th></tr></thead>
                 <tbody>
                   <% testResult.fields.forEach((field) => { %>
                     <tr>
-                      <td><%= field.key %></td>
-                      <td><%= field.display || '—' %></td>
-                      <td><%= field.kind || '—' %></td>
-                      <td><%= field.sourcePass || '—' %></td>
-                      <td><%= field.rawText || '—' %></td>
-                      <td><%= field.lineConfidence === null ? '—' : field.lineConfidence %></td>
+                      <td data-label="Field"><%= field.key %></td>
+                      <td data-label="Value"><%= field.display || '—' %></td>
+                      <td data-label="Kind"><%= field.kind || '—' %></td>
+                      <td data-label="Pass"><%= field.sourcePass || '—' %></td>
+                      <td data-label="Line text"><%= field.rawText || '—' %></td>
+                      <td data-label="Confidence"><%= field.lineConfidence === null ? '—' : field.lineConfidence %></td>
                     </tr>
                   <% }) %>
                 </tbody>
@@ -132,6 +130,7 @@
     </section>
   </main>
   <%- include('../../layouts/footer') %>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/admin-ocr.js"></script>
   <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 </body>
 </html>

@@ -29,6 +29,8 @@ function sample(id, group, overrides = {}) {
     transcribedText: `5.0${id} km`,
     platform: 'strava',
     layoutId: 'strava/tall-light',
+    verifiedPlatform: 'strava',
+    verifiedLayoutId: 'strava/tall-light',
     fieldKey: 'distance',
     ...overrides
   };
@@ -86,12 +88,13 @@ test('readiness fails closed until thresholds are met and owner-approved', () =>
 });
 
 test('eligibility requires approval, consent, literal text, alignment, a crop and unexpired retention', () => {
-  const ok = { status: 'approved', consentBasis: 'participant_opt_in', transcribedText: '5.02 km', alignmentConfirmed: true, cropDeletedAt: null, retentionExpiry: new Date(Date.now() + 60_000) };
+  const ok = { status: 'approved', consentBasis: 'participant_opt_in', transcribedText: '5.02 km', alignmentConfirmed: true, verifiedPlatform: 'strava', cropDeletedAt: null, retentionExpiry: new Date(Date.now() + 60_000) };
   assert.deepEqual(computeIneligibleReasons(ok), []);
   assert.deepEqual(computeIneligibleReasons({ ...ok, status: 'pending' }), ['not_approved']);
   assert.deepEqual(computeIneligibleReasons({ ...ok, consentBasis: '' }), ['no_consent_basis']);
   assert.deepEqual(computeIneligibleReasons({ ...ok, transcribedText: '  ' }), ['empty_transcription']);
   assert.deepEqual(computeIneligibleReasons({ ...ok, alignmentConfirmed: false }), ['alignment_not_confirmed']);
+  assert.deepEqual(computeIneligibleReasons({ ...ok, verifiedPlatform: '' }), ['platform_not_verified']);
   assert.deepEqual(computeIneligibleReasons({ ...ok, cropDeletedAt: new Date() }), ['crop_deleted']);
   assert.deepEqual(computeIneligibleReasons({ ...ok, retentionExpiry: new Date(Date.now() - 1) }), ['retention_expired']);
 });

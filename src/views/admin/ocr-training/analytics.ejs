@@ -7,31 +7,56 @@
 </head>
 <body>
   <%- include('../../layouts/nav') %>
-  <main class="admin-page">
+  <main class="admin-page ocr-admin-page ocr-analytics-page" id="main-content">
     <section class="section admin-shell">
       <%- include('_header') %>
       <% const fmt = (rateValue) => (typeof rateValue === 'number' ? `${(rateValue * 100).toFixed(1)}%` : 'N/A'); %>
+      <% const coverage = analytics.coverage || { submissionsObserved: 0, browserOcrObserved: 0, serverOcrObserved: 0, reviewedObserved: 0, telemetryEventsObserved: 0 }; %>
+      <% const browserOcr = analytics.browserOcr || []; %>
+      <% const funnel = analytics.funnel || { events: {}, completionRate: 'N/A', analysisFailureRate: 'N/A', consentGrantRate: 'N/A' }; %>
 
-      <form method="GET" action="/admin/ocr-training/analytics" class="ocr-form-row" aria-label="Analytics window">
-        <label>Window
+      <form method="GET" action="/admin/ocr-training/analytics" class="ocr-form-row ocr-analytics-controls" aria-label="Analytics window" aria-describedby="analytics-window-help">
+        <label><span>Reporting window</span>
           <select name="days">
             <% windows.forEach((days) => { %><option value="<%= days %>" <%= analytics.windowDays === days ? 'selected' : '' %>>Last <%= days %> days</option><% }) %>
           </select>
         </label>
-        <button type="submit" class="btn btn-secondary">Show</button>
+        <button type="submit" class="btn">Update view</button>
         <% if (canExport) { %>
-          <a class="btn btn-secondary" href="/admin/ocr-training/analytics/research-export.csv?days=<%= analytics.windowDays %>">Research export (CSV, aggregates only)</a>
+          <a class="btn btn-secondary ocr-export-action" href="/admin/ocr-training/analytics/research-export.csv?days=<%= analytics.windowDays %>">Export aggregate CSV</a>
         <% } %>
+        <p class="ocr-help" id="analytics-window-help">Metrics use stored records since <%= formatDateTime(analytics.since) %>.<% if (canExport) { %> The export contains aggregates only.<% } %></p>
       </form>
-      <p class="ocr-help">Measured from stored records since <%= formatDateTime(analytics.since) %>. "N/A" means nothing was measured. Platform detection is shown as a distribution; labelled detection accuracy comes from the benchmark (<code>npm run ocr:benchmark</code>). Metric rules <%= analytics.metricRulesVersion %>.</p>
+      <p class="ocr-help ocr-analytics-note"><strong>Reading the data:</strong> “N/A” means nothing was measured. Platform detection is a distribution; labelled detection accuracy comes from <code>npm run ocr:benchmark</code>. Metric rules <%= analytics.metricRulesVersion %>.</p>
+
+      <section class="ocr-panel ocr-coverage-panel" aria-labelledby="an-coverage">
+        <div class="ocr-panel-heading">
+          <div>
+            <h2 id="an-coverage">Coverage</h2>
+            <p>Records included in the selected window.</p>
+          </div>
+          <span>Last <%= analytics.windowDays %> days</span>
+        </div>
+        <div class="ocr-metric-grid">
+          <div class="ocr-metric"><strong><%= coverage.submissionsObserved %></strong><span>Submissions</span></div>
+          <div class="ocr-metric"><strong><%= coverage.browserOcrObserved %></strong><span>Browser OCR</span></div>
+          <div class="ocr-metric"><strong><%= coverage.serverOcrObserved %></strong><span>Server OCR</span></div>
+          <div class="ocr-metric"><strong><%= coverage.reviewedObserved %></strong><span>Reviewed</span></div>
+          <div class="ocr-metric"><strong><%= coverage.telemetryEventsObserved %></strong><span>Workflow events</span></div>
+        </div>
+        <% const truncated = Object.entries(coverage).filter(([key, value]) => key.endsWith('Truncated') && value).map(([key]) => key.replace('Truncated', '')); %>
+        <% if (truncated.length) { %><p class="admin-alert admin-alert-warning" role="status">Bounded query limit reached for: <%= truncated.join(', ') %>. Rates use the newest 20,000 rows per collection.</p><% } %>
+      </section>
+
+      <section class="ocr-panel" aria-labelledby="an-browser"><h2 id="an-browser">Browser OCR on submissions</h2><% if (!browserOcr.length) { %><div class="ocr-empty"><p>No browser OCR records were stored in this window.</p><a href="/admin/ocr-training/samples">Open training samples</a></div><% } else { %><div class="admin-users-table-wrap"><table class="admin-table ocr-table ocr-responsive-table"><thead><tr><th>Detected app</th><th>Submissions</th><th>Confidence low / medium / high</th><th>Mismatch</th><th>Reviewed</th><th>Corrected</th><th>Legacy auto-approvals</th></tr></thead><tbody><% browserOcr.forEach((row) => { %><tr><td data-label="Detected app"><%= row.platform %></td><td data-label="Submissions"><%= row.submissions %></td><td data-label="Confidence low / medium / high"><%= row.confidenceBands.low %> / <%= row.confidenceBands.medium %> / <%= row.confidenceBands.high %></td><td data-label="Mismatch"><%= fmt(row.mismatchRate) %></td><td data-label="Reviewed"><%= row.reviewedManually %></td><td data-label="Corrected"><%= fmt(row.correctionRate) %></td><td data-label="Legacy auto-approvals"><%= row.autoApprovedLegacy %></td></tr><% }) %></tbody></table></div><% } %></section>
 
       <section class="ocr-panel" aria-labelledby="an-extraction">
         <h2 id="an-extraction">Server extraction by detected platform</h2>
-        <% if (!analytics.extraction.length) { %><p class="ocr-empty">No server extractions in this window.</p><% } else { %>
-          <div class="admin-users-table-wrap"><table class="admin-table ocr-table">
+        <% if (!analytics.extraction.length) { %><div class="ocr-empty"><p>No server extractions were recorded in this window.</p><a href="/admin/ocr-training/jobs">View extraction jobs</a></div><% } else { %>
+          <div class="admin-users-table-wrap"><table class="admin-table ocr-table ocr-responsive-table">
             <thead><tr><th>Platform</th><th>Readings</th><th>Complete</th><th>Failed</th><th>Confirmed / uncertain / unknown</th><th>Latency median</th><th>p95</th></tr></thead>
             <tbody><% analytics.extraction.forEach((row) => { %>
-              <tr><td><%= row.platform %></td><td><%= row.total %></td><td><%= fmt(row.completeRate) %></td><td><%= fmt(row.failedRate) %></td><td><%= row.confirmed %> / <%= row.uncertain %> / <%= row.unknown %></td><td><%= row.latencyMedianMs === 'N/A' ? 'N/A' : `${row.latencyMedianMs} ms` %></td><td><%= row.latencyP95Ms === 'N/A' ? 'N/A' : `${row.latencyP95Ms} ms` %></td></tr>
+              <tr><td data-label="Platform"><%= row.platform %></td><td data-label="Readings"><%= row.total %></td><td data-label="Complete"><%= fmt(row.completeRate) %></td><td data-label="Failed"><%= fmt(row.failedRate) %></td><td data-label="Confirmed / uncertain / unknown"><%= row.confirmed %> / <%= row.uncertain %> / <%= row.unknown %></td><td data-label="Latency median"><%= row.latencyMedianMs === 'N/A' ? 'N/A' : `${row.latencyMedianMs} ms` %></td><td data-label="p95"><%= row.latencyP95Ms === 'N/A' ? 'N/A' : `${row.latencyP95Ms} ms` %></td></tr>
             <% }) %></tbody>
           </table></div>
         <% } %>
@@ -39,11 +64,11 @@
 
       <section class="ocr-panel" aria-labelledby="an-review">
         <h2 id="an-review">Agreement with entries and reviewer effort</h2>
-        <% if (!analytics.entries.length) { %><p class="ocr-empty">No entries with a server reading in this window.</p><% } else { %>
-          <div class="admin-users-table-wrap"><table class="admin-table ocr-table">
+        <% if (!analytics.entries.length) { %><div class="ocr-empty"><p>No entries have both a server reading and comparison data in this window.</p><a href="/admin/ocr-training/samples">Open reviewed samples</a></div><% } else { %>
+          <div class="admin-users-table-wrap"><table class="admin-table ocr-table ocr-responsive-table">
             <thead><tr><th>Platform</th><th>Readings</th><th>Disagree with entry</th><th>Reviewed by a person</th><th>Corrected</th><th>Auto-approved</th><th>Review time median</th><th>p95</th></tr></thead>
             <tbody><% analytics.entries.forEach((row) => { %>
-              <tr><td><%= row.platform %></td><td><%= row.readings %></td><td><%= fmt(row.disagreementRate) %></td><td><%= row.reviewedManually %></td><td><%= fmt(row.correctionRate) %></td><td><%= row.autoApproved %></td><td><%= row.reviewMinutesMedian === 'N/A' ? 'N/A' : `${row.reviewMinutesMedian} min` %></td><td><%= row.reviewMinutesP95 === 'N/A' ? 'N/A' : `${row.reviewMinutesP95} min` %></td></tr>
+              <tr><td data-label="Platform"><%= row.platform %></td><td data-label="Readings"><%= row.readings %></td><td data-label="Disagree with entry"><%= fmt(row.disagreementRate) %></td><td data-label="Reviewed by a person"><%= row.reviewedManually %></td><td data-label="Corrected"><%= fmt(row.correctionRate) %></td><td data-label="Auto-approved"><%= row.autoApproved %></td><td data-label="Review time median"><%= row.reviewMinutesMedian === 'N/A' ? 'N/A' : `${row.reviewMinutesMedian} min` %></td><td data-label="p95"><%= row.reviewMinutesP95 === 'N/A' ? 'N/A' : `${row.reviewMinutesP95} min` %></td></tr>
             <% }) %></tbody>
           </table></div>
         <% } %>
@@ -53,10 +78,10 @@
         <h2 id="an-gt">Accuracy on reviewed ground truth</h2>
         <p class="ocr-help">Engine reading vs the approved literal transcription of each reviewed line.</p>
         <% if (!analytics.groundTruth.length) { %><p class="ocr-empty">No approved samples in this window, so no accuracy is reported.</p><% } else { %>
-          <div class="admin-users-table-wrap"><table class="admin-table ocr-table">
-            <thead><tr><th>Platform</th><th>Field</th><th>Lines</th><th>CER</th><th>Exact lines</th></tr></thead>
+          <div class="admin-users-table-wrap"><table class="admin-table ocr-table ocr-responsive-table">
+            <thead><tr><th>Platform</th><th>Verified layout</th><th>Field</th><th>Preprocessing pass</th><th>Error bucket</th><th>Lines</th><th>CER</th><th>Exact lines</th></tr></thead>
             <tbody><% analytics.groundTruth.forEach((row) => { %>
-              <tr><td><%= row.platform %></td><td><%= row.fieldKey %></td><td><%= row.lines %></td><td><%= row.cer %></td><td><%= fmt(row.exactLineAccuracy) %></td></tr>
+              <tr><td data-label="Platform"><%= row.platform %></td><td data-label="Verified layout"><%= row.layoutId %></td><td data-label="Field"><%= row.fieldKey %></td><td data-label="Preprocessing pass"><%= row.ocrPass %></td><td data-label="Error bucket"><%= row.errorCode %></td><td data-label="Lines"><%= row.lines %></td><td data-label="CER"><%= row.cer %></td><td data-label="Exact lines"><%= fmt(row.exactLineAccuracy) %></td></tr>
             <% }) %></tbody>
           </table></div>
         <% } %>
@@ -76,6 +101,8 @@
         </section>
       </div>
 
+      <section class="ocr-panel" aria-labelledby="an-funnel"><h2 id="an-funnel">Runner workflow funnel</h2><p>Completion <strong><%= fmt(funnel.completionRate) %></strong> · analysis failure <strong><%= fmt(funnel.analysisFailureRate) %></strong> · consent grant <strong><%= fmt(funnel.consentGrantRate) %></strong></p><% if (!Object.keys(funnel.events).length) { %><p class="ocr-empty">No privacy-safe workflow events in this window.</p><% } else { %><ul><% Object.entries(funnel.events).forEach(([event, count]) => { %><li><%= event.replace(/_/g, ' ') %>: <%= count %></li><% }) %></ul><% } %></section>
+
       <section class="ocr-panel" aria-labelledby="an-models">
         <h2 id="an-models">Held-out evaluations</h2>
         <% if (!analytics.models.length) { %><p class="ocr-empty">No evaluated models.</p><% } else { %>
@@ -85,6 +112,7 @@
     </section>
   </main>
   <%- include('../../layouts/footer') %>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/admin-ocr.js"></script>
   <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 </body>
 </html>

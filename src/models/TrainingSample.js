@@ -11,6 +11,7 @@ const SAMPLE_STATUSES = ['pending', 'approved', 'excluded'];
 const SAMPLE_FIELD_KEYS = ['distance', 'time', 'pace', 'date', 'other'];
 const CONSENT_BASES = ['participant_opt_in', 'notice_legitimate_interest', 'owner_own_activity', 'synthetic'];
 const SAMPLE_SOURCES = ['submission_opt_in', 'submission_notice', 'backfill', 'admin_upload'];
+const VERIFIED_PLATFORMS = ['strava', 'nike', 'garmin', 'apple', 'google', 'coros', 'unknown'];
 
 const trainingSampleSchema = new mongoose.Schema(
   {
@@ -40,8 +41,13 @@ const trainingSampleSchema = new mongoose.Schema(
     cropHeight: { type: Number, default: 0 },
     platform: { type: String, trim: true, default: 'unknown', maxlength: 20 },
     layoutId: { type: String, trim: true, default: '', maxlength: 80 },
+    // Reviewer labels are ground truth. Detector values above remain model output only.
+    verifiedPlatform: { type: String, enum: [...VERIFIED_PLATFORMS, ''], default: '' },
+    verifiedLayoutId: { type: String, trim: true, default: '', maxlength: 80 },
     profileVersion: { type: String, trim: true, default: '', maxlength: 40 },
     modelVersionId: { type: String, trim: true, default: '', maxlength: 60 },
+    ocrPass: { type: String, trim: true, default: '', maxlength: 30 },
+    ocrErrorCode: { type: String, trim: true, default: '', maxlength: 60 },
     // What the engine read from this line, and the literal transcription a reviewer confirmed.
     ocrText: { type: String, default: '', maxlength: 200 },
     transcribedText: { type: String, default: '', maxlength: 200 },
@@ -65,6 +71,7 @@ const trainingSampleSchema = new mongoose.Schema(
 );
 
 trainingSampleSchema.index({ status: 1, eligibility: 1, platform: 1, layoutId: 1, createdAt: -1 });
+trainingSampleSchema.index({ status: 1, eligibility: 1, verifiedPlatform: 1, verifiedLayoutId: 1, createdAt: -1 });
 trainingSampleSchema.index({ cropChecksum: 1 });
 trainingSampleSchema.index({ runnerId: 1 });
 trainingSampleSchema.index({ retentionExpiry: 1 }, { partialFilterExpression: { cropDeletedAt: null } });
@@ -74,3 +81,4 @@ module.exports = mongoose.models.TrainingSample || mongoose.model('TrainingSampl
 module.exports.SAMPLE_STATUSES = SAMPLE_STATUSES;
 module.exports.SAMPLE_FIELD_KEYS = SAMPLE_FIELD_KEYS;
 module.exports.CONSENT_BASES = CONSENT_BASES;
+module.exports.VERIFIED_PLATFORMS = VERIFIED_PLATFORMS;

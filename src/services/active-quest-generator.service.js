@@ -1,7 +1,9 @@
 const Event = require('../models/Event');
+const EventCoOrganizer = require('../models/EventCoOrganizer');
 const ActiveQuestSeries = require('../models/ActiveQuestSeries');
 const ActiveQuestTemplateVersion = require('../models/ActiveQuestTemplateVersion');
 const CertificateTemplate = require('../models/CertificateTemplate');
+const User = require('../models/User');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 const { ACTIVE_QUEST_SERIES_KEY } = require('../config/active-quest');
 const {
@@ -19,8 +21,10 @@ const MONTH_NAMES = Object.freeze([
 
 async function generateActiveQuestEdition(input, dependencies = {}) {
   const EventModel = dependencies.EventModel || Event;
+  const CoOrganizerModel = dependencies.CoOrganizerModel || EventCoOrganizer;
   const SeriesModel = dependencies.SeriesModel || ActiveQuestSeries;
   const TemplateModel = dependencies.TemplateModel || ActiveQuestTemplateVersion;
+  const UserModel = dependencies.UserModel || User;
   const requestedBy = assertFullAdmin(input?.requestedBy);
   const year = Number(input?.year);
   const month = Number(input?.month);
@@ -36,10 +40,21 @@ async function generateActiveQuestEdition(input, dependencies = {}) {
   if (series.featureFlags?.activeQuestDraftGenerationEnabled !== true) {
     throw new Error('Active Quest draft generation feature flag is disabled.');
   }
+  const defaultCoOrganizer = await resolveActiveQuestDefaultCoOrganizer({ series, UserModel });
 
   const identity = { seriesKey: ACTIVE_QUEST_SERIES_KEY, seriesYear: year, seriesMonth: month };
   const existing = await EventModel.findOne(identity);
-  if (existing) return buildGeneratorResult(existing, { created: false, warnings: getEditionWarnings(existing) });
+  if (existing) {
+    await materializeActiveQuestCoOrganizer({
+      event: existing,
+      coOrganizer: defaultCoOrganizer,
+      requestedBy,
+      CoOrganizerModel,
+      auditRecorder: dependencies.auditRecorder || recordCriticalAuditEventInBackground,
+      now: dependencies.now ? new Date(dependencies.now) : new Date()
+    });
+    return buildGeneratorResult(existing, { created: false, warnings: getEditionWarnings(existing) });
+  }
 
   const template = await TemplateModel.findById(series.currentTemplateVersionId);
   if (!template) throw new Error('Active Quest current template version was not found.');
@@ -91,6 +106,14 @@ async function generateActiveQuestEdition(input, dependencies = {}) {
       }
     }
     const auditRecorder = dependencies.auditRecorder || recordCriticalAuditEventInBackground;
+    await materializeActiveQuestCoOrganizer({
+      event,
+      coOrganizer: defaultCoOrganizer,
+      requestedBy,
+      CoOrganizerModel,
+      auditRecorder,
+      now: generatedAt
+    });
     auditRecorder({
       actorMongoUserId: requestedBy._id,
       action: 'active_quest.edition_generated',
@@ -116,6 +139,59 @@ async function generateActiveQuestEdition(input, dependencies = {}) {
     }
     throw buildSlugCollisionError(slug);
   }
+}
+
+async function resolveActiveQuestDefaultCoOrganizer({ series, UserModel = User }) {
+  if (!series?.defaultCoOrganizerId) return null;
+  if (String(series.defaultCoOrganizerId) === String(series.organizerId)) {
+    throw new Error('Active Quest default co-organizer cannot also be the primary organizer.');
+  }
+  const user = await UserModel.findById(series.defaultCoOrganizerId)
+    .select('_id email emailVerified accountStatus');
+  if (!user || user.emailVerified !== true || user.accountStatus !== 'active') {
+    throw new Error('Active Quest default co-organizer must be an active verified account.');
+  }
+  return user;
+}
+
+async function materializeActiveQuestCoOrganizer({
+  event,
+  coOrganizer,
+  requestedBy,
+  CoOrganizerModel = EventCoOrganizer,
+  auditRecorder = recordCriticalAuditEventInBackground,
+  now = new Date()
+}) {
+  if (!event?._id || !coOrganizer?._id) return null;
+  const existing = await CoOrganizerModel.findOne({ eventId: event._id, userId: coOrganizer._id });
+  if (existing) return existing;
+  const membership = new CoOrganizerModel({
+    eventId: event._id,
+    userId: coOrganizer._id,
+    invitedEmail: coOrganizer.email,
+    status: 'active',
+    invitedBy: requestedBy._id,
+    invitedAt: now,
+    acceptedAt: now,
+    expiresAt: null
+  });
+  try {
+    await membership.save();
+  } catch (error) {
+    if (!isDuplicateKeyError(error)) throw error;
+    return CoOrganizerModel.findOne({ eventId: event._id, userId: coOrganizer._id });
+  }
+  auditRecorder({
+    actorMongoUserId: requestedBy._id,
+    action: 'active_quest.co_organizer_assigned',
+    targetType: 'event',
+    targetId: String(event._id),
+    statusFrom: event.status,
+    statusTo: event.status,
+    notes: `Assigned configured Active Quest co-organizer ${coOrganizer._id}.`,
+    occurredAt: now
+  });
+  return membership;
 }
 
 function buildActiveQuestEventPayload({
@@ -325,6 +401,8 @@ module.exports = {
   generateActiveQuestEdition,
   getRewardReadiness,
   isValidActiveQuestCertificateTemplate,
+  materializeActiveQuestCoOrganizer,
   materializeActiveQuestCertificateTemplate,
+  resolveActiveQuestDefaultCoOrganizer,
   serializeSchedule
 };

@@ -352,9 +352,13 @@ async function processExtractionJob(job, deps = {}) {
       });
       decision = 'reevaluation_failed';
     }
+    await Model.updateOne(
+      { _id: target.id, 'proof.key': job.proofKey, 'serverOcr.proofKey': job.proofKey },
+      { $set: { 'serverOcr.decision': decision } }
+    ).catch(() => {});
     if (decision !== 'auto_approved') {
       await Model.updateOne(
-        { _id: target.id, 'validation.reviewReason': 'server_ocr_pending' },
+        { _id: target.id, 'validation.reviewReason': { $in: ['server_ocr_pending', 'server_ocr_review_required'] } },
         {
           $set: {
             'validation.reviewReason': getSubmissionReviewReason({
@@ -418,7 +422,7 @@ async function finishWithFailure(job, errorCode) {
         { $set: { 'serverOcr.status': 'failed', 'serverOcr.errorCode': errorCode, 'serverOcr.completedAt': new Date() } }
       ).catch(() => {});
       await modelForKind(target.kind).updateOne(
-        { _id: target.id, 'validation.reviewReason': 'server_ocr_pending' },
+        { _id: target.id, 'validation.reviewReason': { $in: ['server_ocr_pending', 'server_ocr_review_required'] } },
         { $set: { 'validation.reviewReason': 'server_ocr_failed' } }
       ).catch(() => {});
     }

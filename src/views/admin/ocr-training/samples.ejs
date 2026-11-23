@@ -7,22 +7,21 @@
 </head>
 <body>
   <%- include('../../layouts/nav') %>
-  <main class="admin-page">
+  <main class="admin-page ocr-admin-page ocr-samples-page" id="main-content">
     <section class="section admin-shell">
       <%- include('_header') %>
 
-      <div class="dashboard-grid">
+      <div class="ocr-summary-grid">
         <% [['Pending review', counts.pending], ['Approved', counts.approved], ['Eligible for datasets', counts.eligible], ['Excluded', counts.excluded]].forEach(([label, value]) => { %>
-          <article class="metric-card"><p class="metric-label"><%= label %></p><p class="metric-value"><%= value || 0 %></p></article>
+          <article class="ocr-summary-card"><strong><%= value || 0 %></strong><span><%= label %></span></article>
         <% }) %>
       </div>
 
       <section class="ocr-panel" aria-labelledby="ocr-sample-rules">
-        <h2 id="ocr-sample-rules">How to review a sample</h2>
-        <p class="ocr-help">Type <strong>exactly the text visible in the crop</strong>, including units and punctuation, even if the activity value is wrong or the runner's entry was corrected. Approve only when the crop shows one readable line that matches your text. Exclude crops that contain names, faces, maps or more than one line.</p>
+        <div class="ocr-section-heading"><div><h2 id="ocr-sample-rules">Review standard</h2><p>Type <strong>exactly the text visible in the crop</strong>, including units and punctuation. Approve one readable line only; exclude crops containing names, faces, maps or multiple lines.</p></div></div>
       </section>
 
-      <form class="admin-filters ocr-form-row" method="GET" action="/admin/ocr-training/samples" aria-label="Filter samples">
+      <form class="admin-filters ocr-form-row ocr-toolbar" method="GET" action="/admin/ocr-training/samples" aria-label="Filter samples">
         <label>Status
           <select name="status">
             <% ['pending', 'approved', 'excluded'].forEach((value) => { %><option value="<%= value %>" <%= filters.status === value ? 'selected' : '' %>><%= value %></option><% }) %>
@@ -44,11 +43,11 @@
       </form>
 
       <% if (!page.items.length) { %>
-        <p class="ocr-empty">No <%= filters.status %> samples match. Samples appear when a runner opts in on a proof processed by server OCR, or when an admin adds their own screenshot below.</p>
+        <div class="ocr-empty"><p>No <%= filters.status %> samples match. Samples appear after consented server OCR or an authorised upload.</p><a href="/admin/ocr-training/samples">Clear filters</a></div>
       <% } %>
 
       <% page.items.forEach((sample) => { %>
-        <article class="ocr-panel" aria-labelledby="sample-<%= sample._id %>">
+        <article class="ocr-panel ocr-sample-card" aria-labelledby="sample-<%= sample._id %>">
           <h3 id="sample-<%= sample._id %>"><%= sample.fieldKey %> line · <%= sample.platform %> · <span class="ocr-pill ocr-pill-<%= sample.status %>"><%= sample.status %></span> <span class="ocr-pill ocr-pill-<%= sample.eligibility === 'eligible' ? 'ready' : 'pending' %>"><%= sample.eligibility %></span></h3>
           <div class="ocr-panel-grid">
             <div>
@@ -62,18 +61,27 @@
               <% if (sample.ineligibleReasons && sample.ineligibleReasons.length) { %><p class="ocr-help">Not eligible: <%= sample.ineligibleReasons.join(', ') %></p><% } %>
               <% if (sample.exclusionReason) { %><p class="ocr-help">Excluded: <%= sample.exclusionReason %></p><% } %>
             </div>
-            <form method="POST" action="/admin/ocr-training/samples/<%= sample._id %>/review" class="ocr-form-row">
+            <form method="POST" action="/admin/ocr-training/samples/<%= sample._id %>/review" class="ocr-form-row ocr-sample-review">
               <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
               <input type="hidden" name="version" value="<%= sample.__v %>">
               <input type="hidden" name="returnTo" value="/admin/ocr-training/samples?status=<%= encodeURIComponent(filters.status) %>">
               <label>Literal transcription
                 <input name="transcribedText" maxlength="200" value="<%= sample.transcribedText || sample.ocrText || '' %>" autocomplete="off" spellcheck="false">
               </label>
-              <label><input type="checkbox" name="alignmentConfirmed" value="1"> The crop shows exactly this text</label>
+              <label>Verified platform
+                <select name="verifiedPlatform">
+                  <option value="">Choose platform…</option>
+                  <% ['strava', 'nike', 'garmin', 'apple', 'google', 'coros', 'unknown'].forEach((value) => { %><option value="<%= value %>" <%= sample.verifiedPlatform === value ? 'selected' : '' %>><%= value %></option><% }) %>
+                </select>
+              </label>
+              <label>Verified layout ID
+                <input name="verifiedLayoutId" maxlength="80" value="<%= sample.verifiedLayoutId || '' %>" autocomplete="off" spellcheck="false" placeholder="Optional stable layout label">
+              </label>
+              <label><input type="checkbox" name="alignmentConfirmed" value="1" <%= sample.alignmentConfirmed ? 'checked' : '' %>> The crop shows exactly this text</label>
               <label>Reason (required to exclude)
                 <input name="reason" maxlength="300">
               </label>
-              <div>
+              <div class="ocr-actions">
                 <button type="submit" name="action" value="approve" class="btn">Approve</button>
                 <button type="submit" name="action" value="save" class="btn btn-secondary">Save text</button>
                 <% if (sample.status === 'excluded') { %>
@@ -107,18 +115,18 @@
           <p class="ocr-empty">No snapshots yet.</p>
         <% } else { %>
           <div class="admin-users-table-wrap">
-            <table class="admin-table ocr-table">
+            <table class="admin-table ocr-table ocr-responsive-table">
               <thead><tr><th>Created</th><th>Name</th><th>Status</th><th>Train / val / test</th><th>Groups</th><th>Hash</th><th>Manifest</th></tr></thead>
               <tbody>
                 <% datasets.forEach((dataset) => { %>
                   <tr>
-                    <td><%= formatDateTime(dataset.createdAt) %></td>
-                    <td><%= dataset.name %></td>
-                    <td><span class="ocr-pill ocr-pill-<%= dataset.validationStatus === 'ready' ? 'ready' : 'pending' %>"><%= dataset.validationStatus %></span><% if (dataset.notReadyReasons && dataset.notReadyReasons.length) { %><br><span class="ocr-help"><%= dataset.notReadyReasons.join(' · ') %></span><% } %></td>
-                    <td><%= dataset.counts.train %> / <%= dataset.counts.validation %> / <%= dataset.counts.test %></td>
-                    <td><%= dataset.counts.groups %></td>
-                    <td><code><%= String(dataset.manifestHash).slice(0, 12) %></code></td>
-                    <td><a href="/admin/ocr-training/datasets/<%= dataset._id %>/manifest.json">JSON</a></td>
+                    <td data-label="Created"><%= formatDateTime(dataset.createdAt) %></td>
+                    <td data-label="Name"><%= dataset.name %></td>
+                    <td data-label="Status"><span class="ocr-pill ocr-pill-<%= dataset.validationStatus === 'ready' ? 'ready' : 'pending' %>"><%= dataset.validationStatus %></span><% if (dataset.notReadyReasons && dataset.notReadyReasons.length) { %><br><span class="ocr-help"><%= dataset.notReadyReasons.join(' · ') %></span><% } %></td>
+                    <td data-label="Train / val / test"><%= dataset.counts.train %> / <%= dataset.counts.validation %> / <%= dataset.counts.test %></td>
+                    <td data-label="Groups"><%= dataset.counts.groups %></td>
+                    <td data-label="Hash"><code><%= String(dataset.manifestHash).slice(0, 12) %></code></td>
+                    <td data-label="Manifest"><a href="/admin/ocr-training/datasets/<%= dataset._id %>/manifest.json">JSON</a></td>
                   </tr>
                 <% }) %>
               </tbody>
@@ -160,6 +168,7 @@
     </section>
   </main>
   <%- include('../../layouts/footer') %>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/admin-ocr.js"></script>
   <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 </body>
 </html>
