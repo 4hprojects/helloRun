@@ -239,31 +239,59 @@ const makeEntry = (overrides = {}) => ({
   save: async function save() { throw new Error(SAVE_REACHED); },
   ...overrides
 });
+const makeServerEntry = (overrides = {}) => makeEntry({
+  proof: { key: 'proof/current.webp' },
+  serverOcr: {
+    status: 'complete',
+    proofKey: 'proof/current.webp',
+    suspicious: false,
+    validationFlags: [],
+    autoApproval: { ...cleanOcr }
+  },
+  ...overrides
+});
+async function withServerAutoApproval(run) {
+  const previousPipeline = process.env.OCR_SERVER_PIPELINE_ENABLED;
+  const previousApproval = process.env.OCR_SERVER_AUTO_APPROVAL_ENABLED;
+  process.env.OCR_SERVER_PIPELINE_ENABLED = 'true';
+  process.env.OCR_SERVER_AUTO_APPROVAL_ENABLED = 'true';
+  try {
+    return await run();
+  } finally {
+    if (previousPipeline === undefined) delete process.env.OCR_SERVER_PIPELINE_ENABLED;
+    else process.env.OCR_SERVER_PIPELINE_ENABLED = previousPipeline;
+    if (previousApproval === undefined) delete process.env.OCR_SERVER_AUTO_APPROVAL_ENABLED;
+    else process.env.OCR_SERVER_AUTO_APPROVAL_ENABLED = previousApproval;
+  }
+}
 const stravaEntry = () => makeEntry({
   source: 'strava', ocrData: {},
   stravaActivity: { id: 111, athleteId: 222, distanceKm: 5, elapsedTimeSeconds: 1800 }
 });
 
-test('system mode: a clean OCR proof proceeds to approval (today\'s behaviour is unchanged)', async () => {
-  await withEventStub({ submissionReviewMode: 'system' }, async () => {
-    await assert.rejects(() => applyAutoApprovalIfEligible(makeEntry()), new RegExp(SAVE_REACHED));
-  });
+test('system mode: only a complete current server OCR proof proceeds to approval', async () => {
+  await withServerAutoApproval(() => withEventStub({ submissionReviewMode: 'system' }, async (lookups) => {
+    const browserOnly = makeEntry();
+    assert.equal(await applyAutoApprovalIfEligible(browserOnly), browserOnly);
+    assert.deepEqual(lookups, []);
+    await assert.rejects(() => applyAutoApprovalIfEligible(makeServerEntry()), new RegExp(SAVE_REACHED));
+  }));
 });
 
 test('a legacy event with no stored mode behaves exactly like system validation', async () => {
-  await withEventStub({}, async () => {
-    await assert.rejects(() => applyAutoApprovalIfEligible(makeEntry()), new RegExp(SAVE_REACHED));
-  });
+  await withServerAutoApproval(() => withEventStub({}, async () => {
+    await assert.rejects(() => applyAutoApprovalIfEligible(makeServerEntry()), new RegExp(SAVE_REACHED));
+  }));
 });
 
 test('manual mode: a clean OCR proof stays pending and nothing is saved or approved', async () => {
-  await withEventStub({ submissionReviewMode: 'manual' }, async () => {
-    const entry = makeEntry();
+  await withServerAutoApproval(() => withEventStub({ submissionReviewMode: 'manual' }, async () => {
+    const entry = makeServerEntry();
     const result = await applyAutoApprovalIfEligible(entry);
     assert.equal(result, entry);
     assert.equal(entry.status, 'submitted');
     assert.equal(entry.reviewedBy, undefined);
-  });
+  }));
 });
 
 test('manual mode: a clean Strava sync also waits for the organizer', async () => {
@@ -278,20 +306,20 @@ test('manual mode: a clean Strava sync also waits for the organizer', async () =
 });
 
 test('entries that were never auto-approvable do not even look up the event', async () => {
-  await withEventStub({ submissionReviewMode: 'manual' }, async (lookups) => {
-    const flagged = makeEntry({ suspiciousFlag: true });
+  await withServerAutoApproval(() => withEventStub({ submissionReviewMode: 'manual' }, async (lookups) => {
+    const flagged = makeServerEntry({ suspiciousFlag: true });
     assert.equal(await applyAutoApprovalIfEligible(flagged), flagged);
-    const lowConfidence = makeEntry({ ocrData: { ...cleanOcr, confidence: 0.2 } });
+    const lowConfidence = makeServerEntry({ serverOcr: { ...makeServerEntry().serverOcr, autoApproval: { ...cleanOcr, confidence: 0.2 } } });
     assert.equal(await applyAutoApprovalIfEligible(lowConfidence), lowConfidence);
     assert.deepEqual(lookups, [], 'no extra query for entries that were going to wait anyway');
-  });
+  }));
 });
 
 test('personal records have no event and stay on system validation', async () => {
-  await withEventStub({ submissionReviewMode: 'manual' }, async (lookups) => {
-    await assert.rejects(() => applyAutoApprovalIfEligible(makeEntry({ eventId: undefined })), new RegExp(SAVE_REACHED));
+  await withServerAutoApproval(() => withEventStub({ submissionReviewMode: 'manual' }, async (lookups) => {
+    await assert.rejects(() => applyAutoApprovalIfEligible(makeServerEntry({ eventId: undefined })), new RegExp(SAVE_REACHED));
     assert.deepEqual(lookups, []);
-  });
+  }));
 });
 
 const accumulatedEvent = (submissionReviewMode) => ({
@@ -300,20 +328,22 @@ const accumulatedEvent = (submissionReviewMode) => ({
 });
 
 test('accumulated activities follow the same rule, using the event they were created against', async () => {
-  const activity = (overrides) => makeEntry({ runnerId: 'runner-1', registrationId: 'reg-1', ...overrides });
+  const activity = (overrides) => makeServerEntry({ runnerId: 'runner-1', registrationId: 'reg-1', ...overrides });
 
-  const system = activity();
-  await assert.rejects(() => applyAccumulatedAutoApprovalIfEligible(system, accumulatedEvent('system')), new RegExp(SAVE_REACHED));
+  await withServerAutoApproval(async () => {
+    const system = activity();
+    await assert.rejects(() => applyAccumulatedAutoApprovalIfEligible(system, accumulatedEvent('system')), new RegExp(SAVE_REACHED));
 
-  const manual = activity();
-  assert.equal(await applyAccumulatedAutoApprovalIfEligible(manual, accumulatedEvent('manual')), manual);
-  assert.equal(manual.status, 'submitted');
+    const manual = activity();
+    assert.equal(await applyAccumulatedAutoApprovalIfEligible(manual, accumulatedEvent('manual')), manual);
+    assert.equal(manual.status, 'submitted');
 
-  // Without a passed-in event it loads one, and the lookup carries the mode.
-  await withEventStub(accumulatedEvent('manual'), async (lookups) => {
-    const viaLookup = activity();
-    assert.equal(await applyAccumulatedAutoApprovalIfEligible(viaLookup), viaLookup);
-    assert.equal(viaLookup.status, 'submitted');
-    assert.deepEqual(lookups, ['event-1']);
+    // Without a passed-in event it loads one, and the lookup carries the mode.
+    await withEventStub(accumulatedEvent('manual'), async (lookups) => {
+      const viaLookup = activity();
+      assert.equal(await applyAccumulatedAutoApprovalIfEligible(viaLookup), viaLookup);
+      assert.equal(viaLookup.status, 'submitted');
+      assert.deepEqual(lookups, ['event-1']);
+    });
   });
 });

@@ -48,6 +48,11 @@ const serverOcrSchema = new mongoose.Schema(
     suspicious: { type: Boolean, default: false },
     suspiciousReasons: { type: String, trim: true, default: '', maxlength: 500 },
     autoApproval: { type: serverOcrAutoApprovalSchema, default: null },
+    decision: {
+      type: String,
+      enum: ['recorded', 'auto_approved', 'review', 'disabled', 'reevaluation_failed', 'not_pending'],
+      default: 'recorded'
+    },
     errorCode: { type: String, trim: true, default: '', maxlength: 60 },
     queuedAt: { type: Date, default: null },
     completedAt: { type: Date, default: null }

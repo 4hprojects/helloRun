@@ -390,6 +390,7 @@ function formatSubmissionDetail(doc) {
     elevationGain: doc.elevationGain !== null && doc.elevationGain !== undefined ? Number(doc.elevationGain) : null,
     steps: doc.steps !== null && doc.steps !== undefined ? Number(doc.steps) : null,
     submissionCount: Number(doc.submissionCount || 1),
+    proofCheck: buildProofCheckPresentation(doc),
     ocrData: doc.ocrData && (
       doc.ocrData.distanceMismatch ||
       doc.ocrData.timeMismatch ||
@@ -409,6 +410,21 @@ function formatSubmissionDetail(doc) {
   return { ...detail, presentation: buildRunnerSubmissionDetailPresentation(detail) };
 }
 
+function buildProofCheckPresentation(doc = {}) {
+  if (doc.status === 'approved') return { state: 'approved', title: 'Approved', text: 'Your result was accepted.' };
+  if (doc.status === 'rejected') return { state: 'review', title: 'Organizer review required', text: 'Review the organizer feedback and update your submission.' };
+  const server = doc.serverOcr || {};
+  const currentProof = server.proofKey && String(server.proofKey) === String(doc.proof?.key || '');
+  const awaitingServer = doc.validation?.reviewReason === 'server_ocr_pending';
+  if (awaitingServer && (!server.status || ['queued', 'processing'].includes(server.status))) {
+    return { state: 'checking', title: 'Checking proof', text: 'HelloRun is checking your screenshot. No action is needed.' };
+  }
+  if (currentProof && server.status === 'failed') {
+    return { state: 'unreadable', title: 'Screenshot could not be read', text: 'An organizer will review the original screenshot.' };
+  }
+  return { state: 'review', title: 'Organizer review required', text: 'Your screenshot was read and is waiting for an organizer decision.' };
+}
+
 function getStatusPresentation(status) {
   if (status === 'approved') return { label: 'Approved', helper: 'This result has been reviewed and accepted.', tone: 'approved' };
   if (status === 'rejected') return { label: 'Needs correction', helper: 'Review the organizer feedback and correct this entry.', tone: 'rejected' };
@@ -419,6 +435,7 @@ function getStatusPresentation(status) {
 function buildRunnerSubmissionDetailPresentation(submission = {}) {
   const status = getStatusPresentation(submission.status);
   const correction = resolveCorrectionPresentation(submission);
+  const proofCheck = submission.proofCheck;
   const metrics = [
     { label: 'Distance', value: submission.distanceKm > 0 ? `${submission.distanceKm.toFixed(2)} km` : '' },
     ...(!submission.isAccumulatedActivity && submission.elapsedMs > 0 ? [{ label: 'Duration', value: submission.elapsedLabel }] : []),
@@ -448,14 +465,14 @@ function buildRunnerSubmissionDetailPresentation(submission = {}) {
     correction,
     metrics,
     primaryAction,
-    outcomeTitle: status.label,
+    outcomeTitle: submission.status === 'submitted' && proofCheck ? proofCheck.title : status.label,
     outcomeText: submission.status === 'approved'
       ? (submission.hasCertificate ? 'Your result is approved and your certificate is ready.' : 'Your result was reviewed and accepted by the organizer.')
       : submission.status === 'rejected'
         ? 'This entry needs a correction before it can become an approved result.'
         : submission.status === 'needs_clarification'
           ? 'The organizer needs your response before this activity can be reviewed again.'
-          : 'Your entry is in the organizer review queue. No action is needed right now.',
+          : proofCheck?.text || 'Your entry is in the organizer review queue. No action is needed right now.',
     showProofReadingDetails: Boolean(submission.ocrData),
     showLeaderboard: submission.status === 'approved' && Boolean(submission.eventSlug)
   };

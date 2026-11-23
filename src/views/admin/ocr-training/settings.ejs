@@ -7,7 +7,7 @@
 </head>
 <body>
   <%- include('../../layouts/nav') %>
-  <main class="admin-page">
+  <main class="admin-page ocr-admin-page ocr-settings-page" id="main-content">
     <section class="section admin-shell">
       <%- include('_header') %>
       <% const n = settings.notifications || {}; const d = settings.dataset || {}; const e = settings.evaluation || {}; const r = settings.retention || {}; const t = settings.training || {}; %>
@@ -16,8 +16,10 @@
 
       <form method="POST" action="/admin/ocr-training/settings">
         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-        <fieldset class="ocr-panel" <%= canEdit ? '' : 'disabled' %>>
-          <legend><h2>Administrator reminders</h2></legend>
+        <details class="ocr-settings-disclosure" open>
+          <summary><span class="ocr-settings-summary-copy"><strong>Administrator reminders</strong><span>Schedule targeted notices only when administrators have OCR work.</span></span></summary>
+          <fieldset class="ocr-settings-fields" <%= canEdit ? '' : 'disabled' %>>
+          <legend class="ocr-visually-hidden">Administrator reminders</legend>
           <p class="ocr-help">Reminders are sent only when there is work to do, and never start training. Operator switch <code>OCR_REMINDERS_ENABLED</code> is <strong><%= remindersFlag ? 'on' : 'off' %></strong>. Next digest: <%= schedule.reason === 'schedule_not_set' ? 'choose a day and hour' : (schedule.reason === 'frequency_off' ? 'off' : (schedule.due ? `due for ${schedule.periodKey}` : `not yet due in ${schedule.periodKey}`)) %>.</p>
           <input type="hidden" name="notifications.enabled__present" value="1">
           <div class="ocr-form-row">
@@ -60,24 +62,27 @@
             </label>
           </div>
           <div class="admin-users-table-wrap">
-            <table class="admin-table ocr-table">
+            <table class="admin-table ocr-table ocr-responsive-table">
               <thead><tr><th>Administrator</th><th>Tier</th><th>Selected</th><th>Muted</th></tr></thead>
               <tbody>
                 <% admins.forEach((admin) => { const id = String(admin._id); %>
                   <tr>
-                    <td><%= `${admin.firstName || ''} ${admin.lastName || ''}`.trim() || admin.email %></td>
-                    <td><%= admin.adminTier === 'support' ? 'support' : 'full' %></td>
-                    <td><input type="checkbox" name="notifications.recipientUserIds" value="<%= id %>" aria-label="Select <%= admin.email %>" <%= (n.recipientUserIds || []).map(String).includes(id) ? 'checked' : '' %>></td>
-                    <td><input type="checkbox" name="notifications.mutedUserIds" value="<%= id %>" aria-label="Mute <%= admin.email %>" <%= (n.mutedUserIds || []).map(String).includes(id) ? 'checked' : '' %>></td>
+                    <td data-label="Administrator"><%= `${admin.firstName || ''} ${admin.lastName || ''}`.trim() || admin.email %></td>
+                    <td data-label="Tier"><%= admin.adminTier === 'support' ? 'support' : 'full' %></td>
+                    <td data-label="Selected"><input type="checkbox" name="notifications.recipientUserIds" value="<%= id %>" aria-label="Select <%= admin.email %>" <%= (n.recipientUserIds || []).map(String).includes(id) ? 'checked' : '' %>></td>
+                    <td data-label="Muted"><input type="checkbox" name="notifications.mutedUserIds" value="<%= id %>" aria-label="Mute <%= admin.email %>" <%= (n.mutedUserIds || []).map(String).includes(id) ? 'checked' : '' %>></td>
                   </tr>
                 <% }) %>
               </tbody>
             </table>
           </div>
-        </fieldset>
+          </fieldset>
+        </details>
 
-        <fieldset class="ocr-panel" <%= canEdit ? '' : 'disabled' %>>
-          <legend><h2>Dataset readiness and evaluation gates</h2></legend>
+        <details class="ocr-settings-disclosure">
+          <summary><span class="ocr-settings-summary-copy"><strong>Dataset readiness and evaluation gates</strong><span>Advanced quality thresholds requiring owner approval.</span></span></summary>
+          <fieldset class="ocr-settings-fields" <%= canEdit ? '' : 'disabled' %>>
+          <legend class="ocr-visually-hidden">Dataset readiness and evaluation gates</legend>
           <p class="ocr-help">These values are placeholders, not scientific minimums. Set them after reviewing real baseline results, then tick the approval boxes. Until then no dataset is "ready" and no candidate passes its gates.</p>
           <input type="hidden" name="dataset.thresholdsApprovedByOwner__present" value="1">
           <input type="hidden" name="evaluation.gatesApprovedByOwner__present" value="1">
@@ -93,10 +98,13 @@
             <label>Minimum held-out lines per platform <input type="number" min="1" name="evaluation.minEvaluationSamplesPerPlatform" value="<%= e.minEvaluationSamplesPerPlatform %>"></label>
             <label><input type="checkbox" name="evaluation.gatesApprovedByOwner" value="1" <%= e.gatesApprovedByOwner ? 'checked' : '' %>> Owner approves these evaluation gates</label>
           </div>
-        </fieldset>
+          </fieldset>
+        </details>
 
-        <fieldset class="ocr-panel ocr-danger-zone" <%= canEdit ? '' : 'disabled' %>>
-          <legend><h2>Which entries may be used for training</h2></legend>
+        <details class="ocr-settings-disclosure ocr-danger-zone">
+          <summary><span class="ocr-settings-summary-copy"><strong>Which entries may be used for training</strong><span>Legal basis, published notices and protected backfill controls.</span></span></summary>
+          <fieldset class="ocr-settings-fields" <%= canEdit ? '' : 'disabled' %>>
+          <legend class="ocr-visually-hidden">Which entries may be used for training</legend>
           <% const toDate = (value) => value ? new Date(value).toISOString().slice(0, 10) : ''; %>
           <p class="ocr-help"><strong>Opt-in</strong>: only entries whose runner ticked the optional box. <strong>Notice and objection</strong>: every eligible entry, past and future, accepted or rejected, unless the runner objects in their profile. Use the second only after legal review and after the revised Privacy Policy is published and users were notified. Excluded either way: runners who objected, known minors, closed or suspended accounts, guest entries without an account.</p>
           <div class="ocr-form-row">
@@ -117,10 +125,13 @@
             <label>To change the basis, type CHANGE BASIS <input name="basisConfirmation" autocomplete="off"></label>
           </div>
           <p class="ocr-help">The backfill date is held at least 30 days after the notice date so people can object first.</p>
-        </fieldset>
+          </fieldset>
+        </details>
 
-        <fieldset class="ocr-panel" <%= canEdit ? '' : 'disabled' %>>
-          <legend><h2>Retention and training limits</h2></legend>
+        <details class="ocr-settings-disclosure">
+          <summary><span class="ocr-settings-summary-copy"><strong>Retention and training limits</strong><span>Storage duration and worker resource ceilings.</span></span></summary>
+          <fieldset class="ocr-settings-fields" <%= canEdit ? '' : 'disabled' %>>
+          <legend class="ocr-visually-hidden">Retention and training limits</legend>
           <div class="ocr-form-row">
             <label>Keep training samples (days) <input type="number" min="30" max="3650" name="retention.sampleRetentionDays" value="<%= r.sampleRetentionDays %>"></label>
             <label>Max iterations <input type="number" min="100" max="100000" name="training.maxIterations" value="<%= t.maxIterations %>"></label>
@@ -129,12 +140,13 @@
             <label>Memory limit (MB) <input type="number" min="256" max="16384" name="training.memoryMaxMb" value="<%= t.memoryMaxMb %>"></label>
             <label>Free disk required (MB) <input type="number" min="512" name="training.minFreeDiskMb" value="<%= t.minFreeDiskMb %>"></label>
           </div>
-        </fieldset>
-        <% if (canEdit) { %><button type="submit" class="btn">Save settings</button><% } %>
+          </fieldset>
+        </details>
+        <% if (canEdit) { %><div class="ocr-settings-savebar"><p>Save changes across every settings section.</p><button type="submit" class="btn">Save settings</button></div><% } %>
       </form>
 
       <section class="ocr-panel" aria-labelledby="ocr-test-email">
-        <h2 id="ocr-test-email">Test email</h2>
+        <div class="ocr-section-heading"><div><h2 id="ocr-test-email">Test email</h2><p>Send a delivery check to your administrator account.</p></div></div>
         <form method="POST" action="/admin/ocr-training/settings/test-email">
           <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
           <button type="submit" class="btn btn-secondary">Send me a test email</button>
@@ -142,12 +154,12 @@
       </section>
 
       <section class="ocr-panel" aria-labelledby="ocr-deliveries">
-        <h2 id="ocr-deliveries">Delivery history</h2>
+        <div class="ocr-section-heading"><div><h2 id="ocr-deliveries">Delivery history</h2><p>The 30 latest OCR notification attempts.</p></div></div>
         <% if (!deliveries.length) { %><p class="ocr-empty">No OCR emails yet.</p><% } else { %>
-          <div class="admin-users-table-wrap"><table class="admin-table ocr-table">
+          <div class="admin-users-table-wrap"><table class="admin-table ocr-table ocr-responsive-table">
             <thead><tr><th>Created</th><th>Event</th><th>Status</th><th>Attempts</th><th>Sent</th><th>Error</th></tr></thead>
             <tbody><% deliveries.forEach((row) => { %>
-              <tr><td><%= formatDateTime(row.createdAt) %></td><td><%= row.eventType %></td><td><span class="ocr-pill ocr-pill-<%= row.status %>"><%= row.status %></span></td><td><%= row.attempts %></td><td><%= row.sentAt ? formatDateTime(row.sentAt) : '—' %></td><td><%= row.errorCode || '—' %></td></tr>
+              <tr><td data-label="Created"><%= formatDateTime(row.createdAt) %></td><td data-label="Event"><%= row.eventType %></td><td data-label="Status"><span class="ocr-pill ocr-pill-<%= row.status %>"><%= row.status %></span></td><td data-label="Attempts"><%= row.attempts %></td><td data-label="Sent"><%= row.sentAt ? formatDateTime(row.sentAt) : '—' %></td><td data-label="Error"><%= row.errorCode || '—' %></td></tr>
             <% }) %></tbody>
           </table></div>
         <% } %>
@@ -155,6 +167,7 @@
     </section>
   </main>
   <%- include('../../layouts/footer') %>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/admin-ocr.js"></script>
   <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 </body>
 </html>

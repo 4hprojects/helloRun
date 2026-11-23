@@ -11,6 +11,7 @@ const {
   buildRunRejectionReasonOptions
 } = require('../../utils/run-proof-review');
 const { getAvailableDecisions, isDecisionAllowed } = require('../../utils/entry-decision-actions');
+const { resolveOcrSource } = require('../../utils/ocr/reviewer-verification');
 const { getReversalReasonOptions, resolveReversalReason } = require('../../utils/reversal-reasons');
 const { resolveChallengeConfig } = require('../../utils/challenge-metrics');
 const { formatElevation, formatSteps } = require('../../utils/entry-extras');
@@ -153,7 +154,10 @@ router.get('/events/:id/registrants/:registrationId/submissions', protectEventRe
 
     const entryBase = `/organizer/events/${event._id}/registrants/${registration._id}/submissions`;
     const entries = mergeRunProofReviewDocs(standardDocs, accumulatedDocs, 'newest').map((item) => {
-      const decision = getAvailableDecisions(item.submission.status, item.submissionKind);
+      const availableDecision = getAvailableDecisions(item.submission.status, item.submissionKind);
+      const decision = resolveOcrSource(item.submission)
+        ? { ...availableDecision, canApprove: false, canReject: false }
+        : availableDecision;
       return {
         ...buildRunProofReviewRow(item.submission, event, QUEUE_CONTEXT, item.submissionKind, user._id),
         edit: toEditValues(item.submission),

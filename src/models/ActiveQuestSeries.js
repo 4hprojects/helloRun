@@ -44,6 +44,7 @@ const activeQuestSeriesSchema = new mongoose.Schema({
   },
   isActive: { type: Boolean, default: true },
   organizerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  defaultCoOrganizerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   scheduleDefaults: {
     registrationLeadDays: { type: Number, required: true, min: 1, max: 31, default: ACTIVE_QUEST_SCHEDULE_DEFAULTS.registrationLeadDays },
     draftPreparationDaysBeforeRegistration: { type: Number, required: true, min: 7, max: 14, default: ACTIVE_QUEST_SCHEDULE_DEFAULTS.draftPreparationDaysBeforeRegistration },

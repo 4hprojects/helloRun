@@ -125,3 +125,24 @@ test('clarification detail gives the runner a response path and preserves the qu
   assert.equal(detail.clarification.question, 'Which tracker recorded this activity?');
   assert.match(detail.presentation.outcomeText, /needs your response/i);
 });
+
+test('proof-check outcomes distinguish queued, disabled, and unreadable server OCR', () => {
+  const queued = formatSubmissionDetail(doc({
+    proof: { key: 'proof/current.webp' },
+    validation: { reviewReason: 'server_ocr_pending' }
+  }));
+  assert.equal(queued.presentation.outcomeTitle, 'Checking proof');
+
+  const disabled = formatSubmissionDetail(doc({
+    proof: { key: 'proof/current.webp' },
+    validation: { reviewReason: 'server_ocr_review_required' }
+  }));
+  assert.equal(disabled.presentation.outcomeTitle, 'Organizer review required');
+
+  const failed = formatSubmissionDetail(doc({
+    proof: { key: 'proof/current.webp' },
+    validation: { reviewReason: 'server_ocr_failed' },
+    serverOcr: { status: 'failed', proofKey: 'proof/current.webp' }
+  }));
+  assert.equal(failed.presentation.outcomeTitle, 'Screenshot could not be read');
+});

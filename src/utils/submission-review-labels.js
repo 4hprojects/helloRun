@@ -12,6 +12,7 @@ const REVIEW_REASON_LABELS = {
   ocr_confidence_below_threshold: 'OCR confidence below threshold',
   ocr_auto_approval_criteria_not_met: 'OCR auto-approval criteria not met',
   server_ocr_pending: 'Server OCR pending',
+  server_ocr_review_required: 'Server OCR review required',
   server_ocr_failed: 'Server OCR could not read the proof'
 };
 
@@ -27,6 +28,7 @@ const REVIEW_REASON_DESCRIPTIONS = {
   ocr_confidence_below_threshold: 'The OCR confidence was below the auto-approval threshold.',
   ocr_auto_approval_criteria_not_met: 'The OCR result did not satisfy all auto-approval criteria.',
   server_ocr_pending: 'HelloRun has not finished reading the stored screenshot yet. Auto-approval waits for it.',
+  server_ocr_review_required: 'Browser-detected values are suggestions only. An organizer must review this screenshot.',
   server_ocr_failed: 'HelloRun could not read the stored screenshot, so it needs manual review.'
 };
 

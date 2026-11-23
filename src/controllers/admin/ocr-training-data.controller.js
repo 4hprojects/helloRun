@@ -70,6 +70,8 @@ exports.reviewSample = async (req, res) => {
       action: String(req.body?.action || 'save'),
       transcribedText: req.body?.transcribedText,
       alignmentConfirmed: ['on', 'true', '1'].includes(String(req.body?.alignmentConfirmed || '')),
+      verifiedPlatform: req.body?.verifiedPlatform,
+      verifiedLayoutId: req.body?.verifiedLayoutId,
       reason: req.body?.reason,
       reviewerId: req.session?.userId
     });
@@ -80,7 +82,7 @@ exports.reviewSample = async (req, res) => {
       statusFrom,
       statusTo,
       reason: String(req.body?.reason || '').slice(0, 300),
-      details: { eligibility: sample.eligibility, fieldKey: sample.fieldKey },
+      details: { eligibility: sample.eligibility, fieldKey: sample.fieldKey, verifiedPlatform: sample.verifiedPlatform, verifiedLayoutId: sample.verifiedLayoutId },
       req
     });
     if (wantsJson(req)) return res.json({ success: true, sample: { id: String(sample._id), status: sample.status, eligibility: sample.eligibility, version: sample.__v } });

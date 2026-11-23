@@ -60,8 +60,8 @@ async function makeDataset(name) {
       cropKey: key,
       cropChecksum: crypto.createHash('sha256').update(crop).digest('hex'),
       transcribedText: `${i}.00 km`,
-      platform: i % 2 ? 'strava' : 'garmin',
-      layoutId: 'card',
+      verifiedPlatform: i % 2 ? 'strava' : 'garmin',
+      verifiedLayoutId: 'card',
       fieldKey: 'distance'
     });
   }

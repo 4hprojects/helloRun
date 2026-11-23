@@ -18,7 +18,8 @@ const {
 const {
   buildActiveQuestEventPayload,
   generateActiveQuestEdition,
-  getRewardReadiness
+  getRewardReadiness,
+  materializeActiveQuestCoOrganizer
 } = require('../src/services/active-quest-generator.service');
 
 const ACTOR_ID = new mongoose.Types.ObjectId();
@@ -234,6 +235,62 @@ test('generator returns an existing edition without overwriting manual edits', a
   assert.equal(existing.title, 'Manually edited title');
 });
 
+test('configured Active Quest co-organizer is assigned once without replacing the owner', async () => {
+  const coOrganizerId = new mongoose.Types.ObjectId();
+  const eventId = new mongoose.Types.ObjectId();
+  const saved = [];
+  const audits = [];
+  class FakeMembership {
+    constructor(values) { Object.assign(this, values); this._id = new mongoose.Types.ObjectId(); }
+    async save() { saved.push(this); return this; }
+    static async findOne(query) {
+      return saved.find((row) => String(row.eventId) === String(query.eventId) && String(row.userId) === String(query.userId)) || null;
+    }
+  }
+  const input = {
+    event: { _id: eventId, organizerId: ORGANIZER_ID, status: 'draft' },
+    coOrganizer: { _id: coOrganizerId, email: 'hellorunonline@gmail.com' },
+    requestedBy: actor(),
+    CoOrganizerModel: FakeMembership,
+    auditRecorder: (audit) => audits.push(audit),
+    now: new Date('2026-11-22T00:00:00.000Z')
+  };
+
+  const first = await materializeActiveQuestCoOrganizer(input);
+  const second = await materializeActiveQuestCoOrganizer(input);
+
+  assert.equal(String(first.userId), String(coOrganizerId));
+  assert.equal(first.status, 'active');
+  assert.equal(String(first.invitedBy), String(ACTOR_ID));
+  assert.equal(second, first);
+  assert.equal(saved.length, 1);
+  assert.equal(audits.length, 1);
+  assert.equal(audits[0].action, 'active_quest.co_organizer_assigned');
+  assert.equal(String(input.event.organizerId), String(ORGANIZER_ID));
+});
+
+test('generator materializes the series default co-organizer on a new edition', async () => {
+  const { series, template } = foundation();
+  const coOrganizer = {
+    _id: new mongoose.Types.ObjectId(),
+    email: 'hellorunonline@gmail.com',
+    emailVerified: true,
+    accountStatus: 'active'
+  };
+  series.defaultCoOrganizerId = coOrganizer._id;
+  const dependencies = fakeDependencies({ series, template, rows: [], coOrganizer });
+
+  const result = await generateActiveQuestEdition({
+    seriesKey: 'active-quest', year: 2026, month: 11, requestedBy: actor()
+  }, dependencies);
+
+  assert.equal(result.created, true);
+  assert.equal(dependencies.memberships.length, 1);
+  assert.equal(String(dependencies.memberships[0].eventId), result.eventId);
+  assert.equal(String(dependencies.memberships[0].userId), String(coOrganizer._id));
+  assert.equal(dependencies.memberships[0].status, 'active');
+});
+
 test('concurrent generator requests return one shared draft', async () => {
   const { series, template } = foundation();
   const dependencies = fakeDependencies({ series, template, rows: [] });
@@ -260,7 +317,8 @@ test('unrelated slug collision blocks generation', async () => {
   }, dependencies), (error) => error.code === 'ACTIVE_QUEST_SLUG_COLLISION');
 });
 
-function fakeDependencies({ series, template, rows }) {
+function fakeDependencies({ series, template, rows, coOrganizer = null }) {
+  const memberships = [];
   class FakeEvent {
     constructor(payload) {
       Object.assign(this, payload);
@@ -291,13 +349,31 @@ function fakeDependencies({ series, template, rows }) {
     }
   }
 
-  return {
+  class FakeMembership {
+    constructor(values) { Object.assign(this, values); this._id = new mongoose.Types.ObjectId(); }
+    async save() { memberships.push(this); return this; }
+    static async findOne(query) {
+      return memberships.find((row) =>
+        String(row.eventId) === String(query.eventId) && String(row.userId) === String(query.userId)
+      ) || null;
+    }
+  }
+
+  const dependencies = {
     EventModel: FakeEvent,
     SeriesModel: { findOne: async () => series },
     TemplateModel: { findById: async () => template },
     auditRecorder: () => {},
     CertificateTemplateModel: false,
     now: new Date('2026-10-28T08:00:00.000Z'),
-    rows
+    rows,
+    memberships
   };
+  if (coOrganizer) {
+    dependencies.CoOrganizerModel = FakeMembership;
+    dependencies.UserModel = {
+      findById: () => ({ select: async () => coOrganizer })
+    };
+  }
+  return dependencies;
 }

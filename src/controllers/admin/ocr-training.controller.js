@@ -43,12 +43,18 @@ function renderError(res, error, message) {
 }
 
 function baseLocals(req, section, title) {
+  const flagLabels = {
+    OCR_SERVER_PIPELINE_ENABLED: 'Server screenshot reading',
+    OCR_SERVER_AUTO_APPROVAL_ENABLED: 'OCR automatic approval',
+    OCR_TRAINING_ENABLED: 'Model training',
+    OCR_TRAINING_CONSENT_PROMPT_ENABLED: 'Runner training consent prompt'
+  };
   return {
     title: `${title} - OCR Training Center - HelloRun Admin`,
     section,
     message: pageMessage(req.query),
     formatDateTime,
-    flags: OCR_FLAGS.map((name) => ({ name, enabled: readFlag(name) }))
+    flags: OCR_FLAGS.map((name) => ({ name, label: flagLabels[name] || name, enabled: readFlag(name) }))
   };
 }
 
@@ -76,6 +82,18 @@ async function platformBreakdown(sinceDays = 30) {
 /** Cross-phase summary cards; each part degrades to absent rather than failing the page. */
 async function loadOverviewExtras() {
   const extras = {};
+  try {
+    const analytics = await require('../../services/ocr/ocr-analytics.service').getOcrAnalytics({ days: 30 });
+    extras.coverage = analytics.coverage;
+    extras.stuckJobs = analytics.jobs.stuck;
+    extras.rolloutState = readFlag('OCR_SERVER_AUTO_APPROVAL_ENABLED')
+      ? 'Controlled automatic approval'
+      : readFlag('OCR_SERVER_PIPELINE_ENABLED')
+        ? 'Shadow measurement'
+        : 'Server measurement off';
+  } catch (error) {
+    logger.warn('[ocr-training] overview analytics unavailable', { error: error?.message });
+  }
   try {
     extras.samples = await require('../../services/ocr/training-sample.service').getSampleCounts();
   } catch (error) {

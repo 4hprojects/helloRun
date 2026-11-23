@@ -195,6 +195,7 @@ test('reviewSubmission records the decision with the evidence as it was before t
       organizerId: adminId,
       reviewerRole: 'admin',
       action: 'reject',
+      ocrVerificationStatus: 'unreadable',
       rejectionCode: 'other',
       rejectionReason: 'The screenshot is cropped above the distance.'
     });

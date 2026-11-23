@@ -24,6 +24,10 @@
     const noMeasurements = !hasElevationData && !hasStepsData && !tracksSteps;
     const hasActivityTypeRequirement = Array.isArray(event.acceptedRunTypes) && event.acceptedRunTypes.length > 0;
     const hasIdentitySignal = Boolean(ocr.extractedName || ['matched', 'mismatched'].includes(String(ocr.nameMatchStatus || '')));
+    const hasOcrReviewEvidence = Boolean(
+      (submission.serverOcr && ['complete', 'partial', 'failed'].includes(submission.serverOcr.status)) ||
+      Number(ocr.confidence || 0) > 0 || ocr.extractedDistanceKm != null || ocr.extractedTimeMs != null || String(ocr.rawText || '').trim()
+    );
     const isActionable = status === 'submitted' || status === 'needs_clarification' || status === 'rejected';
     const canClarify = submissionKind === 'accumulated' && status === 'submitted';
     const canReject = status === 'submitted' || (submissionKind === 'accumulated' && status === 'needs_clarification');
@@ -121,7 +125,7 @@
             </section>
           <% } %>
 
-          <%- include('partials/server-ocr-panel', { serverOcr: submission.serverOcr || null }) %>
+          <%- include('partials/server-ocr-panel', { serverOcr: submission.serverOcr || null, entry: submission }) %>
           <%- include('partials/activity-url-panel', {
             entry: submission,
             entryKind: submissionKind === 'accumulated' ? 'accumulated_activity' : 'run_submission',
@@ -190,6 +194,7 @@
                 <fieldset class="review-checklist"><legend>Required verification checklist</legend><p>Approval is enabled after every applicable item is confirmed.</p>
                   <% verificationCriteria.forEach((criterion) => { %><label class="review-check-item"><input type="checkbox" name="verifiedCriteria" value="<%= criterion.key %>" required><span><%= criterion.label %></span></label><% }) %>
                 </fieldset>
+                <% if (hasOcrReviewEvidence) { %><label for="approve-ocr-verification-<%= submissionId %>">Detected values</label><select id="approve-ocr-verification-<%= submissionId %>" name="ocrVerificationStatus" required><option value="">Mark your verification…</option><option value="confirmed">Confirmed against proof</option><option value="corrected">Corrected before decision</option><option value="unreadable">Proof values unreadable</option></select><% } %>
                 <label for="approve-notes-<%= submissionId %>">Review note <span>(optional, visible to runner)</span></label><textarea id="approve-notes-<%= submissionId %>" name="reviewNotes" rows="3" maxlength="1200"></textarea>
                 <button type="submit" class="btn-success table-action-btn js-decision-submit"><i data-lucide="check-circle"></i> Approve proof</button>
               </form>
@@ -205,13 +210,14 @@
                 <label for="reject-code-<%= submissionId %>">Reason</label><select id="reject-code-<%= submissionId %>" name="rejectionCode" required><option value="">Select the issue…</option><% runRejectionReasonOptions.forEach((reason) => { %><option value="<%= reason.code %>" data-default-message="<%= reason.defaultMessage %>"><%= reason.label %></option><% }) %></select>
                 <div class="runner-message-heading"><label for="reject-reason-<%= submissionId %>">Message to runner</label><button type="button" class="button-link" id="useSuggestedMessage">Use suggested message</button></div>
                 <textarea id="reject-reason-<%= submissionId %>" name="rejectionReason" rows="7" maxlength="500" aria-describedby="reject-message-help" required></textarea><p id="reject-message-help" class="submission-review-muted">Editable guidance. “Other” requires at least 10 custom characters.</p>
+                <% if (hasOcrReviewEvidence) { %><label for="reject-ocr-verification-<%= submissionId %>">Detected values</label><select id="reject-ocr-verification-<%= submissionId %>" name="ocrVerificationStatus" required><option value="">Mark your verification…</option><option value="confirmed">Confirmed against proof</option><option value="corrected">Corrected before decision</option><option value="unreadable">Proof values unreadable</option></select><% } %>
                 <label for="reject-notes-<%= submissionId %>">Review note <span>(optional, also visible to runner)</span></label><textarea id="reject-notes-<%= submissionId %>" name="reviewNotes" rows="3" maxlength="1200"></textarea>
                 <div class="runner-message-preview" aria-live="polite"><strong>Runner-facing preview</strong><p id="runnerMessagePreview">Select a reason to preview the message.</p></div>
                 <button type="submit" class="btn-danger table-action-btn js-decision-submit"><i data-lucide="x-circle"></i> Reject proof</button>
               </form>
             </section><% } %>
           <% } else { %>
-            <div class="submission-review-history"><span class="status-badge <%= statusBadgeClass %>"><%= statusLabel %></span><h2 id="decision-heading">Review history</h2><p><strong>Reviewed:</strong> <%= submission.reviewedAtLabel || 'N/A' %></p><% if (submission.reviewerName) { %><p><strong>By:</strong> <%= submission.reviewerName %></p><% } %><% if (submission.rejectionReason) { %><p><strong>Runner message:</strong> <%= submission.rejectionReason %></p><% } %><% if (submission.reviewNotes) { %><p><strong>Review note:</strong> <%= submission.reviewNotes %></p><% } %></div>
+            <div class="submission-review-history"><span class="status-badge <%= statusBadgeClass %>"><%= statusLabel %></span><h2 id="decision-heading">Review history</h2><p><strong>Reviewed:</strong> <%= submission.reviewedAtLabel || 'N/A' %></p><% if (submission.reviewerName) { %><p><strong>By:</strong> <%= submission.reviewerName %></p><% } %><% if (submission.ocrVerification?.status) { %><p><strong>Detected values:</strong> <%= submission.ocrVerification.status %></p><% } %><% if (submission.rejectionReason) { %><p><strong>Runner message:</strong> <%= submission.rejectionReason %></p><% } %><% if (submission.reviewNotes) { %><p><strong>Review note:</strong> <%= submission.reviewNotes %></p><% } %></div>
           <% } %>
         </aside>
       </article>

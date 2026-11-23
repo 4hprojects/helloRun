@@ -1,9 +1,12 @@
 <%
-  // Server re-read of the stored proof (docs/improvement-plan/ocr-platform-aware).
-  // Shown next to the browser reading so reviewers can see where they disagree.
   const serverOcr = locals.serverOcr || null;
+  const entry = locals.entry || {};
   const auto = serverOcr && serverOcr.autoApproval ? serverOcr.autoApproval : null;
-  const formatServerTime = (ms) => {
+  const statusLabel = {
+    queued: 'Checking proof', processing: 'Checking proof', complete: 'Read',
+    partial: 'Partly read', failed: 'Could not read', not_run: 'Not run'
+  };
+  const formatDuration = (ms) => {
     const total = Math.round(Number(ms) / 1000);
     if (!Number.isFinite(total) || total <= 0) return 'Not detected';
     const h = Math.floor(total / 3600);
@@ -11,35 +14,43 @@
     const s = total % 60;
     return `${h > 0 ? `${h}h ` : ''}${m}m ${s}s`;
   };
-  const statusLabel = {
-    queued: 'Queued', processing: 'Processing', complete: 'Read', partial: 'Partly read', failed: 'Could not read', not_run: 'Not run'
+  const formatDate = (value) => {
+    if (!value) return 'Not detected';
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toISOString().slice(0, 10);
   };
+  const originalValue = (field, current) => {
+    for (const correction of entry.organizerCorrections || []) {
+      const change = (correction.changes || []).find((item) => item.field === field);
+      if (change) return change.from;
+    }
+    return current;
+  };
+  const rows = auto ? [
+    { label: 'Distance', field: 'distanceKm', runner: originalValue('distanceKm', entry.distanceKm), server: auto.extractedDistanceKm, final: entry.distanceKm, mismatch: auto.distanceMismatch, format: (value) => value == null ? 'Not provided' : `${Number(value).toFixed(2)} km` },
+    { label: 'Duration', field: 'elapsedMs', runner: originalValue('elapsedMs', entry.elapsedMs), server: auto.extractedTimeMs, final: entry.elapsedMs, mismatch: auto.timeMismatch, format: formatDuration },
+    { label: 'Date', field: 'runDate', runner: originalValue('runDate', entry.runDate), server: auto.extractedRunDate, final: entry.runDate, mismatch: auto.dateMismatch, format: formatDate },
+    { label: 'Activity type', field: 'runType', runner: originalValue('runType', entry.runType), server: auto.extractedRunType, final: entry.runType, mismatch: auto.runTypeMismatch, format: (value) => value ? String(value).replace(/_/g, ' ') : 'Not detected' },
+    { label: 'Elevation', field: 'elevationGain', runner: originalValue('elevationGain', entry.elevationGain), server: auto.extractedElevationGain, final: entry.elevationGain, mismatch: auto.elevationMismatch, format: (value) => value == null ? 'Not provided' : `${Math.round(Number(value))} m` },
+    { label: 'Steps', field: 'steps', runner: originalValue('steps', entry.steps), server: auto.extractedSteps, final: entry.steps, mismatch: auto.stepsMismatch, format: (value) => value == null ? 'Not provided' : Number(value).toLocaleString() },
+    { label: 'Location', field: 'runLocation', runner: originalValue('runLocation', entry.runLocation), server: auto.extractedRunLocation, final: entry.runLocation, mismatch: auto.locationMismatch, format: (value) => value ? String(value) : 'Not provided' }
+  ].filter((row) => row.runner != null || row.server != null || row.final != null) : [];
 %>
 <% if (serverOcr && serverOcr.status) { %>
   <section class="submission-review-section server-ocr-panel" aria-labelledby="server-ocr-heading">
-    <h3 id="server-ocr-heading"><i data-lucide="cpu"></i> HelloRun server reading</h3>
-    <p class="submission-review-muted">
-      <%= statusLabel[serverOcr.status] || serverOcr.status %>
-      <% if (serverOcr.platform) { %> · platform <strong><%= serverOcr.platform %></strong> (<%= serverOcr.platformStatus || 'n/a' %>)<% } %>
-      <% if (serverOcr.profileId) { %> · profile <%= serverOcr.profileId %> <%= serverOcr.profileVersion %><% } %>
-      <% if (serverOcr.timeKind && serverOcr.timeKind !== 'unknown') { %> · time shown is <%= serverOcr.timeKind %><% } %>
-    </p>
-    <% if (auto) { %>
-      <ul class="server-ocr-values">
-        <li>Distance: <%= auto.extractedDistanceKm != null ? `${Number(auto.extractedDistanceKm).toFixed(2)} km` : 'Not detected' %><% if (auto.distanceMismatch) { %> <strong>· differs from entry</strong><% } %></li>
-        <li>Duration: <%= formatServerTime(auto.extractedTimeMs) %><% if (auto.timeMismatch) { %> <strong>· differs from entry</strong><% } %></li>
-        <li>Date: <%= auto.extractedRunDate || 'Not detected' %><% if (auto.dateMismatch) { %> <strong>· differs from entry</strong><% } %></li>
-        <li>Name: <%= auto.extractedName || 'Not detected' %> (<%= auto.nameMatchStatus %>)</li>
-        <li>Confidence: <%= Math.round(Number(auto.confidence || 0) * 100) %>%</li>
-      </ul>
+    <h3 id="server-ocr-heading"><i data-lucide="scan-text"></i> HelloRun server reading comparison</h3>
+    <p class="submission-review-muted"><%= statusLabel[serverOcr.status] || serverOcr.status %><% if (serverOcr.platform) { %> · detected app <strong><%= serverOcr.platform %></strong><% } %></p>
+    <% if (rows.length) { %>
+      <div class="proof-comparison" role="table" aria-label="Runner values, server reading, difference, and final reviewer values">
+        <div class="proof-comparison-row proof-comparison-header" role="row"><span role="columnheader">Field</span><span role="columnheader">Runner confirmed</span><span role="columnheader">Server reading</span><span role="columnheader">Difference</span><span role="columnheader">Final value</span></div>
+        <% rows.forEach((row) => { %><div class="proof-comparison-row <%= row.mismatch ? 'has-mismatch' : '' %>" role="row"><strong role="rowheader"><%= row.label %></strong><span><%= row.format(row.runner) %></span><span><%= row.format(row.server) %></span><span><%= row.mismatch ? 'differs from entry' : 'No flagged difference' %></span><span><%= row.format(row.final) %></span></div><% }) %>
+      </div>
+    <% } else if (serverOcr.status === 'failed') { %>
+      <p>Screenshot could not be read. Review the original proof manually.</p>
+    <% } else { %>
+      <p>Server reading has no comparable values yet.</p>
     <% } %>
-    <% if (serverOcr.validationFlags && serverOcr.validationFlags.length) { %>
-      <p class="submission-review-muted">Flags: <%= serverOcr.validationFlags.join(', ') %></p>
-    <% } %>
-    <% if (serverOcr.suspicious && serverOcr.suspiciousReasons) { %>
-      <p class="submission-review-muted"><%= serverOcr.suspiciousReasons %></p>
-    <% } %>
-    <% if (serverOcr.errorCode) { %><p class="submission-review-muted">Reason: <%= serverOcr.errorCode %></p><% } %>
-    <p class="submission-review-muted">The server reading is evidence for review, not proof the activity happened.</p>
+    <% if (serverOcr.errorCode) { %><p class="submission-review-muted">Processing reason: <%= serverOcr.errorCode %></p><% } %>
+    <p class="submission-review-muted">Use the screenshot as final evidence. Detected values are reviewer support only.</p>
   </section>
 <% } %>

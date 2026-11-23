@@ -7,13 +7,13 @@
 </head>
 <body>
   <%- include('../../layouts/nav') %>
-  <main class="admin-page">
+  <main class="admin-page ocr-admin-page ocr-jobs-page" id="main-content">
     <section class="section admin-shell">
       <%- include('_header') %>
 
       <div class="ocr-panel-grid">
         <section class="ocr-panel" aria-labelledby="ocr-worker-heading">
-          <h2 id="ocr-worker-heading">Training worker</h2>
+          <div class="ocr-section-heading"><div><h2 id="ocr-worker-heading">Training worker</h2><p>Host availability and required preflight checks.</p></div></div>
           <% if (!worker.row) { %>
             <p class="ocr-empty">No training worker has ever reported in. Run <code>npm run ocr:training-worker</code> as its own process on the training host.</p>
           <% } else { %>
@@ -30,7 +30,7 @@
         </section>
 
         <section class="ocr-panel" aria-labelledby="ocr-start-heading">
-          <h2 id="ocr-start-heading">Start training</h2>
+          <div class="ocr-section-heading"><div><h2 id="ocr-start-heading">Start training</h2><p>Creates a candidate only; production remains unchanged.</p></div></div>
           <% if (!trainingEnabled) { %>
             <p class="ocr-help">Training is disabled (<code>OCR_TRAINING_ENABLED</code> is off).</p>
           <% } else if (active) { %>
@@ -57,23 +57,23 @@
       </div>
 
       <section class="ocr-panel" aria-labelledby="ocr-jobs-heading">
-        <h2 id="ocr-jobs-heading">Training jobs</h2>
+        <div class="ocr-section-heading"><div><h2 id="ocr-jobs-heading">Training jobs</h2><p>Progress, resources, outputs and cancellation state.</p></div></div>
         <% if (!jobs.length) { %>
           <p class="ocr-empty">No training jobs yet.</p>
         <% } else { %>
           <div class="admin-users-table-wrap">
-            <table class="admin-table ocr-table">
+            <table class="admin-table ocr-table ocr-responsive-table">
               <thead><tr><th>Created</th><th>Status</th><th>Dataset</th><th>Progress</th><th>Resources</th><th>Result</th><th>Actions</th></tr></thead>
               <tbody>
                 <% jobs.forEach((job) => { %>
                   <tr>
-                    <td><%= formatDateTime(job.createdAt) %></td>
-                    <td><span class="ocr-pill ocr-pill-<%= job.status %>"><%= job.status %></span><% if (job.cancelRequested && !['cancelled', 'completed', 'failed', 'interrupted'].includes(job.status)) { %> <span class="ocr-help">cancel requested</span><% } %></td>
-                    <td><code><%= String(job.datasetManifestHash || '').slice(0, 8) %></code></td>
-                    <td><%= job.progress?.phase || '—' %><% if (job.progress?.message) { %><br><span class="ocr-help"><%= job.progress.message %></span><% } %></td>
-                    <td><%= job.resources?.durationSeconds ? `${job.resources.durationSeconds}s` : '—' %><% if (job.resources?.peakRssMb) { %> · <%= job.resources.peakRssMb %> MB<% } %><% if (job.resources?.limiter) { %> · <%= job.resources.limiter %><% } %></td>
-                    <td><% if (job.resultModelVersionId) { %><a href="/admin/ocr-training/models">candidate</a><% } else if (job.errorCode) { %><%= job.errorCode %><br><span class="ocr-help"><%= job.errorSummary %></span><% } else { %>—<% } %></td>
-                    <td>
+                    <td data-label="Created"><%= formatDateTime(job.createdAt) %></td>
+                    <td data-label="Status"><span class="ocr-pill ocr-pill-<%= job.status %>"><%= job.status %></span><% if (job.cancelRequested && !['cancelled', 'completed', 'failed', 'interrupted'].includes(job.status)) { %> <span class="ocr-help">cancel requested</span><% } %></td>
+                    <td data-label="Dataset"><code><%= String(job.datasetManifestHash || '').slice(0, 8) %></code></td>
+                    <td data-label="Progress"><%= job.progress?.phase || '—' %><% if (job.progress?.message) { %><br><span class="ocr-help"><%= job.progress.message %></span><% } %></td>
+                    <td data-label="Resources"><%= job.resources?.durationSeconds ? `${job.resources.durationSeconds}s` : '—' %><% if (job.resources?.peakRssMb) { %> · <%= job.resources.peakRssMb %> MB<% } %><% if (job.resources?.limiter) { %> · <%= job.resources.limiter %><% } %></td>
+                    <td data-label="Result"><% if (job.resultModelVersionId) { %><a href="/admin/ocr-training/models">candidate</a><% } else if (job.errorCode) { %><%= job.errorCode %><br><span class="ocr-help"><%= job.errorSummary %></span><% } else { %>—<% } %></td>
+                    <td data-label="Actions">
                       <% if (job.logsKey) { %><a href="/admin/ocr-training/jobs/<%= job._id %>/log">Log</a><% } %>
                       <% if (['queued', 'preparing', 'training', 'evaluating'].includes(job.status) && !job.cancelRequested) { %>
                         <form method="POST" action="/admin/ocr-training/jobs/<%= job._id %>/cancel" data-high-risk-confirm data-confirm-title="Cancel training job?" data-confirm-target="Job <%= job._id %>" data-confirm-impact="Requests cancellation of the active training process." data-confirm-reversibility="A cancelled job must be started again as a new job." data-confirm-privilege="Full administrator" data-confirm-button="Cancel job">
@@ -90,8 +90,8 @@
         <% } %>
       </section>
 
-      <section class="ocr-panel" aria-labelledby="ocr-backfill-heading">
-        <h2 id="ocr-backfill-heading">Backfill past entries</h2>
+      <section class="ocr-panel ocr-protected-panel" aria-labelledby="ocr-backfill-heading">
+        <div class="ocr-section-heading"><div><h2 id="ocr-backfill-heading">Backfill past entries</h2><p>Protected bulk operation for eligible historical entries.</p></div><span class="ocr-pill ocr-pill-pending">Full admin</span></div>
         <p class="ocr-help">Cuts training candidates from existing accepted and rejected entries under the notice-and-objection basis. Skips runners who objected, known minors, closed or suspended accounts, guest entries and withdrawn entries. Runs in the background only when no submission is waiting, within the daily cap. Training basis now: <strong><%= trainingBasis === 'notice_opt_out' ? 'notice and objection' : 'opt-in only' %></strong>.</p>
         <% if (backfillGate) { %><p class="ocr-help">Not startable yet: <%= backfillGate %></p><% } %>
         <% if (backfillPlan) { %>
@@ -101,7 +101,7 @@
         <% } %>
         <% const activeRun = backfillRuns.find((run) => ['running', 'paused'].includes(run.status)); %>
         <% if (canDeploy) { %>
-          <div class="ocr-form-row">
+          <div class="ocr-actions ocr-backfill-actions">
             <form method="POST" action="/admin/ocr-training/backfill/plan">
               <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
               <button type="submit" class="btn btn-secondary">Dry run (counts only)</button>
@@ -126,19 +126,19 @@
         <% } %>
         <% if (backfillRuns.length) { %>
           <div class="admin-users-table-wrap">
-            <table class="admin-table ocr-table">
+            <table class="admin-table ocr-table ocr-responsive-table">
               <thead><tr><th>Started</th><th>Status</th><th>Scanned</th><th>Queued for OCR</th><th>Reused readings</th><th>Candidates from reused</th><th>Excluded</th><th>Today</th></tr></thead>
               <tbody>
                 <% backfillRuns.forEach((run) => { const excludedTotal = Object.values(run.counts?.excluded || {}).reduce((a, b) => a + Number(b || 0), 0); %>
                   <tr>
-                    <td><%= formatDateTime(run.createdAt) %></td>
-                    <td><span class="ocr-pill ocr-pill-<%= run.status === 'running' ? 'running' : run.status %>"><%= run.status %></span><% if (run.errorSummary) { %><br><span class="ocr-help"><%= run.errorSummary %></span><% } %></td>
-                    <td><%= run.counts?.scanned || 0 %></td>
-                    <td><%= run.counts?.queued || 0 %></td>
-                    <td><%= run.counts?.reused || 0 %></td>
-                    <td><%= run.counts?.candidates || 0 %></td>
-                    <td><%= excludedTotal %></td>
-                    <td><%= run.today?.processed || 0 %> / <%= run.dailyCap %></td>
+                    <td data-label="Started"><%= formatDateTime(run.createdAt) %></td>
+                    <td data-label="Status"><span class="ocr-pill ocr-pill-<%= run.status === 'running' ? 'running' : run.status %>"><%= run.status %></span><% if (run.errorSummary) { %><br><span class="ocr-help"><%= run.errorSummary %></span><% } %></td>
+                    <td data-label="Scanned"><%= run.counts?.scanned || 0 %></td>
+                    <td data-label="Queued for OCR"><%= run.counts?.queued || 0 %></td>
+                    <td data-label="Reused readings"><%= run.counts?.reused || 0 %></td>
+                    <td data-label="Candidates"><%= run.counts?.candidates || 0 %></td>
+                    <td data-label="Excluded"><%= excludedTotal %></td>
+                    <td data-label="Today"><%= run.today?.processed || 0 %> / <%= run.dailyCap %></td>
                   </tr>
                 <% }) %>
               </tbody>
@@ -148,7 +148,7 @@
       </section>
 
       <section class="ocr-panel" aria-labelledby="ocr-datasets-heading">
-        <h2 id="ocr-datasets-heading">Dataset snapshots</h2>
+        <div class="ocr-section-heading"><div><h2 id="ocr-datasets-heading">Dataset snapshots</h2><p>Create or inspect immutable inputs for training.</p></div></div>
         <form method="POST" action="/admin/ocr-training/datasets" class="ocr-form-row">
           <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
           <input type="hidden" name="returnTo" value="/admin/ocr-training/jobs">
@@ -168,6 +168,7 @@
     </section>
   </main>
   <%- include('../../layouts/footer') %>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/admin-ocr.js"></script>
   <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 </body>
 </html>

@@ -17,6 +17,7 @@ const { reverseSubmissionApproval } = require('../../services/approval-reversal.
 const { describeLinkedEntries, formatLinkedReviewMessage } = require('../../services/linked-entry-review.service');
 const { resolveChallengeConfig } = require('../../utils/challenge-metrics');
 const { normalizeSubmissionReviewMode, getSubmissionReviewModeLabel, isManualSubmissionReview } = require('../../utils/submission-review-mode');
+const { resolveOcrSource } = require('../../utils/ocr/reviewer-verification');
 const {
   REVIEW_CHECKLIST_VERSION,
   buildRunProofVerificationCriteria,
@@ -723,7 +724,7 @@ async function approveCleanSubmission({ submissionId, eventIds, user, reviewNote
     throw new Error('This event requires individual review with the verification checklist.');
   }
   const reviewSignal = buildSubmissionReviewSignal(submission);
-  if (submission.suspiciousFlag || reviewSignal.label) {
+  if (submission.suspiciousFlag || reviewSignal.label || resolveOcrSource(submission)) {
     throw new Error('This submission requires individual review.');
   }
 
@@ -1744,6 +1745,7 @@ router.post(
           reviewNotes,
           checklistVersion: req.body.checklistVersion,
           verifiedCriteria: req.body.verifiedCriteria,
+          ocrVerificationStatus: req.body.ocrVerificationStatus,
           requireVerification: true
         });
 
@@ -1760,6 +1762,7 @@ router.post(
         reviewNotes,
         checklistVersion: req.body.checklistVersion,
         verifiedCriteria: req.body.verifiedCriteria,
+        ocrVerificationStatus: req.body.ocrVerificationStatus,
         requireVerification: true
       });
 
@@ -1841,7 +1844,8 @@ router.post(
           action: 'reject',
           rejectionCode,
           rejectionReason,
-          reviewNotes
+          reviewNotes,
+          ocrVerificationStatus: req.body.ocrVerificationStatus
         });
 
         return redirectAfterRunProofDecision(res, event._id, `Activity submission rejected.${formatLinkedReviewMessage(reviewedActivity)}`, queueContext, nextItem);
@@ -1858,7 +1862,8 @@ router.post(
         action: 'reject',
         rejectionCode,
         rejectionReason,
-        reviewNotes
+        reviewNotes,
+        ocrVerificationStatus: req.body.ocrVerificationStatus
       });
 
       return redirectAfterRunProofDecision(res, event._id, `Run result rejected.${formatLinkedReviewMessage(reviewedSubmission)}`, queueContext, nextItem);

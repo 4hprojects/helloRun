@@ -776,7 +776,7 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
         throw writeError;
       }
       // Server OCR re-reads the stored proof in the background (flag-gated; never blocks).
-      await queueProofExtraction({
+      const proofCheck = await queueProofExtraction({
         submissionAttemptId,
         entries: writeResults
           .filter((item) => !item.priorAttempt && item.submission?._id)
@@ -806,7 +806,8 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
         : (options.successMessage || 'Run result saved.');
       return respond('success', successMessage, {
         code: savedCount > 1 ? 'MULTI_SUBMISSION_SAVED' : 'SUBMISSION_SAVED',
-        submittedEntries
+        submittedEntries,
+        proofCheckQueued: proofCheck?.queued === true
       });
     } catch (error) {
       if (idempotencyLock && error?.code !== 'SUBMISSION_IDEMPOTENCY_CONFLICT') {
@@ -856,6 +857,7 @@ function respondRunnerSubmission(req, res, type, message, details = {}) {
       message: String(message || '').slice(0, 220),
       fieldErrors: details.fieldErrors && typeof details.fieldErrors === 'object' ? details.fieldErrors : {},
       retryable: details.retryable === true,
+      proofCheckQueued: details.proofCheckQueued === true,
       submittedEntries: Array.isArray(details.submittedEntries) ? details.submittedEntries : []
     });
   }
