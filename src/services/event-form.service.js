@@ -359,6 +359,62 @@ function mergeRaceCategories(submitted, existing = []) {
   });
 }
 
+const FINISHER_MERCHANDISE_ORDERING_STATES = new Set(['preview', 'open']);
+
+function normalizeFinisherMerchandiseInput(body = {}) {
+  if (!hasOwnValue(body, 'finisherMerchandiseSubmitted')) return null;
+  const orderingState = String(body.finisherMerchandiseOrderingState || '').trim();
+  return {
+    enabled: normalizeBoolean(body.finisherMerchandiseEnabled),
+    name: String(body.finisherMerchandiseName || '').trim().slice(0, 100),
+    priceAmount: parseOptionalNonNegativeNumber(body.finisherMerchandisePriceAmount),
+    currency: 'PHP',
+    description: String(body.finisherMerchandiseDescription || '').trim().slice(0, 500),
+    shippingNote: String(body.finisherMerchandiseShippingNote || '').trim().slice(0, 200),
+    orderingState: FINISHER_MERCHANDISE_ORDERING_STATES.has(orderingState) ? orderingState : 'preview',
+    previewNote: String(body.finisherMerchandisePreviewNote || '').trim().slice(0, 500),
+    openNote: String(body.finisherMerchandiseOpenNote || '').trim().slice(0, 500)
+  };
+}
+
+function getFinisherMerchandiseFormData(merchandise = {}) {
+  const value = merchandise || {};
+  return {
+    enabled: value.enabled === true,
+    name: value.name || '',
+    priceAmount: Number.isFinite(Number(value.priceAmount)) && value.priceAmount !== null ? Number(value.priceAmount) : null,
+    currency: value.currency || 'PHP',
+    description: value.description || '',
+    shippingNote: value.shippingNote || '',
+    orderingState: FINISHER_MERCHANDISE_ORDERING_STATES.has(value.orderingState) ? value.orderingState : 'preview',
+    previewNote: value.previewNote || '',
+    openNote: value.openNote || '',
+    imageCount: Array.isArray(value.imageItems) ? value.imageItems.length : 0
+  };
+}
+
+// Updates the editable text fields only. Product photos, included items and the shop
+// product link are set by the event's setup tooling and are preserved here.
+function applyFinisherMerchandise(event, input) {
+  const current = event.finisherMerchandise || {};
+  event.finisherMerchandise = {
+    enabled: Boolean(input.enabled),
+    name: input.name,
+    priceAmount: input.priceAmount,
+    currency: input.currency || current.currency || 'PHP',
+    description: input.description,
+    includedItems: Array.isArray(current.includedItems) ? [...current.includedItems] : [],
+    shippingNote: input.shippingNote,
+    imageItems: Array.isArray(current.imageItems)
+      ? current.imageItems.map((item) => ({ url: item.url, key: item.key || '', alt: item.alt || '' }))
+      : [],
+    orderingState: input.orderingState,
+    previewNote: input.previewNote,
+    openNote: input.openNote,
+    productId: current.productId || ''
+  };
+}
+
 function hasOwnValue(body, key) {
   return Object.prototype.hasOwnProperty.call(body || {}, key);
 }
@@ -928,6 +984,11 @@ function getCreateEventFormData(body = {}, options = {}) {
       : true,
     claimingMethod: normalizeClaimingMethod(body.claimingMethod),
     specialRewardBenefits: normalizeSpecialRewardBenefits(body),
+    // The builder has no benefit inputs, so a save that posts none must keep what the
+    // event already holds instead of erasing it (BUG-SRB-01).
+    specialRewardBenefitsSubmitted: hasOwnValue(body, 'specialRewardBenefitTitle'),
+    finisherMerchandise: normalizeFinisherMerchandiseInput(body),
+    finisherMerchandiseSubmitted: hasOwnValue(body, 'finisherMerchandiseSubmitted'),
     finalEventFee: parseOptionalNonNegativeNumber(body.finalEventFee)
   };
   normalizedFormData.suggestedEventFee = calculateSuggestedEventFee(normalizedFormData);
@@ -1257,6 +1318,7 @@ function getCreateEventFormDataFromEvent(event) {
     internationalRunnersAllowed: event.internationalRunnersAllowed !== false,
     claimingMethod: normalizeClaimingMethod(event.claimingMethod),
     specialRewardBenefits,
+    finisherMerchandise: getFinisherMerchandiseFormData(event.finisherMerchandise),
     waiverTemplate: sanitizeWaiverTemplate(event.waiverTemplate || DEFAULT_WAIVER_TEMPLATE),
     actionType: event.status === 'published' || event.status === 'pending_review' ? 'publish' : 'draft'
   };
@@ -1595,6 +1657,13 @@ function validateOrganizerSetupFields(formData, errors) {
   }
   validateDistancePricingFields(formData, errors);
   validateCustomizedOptions(formData, errors);
+  const merchandise = formData.finisherMerchandise;
+  if (merchandise && merchandise.enabled) {
+    if (!merchandise.name) errors.finisherMerchandiseName = 'Merchandise name is required when the merchandise card is shown.';
+    if (merchandise.priceAmount === null || merchandise.priceAmount === undefined) {
+      errors.finisherMerchandisePriceAmount = 'Merchandise price is required when the merchandise card is shown.';
+    }
+  }
 }
 
 function validateRaceCategories(formData, errors) {
@@ -2174,7 +2243,12 @@ function applyEventFormData(event, formData, user) {
   event.requiresPhilippineDeliveryAddress = event.deliveryFeeEnabled ? Boolean(formData.requiresPhilippineDeliveryAddress) : false;
   event.internationalRunnersAllowed = formData.internationalRunnersAllowed !== false;
   event.claimingMethod = normalizeClaimingMethod(formData.claimingMethod);
-  event.specialRewardBenefits = formData.specialRewardBenefits || [];
+  if (formData.specialRewardBenefitsSubmitted !== false) {
+    event.specialRewardBenefits = formData.specialRewardBenefits || [];
+  }
+  if (formData.finisherMerchandiseSubmitted !== false && formData.finisherMerchandise) {
+    applyFinisherMerchandise(event, formData.finisherMerchandise);
+  }
   event.bannerImageUrl = formData.bannerImageUrl || '';
   event.logoUrl = formData.logoUrl || '';
   event.posterImageUrl = formData.posterImageUrl || '';

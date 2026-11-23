@@ -47,6 +47,10 @@ const {
   getAutoApprovalReviewNote
 } = require('./submission-validation.service');
 const { sanitizeActivityEvidence, sanitizeTrainingConsent } = require('../utils/ocr/activity-evidence');
+
+// Activity types a submission may record. Event-level acceptance is enforced separately.
+const RUN_TYPES = Object.freeze(['run', 'walk', 'hike', 'trail_run', 'treadmill']);
+
 let runSubmissionBackgroundTasksInline = false;
 let disableSubmissionSyncBackgroundTasks = false;
 
@@ -180,7 +184,7 @@ async function editRejectedSubmissionMetadata({ submissionId, runnerId, distance
   submission.distanceKm = parsedDistance;
   submission.runDate = parsedRunDate;
   if (runLocation) submission.runLocation = String(runLocation).trim().slice(0, 200);
-  if (runType && ['run', 'walk', 'hike', 'trail_run'].includes(runType)) submission.runType = runType;
+  if (runType && RUN_TYPES.includes(runType)) submission.runType = runType;
 
   submission.status = 'submitted';
   submission.rejectionReason = '';
@@ -1401,9 +1405,8 @@ function sanitizeStravaActivity(value) {
 }
 
 function sanitizeRunType(value) {
-  const allowed = ['run', 'walk', 'hike', 'trail_run', 'treadmill'];
   const safe = String(value || '').trim().toLowerCase();
-  return allowed.includes(safe) ? safe : 'run';
+  return RUN_TYPES.includes(safe) ? safe : 'run';
 }
 
 function sanitizeElevationGain(value) {

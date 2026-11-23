@@ -525,6 +525,29 @@
               </ul>
             <% } %>
 
+            <% if (details.merchandiseOffer) { %>
+              <% const merch = details.merchandiseOffer; %>
+              <article class="event-bundle-card event-merch-card<%= merch.images.length ? ' has-image' : '' %>" aria-labelledby="event-merch-title">
+                <% if (merch.images.length) { %>
+                  <div class="event-bundle-image event-merch-media">
+                    <% merch.images.forEach((image) => { %>
+                      <img src="<%= image.url %>" alt="<%= image.alt %>" loading="lazy" decoding="async">
+                    <% }) %>
+                  </div>
+                <% } %>
+                <p class="event-merch-availability"><%= merch.availabilityLabel %></p>
+                <h3 id="event-merch-title"><%= merch.name %></h3>
+                <strong class="event-bundle-price"><%= merch.priceLabel %></strong>
+                <% if (merch.shippingNote) { %>
+                  <ul class="event-bundle-notes"><li><%= merch.shippingNote %></li></ul>
+                <% } %>
+                <% if (merch.description) { %>
+                  <p class="event-bundle-includes"><%= merch.description %></p>
+                <% } %>
+                <% if (merch.note) { %><small><%= merch.note %></small><% } %>
+              </article>
+            <% } %>
+
             <% if ((details.rewardItems || []).length) { %>
               <div class="event-reward-grid">
                 <% details.rewardItems.forEach((reward) => { %>

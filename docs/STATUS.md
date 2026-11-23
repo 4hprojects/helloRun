@@ -202,6 +202,18 @@ production services.
 
 ## Implemented, Production or Live Verification Pending
 
+- **2027k HelloRun Challenge is ready for activation, not yet live (November 23, 2026).**
+  The free worldwide 2,027 km challenge is defined in
+  `src/content/events/2027k-hellorun-challenge.js` and created by
+  `src/scripts/create-2027k-hellorun-challenge.js`. Registration opens at publication.
+  Activity runs January 1 to December 31, 2027 (Manila), and proof closes January 14,
+  2028. On the isolated stack the script published the event with its certificate
+  template, 13 badges and media. A seed runner then registered for free through the
+  real form: confirmed, `2027K`, no package or payment step. The event also gained a
+  reusable `finisherMerchandise` preview card (₱1,099 bundle, no order action), and
+  BUG-SRB-01 is fixed. Production publication and the live registration check are
+  tracked as `EVT-2027K`. Bundle ordering is `SHOP-FIN-01`.
+
 - **The event page landing layout (Phases A and B) is repository-complete and
   not deployed.** Phase B adds organiser-editable fields: a hero tagline,
   authored FAQs, and one photo per registration package. The Phase B upload

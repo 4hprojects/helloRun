@@ -757,6 +757,35 @@ const eventSchema = new mongoose.Schema(
       ],
       default: []
     },
+    // Optional merchandise offered after verified completion. It is not a registration
+    // package: it never adds a choice or a price to sign-up. `orderingState` keeps the public
+    // card in preview until the shop can actually take the order.
+    finisherMerchandise: {
+      enabled: { type: Boolean, default: false },
+      name: { type: String, trim: true, maxlength: 100, default: '' },
+      priceAmount: { type: Number, min: 0, default: null },
+      currency: { type: String, trim: true, uppercase: true, maxlength: 3, default: 'PHP' },
+      description: { type: String, trim: true, maxlength: 500, default: '' },
+      includedItems: {
+        type: [{ type: String, trim: true, maxlength: 100 }],
+        default: []
+      },
+      shippingNote: { type: String, trim: true, maxlength: 200, default: '' },
+      imageItems: {
+        type: [
+          {
+            url: { type: String, trim: true, maxlength: 1000 },
+            key: { type: String, trim: true, maxlength: 500, default: '' },
+            alt: { type: String, trim: true, maxlength: 200, default: '' }
+          }
+        ],
+        default: []
+      },
+      orderingState: { type: String, enum: ['preview', 'open'], default: 'preview' },
+      previewNote: { type: String, trim: true, maxlength: 500, default: '' },
+      openNote: { type: String, trim: true, maxlength: 500, default: '' },
+      productId: { type: String, trim: true, maxlength: 64, default: '' }
+    },
     bannerImageUrl: {
       type: String,
       trim: true

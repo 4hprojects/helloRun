@@ -72,6 +72,7 @@ function buildPublicEventView(event, options = {}) {
     : options.hasPublicBadges;
   const rewardItems = buildRewardItems(event, { hasPublicBadges });
   const packageOptions = buildPackageOptions(event, now);
+  const merchandiseOffer = buildMerchandiseOffer(event);
   const pricingOptions = buildPricingOptions(event, raceCategories, now);
   const pricing = buildPricingSummary(event, packageOptions, pricingOptions);
   const timeline = buildTimeline(event);
@@ -140,6 +141,7 @@ function buildPublicEventView(event, options = {}) {
     digitalRewardsLabel: buildDigitalRewardsLabel(rewardItems, isFreeRegistration),
     rewardLogistics,
     packageOptions,
+    merchandiseOffer,
     timeline,
     virtualRules,
     location,
@@ -1077,6 +1079,49 @@ function buildPackageOptions(event, now = new Date()) {
       };
     })
     .filter(Boolean);
+}
+
+/**
+ * Optional merchandise sold only after verified completion. It is presented next to the
+ * finisher rewards and never touches registration pricing. While ordering is in preview,
+ * the card carries the preview note and no order action; the order action itself lives in
+ * the finisher's dashboard, not on the public page.
+ */
+function buildMerchandiseOffer(event) {
+  const merchandise = event?.finisherMerchandise;
+  if (!merchandise || merchandise.enabled !== true) return null;
+  const name = String(merchandise.name || '').trim();
+  const amount = firstFiniteNumber(merchandise.priceAmount);
+  if (!name || amount === null) return null;
+  const orderingOpen = merchandise.orderingState === 'open';
+  return {
+    name,
+    priceLabel: formatDisplayPrice(amount, merchandise.currency || 'PHP'),
+    description: String(merchandise.description || '').trim(),
+    includedItems: normalizeList(merchandise.includedItems),
+    shippingNote: String(merchandise.shippingNote || '').trim(),
+    availabilityLabel: 'Available after verified completion',
+    orderingOpen,
+    note: String((orderingOpen ? merchandise.openNote : merchandise.previewNote) || '').trim(),
+    images: (Array.isArray(merchandise.imageItems) ? merchandise.imageItems : [])
+      .map((item) => ({
+        url: String(item?.url || '').trim(),
+        alt: String(item?.alt || '').trim()
+      }))
+      .filter((item) => /^https?:\/\//i.test(item.url))
+      .slice(0, 4)
+  };
+}
+
+// Peso amounts read as "₱1,099" in product copy; other currencies keep the ISO code.
+function formatDisplayPrice(amount, currency = 'PHP') {
+  const code = String(currency || 'PHP').trim().toUpperCase();
+  if (code !== 'PHP') return formatMoney(amount, code);
+  const value = Number(amount);
+  return `₱${value.toLocaleString('en-US', {
+    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2
+  })}`;
 }
 
 function buildTimeline(event) {

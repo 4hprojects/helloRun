@@ -371,7 +371,8 @@ exports.uploadEventBrandingToR2 = async ({
   posterImageFile,
   paymentQrImageFile,
   galleryImageFiles,
-  packageImageFiles
+  packageImageFiles,
+  merchandiseImageFiles
 }) => {
   assertR2Configured();
 
@@ -465,6 +466,22 @@ exports.uploadEventBrandingToR2 = async ({
         });
         result.packageImages[cardIndex] = uploadedPackage;
         uploadedKeys.push(uploadedPackage.key);
+      }
+    }
+
+    const merchandiseFiles = Array.isArray(merchandiseImageFiles) ? merchandiseImageFiles : [];
+    if (merchandiseFiles.length) {
+      result.merchandiseImages = [];
+      for (const [i, merchandiseFile] of merchandiseFiles.entries()) {
+        // eslint-disable-next-line no-await-in-loop
+        const uploadedMerchandise = await uploadFileToR2({
+          userId,
+          file: merchandiseFile,
+          category: 'event-branding/merchandise',
+          label: safeSlug ? `${safeSlug}-merchandise-${i + 1}` : `merchandise-${i + 1}`
+        });
+        result.merchandiseImages.push(uploadedMerchandise);
+        uploadedKeys.push(uploadedMerchandise.key);
       }
     }
   } catch (error) {

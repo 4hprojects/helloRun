@@ -1,5 +1,69 @@
 # November 2026 Changelog
 
+## November 23 — 2027k HelloRun Challenge registration release
+
+### Added
+
+- **Event content and create script.** `src/content/events/2027k-hellorun-challenge.js`
+  holds the approved copy, FAQ, dates and settings.
+  `src/scripts/create-2027k-hellorun-challenge.js` runs as a dry run by default.
+  With `--apply` it:
+  - uploads the banner, poster, finisher badge, medal views and shirt mockup;
+  - captures the publication instant as `registrationOpenAt`;
+  - publishes the event with `publicListingAvailableAt: null`, so listing and
+    registration open together;
+  - publishes the certificate template and creates the default badges.
+
+  It refuses to create a second event with the same slug or title. If any step
+  fails after the save, it removes its own records and uploads.
+- **Stored instants (Manila).**
+  - Registration closes November 30, 2027 at 23:59:59.
+  - The activity window and `virtualWindow` run from January 1, 2027 at 00:00 to
+    December 31, 2027 at 23:59:59.
+  - Proof uploads close January 14, 2028 at 23:59:59.
+
+  The existing inclusive comparisons keep each final second open.
+- **Finisher merchandise preview.** A new optional `Event.finisherMerchandise`
+  shows a photo, ₱ price and shipping card in the finisher-rewards section.
+  - The card leads with "Available after verified completion".
+  - It shows the preview note until `orderingState` is `open`.
+  - It never adds a package or a price to registration and has no order action.
+  - Builders can edit its text fields and ordering state. Photos and the shop
+    product link are preserved.
+
+### Fixed
+
+- **BUG-SRB-01.** Builder saves that post no benefit fields no longer erase
+  `specialRewardBenefits`.
+- Editing a rejected activity no longer drops `treadmill` as the activity type.
+
+### Verification
+
+- **DB-free tests.** 18 new cases cover:
+  - the payload, readiness and exact instants;
+  - CTA "Register for free" before January 1;
+  - registration close, proof window and run-date window boundaries, including
+    workouts recorded before registration;
+  - the merchandise view, template and builder round-trip;
+  - both fixes.
+
+  The full unit run passed apart from two cases that fail only in the git
+  worktree, because it has a `.git` file and no `.env`. Both pass in the main
+  checkout.
+- **Isolated stack** (`.env.development`, loopback Mongo/Postgres, in-memory
+  uploads):
+  - The script dry run passed `getPublishReadinessErrors`.
+  - `--apply` created the event, certificate template, 13 badges and five media
+    objects.
+  - The public page and `/events` showed "Register for free".
+  - A seed runner registered through the real form. The registration was
+    confirmed, free (`paymentStatus: paid`), `2027K`, with no package and no
+    payment step.
+  - Browser checks at 390px and 1280px showed no horizontal overflow, and the
+    merchandise card rendered both photos.
+
+Production state is recorded under `EVT-2027K`.
+
 ## November 22 — Event page landing layout verification
 
 The verification ran against the loopback-only isolated environment
