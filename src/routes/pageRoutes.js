@@ -10,6 +10,7 @@ const { requireAuth, requireRunnerWorkspace } = require('../middleware/auth.midd
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const uploadService = require('../services/upload.service');
+const raceBibController = require('../controllers/raceBib.controller');
 const { listPolicyDocuments } = require('../services/policy-registry.service');
 const { markdownToHtml } = require('../utils/markdown');
 const { sanitizeHtml } = require('../utils/sanitize');
@@ -141,6 +142,9 @@ router.get('/my-registrations', requireAuth, requireRunnerWorkspace, pageControl
 router.get('/my-registrations/claim', requireAuth, requireRunnerWorkspace, pageController.getClaimRegistrations);
 router.post('/my-registrations/claim/:registrationId', requireAuth, requireRunnerWorkspace, requireCsrfProtection, claimLimiter, pageController.postClaimRegistration);
 router.get('/my-registrations/:registrationId/race-pass', requireAuth, requireRunnerWorkspace, pageController.getRacePass);
+router.get('/my-registrations/:registrationId/bib', requireAuth, requireRunnerWorkspace, raceBibController.getRunnerBib);
+router.get('/my-registrations/:registrationId/bib.:format(png|pdf)', requireAuth, requireRunnerWorkspace, raceBibController.getRunnerBibFile);
+router.post('/my-registrations/:registrationId/bib/preferences', requireAuth, requireRunnerWorkspace, requireCsrfProtection, raceBibController.postRunnerPreference);
 router.post('/my-registrations/:registrationId/request-cancellation', requireAuth, requireRunnerWorkspace, requireCsrfProtection, pageController.postRequestCancellation);
 router.post('/my-registrations/:registrationId/details', requireAuth, requireRunnerWorkspace, requireCsrfProtection, registrationDetailsLimiter, pageController.postRegistrationDetails);
 router.get('/events/:slug/register', requireAuth, requireRunnerWorkspace, pageController.getEventRegistrationForm);

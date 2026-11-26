@@ -9,7 +9,7 @@ const POLICY_DOCUMENTS = Object.freeze([
     publicPath: '/privacy',
     adminPath: '/admin/privacy-policy',
     sourceFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/privacy-policy.md'),
-    fallbackFile: path.resolve(__dirname, '../../docs/contents/Privacy Policy.md'),
+    fallbackFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/privacy-policy.md'),
     fallbackVersion: '1.0',
     fallbackEffectiveDate: new Date('2026-05-23T00:00:00+08:00'),
     summaryOfChanges: 'Updated Privacy Policy'
@@ -34,7 +34,7 @@ const POLICY_DOCUMENTS = Object.freeze([
     aliases: ['/cookies'],
     adminPath: '/admin/cookie-policy',
     sourceFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/cookie-policy.md'),
-    fallbackFile: path.resolve(__dirname, '../../docs/contents/Cookie Policy.md'),
+    fallbackFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/cookie-policy.md'),
     fallbackVersion: '1.0',
     fallbackEffectiveDate: new Date('2026-05-23T00:00:00+08:00'),
     summaryOfChanges: 'Initial Cookie Policy'

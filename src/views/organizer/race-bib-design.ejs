@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/race-bib-design.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main class="bib-builder" id="main-content">
+    <div class="bib-builder__shell">
+      <nav class="bib-builder__breadcrumb" aria-label="Breadcrumb">
+        <a href="/organizer/events/<%= event._id %>">Event Management</a><span aria-hidden="true">/</span><span>Bib Design</span>
+      </nav>
+      <header class="bib-builder__header">
+        <div><p class="bib-builder__kicker">Bib Design</p><h1><%= event.title %></h1><p>Design once, publish a version, then release it to eligible runners.</p></div>
+        <span class="bib-status bib-status--<%= event.bibSettings?.releaseStatus || 'disabled' %>"><%= event.bibSettings?.releaseStatus || 'disabled' %></span>
+      </header>
+      <% if (message) { %><div class="bib-alert bib-alert--<%= message.type %>" role="status"><%= message.text %></div><% } %>
+
+      <div class="bib-builder__grid">
+        <form class="bib-editor" method="POST" action="/organizer/events/<%= event._id %>/bib-design">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <section class="bib-panel">
+            <div class="bib-panel__heading"><div><p>1</p></div><span><strong>Artwork and crop</strong><small>Use managed event art or a solid fallback.</small></span></div>
+            <fieldset class="bib-choice-grid">
+              <legend>Background source</legend>
+              <% [['banner','Event banner'],['poster','Event poster'],['custom','Custom artwork'],['solid','Solid color']].forEach(function(option) { %>
+                <label><input type="radio" name="artworkSource" value="<%= option[0] %>" <%= draft.artwork?.source === option[0] ? 'checked' : '' %>><span><%= option[1] %></span></label>
+              <% }); %>
+            </fieldset>
+            <div class="bib-field-grid bib-field-grid--three">
+              <label>Horizontal focal point <input name="focalX" type="range" min="0" max="100" value="<%= draft.crop?.focalX ?? 50 %>"></label>
+              <label>Vertical focal point <input name="focalY" type="range" min="0" max="100" value="<%= draft.crop?.focalY ?? 50 %>"></label>
+              <label>Crop zoom <input name="zoom" type="number" min="1" max="3" step="0.1" value="<%= draft.crop?.zoom || 1 %>"></label>
+            </div>
+          </section>
+
+          <section class="bib-panel">
+            <div class="bib-panel__heading"><div><p>2</p></div><span><strong>Identity and fields</strong><small>Event title and bib number are always shown.</small></span></div>
+            <div class="bib-field-grid">
+              <label>Event title <input name="eventTitle" maxlength="150" required value="<%= draft.content?.eventTitle || event.title %>"></label>
+              <label>Participation label <input name="participationLabel" maxlength="100" value="<%= draft.content?.participationLabel || '' %>" placeholder="2,027 KM VIRTUAL RUN"></label>
+              <label>Event date <input name="eventDate" maxlength="80" value="<%= draft.content?.eventDate || '' %>"></label>
+            </div>
+            <div class="bib-toggle-grid">
+              <label><input type="checkbox" name="showCategory" <%= draft.display?.showCategory !== false ? 'checked' : '' %>> Category or goal</label>
+              <label><input type="checkbox" name="showRunnerName" <%= draft.display?.showRunnerName ? 'checked' : '' %>> Runner name when allowed</label>
+              <label><input type="checkbox" name="showEventDate" <%= draft.display?.showEventDate ? 'checked' : '' %>> Event date</label>
+              <label><input type="checkbox" name="showEventLogo" <%= draft.display?.showEventLogo !== false ? 'checked' : '' %>> Event logo</label>
+            </div>
+          </section>
+
+          <section class="bib-panel">
+            <div class="bib-panel__heading"><div><p>3</p></div><span><strong>Color and print</strong><small>Keep the number readable in color and grayscale.</small></span></div>
+            <div class="bib-field-grid bib-field-grid--four">
+              <label>Accent <input name="accentColor" type="color" value="<%= draft.style?.accentColor || '#F97316' %>"></label>
+              <label>Fallback <input name="backgroundColor" type="color" value="<%= draft.style?.backgroundColor || '#0F172A' %>"></label>
+              <label>Number panel <input name="numberPanelColor" type="color" value="<%= draft.style?.numberPanelColor || '#F8FAFC' %>"></label>
+              <label>Number text <input name="numberTextColor" type="color" value="<%= draft.style?.numberTextColor || '#0F172A' %>"></label>
+              <label>Page width (mm) <input name="pageWidthMm" type="number" min="100" max="500" step="0.1" value="<%= draft.print?.pageWidthMm || 254 %>"></label>
+              <label>Page height (mm) <input name="pageHeightMm" type="number" min="60" max="300" step="0.1" value="<%= draft.print?.pageHeightMm || 152.4 %>"></label>
+            </div>
+          </section>
+
+          <section class="bib-panel">
+            <div class="bib-panel__heading"><div><p>4</p></div><span><strong>Number ranges</strong><small>Hybrid ranges must not overlap.</small></span></div>
+            <div class="bib-field-grid bib-field-grid--four">
+              <label>Virtual start <input name="virtualRangeStart" type="number" min="1" value="<%= event.bibSettings?.virtualRange?.start || 1 %>"></label>
+              <label>Virtual end <input name="virtualRangeEnd" type="number" min="1" value="<%= event.bibSettings?.virtualRange?.end || 999999 %>"></label>
+              <% if (event.eventType === 'hybrid') { %>
+                <label>On-site start <input name="onsiteRangeStart" type="number" min="1" required value="<%= event.bibSettings?.onsiteRange?.start || '' %>"></label>
+                <label>On-site end <input name="onsiteRangeEnd" type="number" min="1" required value="<%= event.bibSettings?.onsiteRange?.end || '' %>"></label>
+              <% } %>
+            </div>
+          </section>
+
+          <div class="bib-editor__actions">
+            <button class="btn btn-outline" type="submit" formaction="/organizer/events/<%= event._id %>/bib-design/preview" formtarget="bibPreview">Refresh preview</button>
+            <button class="btn btn-outline" type="submit">Save draft</button>
+            <button class="btn btn-primary" type="submit" formaction="/organizer/events/<%= event._id %>/bib-design/publish">Publish version</button>
+          </div>
+        </form>
+
+        <aside class="bib-preview-column">
+          <section class="bib-preview-card">
+            <div><p class="bib-builder__kicker">Sample preview</p><h2>Largest-number proof</h2></div>
+            <iframe name="bibPreview" title="Race bib sample preview" src="about:blank"></iframe>
+            <p>Preview, PNG, and PDF use the same 1800 × 1080 canvas.</p>
+          </section>
+          <section class="bib-side-card">
+            <h2>Custom artwork</h2>
+            <form method="POST" enctype="multipart/form-data" action="/organizer/events/<%= event._id %>/bib-design/artwork">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <label>JPEG, PNG, or WebP <input type="file" name="artworkFile" accept="image/jpeg,image/png,image/webp" required></label>
+              <button class="btn btn-outline" type="submit">Upload artwork</button>
+            </form>
+          </section>
+          <section class="bib-side-card">
+            <h2>Copy a layout</h2>
+            <form method="POST" action="/organizer/events/<%= event._id %>/bib-design/copy">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <label>Source event ID <input name="sourceEventId" required></label>
+              <button class="btn btn-outline" type="submit">Copy layout</button>
+            </form>
+          </section>
+          <section class="bib-side-card">
+            <h2>Published versions</h2>
+            <% if (!versions.length) { %><p>No published version yet.</p><% } %>
+            <% versions.forEach(function(version) { %>
+              <form class="bib-version" method="POST" action="/organizer/events/<%= event._id %>/bib-design/release">
+                <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                <input type="hidden" name="version" value="<%= version.version %>">
+                <span><strong>Version <%= version.version %></strong><small><%= version.publishedAt ? new Date(version.publishedAt).toLocaleString() : '' %></small></span>
+                <button class="btn btn-primary" type="submit"><%= event.bibSettings?.releasedVersion === version.version ? 'Release again' : 'Release' %></button>
+              </form>
+            <% }); %>
+            <% if (event.bibSettings?.releaseStatus === 'released') { %>
+              <form method="POST" action="/organizer/events/<%= event._id %>/bib-design/pause">
+                <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                <button class="btn btn-outline" type="submit">Pause runner access</button>
+              </form>
+            <% } %>
+          </section>
+          <% if (event.eventType === 'onsite' || event.eventType === 'hybrid') { %>
+            <section class="bib-side-card">
+              <h2>Print assigned bibs</h2>
+              <p>Exports eligible on-site registrations only. Each request is limited to 250 pages.</p>
+              <form method="GET" action="/organizer/events/<%= event._id %>/bib-design/export.pdf">
+                <label>Category <input name="category" maxlength="100" placeholder="All categories"></label>
+                <div class="bib-field-grid">
+                  <label>First number <input name="min" type="number" min="1"></label>
+                  <label>Last number <input name="max" type="number" min="1"></label>
+                </div>
+                <button class="btn btn-outline" type="submit" name="preview" value="1">Preview counts</button>
+                <button class="btn btn-primary" type="submit">Download organizer PDF</button>
+              </form>
+            </section>
+          <% } %>
+        </aside>
+      </div>
+    </div>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+</body>
+</html>

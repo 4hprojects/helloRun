@@ -577,6 +577,7 @@ async function getOrganizerEventDetailPresentation({
         { label: 'Transfers', href: `/organizer/events/${id}/transfers`, icon: 'arrow-right-left' }
       ] },
       { group: 'Recognition', items: [
+        { label: 'Bib Design', href: `/organizer/events/${id}/bib-design`, icon: 'ticket' },
         { label: 'Certificates', href: `/organizer/events/${id}/certificate`, icon: 'award' },
         { label: 'Badges', href: `/organizer/events/${id}/badges/manage`, icon: 'badge-check' }
       ] },

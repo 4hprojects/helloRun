@@ -213,6 +213,21 @@ exports.uploadCertificateAssets = (req, res, next) => {
   });
 };
 
+exports.uploadRaceBibArtwork = (req, res, next) => {
+  const uploadFields = brandingUpload.fields([{ name: 'artworkFile', maxCount: 1 }]);
+  uploadFields(req, res, (err) => {
+    if (!err) {
+      req.uploadError = null;
+      next();
+      return;
+    }
+    req.uploadError = err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE'
+      ? `Bib artwork exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`
+      : err.message || 'Bib artwork upload failed.';
+    next();
+  });
+};
+
 exports.uploadBlogAssets = (req, res, next) => {
   const uploadFields = brandingUpload.fields([
     { name: 'coverImageFile', maxCount: 1 },
@@ -584,6 +599,23 @@ exports.uploadCertificateAssetsToR2 = async ({
   return result;
 };
 
+exports.uploadRaceBibArtworkToR2 = async ({ userId, eventId, file }) => {
+  if (!file?.buffer) throw new Error('Choose an artwork image.');
+  const metadata = await sharp(file.buffer, { failOn: 'error', limitInputPixels: 40_000_000 }).metadata();
+  if (!metadata.width || !metadata.height || metadata.width < 600 || metadata.height < 360) {
+    throw new Error('Bib artwork must be at least 600 × 360 pixels.');
+  }
+  if (metadata.width * metadata.height > 40_000_000) {
+    throw new Error('Bib artwork has too many pixels.');
+  }
+  return uploadFileToR2({
+    userId,
+    file,
+    category: `events/${String(eventId).replace(/[^a-z0-9_-]/gi, '-')}/bib-assets/artwork`,
+    label: 'race-bib-artwork'
+  });
+};
+
 exports.uploadBlogCoverToR2 = async ({ userId, coverImageFile }) => {
   assertR2Configured();
   if (!coverImageFile) {
@@ -949,7 +981,7 @@ async function uploadFileToR2({ userId, file, category, label, convertImagesToWe
   };
 }
 
-// Magic-byte signatures for files stored verbatim (not re-encoded through sharp).
+// Magic-byte signatures for uploads before storage or Sharp re-encoding.
 // The multer fileFilter only sees the client-supplied MIME type, which is spoofable;
 // this confirms the bytes actually match the declared type before they reach R2.
 const MAGIC_BYTE_CHECKS = {
@@ -971,14 +1003,12 @@ function assertDeclaredTypeMatchesBytes(file) {
 }
 
 async function normalizeFileForUpload(file, options = {}) {
+  assertDeclaredTypeMatchesBytes(file);
   const shouldConvertImage = options.convertImagesToWebp !== false
     && String(file.mimetype || '').startsWith('image/')
     && file.mimetype !== 'image/webp';
 
   if (!shouldConvertImage) {
-    // Files on this branch (PDFs, webp, or images when conversion is disabled) are
-    // stored verbatim — sharp never sees them, so verify the bytes here instead.
-    assertDeclaredTypeMatchesBytes(file);
     return {
       buffer: file.buffer,
       contentType: file.mimetype,

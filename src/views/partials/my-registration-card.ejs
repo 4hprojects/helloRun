@@ -26,6 +26,13 @@
             <span><% if (registration.onsite && registration.onsite.bibNumber) { %>Bib <%= registration.onsite.bibNumber %> · Race pass<% } else { %>Race pass<% } %></span>
           </a>
         <% } %>
+        <% if (event?.bibSettings?.enabled) { %>
+          <% if (registration.raceBib && event.bibSettings.releaseStatus === 'released') { %>
+            <a class="my-reg-race-pass" href="/my-registrations/<%= item.registrationId %>/bib"><i data-lucide="ticket" aria-hidden="true"></i><span>View Bib <%= registration.raceBib.bib_number %></span></a>
+          <% } else if (registration.status !== 'cancelled' && registration.status !== 'refunded') { %>
+            <span class="my-reg-confirmation"><i data-lucide="clock-3" aria-hidden="true"></i><span><%= isPaidEvent && registration.paymentStatus !== 'paid' ? 'Bib after payment' : registration.participationMode === 'onsite' ? 'Bib number pending' : 'Bib release pending' %></span></span>
+          <% } %>
+        <% } %>
       </div>
       <h3><% if (item.eventHref) { %><a href="<%= item.eventHref %>"><%= item.eventTitle %></a><% } else { %><%= item.eventTitle %><% } %></h3>
       <p class="my-reg-helper"><%= item.helperText %></p>

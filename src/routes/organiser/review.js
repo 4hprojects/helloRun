@@ -16,6 +16,7 @@ const { normalizeSubmissionHubFilters } = require('../../services/submission-hub
 const { reverseSubmissionApproval } = require('../../services/approval-reversal.service');
 const { describeLinkedEntries, formatLinkedReviewMessage } = require('../../services/linked-entry-review.service');
 const { resolveChallengeConfig } = require('../../utils/challenge-metrics');
+const { issueVirtualBib } = require('../../services/race-bib-assignment.service');
 const { normalizeSubmissionReviewMode, getSubmissionReviewModeLabel, isManualSubmissionReview } = require('../../utils/submission-review-mode');
 const { resolveOcrSource } = require('../../utils/ocr/reviewer-verification');
 const {
@@ -818,6 +819,11 @@ router.post('/events/:id/payment-reviews/bulk-approve', protectEventReviewMutati
         registration.paymentRejectionReason = '';
         registration.paymentRejectionCode = '';
         await registration.save();
+        if (event.bibSettings?.releaseStatus === 'released' && registration.participationMode === 'virtual') {
+          issueVirtualBib(registration._id).catch((error) => {
+            logger.error(`Race bib issuance will retry on runner view: ${error.message}`);
+          });
+        }
         evaluateRegistrationAchievementsInBackground(registration, { performedBy: user._id });
         recordCriticalAuditEventInBackground({
           actorMongoUserId: user._id,
@@ -1433,6 +1439,11 @@ router.post(
       syncRegistrationPaymentShadowInBackground(registration, {
         route: 'organizer.payment.approve'
       });
+      if (event.bibSettings?.releaseStatus === 'released' && registration.participationMode === 'virtual') {
+        issueVirtualBib(registration._id).catch((error) => {
+          logger.error(`Race bib issuance will retry on runner view: ${error.message}`);
+        });
+      }
       evaluateRegistrationAchievementsInBackground(registration, {
         performedBy: user._id
       });

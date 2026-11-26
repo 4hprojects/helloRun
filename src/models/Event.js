@@ -811,6 +811,29 @@ const eventSchema = new mongoose.Schema(
       ],
       default: []
     },
+    bibSettings: {
+      enabled: { type: Boolean, default: false },
+      releaseStatus: {
+        type: String,
+        enum: ['disabled', 'draft', 'releasing', 'released'],
+        default: 'disabled'
+      },
+      releasedDesignVersionId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'RaceBibDesign',
+        default: null
+      },
+      releasedVersion: { type: Number, min: 1, default: null },
+      releasedAt: { type: Date, default: null },
+      virtualRange: {
+        start: { type: Number, min: 1, max: 9999999, default: 1 },
+        end: { type: Number, min: 1, max: 9999999, default: 999999 }
+      },
+      onsiteRange: {
+        start: { type: Number, min: 1, max: 9999999, default: null },
+        end: { type: Number, min: 1, max: 9999999, default: null }
+      }
+    },
     waiverTemplate: {
       type: String,
       required: true,

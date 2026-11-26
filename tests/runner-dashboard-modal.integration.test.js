@@ -428,9 +428,6 @@ test('run proof modal process opens dashboard flow before eligible events finish
   const source = fs.readFileSync(scriptPath, 'utf8');
   const partialPath = path.resolve(__dirname, '../src/views/partials/run-proof-modal.ejs');
   const partial = fs.readFileSync(partialPath, 'utf8');
-  const footerPath = path.resolve(__dirname, '../src/views/layouts/footer.ejs');
-  const footer = fs.readFileSync(footerPath, 'utf8');
-
   assert.match(source, /showModalShell\(\);\s*renderEventOptionsLoading\(\);/);
   assert.match(source, /data-run-proof-registration-id/);
   assert.match(source, /Image analysis is unavailable\. Continue by entering your run details manually\./);
@@ -481,7 +478,7 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.doesNotMatch(partial, /runProofStravaSyncBtn|Sync Strava Data|Strava Activity/);
   assert.match(source, /Personal log/);
   assert.match(partial, /id="runProofSubmitInlineBtn"/);
-  assert.match(footer, /\/js\/ocr\/ocr-location-resolver\.js/);
+  assert.match(source, /\/js\/ocr\/ocr-location-resolver\.js/);
 
   const runnerRoutes = fs.readFileSync(path.resolve(__dirname, '../src/routes/runner.routes.js'), 'utf8');
   assert.match(runnerRoutes, /submissionEligibilityLimiter/);

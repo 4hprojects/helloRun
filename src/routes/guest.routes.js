@@ -32,6 +32,9 @@ const {
 const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
 const { getOnsiteStateForRegistrations } = require('../services/onsite-roster.service');
 const { renderBibQrCode } = require('../services/bib-qr-token.service');
+const { resolveBibForRegistration } = require('../services/race-bib-assignment.service');
+const { renderRaceBibPng, renderRaceBibPdf } = require('../services/race-bib-renderer.service');
+const { _renderData: buildBibRenderData } = require('../controllers/raceBib.controller');
 
 // Unauthenticated writes, so tighter than the signed-in equivalents.
 const guestRegistrationLimiter = createRateLimiter({
@@ -169,7 +172,7 @@ router.get('/guest/registrations/:token', guestLookupLimiter, async (req, res, n
     }
 
     const event = await Event.findById(registration.eventId)
-      .select('title slug eventStartAt venueName feeMode')
+      .select('title slug eventStartAt venueName feeMode bibSettings')
       .lean();
 
     // This link is the guest's race pass as well as their receipt. Without it, every guest,
@@ -179,6 +182,12 @@ router.get('/guest/registrations/:token', guestLookupLimiter, async (req, res, n
     // hashed, already single-purpose, and already revoked on cancellation and on claim.
     const onsite =
       (await getOnsiteStateForRegistrations([String(registration._id)])).get(String(registration._id)) || null;
+    if (event?.bibSettings?.enabled && registration.participationMode === 'virtual') {
+      // Self-heal a retryable signup/payment issuance failure before showing the private receipt.
+      await resolveBibForRegistration(registration._id).catch((error) => {
+        logger.error(`Guest bib self-heal failed for ${registration._id}: ${error.message}`);
+      });
+    }
 
     let qrDataUrl = '';
     if (onsite?.bibNumber) {
@@ -198,11 +207,74 @@ router.get('/guest/registrations/:token', guestLookupLimiter, async (req, res, n
       event,
       registration,
       onsite,
-      qrDataUrl
+      qrDataUrl,
+      guestToken: req.params.token
     });
   } catch (error) {
     return next(error);
   }
+});
+
+async function resolveGuestBib(req) {
+  const resolved = await resolveToken(req.params.token, 'manage');
+  if (!resolved.ok) return null;
+  const registration = await Registration.findById(resolved.registrationId).lean();
+  if (!registration || registration.participantType !== 'guest' || registration.userId) return null;
+  const context = await resolveBibForRegistration(registration._id);
+  touchLastUsed(resolved.record._id);
+  return { registration, context };
+}
+
+router.get('/guest/registrations/:token/bib', guestLookupLimiter, async (req, res, next) => {
+  try {
+    const result = await resolveGuestBib(req);
+    if (!result) return res.status(404).render('error', { title: 'Bib not found', status: 404, message: 'That link is not valid.' });
+    const { context, registration } = result;
+    const bibReady = Boolean(context.eligibility.eligible && context.assignment && context.design);
+    return res.status(bibReady ? 200 : 409).render('pages/race-bib', {
+      title: `Race bib — ${context.event.title}`,
+      context,
+      bibReady,
+      showName: Boolean(registration.bibPreferences?.showName),
+      basePath: `/guest/registrations/${req.params.token}/bib`,
+      preferenceAction: `/guest/registrations/${req.params.token}/bib/preferences`,
+      backHref: `/guest/registrations/${req.params.token}`,
+      racePassHref: `/guest/registrations/${req.params.token}`
+    });
+  } catch (error) { return next(error); }
+});
+
+router.get('/guest/registrations/:token/bib.:format(png|pdf)', guestLookupLimiter, async (req, res, next) => {
+  try {
+    const result = await resolveGuestBib(req);
+    if (!result) return res.status(404).send('Bib not found.');
+    const { context } = result;
+    if (!context.eligibility.eligible || !context.assignment || !context.design) return res.status(409).send('Bib is not available.');
+    const input = buildBibRenderData(context);
+    const isPdf = req.params.format === 'pdf';
+    const buffer = isPdf ? await renderRaceBibPdf(input) : await renderRaceBibPng(input);
+    res.set({
+      'Content-Type': isPdf ? 'application/pdf' : 'image/png',
+      'Cache-Control': 'private, no-store',
+      'Content-Disposition': `${req.query.inline === '1' ? 'inline' : 'attachment'}; filename="${context.event.slug}-bib-${context.assignment.bib_number}.${isPdf ? 'pdf' : 'png'}"`
+    });
+    return res.send(buffer);
+  } catch (error) { return next(error); }
+});
+
+router.post('/guest/registrations/:token/bib/preferences', guestLookupLimiter, requireCsrfProtection, async (req, res, next) => {
+  try {
+    const resolved = await resolveToken(req.params.token, 'manage');
+    if (!resolved.ok) return res.status(404).send('Registration not found.');
+    const registration = await Registration.findOne({ _id: resolved.registrationId, participantType: 'guest', userId: null });
+    if (!registration) return res.status(404).send('Registration not found.');
+    registration.bibPreferences.showName = req.body.showName === 'on' || req.body.showName === '1';
+    await registration.save();
+    touchLastUsed(resolved.record._id);
+    // Keep the credential out of a fresh Location header. The relative redirect resolves
+    // from .../bib/preferences back to the existing private .../bib URL in the browser.
+    return res.redirect('../bib');
+  } catch (error) { return next(error); }
 });
 
 module.exports = router;

@@ -286,7 +286,7 @@ test('organizer media removal action rejects missing csrf token', async () => {
 });
 
 async function seedFixtures() {
-  await ensureCurrentPolicies();
+  const policyIds = await ensureCurrentPolicies();
 
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const password = 'Pass1234';
@@ -396,6 +396,7 @@ async function seedFixtures() {
     paidEvent,
     unpaidRegistration,
     paidRegistration,
+    policyIds,
     reset: {
       token: resetToken
     }
@@ -447,11 +448,13 @@ async function cleanupFixtures(currentSeed) {
       _id: {
         $in: [currentSeed.runner._id, currentSeed.unverified._id, currentSeed.organizer._id]
       }
-    })
+    }),
+    PrivacyPolicy.deleteMany({ _id: { $in: currentSeed.policyIds || [] } })
   ]);
 }
 
 async function ensureCurrentPolicies() {
+  const createdIds = [];
   const policies = [
     {
       slug: 'privacy-policy',
@@ -476,7 +479,7 @@ async function ensureCurrentPolicies() {
     if (existing) continue;
 
     const now = new Date();
-    await PrivacyPolicy.create({
+    const created = await PrivacyPolicy.create({
       title: policy.title,
       slug: policy.slug,
       versionNumber: '1.0',
@@ -492,7 +495,9 @@ async function ensureCurrentPolicies() {
       publishedBy: { userId: null, name: 'Test Seed' },
       publishedAt: now
     });
+    createdIds.push(created._id);
   }
+  return createdIds;
 }
 
 async function login(email, password) {

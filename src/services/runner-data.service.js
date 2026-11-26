@@ -16,7 +16,7 @@ async function getRunnerRegistrations(userId) {
   return Registration.find({ userId })
     .populate({
       path: 'eventId',
-      select: 'title slug status logoUrl bannerImageUrl eventStartAt eventEndAt city country venueName virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm raceCategories minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt virtualWindow onsiteCheckinWindows feeMode feeAmount feeCurrency paymentAccountName paymentInstructions paymentQrImageUrl',
+      select: 'title slug status logoUrl bannerImageUrl eventStartAt eventEndAt city country venueName virtualCompletionMode challengeMetrics primaryChallengeMetric targetSteps targetDistanceKm raceCategories minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt virtualWindow onsiteCheckinWindows feeMode feeAmount feeCurrency paymentAccountName paymentInstructions paymentQrImageUrl bibSettings',
       match: { isPersonalRecord: { $ne: true } }
     })
     .sort({ registeredAt: -1 })

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/race-bib-design.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main class="runner-bib" id="main-content">
+    <div class="runner-bib__shell">
+      <a class="runner-bib__back" href="<%= backHref || '/my-registrations' %>">← Registration</a>
+      <header><p class="bib-builder__kicker">Race bib</p><h1><%= context.event.title %></h1></header>
+      <% if (!bibReady) { %>
+        <% const messages = { payment_pending: 'Your bib will be available after payment is verified.', design_awaiting_release: 'The organizer is preparing your bib design.', number_awaiting_assignment: 'Your official bib number is awaiting assignment.', inactive_registration: 'This registration is not eligible for a bib.' }; %>
+        <section class="runner-bib__pending"><h2>Bib pending</h2><p><%= messages[context.eligibility.reason] || 'Your bib is not available yet.' %></p></section>
+      <% } else { %>
+        <div class="runner-bib__canvas"><img src="<%= basePath %>.png?inline=1" alt="Personalized race bib number <%= context.assignment.bib_number %>"></div>
+        <% if (context.registration.participationMode === 'virtual' && context.design.display?.showRunnerName) { %>
+          <form class="runner-bib__preference" method="POST" action="<%= preferenceAction %>">
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+            <label><input type="checkbox" name="showName" <%= showName ? 'checked' : '' %>> Show my name on my virtual bib</label>
+            <button class="btn btn-outline" type="submit">Save name preference</button>
+          </form>
+        <% } %>
+        <div class="runner-bib__actions">
+          <a class="btn btn-primary" href="<%= basePath %>.png">Download PNG</a>
+          <a class="btn btn-outline" href="<%= basePath %>.pdf">Print PDF</a>
+          <% if (context.registration.participationMode === 'onsite' && racePassHref) { %><a class="btn btn-outline" href="<%= racePassHref %>">Open private Race Pass</a><% } %>
+        </div>
+        <p class="runner-bib__privacy">This downloadable bib does not contain your check-in QR or registration confirmation code.</p>
+      <% } %>
+    </div>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
+</body>
+</html>

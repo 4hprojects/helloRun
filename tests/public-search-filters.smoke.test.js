@@ -190,11 +190,11 @@ test('event detail page explains accumulated multi-distance goals by category', 
   assert.equal(response.status, 200);
   const html = await response.text();
 
-  assert.match(html, /Pick a virtual goal for September/i);
+  assert.match(html, /Choose your virtual goal/i);
   assert.match(html, /class="event-challenge-goal-grid"/i);
   assert.match(html, /25K Quest[\s\S]*25 km/i);
   assert.match(html, /200K Quest[\s\S]*200 km/i);
-  assert.match(html, /Approved activities accumulate until you reach that category’s target/i);
+  assert.match(html, /build your distance through approved activities/i);
   assert.doesNotMatch(html, /<strong>\s*Selected category distance\s*<\/strong>/i);
   assert.doesNotMatch(html, /completion is measured against the goal above/i);
   assert.doesNotMatch(html, /<h2>Complete 200 km<\/h2>/i);

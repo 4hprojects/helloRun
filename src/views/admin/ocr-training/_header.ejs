@@ -46,7 +46,7 @@
         <span class="ocr-nav-group-label" id="ocr-nav-<%= groupKey %>"><%= groupLabel %></span>
         <ul>
           <% links.forEach(([key, href, label]) => { %>
-            <li><a href="<%= href %>"<% if (section === key) { %> aria-current="page" data-ocr-active-tab<% } %>><%= label %></a></li>
+            <li><a href="<%= href %>"<% if (section === key) { %> aria-current=page data-ocr-active-tab<% } %>><%= label %></a></li>
           <% }) %>
         </ul>
       </div>

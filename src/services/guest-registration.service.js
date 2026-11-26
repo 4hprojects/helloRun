@@ -20,6 +20,7 @@ const { renderWaiverTemplate } = require('../utils/waiver');
 const { getInitialRegistrationPaymentStatus } = require('../utils/payment-workflow');
 const communicationService = require('./communication.service');
 const logger = require('../utils/logger');
+const { issueVirtualBib } = require('./race-bib-assignment.service');
 
 const MAX_FIELD = 200;
 
@@ -301,6 +302,9 @@ async function createGuestRegistration({
     });
 
     await registration.save();
+    if (event.bibSettings?.releaseStatus === 'released' && registration.participationMode === 'virtual') {
+      issueVirtualBib(registration._id).catch((error) => logger.error(`[GuestRegistration] Bib issuance failed: ${error.message}`));
+    }
 
     const { token } = await issueToken(registration._id, event._id, 'manage');
     const hasAccount = await emailBelongsToAccount(form.email);

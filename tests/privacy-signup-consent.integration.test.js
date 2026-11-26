@@ -16,6 +16,7 @@ const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
 
 let serverProc = null;
 const createdEmails = [];
+const createdPolicyIds = [];
 
 test.before(async () => {
   serverProc = spawn(process.execPath, ['src/server.js'], {
@@ -37,9 +38,10 @@ test.after(async () => {
   if (serverProc && !serverProc.killed) {
     serverProc.kill('SIGTERM');
   }
-  if (createdEmails.length > 0) {
+  if (createdEmails.length > 0 || createdPolicyIds.length > 0) {
     await mongoose.connect(process.env.MONGODB_URI);
     await User.deleteMany({ email: { $in: createdEmails } });
+    await PrivacyPolicy.deleteMany({ _id: { $in: createdPolicyIds } });
     await mongoose.disconnect();
   }
 });
@@ -220,6 +222,7 @@ async function ensureCurrentPrivacyPolicy() {
       publishedBy: { userId: null, name: 'Test Seed' },
       publishedAt: now
     });
+    createdPolicyIds.push(created._id);
 
     return {
       policyId: created._id,
@@ -265,6 +268,7 @@ async function ensureCurrentTermsPolicy() {
       publishedBy: { userId: null, name: 'Test Seed' },
       publishedAt: now
     });
+    createdPolicyIds.push(created._id);
 
     return {
       termsPolicyId: created._id,
@@ -310,6 +314,7 @@ async function ensureCurrentCookiePolicy() {
       publishedBy: { userId: null, name: 'Test Seed' },
       publishedAt: now
     });
+    createdPolicyIds.push(created._id);
 
     return {
       cookiePolicyId: created._id,
@@ -355,6 +360,7 @@ async function ensureCurrentDataUsagePolicy() {
       publishedBy: { userId: null, name: 'Test Seed' },
       publishedAt: now
     });
+    createdPolicyIds.push(created._id);
 
     return {
       dataUsagePolicyId: created._id,

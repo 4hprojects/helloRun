@@ -1,5 +1,27 @@
 # November 2026 Changelog
 
+## November 27 — Reusable race bib generator
+
+Added an opt-in event bib workflow for virtual, on-site, hybrid, and supported guest
+registrations. Organizers can edit a landscape draft, publish immutable versions,
+release or pause a selected version, copy reusable layout settings, and export bounded
+category PDFs. Preview, PNG, and PDF output share one Sharp/PDFKit renderer.
+
+Migration `029_race_bib_generator.sql` extends the existing PostgreSQL assignment
+ledger with bib kind and event range policy. Virtual allocation is transactional,
+retry-safe, and event-unique. Hybrid release audits existing assignments and requires
+non-overlapping ranges. Race Pass QR and confirmation codes remain outside shareable
+bibs.
+
+Runner and guest views enforce owner or private-token access and disable caching.
+Virtual runner names are off by default. Cancellation, claim, payment approval, normal
+registration, guest registration, and on-site reassignment now connect to bib lifecycle
+helpers without changing certificate, badge, merchandise, or check-in ownership.
+
+Created the 2027k preview from the supplied text-free Cordillera artwork. Production
+release and backfill were deliberately not run. Commands, rollback, and verification
+boundaries are documented in [the implementation report](../implementation/race-bib-generator.md).
+
 ## November 23 — Finisher-only merchandise gate
 
 - **Added.** `src/services/shop/finisher-eligibility.service.js`. A product with an
@@ -133,7 +155,6 @@
     event immediately.
 
 Production state is recorded under `EVT-2027K`.
-
 ## November 22 — Event page landing layout verification
 
 The verification ran against the loopback-only isolated environment

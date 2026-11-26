@@ -48,6 +48,18 @@
         </section>
       <% } %>
 
+      <% if (event && event.bibSettings && event.bibSettings.enabled) { %>
+        <section class="race-pass-card">
+          <h2>Designed race bib</h2>
+          <% if (event.bibSettings.releaseStatus === 'released') { %>
+            <p><a class="nav-signup-btn" href="/my-registrations/<%= registration._id %>/bib">View or download bib</a></p>
+            <p class="race-pass-hint">The downloadable bib never contains this private check-in QR.</p>
+          <% } else { %>
+            <p class="race-pass-hint">The organizer is preparing the downloadable bib design.</p>
+          <% } %>
+        </section>
+      <% } %>
+
       <section class="race-pass-details" aria-labelledby="racePassDetailsTitle">
         <h2 id="racePassDetailsTitle">Registration</h2>
         <dl>

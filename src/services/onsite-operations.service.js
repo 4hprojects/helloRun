@@ -78,14 +78,15 @@ async function assignBib(eventId, registrationId, bibNumber, options = {}) {
     const result = await sql`
       INSERT INTO bib_assignments (
         event_core_id, registration_id, runner_user_id, bib_number, category,
-        assignment_status, assigned_at
+        assignment_status, bib_kind, assigned_at
       ) VALUES (
         ${eventCoreId}, ${registrationCoreId}, ${runnerUserId}, ${bibNumber}, ${options.category || null},
-        'assigned', CURRENT_TIMESTAMP
+        'assigned', 'onsite', CURRENT_TIMESTAMP
       )
       ON CONFLICT (event_core_id, registration_id) WHERE assignment_status <> 'voided'
       DO UPDATE SET
         bib_number = EXCLUDED.bib_number,
+        bib_kind = 'onsite',
         category = COALESCE(EXCLUDED.category, bib_assignments.category),
         updated_at = CURRENT_TIMESTAMP
       RETURNING *
