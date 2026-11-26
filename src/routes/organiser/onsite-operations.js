@@ -13,6 +13,7 @@ const Registration = require('../../models/Registration');
 const { verifyScannedBibCode, revokeTokensForBib } = require('../../services/bib-qr-token.service');
 const { releaseRaceKit } = require('../../services/race-kit-release.service');
 const { findRegistrationByExactBib } = require('../../services/onsite-roster.service');
+const { getBibAssignment } = require('../../services/race-bib-assignment.service');
 const Event = require('../../models/Event');
 const { validateGuestForm } = require('../../services/guest-registration.service');
 const { createWalkInRegistration } = require('../../services/walk-in-registration.service');
@@ -128,10 +129,13 @@ router.post('/events/:eventId/bibs/assign', protectOnsiteMutation('check_in'), a
       return res.status(400).json({ error: 'registrationId and bibNumber required' });
     }
 
-    // The bib is changing hands or number, so any code already printed for it stops
-    // working — otherwise the previous holder's QR would still check someone in.
-    await revokeTokensForBib(eventId, bibNumber, 'Bib reassigned');
+    const previous = await getBibAssignment(registrationId).catch(() => null);
     const bibRecord = await assignBib(eventId, registrationId, bibNumber, { category });
+    // Revoke only after the write succeeds. A failed reassignment must not invalidate the
+    // runner's current pass. Without old-number revocation, the previous holder's QR would still check someone in.
+    // Both numbers are covered because either may have a printed QR.
+    if (previous?.bib_number) await revokeTokensForBib(eventId, previous.bib_number, 'Bib reassigned');
+    await revokeTokensForBib(eventId, bibNumber, 'Bib reassigned');
 
     res.status(201).json({
       success: true,
@@ -189,7 +193,7 @@ router.post(
       }
 
       const event = await Event.findById(req.params.eventId)
-        .select('title waiverTemplate waiverVersion organiserName feeMode feeCurrency pricingMode distancePricing pricingPeriods customizedOptions registrationPackages raceCategories raceDistances kitInventory kitSizeRequired customQuestions')
+        .select('title waiverTemplate waiverVersion organiserName feeMode feeCurrency pricingMode distancePricing pricingPeriods customizedOptions registrationPackages raceCategories raceDistances bibSettings kitInventory kitSizeRequired customQuestions')
         .lean();
       if (!event) return res.status(404).json({ error: 'Event not found.' });
 
@@ -220,7 +224,7 @@ router.post(
 router.post('/events/:eventId/walk-ins', protectOnsiteMutation('check_in'), walkInLimiter, async (req, res) => {
   try {
     const event = await Event.findById(req.params.eventId)
-      .select('title waiverTemplate waiverVersion organiserName feeMode feeCurrency pricingMode distancePricing pricingPeriods customizedOptions registrationPackages raceCategories raceDistances kitInventory kitSizeRequired customQuestions')
+      .select('title waiverTemplate waiverVersion organiserName feeMode feeCurrency pricingMode distancePricing pricingPeriods customizedOptions registrationPackages raceCategories raceDistances bibSettings kitInventory kitSizeRequired customQuestions')
       .lean();
     if (!event) {
       return res.status(404).json({ error: 'Event not found.' });

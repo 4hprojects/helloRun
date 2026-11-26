@@ -152,14 +152,14 @@ test('the request builder is a no-op with the flag off and never blocks on looku
   });
 });
 
-test('a duplicate signal keeps an entry out of auto-approval on every path', () => {
+test('browser OCR never auto-approves, with or without duplicate signals', () => {
   const entry = {
     status: 'submitted', source: 'manual_upload', proof: { key: 'k' },
     ocrData: { extractedDistanceKm: 5, extractedTimeMs: 1_500_000, confidence: 0.95, nameMatchStatus: 'matched' }
   };
-  assert.equal(validation.isAutoApprovableSubmission(entry), true);
+  assert.equal(validation.isAutoApprovableSubmission(entry), false);
   assert.equal(validation.isAutoApprovableSubmission({ ...entry, duplicateSignals: [{ kind: 'near_duplicate_screenshot' }] }), false);
-  assert.equal(validation.isAutoApprovableSubmission({ ...entry, duplicateSignals: [] }), true);
+  assert.equal(validation.isAutoApprovableSubmission({ ...entry, duplicateSignals: [] }), false);
 });
 
 test('activity link panel renders the rebuilt link safely and explains its limits', () => {

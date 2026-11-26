@@ -97,7 +97,7 @@ test('research CSV cells cannot inject spreadsheet formulas', () => {
 
 test('the research export never selects participant identifiers', () => {
   const source = fs.readFileSync(path.join(ROOT, 'src/services/ocr/ocr-analytics.service.js'), 'utf8');
-  const exportSource = source.slice(source.indexOf('async function buildResearchExportCsv'));
+  const exportSource = source.slice(source.indexOf('function formatResearchExportCsv'));
   assert.doesNotMatch(exportSource, /runnerId|email|firstName|normalizedUrl|runLocation|eventId|proof\.key/);
   assert.match(exportSource, /shortHash\(model\._id\)/);
 });
@@ -146,7 +146,8 @@ test('settings page disables editing for support admins and lists delivery histo
   const common = { section: 'settings', settings, admins: [{ _id: 'a'.repeat(24), firstName: '<b>Ana</b>', email: 'a@example.test' }], schedule: { due: false, reason: 'schedule_not_set', periodKey: '' }, remindersFlag: false, eventTypeLabels: { 'ocr.review_digest': 'Digest' } };
   const support = render('settings', { ...common, deliveries: [], canEdit: false });
   assert.match(support, /Only a full administrator can change these settings/);
-  assert.match(support, /<fieldset class="ocr-panel" disabled>/);
+  assert.match(support, /<fieldset class="ocr-settings-fields" disabled>/);
+  assert.match(support, /<details class="ocr-settings-disclosure" open>/);
   assert.match(support, /choose a day and hour/);
   assert.doesNotMatch(support, /<b>Ana<\/b>/);
   const full = render('settings', { ...common, deliveries: [{ createdAt: new Date(), eventType: 'ocr.review_digest', status: 'sent', attempts: 1, sentAt: new Date(), errorCode: '' }], canEdit: true });

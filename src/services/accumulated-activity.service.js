@@ -13,6 +13,7 @@ const { resolveRejectionReason, formatRejectionAuditNote } = require('../utils/r
 const { validateReviewChecklist } = require('../utils/run-proof-review');
 const { resolveEventAccess } = require('./event-access.service');
 const { isManualSubmissionReview } = require('../utils/submission-review-mode');
+const { buildOcrVerification } = require('../utils/ocr/reviewer-verification');
 const {
   refreshAccumulatedChallengeProgress,
   refreshGlobalDistanceMilestoneProgressInBackground
@@ -80,6 +81,7 @@ async function reviewAccumulatedActivitySubmission({
   rejectionCode,
   checklistVersion,
   verifiedCriteria,
+  ocrVerificationStatus,
   requireVerification = false,
   // Set only by linked-entry-review.service when this activity follows a decision made on
   // an entry submitted together with it. See applyLinkedReview.
@@ -140,6 +142,10 @@ async function reviewAccumulatedActivitySubmission({
     rejectionReason: '',
     rejectionCode: ''
   };
+  if (!linkedFrom && !isApprovalReversal && safeAction !== 'clarify') {
+    const ocrVerification = buildOcrVerification(activity, ocrVerificationStatus, organizerId, reviewedAt);
+    if (ocrVerification) update.ocrVerification = ocrVerification;
+  }
 
   if (safeAction === 'approve') {
     // The checklist was confirmed on the source entry of a linked decision.

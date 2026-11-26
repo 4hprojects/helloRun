@@ -898,7 +898,7 @@ test('accumulated activities keep enforcing legacy minimum distance when configu
   );
 });
 
-test('accumulated activities auto-approve clean OCR but defer certificates until finalization', async () => {
+test('accumulated activities keep browser OCR pending for server review', async () => {
   const seed = await seedSubmissionFixture('accumulated-auto-approve');
   await Event.updateOne(
     { _id: seed.event._id },
@@ -931,16 +931,14 @@ test('accumulated activities auto-approve clean OCR but defer certificates until
     }
   });
 
-  assert.equal(first.status, 'approved');
-  assert.equal(first.reviewedBy, null);
-  assert.equal(first.reviewNotes, 'Auto-approved from OCR name match.');
+  assert.equal(first.status, 'submitted');
   assert.equal(first.validation.method, 'ocr');
   assert.equal(first.validation.submissionMode, 'accumulated');
-  assert.equal(first.validation.autoApprovalEligible, true);
   assert.equal(first.certificate?.url || '', '');
 
   let progress = await getRegistrationAccumulatedProgress(seed.registration._id);
-  assert.equal(progress.approvedDistanceKm, 4);
+  assert.equal(progress.approvedDistanceKm, 0);
+  assert.equal(progress.pendingDistanceKm, 4);
   assert.equal(progress.completed, false);
   assert.equal(progress.certificateUrl, '');
 
@@ -962,13 +960,13 @@ test('accumulated activities auto-approve clean OCR but defer certificates until
     }
   });
 
-  assert.equal(second.status, 'approved');
+  assert.equal(second.status, 'submitted');
   assert.equal(second.certificate?.url || '', '');
 
   progress = await getRegistrationAccumulatedProgress(seed.registration._id);
-  assert.equal(progress.approvedDistanceKm, 10);
-  assert.equal(progress.completed, true);
-  assert.equal(progress.pendingDistanceKm, 0);
+  assert.equal(progress.approvedDistanceKm, 0);
+  assert.equal(progress.completed, false);
+  assert.equal(progress.pendingDistanceKm, 10);
   assert.equal(progress.certificateUrl, '');
 });
 
@@ -1510,7 +1508,7 @@ test('createSubmission saves suspicious OCR elevation edits without auto-approvi
   assert.match(result.suspiciousFlagReason, /elevation mismatch/i);
 });
 
-test('createSubmission auto-approves clean matched OCR and issues certificate', async () => {
+test('createSubmission keeps browser OCR pending without issuing a certificate', async () => {
   const seed = await seedSubmissionFixture('ocr-auto-approve');
   const calls = { approved: [], certificate: [] };
   const originalApproved = emailService.sendResultApprovedEmailToRunner;
@@ -1554,17 +1552,14 @@ test('createSubmission auto-approves clean matched OCR and issues certificate', 
     emailService.sendCertificateIssuedEmailToRunner = originalCertificate;
   }
 
-  assert.equal(result.status, 'approved');
-  assert.ok(result.reviewedAt);
+  assert.equal(result.status, 'submitted');
+  assert.equal(result.reviewedAt, null);
   assert.equal(result.reviewedBy, null);
-  assert.equal(result.reviewNotes, 'Auto-approved from OCR name match.');
-  assert.ok(String(result.certificate?.url || '').length > 0);
+  assert.equal(result.reviewNotes, '');
+  assert.equal(result.certificate?.url || '', '');
   assert.equal(calls.approved.length, 0);
   assert.equal(calls.certificate.length, 0);
   assert.equal(result.validation.method, 'ocr');
-  assert.equal(result.validation.autoApprovalEligible, true);
-  assert.equal(result.validation.reviewRequired, false);
-  assert.equal(result.validation.reviewReason, '');
   assert.equal(result.validation.submissionMode, 'one_time');
 });
 
@@ -1701,7 +1696,7 @@ test('eligible submission options expose one-time minimum required distance', as
   assert.equal(new Date(option.submissionDeadlineAt).toISOString(), new Date(seed.event.eventEndAt).toISOString());
 });
 
-test('createSubmission auto-approves clean matched OCR personal record without certificate', async () => {
+test('createSubmission keeps browser OCR personal records pending without certificates', async () => {
   const runner = await createRunnerUser('ocr-personal-record-auto');
   const originalApproved = emailService.sendResultApprovedEmailToRunner;
   emailService.sendResultApprovedEmailToRunner = async () => ({ ok: true });
@@ -1734,18 +1729,16 @@ test('createSubmission auto-approves clean matched OCR personal record without c
     emailService.sendResultApprovedEmailToRunner = originalApproved;
   }
 
-  assert.equal(result.status, 'approved');
+  assert.equal(result.status, 'submitted');
   assert.equal(result.isPersonalRecord, true);
-  assert.equal(result.reviewNotes, 'Auto-approved from OCR name match.');
+  assert.equal(result.reviewNotes, '');
   assert.equal(result.certificate?.url || '', '');
   assert.equal(result.validation.method, 'ocr');
-  assert.equal(result.validation.autoApprovalEligible, true);
-  assert.equal(result.validation.reviewRequired, false);
   assert.equal(result.validation.submissionMode, 'personal_record');
   assert.equal(result.validation.minimumRequiredDistanceKm, null);
 });
 
-test('createSubmission keeps mismatched names pending but auto-approves clean undetected-name results', async () => {
+test('createSubmission keeps mismatched and undetected browser OCR names pending', async () => {
   const mismatchSeed = await seedSubmissionFixture('ocr-mismatch-pending');
   const noNameSeed = await seedSubmissionFixture('ocr-no-name-pending');
 
@@ -1798,13 +1791,11 @@ test('createSubmission keeps mismatched names pending but auto-approves clean un
   assert.equal(mismatched.status, 'submitted');
   assert.equal(mismatched.suspiciousFlag, true);
   assert.match(mismatched.suspiciousFlagReason, /name does not match/i);
-  assert.equal(noName.status, 'approved');
+  assert.equal(noName.status, 'submitted');
   assert.equal(noName.suspiciousFlag, false);
-  assert.equal(noName.validation.autoApprovalEligible, true);
-  assert.equal(noName.validation.reviewReason, '');
 });
 
-test('resubmitSubmission recalculates OCR state and can auto-approve a clean replacement', async () => {
+test('resubmitSubmission recalculates browser OCR state and keeps replacements pending', async () => {
   const seed = await seedSubmissionFixture('ocr-resubmit-auto');
   const first = await createSubmission({
     registrationId: seed.registration._id,
@@ -1833,7 +1824,8 @@ test('resubmitSubmission recalculates OCR state and can auto-approve a clean rep
     organizerId: seed.organizer._id,
     action: 'reject',
     rejectionReason: 'Name mismatch',
-    reviewNotes: 'Replace screenshot'
+    reviewNotes: 'Replace screenshot',
+    ocrVerificationStatus: 'confirmed'
   });
 
   const originalApproved = emailService.sendResultApprovedEmailToRunner;
@@ -1869,7 +1861,7 @@ test('resubmitSubmission recalculates OCR state and can auto-approve a clean rep
     emailService.sendCertificateIssuedEmailToRunner = originalCertificate;
   }
 
-  assert.equal(resubmitted.status, 'approved');
+  assert.equal(resubmitted.status, 'submitted');
   assert.equal(resubmitted.ocrData.extractedName, 'Submit Runner');
   assert.equal(resubmitted.ocrData.nameMatchStatus, 'matched');
   assert.equal(resubmitted.suspiciousFlag, false);

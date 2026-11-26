@@ -15,6 +15,7 @@ const mongoose = require('mongoose');
 const sharp = require('sharp');
 const TrainingSample = require('../../models/TrainingSample');
 const { CONSENT_BASES } = require('../../models/TrainingSample');
+const { VERIFIED_PLATFORMS } = require('../../models/TrainingSample');
 const { getOcrLimits } = require('./ocr-config');
 const { getOcrSettings, hasApprovedNoticeBasis } = require('./ocr-settings.service');
 
@@ -89,6 +90,7 @@ function computeIneligibleReasons(sample, now = new Date()) {
   if (!CONSENT_BASES.includes(sample.consentBasis)) reasons.push('no_consent_basis');
   if (!String(sample.transcribedText || '').trim()) reasons.push('empty_transcription');
   if (!sample.alignmentConfirmed) reasons.push('alignment_not_confirmed');
+  if (!VERIFIED_PLATFORMS.includes(sample.verifiedPlatform)) reasons.push('platform_not_verified');
   if (sample.cropDeletedAt) reasons.push('crop_deleted');
   if (sample.retentionExpiry && new Date(sample.retentionExpiry).getTime() <= now.getTime()) reasons.push('retention_expired');
   return reasons;
@@ -161,6 +163,8 @@ async function createCandidatesFromExtraction(input, deps = {}) {
       layoutId: extraction.layout?.id || '',
       profileVersion: extraction.profile?.version || '',
       modelVersionId: extraction.modelVersionId || '',
+      ocrPass: field.sourcePass || field.location?.sourcePass || '',
+      ocrErrorCode: extraction.errorCode || '',
       ocrText: String(field.location.rawText || '').slice(0, MAX_TRANSCRIPTION_LENGTH),
       transcribedText: '',
       normalizedValue: formatNormalizedValue(fieldKey, field.value),
@@ -180,7 +184,7 @@ async function createCandidatesFromExtraction(input, deps = {}) {
  * Review action with optimistic concurrency. `version` is the __v the reviewer saw.
  * action: 'save' (transcription only) | 'approve' | 'exclude' | 'reopen'
  */
-async function reviewSample({ sampleId, version, action, transcribedText, alignmentConfirmed, reason = '', reviewerId }) {
+async function reviewSample({ sampleId, version, action, transcribedText, alignmentConfirmed, verifiedPlatform, verifiedLayoutId, reason = '', reviewerId }) {
   if (!mongoose.isValidObjectId(sampleId)) throw new SampleError('not_found', 'Sample not found.', 404);
   const sample = await TrainingSample.findById(sampleId);
   if (!sample) throw new SampleError('not_found', 'Sample not found.', 404);
@@ -191,10 +195,13 @@ async function reviewSample({ sampleId, version, action, transcribedText, alignm
   if (text.length > MAX_TRANSCRIPTION_LENGTH) throw new SampleError('transcription_too_long', 'Transcriptions are one text line of at most 200 characters.');
   const statusFrom = sample.status;
   const safeReason = String(reason || '').trim().slice(0, 300);
+  const safePlatform = String(verifiedPlatform === undefined ? sample.verifiedPlatform : verifiedPlatform).trim().toLowerCase();
+  const safeLayoutId = String(verifiedLayoutId === undefined ? sample.verifiedLayoutId : verifiedLayoutId).trim().slice(0, 80);
 
   if (action === 'approve') {
     if (!text) throw new SampleError('transcription_required', 'Type exactly the text shown in the crop before approving.');
     if (!alignmentConfirmed) throw new SampleError('alignment_required', 'Confirm that the crop shows exactly this text.');
+    if (!VERIFIED_PLATFORMS.includes(safePlatform)) throw new SampleError('platform_required', 'Choose the platform shown in the crop. Use Unknown only when it cannot be verified.');
     if (!CONSENT_BASES.includes(sample.consentBasis)) throw new SampleError('consent_required', 'This sample has no consent basis and cannot be approved.');
     if (sample.cropDeletedAt) throw new SampleError('crop_deleted', 'The crop has been deleted under the retention policy.');
     sample.status = 'approved';
@@ -212,6 +219,8 @@ async function reviewSample({ sampleId, version, action, transcribedText, alignm
     throw new SampleError('invalid_action', 'Unknown review action.');
   }
   sample.transcribedText = text;
+  sample.verifiedPlatform = VERIFIED_PLATFORMS.includes(safePlatform) ? safePlatform : '';
+  sample.verifiedLayoutId = safeLayoutId;
   if (action === 'save' && text !== sample.ocrText) sample.alignmentConfirmed = false;
   sample.reviewerId = reviewerId || null;
   sample.reviewedAt = new Date();

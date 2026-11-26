@@ -150,7 +150,21 @@ test.describe('OCR notifications against local MongoDB', { skip }, () => {
       serverOcr: { status: 'complete', platform: 'strava', completedAt: new Date(), autoApproval: { distanceMismatch: index === 1, timeMismatch: false } },
       runLocation: 'Secret Street 1'
     })));
-    await TrainingSample.collection.insertOne({ status: 'approved', reviewedAt: new Date(), platform: 'strava', fieldKey: 'distance', ocrText: '5.O2 km', transcribedText: '5.02 km', activityGroupId: 'x', cropKey: 'k2', cropChecksum: 'c2', source: 'admin_upload' });
+    await TrainingSample.collection.insertOne({
+      status: 'approved',
+      reviewedAt: new Date(),
+      platform: 'strava',
+      verifiedPlatform: 'strava',
+      verifiedLayoutId: 'activity-card',
+      fieldKey: 'distance',
+      ocrPass: 'original',
+      ocrText: '5.O2 km',
+      transcribedText: '5.02 km',
+      activityGroupId: 'x',
+      cropKey: 'k2',
+      cropChecksum: 'c2',
+      source: 'admin_upload'
+    });
     const analytics = await getOcrAnalytics({ days: 7 });
     const strava = analytics.entries.find((row) => row.platform === 'strava');
     assert.equal(strava.readings, 3);
@@ -160,7 +174,7 @@ test.describe('OCR notifications against local MongoDB', { skip }, () => {
     assert.equal(gt.cer, Number((1 / 7).toFixed(4)));
     const csv = await buildResearchExportCsv({ days: 7, experimentId: 'capstone-A' });
     assert.match(csv.split('\n')[0], /^experiment_id,generated_at,window_days/);
-    assert.match(csv, /capstone-A,.*,ground_truth,strava,distance,1,cer,0\.1429/);
+    assert.match(csv, /capstone-A,.*,ground_truth,strava,distance\|layout:activity-card\|pass:original\|error:none,1,cer,0\.1429/);
     assert.doesNotMatch(csv, new RegExp(String(runnerId)));
     assert.doesNotMatch(csv, /@example\.test|Secret Street/);
   });

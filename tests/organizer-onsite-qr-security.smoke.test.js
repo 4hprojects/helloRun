@@ -97,9 +97,9 @@ test('organizer cannot access QR data for another organizer event', async () => 
     }
   });
 
-  assert.equal(response.status, 403);
+  assert.equal(response.status, 404);
   const body = await response.json();
-  assert.match(body.error, /own events/i);
+  assert.match(body.error || body.message, /not found/i);
 });
 
 test('owning organizer can generate a bib QR code', async () => {
@@ -166,7 +166,7 @@ test('QR decode rejects data for a different event', async () => {
 
   assert.equal(response.status, 400);
   const body = await response.json();
-  assert.match(body.error, /does not belong/i);
+  assert.match(body.error, /belongs to a different event/i);
 });
 
 async function seedFixtures() {
@@ -280,16 +280,33 @@ async function cleanupFixtures(currentSeed) {
 }
 
 async function login(email, password) {
+  const { csrfToken, cookie } = await getCsrfSession('/login');
   const response = await fetch(`${BASE_URL}/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ email, password }),
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({ _csrf: csrfToken, email, password }),
     redirect: 'manual'
   });
   assert.equal(response.status, 302);
-  const setCookie = response.headers.get('set-cookie');
-  assert.ok(setCookie);
-  return setCookie.split(';')[0];
+  const sessionCookie = response.headers.getSetCookie()
+    .find((value) => value.startsWith('hr.sid='));
+  assert.ok(sessionCookie);
+  return sessionCookie.split(';')[0];
+}
+
+async function getCsrfSession(pathname) {
+  const response = await fetch(`${BASE_URL}${pathname}`, { redirect: 'manual' });
+  const html = await response.text();
+  const tokenMatch = html.match(/name="_csrf"\s+value="([^"]+)"/i);
+  assert.ok(tokenMatch, `Expected CSRF token on ${pathname}`);
+
+  const setCookie = String(response.headers.get('set-cookie') || '');
+  const cookie = setCookie.split(';')[0];
+  assert.ok(cookie, `Expected session cookie on ${pathname}`);
+  return { csrfToken: tokenMatch[1], cookie };
 }
 
 async function getCsrfFromAuthedPage(pathname, cookie) {

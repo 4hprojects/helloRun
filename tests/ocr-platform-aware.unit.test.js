@@ -331,9 +331,9 @@ const serverReading = (overrides = {}) => ({
   ...overrides
 });
 
-test('with flags off, auto-approval behaves exactly as before', () => {
+test('with flags off, browser OCR remains autofill-only', () => {
   withEnv({ OCR_SERVER_PIPELINE_ENABLED: undefined, OCR_SERVER_AUTO_APPROVAL_ENABLED: undefined }, () => {
-    assert.equal(validation.isAutoApprovableSubmission(ocrEntry()), true);
+    assert.equal(validation.isAutoApprovableSubmission(ocrEntry()), false);
     assert.equal(validation.isAutoApprovableSubmission(ocrEntry({ ocrData: { ...ocrEntry().ocrData, confidence: 0.2 } })), false);
   });
 });
@@ -361,7 +361,7 @@ test('with server auto-approval on, browser-posted values alone never approve', 
 test('server auto-approval requires the pipeline flag too', () => {
   withEnv({ OCR_SERVER_PIPELINE_ENABLED: undefined, OCR_SERVER_AUTO_APPROVAL_ENABLED: 'true' }, () => {
     assert.equal(config.isServerOcrAutoApprovalEnabled(), false);
-    assert.equal(validation.isAutoApprovableSubmission(ocrEntry()), true);
+    assert.equal(validation.isAutoApprovableSubmission(ocrEntry()), false);
   });
 });
 

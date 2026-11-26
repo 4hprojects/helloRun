@@ -233,6 +233,9 @@ const registrationSchema = new mongoose.Schema(
       templateSnapshot: { type: String, required: true, trim: true, maxlength: 20000 },
       renderedSnapshot: { type: String, required: true, trim: true, maxlength: 22000 }
     },
+    bibPreferences: {
+      showName: { type: Boolean, default: false }
+    },
     confirmationCode: {
       type: String,
       required: true,

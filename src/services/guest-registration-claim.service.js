@@ -136,6 +136,10 @@ async function claimRegistration({ registrationId, user }) {
   // save() rather than an atomic update, so the post-save hook re-syncs the Postgres
   // shadow — the row now has a user, and onsite operations resolve through it.
   await registration.save();
+  const { updateAssignmentOwner } = require('./race-bib-assignment.service');
+  await updateAssignmentOwner(registration._id).catch((error) => {
+    logger.error(`[Claim] Could not update bib owner for ${registration._id}: ${error.message}`);
+  });
 
   // The guest links were the only way in while it had no owner. It has one now, so they
   // stop working; a forwarded link must not outlive the claim.

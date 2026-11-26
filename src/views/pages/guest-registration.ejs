@@ -39,6 +39,17 @@
         <% } %>
       </section>
 
+      <% if (event && event.bibSettings && event.bibSettings.enabled) { %>
+        <section class="race-pass-card">
+          <h2>Designed race bib</h2>
+          <% if (event.bibSettings.releaseStatus === 'released') { %>
+            <p><a class="nav-signup-btn" href="/guest/registrations/<%= locals.guestToken || '' %>/bib">View bib</a></p>
+          <% } else { %>
+            <p class="race-pass-hint">The organizer is preparing the downloadable bib design.</p>
+          <% } %>
+        </section>
+      <% } %>
+
       <section class="race-pass-details">
         <h2>Details</h2>
         <dl>

@@ -1957,6 +1957,9 @@
 .proof-comparison-row.has-mismatch { background: #fff1f2; border-left: 4px solid #e11d48; }
 .proof-comparison-row small { display: block; margin-top: .2rem; color: #be123c; font-weight: 700; }
 .proof-comparison-row small.comparison-match { color: #15803d; }
+.server-ocr-panel .proof-comparison-row {
+  grid-template-columns: minmax(6rem, .75fr) repeat(4, minmax(7rem, 1fr));
+}
 
 .submission-review-context summary,
 .submission-review-admin-audit summary { cursor: pointer; font-weight: 800; }
@@ -2046,6 +2049,11 @@
   .proof-comparison-row strong { grid-column: 1 / -1; }
   .proof-comparison-row span::before { display: block; margin-bottom: .15rem; color: #64748b; font-size: .72rem; font-weight: 800; text-transform: uppercase; content: 'Submitted'; }
   .proof-comparison-row span:last-child::before { content: 'Detected'; }
+  .server-ocr-panel .proof-comparison-row { grid-template-columns: 1fr 1fr; }
+  .server-ocr-panel .proof-comparison-row span:nth-of-type(1)::before { content: 'Runner confirmed'; }
+  .server-ocr-panel .proof-comparison-row span:nth-of-type(2)::before { content: 'Server reading'; }
+  .server-ocr-panel .proof-comparison-row span:nth-of-type(3)::before { content: 'Difference'; }
+  .server-ocr-panel .proof-comparison-row span:nth-of-type(4)::before { content: 'Final value'; }
   .evidence-stage-heading { align-items: flex-start; flex-direction: column; }
   .submission-proof-zoom-button img { max-height: 72vh; }
 }

@@ -16,7 +16,9 @@ const { normalizeSubmissionHubFilters } = require('../../services/submission-hub
 const { reverseSubmissionApproval } = require('../../services/approval-reversal.service');
 const { describeLinkedEntries, formatLinkedReviewMessage } = require('../../services/linked-entry-review.service');
 const { resolveChallengeConfig } = require('../../utils/challenge-metrics');
+const { issueVirtualBib } = require('../../services/race-bib-assignment.service');
 const { normalizeSubmissionReviewMode, getSubmissionReviewModeLabel, isManualSubmissionReview } = require('../../utils/submission-review-mode');
+const { resolveOcrSource } = require('../../utils/ocr/reviewer-verification');
 const {
   REVIEW_CHECKLIST_VERSION,
   buildRunProofVerificationCriteria,
@@ -723,7 +725,7 @@ async function approveCleanSubmission({ submissionId, eventIds, user, reviewNote
     throw new Error('This event requires individual review with the verification checklist.');
   }
   const reviewSignal = buildSubmissionReviewSignal(submission);
-  if (submission.suspiciousFlag || reviewSignal.label) {
+  if (submission.suspiciousFlag || reviewSignal.label || resolveOcrSource(submission)) {
     throw new Error('This submission requires individual review.');
   }
 
@@ -817,6 +819,11 @@ router.post('/events/:id/payment-reviews/bulk-approve', protectEventReviewMutati
         registration.paymentRejectionReason = '';
         registration.paymentRejectionCode = '';
         await registration.save();
+        if (event.bibSettings?.releaseStatus === 'released' && registration.participationMode === 'virtual') {
+          issueVirtualBib(registration._id).catch((error) => {
+            logger.error(`Race bib issuance will retry on runner view: ${error.message}`);
+          });
+        }
         evaluateRegistrationAchievementsInBackground(registration, { performedBy: user._id });
         recordCriticalAuditEventInBackground({
           actorMongoUserId: user._id,
@@ -1432,6 +1439,11 @@ router.post(
       syncRegistrationPaymentShadowInBackground(registration, {
         route: 'organizer.payment.approve'
       });
+      if (event.bibSettings?.releaseStatus === 'released' && registration.participationMode === 'virtual') {
+        issueVirtualBib(registration._id).catch((error) => {
+          logger.error(`Race bib issuance will retry on runner view: ${error.message}`);
+        });
+      }
       evaluateRegistrationAchievementsInBackground(registration, {
         performedBy: user._id
       });
@@ -1744,6 +1756,7 @@ router.post(
           reviewNotes,
           checklistVersion: req.body.checklistVersion,
           verifiedCriteria: req.body.verifiedCriteria,
+          ocrVerificationStatus: req.body.ocrVerificationStatus,
           requireVerification: true
         });
 
@@ -1760,6 +1773,7 @@ router.post(
         reviewNotes,
         checklistVersion: req.body.checklistVersion,
         verifiedCriteria: req.body.verifiedCriteria,
+        ocrVerificationStatus: req.body.ocrVerificationStatus,
         requireVerification: true
       });
 
@@ -1841,7 +1855,8 @@ router.post(
           action: 'reject',
           rejectionCode,
           rejectionReason,
-          reviewNotes
+          reviewNotes,
+          ocrVerificationStatus: req.body.ocrVerificationStatus
         });
 
         return redirectAfterRunProofDecision(res, event._id, `Activity submission rejected.${formatLinkedReviewMessage(reviewedActivity)}`, queueContext, nextItem);
@@ -1858,7 +1873,8 @@ router.post(
         action: 'reject',
         rejectionCode,
         rejectionReason,
-        reviewNotes
+        reviewNotes,
+        ocrVerificationStatus: req.body.ocrVerificationStatus
       });
 
       return redirectAfterRunProofDecision(res, event._id, `Run result rejected.${formatLinkedReviewMessage(reviewedSubmission)}`, queueContext, nextItem);

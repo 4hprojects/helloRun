@@ -16,6 +16,7 @@ const reviewRoutes = require('./organiser/review');
 const activityEvidenceRoutes = require('./organiser/activity-evidence');
 const profileRoutes = require('./organiser/profile');
 const coOrganizerRoutes = require('./organiser/co-organizers');
+const raceBibRoutes = require('./race-bib.routes');
 
 router.use('/', onsiteOperationsRoutes);
 router.use('/', onsitePageRoutes);
@@ -31,5 +32,6 @@ router.use('/', reviewRoutes);
 router.use('/', activityEvidenceRoutes);
 router.use('/', profileRoutes);
 router.use('/', coOrganizerRoutes);
+router.use('/', raceBibRoutes);
 
 module.exports = router;

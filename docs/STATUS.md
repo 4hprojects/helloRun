@@ -2,7 +2,7 @@
 
 **Source of truth for delivery status**
 
-**Last reconciled:** November 15, 2026
+**Last reconciled:** November 27, 2026
 
 **Evidence window:** repository evidence through documentation PR #45, plus
 read-only public, MongoDB, and PostgreSQL evidence observed November 15, 2026.
@@ -48,6 +48,11 @@ core platform:
   without a payload remain unrecoverable; the owner accepted the documented
   non-reconstruction controls under DEC-02 on October 22;
 - event creation and management for virtual, onsite, and hybrid workflows;
+- an opt-in reusable race bib generator with event-managed draft, immutable publish,
+  separate release, managed artwork and crop controls, one shared PNG/PDF renderer,
+  transactional virtual issuance, existing on-site assignment reuse, private guest
+  access, hybrid range enforcement, and bounded organizer print export. Production
+  2027k activation and backfill remain operator-controlled and unrun;
 - runner registration, payment proof, run-proof and accumulated-activity
   submission, organiser review, results, leaderboards, certificates, and
   achievement badges;

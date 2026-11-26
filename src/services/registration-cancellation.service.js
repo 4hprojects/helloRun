@@ -18,6 +18,7 @@ const communicationService = require('./communication.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 const { releaseCategorySlot } = require('./category-capacity.service');
 const { revokeTokensForRegistration } = require('./bib-qr-token.service');
+const { revokeTokensForRegistration: revokeGuestRegistrationTokens } = require('./guest-registration-token.service');
 const logger = require('../utils/logger');
 
 const CANCELLABLE_STATUSES = ['pending_payment', 'paid', 'confirmed'];
@@ -127,6 +128,7 @@ async function cancelRegistration({ registrationId, eventId, actorUserId, reason
 
   const onsite = await releaseOnsiteArtefacts(registration._id);
   await revokeTokensForRegistration(registration._id, 'Registration cancelled');
+  await revokeGuestRegistrationTokens(registration._id);
 
   // Put a collected kit back on the books. Nothing physically returns, but this person is
   // no longer a participant, and leaving the count down would have the organiser short a

@@ -7,27 +7,26 @@
 </head>
 <body>
   <%- include('../../layouts/nav') %>
-  <main class="admin-page">
+  <main class="admin-page ocr-admin-page ocr-audit-page" id="main-content">
     <section class="section admin-shell">
       <%- include('_header') %>
       <section class="ocr-panel" aria-labelledby="ocr-audit-heading">
-        <h2 id="ocr-audit-heading">OCR administration audit trail</h2>
-        <p class="ocr-help">Append-only. The 100 most recent actions are shown.</p>
+        <div class="ocr-section-heading"><div><h2 id="ocr-audit-heading">Recent administrative actions</h2><p>Append-only record. The 100 most recent actions are shown.</p></div><span class="ocr-pill"><%= rows.length %> shown</span></div>
         <% if (!rows.length) { %>
           <p class="ocr-empty">No OCR administration actions recorded yet.</p>
         <% } else { %>
           <div class="admin-users-table-wrap">
-            <table class="admin-table ocr-table">
+            <table class="admin-table ocr-table ocr-responsive-table">
               <thead><tr><th>When</th><th>Action</th><th>Actor</th><th>Target</th><th>Status</th><th>Reason</th></tr></thead>
               <tbody>
                 <% rows.forEach((row) => { %>
                   <tr>
-                    <td><%= formatDateTime(row.createdAt) %></td>
-                    <td><%= row.action %></td>
-                    <td><%= row.actorId ? String(row.actorId) : 'system' %></td>
-                    <td><%= row.targetType %> <%= row.targetId %></td>
-                    <td><%= row.statusFrom || '—' %> → <%= row.statusTo || '—' %></td>
-                    <td><%= row.reason || '—' %></td>
+                    <td data-label="When"><%= formatDateTime(row.createdAt) %></td>
+                    <td data-label="Action"><%= row.action %></td>
+                    <td data-label="Actor"><%= row.actorId ? String(row.actorId) : 'system' %></td>
+                    <td data-label="Target"><%= row.targetType %> <%= row.targetId %></td>
+                    <td data-label="Status"><%= row.statusFrom || '—' %> → <%= row.statusTo || '—' %></td>
+                    <td data-label="Reason"><%= row.reason || '—' %></td>
                   </tr>
                 <% }) %>
               </tbody>
@@ -38,6 +37,7 @@
     </section>
   </main>
   <%- include('../../layouts/footer') %>
+  <script nonce="<%= locals.cspNonce || String() %>" src="/js/admin-ocr.js"></script>
   <script nonce="<%= locals.cspNonce || String() %>" src="/js/main.js"></script>
 </body>
 </html>

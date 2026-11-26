@@ -1,7 +1,7 @@
 'use strict';
 
 const { isAccumulatedChallenge } = require('../utils/challenge-metrics');
-const { isServerOcrAutoApprovalEnabled } = require('./ocr/ocr-config');
+const { isServerOcrPipelineEnabled, isServerOcrAutoApprovalEnabled } = require('./ocr/ocr-config');
 
 // OCR parsing, distance-plausibility, and auto-approval decision logic —
 // extracted from submission.service.js (analysis CQ-2). Pure leaf: no imports,
@@ -238,13 +238,12 @@ function buildSubmissionValidationMetadata({
 }) {
   const method = normalizeValidationMethod(input?.source, ocrData);
   const submissionMode = registration?.isPersonalRecord ? 'personal_record' : 'one_time';
-  // Browser OCR values no longer decide eligibility once the server reads the proof itself;
-  // the server OCR worker re-evaluates after its extraction completes.
-  const awaitingServerOcr = method === 'ocr' && isServerOcrAutoApprovalEnabled();
-  const autoApprovalEligible = !awaitingServerOcr && isAutoApprovablePayload({
+  // Browser OCR is runner assistance only. A screenshot cannot be trusted until the
+  // server reads the stored proof. Verified provider imports remain a separate path.
+  const awaitingServerOcr = method === 'ocr';
+  const autoApprovalEligible = method === 'strava' && isAutoApprovableSyncedPayload({
     source: input?.source,
     stravaActivity: input?.stravaActivity,
-    ocrData,
     suspiciousFlag
   });
   return {
@@ -254,7 +253,9 @@ function buildSubmissionValidationMetadata({
     reviewReason: autoApprovalEligible
       ? ''
       : awaitingServerOcr && !suspiciousFlag && !minimumDistanceCheck?.belowMinimum
-        ? 'server_ocr_pending'
+        ? isServerOcrPipelineEnabled()
+          ? 'server_ocr_pending'
+          : 'server_ocr_review_required'
         : getSubmissionReviewReason({
         method,
         ocrData,
@@ -415,7 +416,8 @@ function isAutoApprovableSubmission(submission) {
   // A possible re-used activity or screenshot always goes to a person.
   if (Array.isArray(submission.duplicateSignals) && submission.duplicateSignals.length) return false;
   const isStrava = String(submission.source || '').trim().toLowerCase() === 'strava';
-  if (!isStrava && isServerOcrAutoApprovalEnabled()) {
+  if (!isStrava) {
+    if (!isServerOcrAutoApprovalEnabled()) return false;
     const serverOcr = getCurrentServerOcrPayload(submission);
     if (!serverOcr) return false;
     // Linked activity from a different provider than the screenshot: a person decides.
@@ -425,10 +427,9 @@ function isAutoApprovableSubmission(submission) {
       suspiciousFlag: Boolean(submission.suspiciousFlag || serverOcr.suspicious)
     });
   }
-  return isAutoApprovablePayload({
+  return isAutoApprovableSyncedPayload({
     source: submission.source,
     stravaActivity: submission.stravaActivity,
-    ocrData: submission.ocrData || {},
     suspiciousFlag: submission.suspiciousFlag
   });
 }

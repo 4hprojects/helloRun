@@ -81,6 +81,7 @@ const {
 
 const { buildRegistrationPagePresentation } = require('../../services/registration-page-presentation.service');
 const { getOnsiteStateForRegistrations } = require('../../services/onsite-roster.service');
+const { getBibAssignmentsForRegistrations, issueVirtualBib } = require('../../services/race-bib-assignment.service');
 const { reserveCategorySlot, releaseCategorySlot } = require('../../services/category-capacity.service');
 const { isTrackingSizes, isOfferedSize } = require('../../services/kit-inventory.service');
 const { validateAnswers } = require('../../services/custom-questions.service');
@@ -471,6 +472,9 @@ exports.postEventRegistration = async (req, res) => {
     registration.addOnsCurrency = selectedAddOnsResult.currency;
 
     await registration.save();
+    if (event.bibSettings?.releaseStatus === 'released' && registration.participationMode === 'virtual') {
+      issueVirtualBib(registration._id).catch((error) => logger.error('Race bib issuance retry scheduled:', error));
+    }
     await createRegistrationCheckoutOrderIfNeeded({
       registration,
       event,
@@ -666,6 +670,15 @@ exports.getMyRegistrations = async (req, res) => {
     for (const registration of enrichedRegistrations) {
       registration.onsite = onsiteStateByRegistrationId.get(String(registration._id)) || null;
     }
+    const bibEnabled = enrichedRegistrations.filter((registration) => registration.eventId?.bibSettings?.enabled);
+    await Promise.all(bibEnabled
+      .filter((registration) => registration.participationMode === 'virtual')
+      .map((registration) => issueVirtualBib(registration._id).catch(() => null)));
+    const bibAssignments = await getBibAssignmentsForRegistrations(bibEnabled.map((registration) => registration._id))
+      .catch(() => new Map());
+    for (const registration of enrichedRegistrations) {
+      registration.raceBib = bibAssignments.get(String(registration._id)) || null;
+    }
 
     const registrationPresentation = buildMyRegistrationsPresentation(enrichedRegistrations, {
       standardSubmissions: submissions,
@@ -848,7 +861,7 @@ exports.getRacePass = async (req, res) => {
       userId: req.session.userId
     })
       .select('eventId participationMode raceDistance confirmationCode participant paymentStatus')
-      .populate('eventId', 'title slug startDate venueName eventType eventTypesAllowed')
+      .populate('eventId', 'title slug startDate venueName eventType eventTypesAllowed bibSettings')
       .lean();
 
     if (!registration) {
