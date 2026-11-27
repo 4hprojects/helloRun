@@ -22,6 +22,18 @@ Created the 2027k preview from the supplied text-free Cordillera artwork. Produc
 release and backfill were deliberately not run. Commands, rollback, and verification
 boundaries are documented in [the implementation report](../implementation/race-bib-generator.md).
 
+Upgraded Bib Design into a structured template creator. Organizers can choose the
+existing photo split, a festival header, or a classic race layout without freeform
+positioning. New bounded slots support event copy, one primary logo, three partner
+logos, local typography presets, measured text fitting, contrast and overflow
+checks, proof cases, grayscale review, and responsive crop controls.
+
+Added optional 1800 × 1800 social exports. They wrap the unchanged printable bib and
+keep CTA content outside print output. Account and guest downloads retain existing
+eligibility, authorization, runner-name privacy, and private-cache controls. Existing
+published `landscape_v1` designs remain visually compatible and no production design
+or release state changed.
+
 ## November 23 — Finisher-only merchandise gate
 
 - **Added.** `src/services/shop/finisher-eligibility.service.js`. A product with an

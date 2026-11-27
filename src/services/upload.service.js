@@ -214,7 +214,10 @@ exports.uploadCertificateAssets = (req, res, next) => {
 };
 
 exports.uploadRaceBibArtwork = (req, res, next) => {
-  const uploadFields = brandingUpload.fields([{ name: 'artworkFile', maxCount: 1 }]);
+  const uploadFields = brandingUpload.fields([
+    { name: 'artworkFile', maxCount: 1 },
+    { name: 'partnerLogoFiles', maxCount: 3 }
+  ]);
   uploadFields(req, res, (err) => {
     if (!err) {
       req.uploadError = null;
@@ -602,6 +605,10 @@ exports.uploadCertificateAssetsToR2 = async ({
 exports.uploadRaceBibArtworkToR2 = async ({ userId, eventId, file }) => {
   if (!file?.buffer) throw new Error('Choose an artwork image.');
   const metadata = await sharp(file.buffer, { failOn: 'error', limitInputPixels: 40_000_000 }).metadata();
+  const expectedFormats = { 'image/jpeg': 'jpeg', 'image/png': 'png', 'image/webp': 'webp' };
+  if (!expectedFormats[file.mimetype] || metadata.format !== expectedFormats[file.mimetype]) {
+    throw new Error('Bib artwork file contents do not match its image type.');
+  }
   if (!metadata.width || !metadata.height || metadata.width < 600 || metadata.height < 360) {
     throw new Error('Bib artwork must be at least 600 × 360 pixels.');
   }
@@ -614,6 +621,33 @@ exports.uploadRaceBibArtworkToR2 = async ({ userId, eventId, file }) => {
     category: `events/${String(eventId).replace(/[^a-z0-9_-]/gi, '-')}/bib-assets/artwork`,
     label: 'race-bib-artwork'
   });
+};
+
+exports.uploadRaceBibPartnerLogosToR2 = async ({ userId, eventId, files = [] }) => {
+  if (!files.length) throw new Error('Choose at least one partner logo.');
+  if (files.length > 3) throw new Error('A bib supports up to three partner logos.');
+  const uploaded = [];
+  for (const [index, file] of files.entries()) {
+    const metadata = await sharp(file.buffer, { failOn: 'error', limitInputPixels: 20_000_000 }).metadata();
+    const expectedFormats = { 'image/jpeg': 'jpeg', 'image/png': 'png', 'image/webp': 'webp' };
+    if (!expectedFormats[file.mimetype] || metadata.format !== expectedFormats[file.mimetype]) {
+      throw new Error(`Partner logo ${index + 1} contents do not match its image type.`);
+    }
+    if (!metadata.width || !metadata.height || metadata.width < 64 || metadata.height < 64) {
+      throw new Error(`Partner logo ${index + 1} must be at least 64 × 64 pixels.`);
+    }
+    if (metadata.width * metadata.height > 20_000_000) {
+      throw new Error(`Partner logo ${index + 1} has too many pixels.`);
+    }
+    // eslint-disable-next-line no-await-in-loop
+    uploaded.push(await uploadFileToR2({
+      userId,
+      file,
+      category: `events/${String(eventId).replace(/[^a-z0-9_-]/gi, '-')}/bib-assets/partners`,
+      label: `race-bib-partner-${index + 1}`
+    }));
+  }
+  return uploaded;
 };
 
 exports.uploadBlogCoverToR2 = async ({ userId, coverImageFile }) => {

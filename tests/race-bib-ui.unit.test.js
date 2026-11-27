@@ -16,6 +16,7 @@ test('organizer and runner bib templates compile and expose private actions', ()
   const runner = read('src/views/pages/race-bib.ejs');
   assert.match(runner, /Download PNG/);
   assert.match(runner, /Print PDF/);
+  assert.match(runner, /Download share image/);
   assert.match(runner, /does not contain your check-in QR or registration confirmation code/);
   assert.match(runner, /Show my name on my virtual bib/);
 });
@@ -39,4 +40,22 @@ test('personalized routes require auth or private guest token and disable cachin
   assert.match(guestRoutes, /resolveToken\(req\.params\.token, 'manage'\)/);
   assert.match(controller, /'Cache-Control': 'private, no-store'/);
   assert.match(guestRoutes, /'Cache-Control': 'private, no-store'/);
+  assert.match(accountRoutes, /bib-share\.png', requireAuth, requireRunnerWorkspace/);
+  assert.match(guestRoutes, /resolveGuestBib\(req\)/);
+  assert.match(guestRoutes, /Social bib sharing is not enabled/);
+});
+
+test('bib creator exposes structured templates, live proof controls, and bounded partner logos', () => {
+  const organizer = read('src/views/organizer/race-bib-design.ejs');
+  const client = read('src/public/js/race-bib-design.js');
+  assert.match(organizer, /photo_split_v1/);
+  assert.match(organizer, /festival_header_v1/);
+  assert.match(organizer, /classic_race_v1/);
+  assert.match(organizer, /Print bib/);
+  assert.match(organizer, /Social square/);
+  assert.match(organizer, /Long name/);
+  assert.match(organizer, /Safe guides/);
+  assert.match(organizer, /partnerLogoFiles/);
+  assert.match(client, /window\.setTimeout\(refreshPreview, 350\)/);
+  assert.doesNotMatch(client, /transition:\s*all/);
 });

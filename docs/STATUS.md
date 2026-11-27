@@ -48,11 +48,13 @@ core platform:
   without a payload remain unrecoverable; the owner accepted the documented
   non-reconstruction controls under DEC-02 on October 22;
 - event creation and management for virtual, onsite, and hybrid workflows;
-- an opt-in reusable race bib generator with event-managed draft, immutable publish,
-  separate release, managed artwork and crop controls, one shared PNG/PDF renderer,
-  transactional virtual issuance, existing on-site assignment reuse, private guest
-  access, hybrid range enforcement, and bounded organizer print export. Production
-  2027k activation and backfill remain operator-controlled and unrun;
+- an opt-in reusable race bib generator with three structured template families,
+  locally bundled typography, measured text fitting, partner-logo slots, responsive
+  creator proofs, optional square social exports, immutable publishing, separate
+  release, one shared PNG/PDF renderer, transactional virtual issuance, existing
+  on-site assignment reuse, private guest access, hybrid range enforcement, and
+  bounded organizer print export. Existing `landscape_v1` designs remain compatible.
+  Production 2027k activation and backfill remain operator-controlled and unrun;
 - runner registration, payment proof, run-proof and accumulated-activity
   submission, organiser review, results, leaderboards, certificates, and
   achievement badges;

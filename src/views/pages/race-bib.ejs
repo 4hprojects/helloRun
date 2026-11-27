@@ -25,6 +25,7 @@
         <div class="runner-bib__actions">
           <a class="btn btn-primary" href="<%= basePath %>.png">Download PNG</a>
           <a class="btn btn-outline" href="<%= basePath %>.pdf">Print PDF</a>
+          <% if (context.design.social?.enabled) { %><a class="btn btn-outline" href="<%= basePath.replace(/\/bib$/, '/bib-share') %>.png">Download share image</a><% } %>
           <% if (context.registration.participationMode === 'onsite' && racePassHref) { %><a class="btn btn-outline" href="<%= racePassHref %>">Open private Race Pass</a><% } %>
         </div>
         <p class="runner-bib__privacy">This downloadable bib does not contain your check-in QR or registration confirmation code.</p>
