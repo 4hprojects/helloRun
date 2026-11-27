@@ -144,6 +144,7 @@ router.post('/my-registrations/claim/:registrationId', requireAuth, requireRunne
 router.get('/my-registrations/:registrationId/race-pass', requireAuth, requireRunnerWorkspace, pageController.getRacePass);
 router.get('/my-registrations/:registrationId/bib', requireAuth, requireRunnerWorkspace, raceBibController.getRunnerBib);
 router.get('/my-registrations/:registrationId/bib.:format(png|pdf)', requireAuth, requireRunnerWorkspace, raceBibController.getRunnerBibFile);
+router.get('/my-registrations/:registrationId/bib-share.png', requireAuth, requireRunnerWorkspace, raceBibController.getRunnerBibShare);
 router.post('/my-registrations/:registrationId/bib/preferences', requireAuth, requireRunnerWorkspace, requireCsrfProtection, raceBibController.postRunnerPreference);
 router.post('/my-registrations/:registrationId/request-cancellation', requireAuth, requireRunnerWorkspace, requireCsrfProtection, pageController.postRequestCancellation);
 router.post('/my-registrations/:registrationId/details', requireAuth, requireRunnerWorkspace, requireCsrfProtection, registrationDetailsLimiter, pageController.postRegistrationDetails);

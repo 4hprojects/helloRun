@@ -11,6 +11,7 @@ router.use(requireAuth);
 router.get('/events/:eventId/bib-design', controller.getDesign);
 router.post('/events/:eventId/bib-design', requireCsrfProtection, controller.postSaveDesign);
 router.post('/events/:eventId/bib-design/artwork', uploadService.uploadRaceBibArtwork, requireCsrfProtection, controller.postArtwork);
+router.post('/events/:eventId/bib-design/partner-logos', uploadService.uploadRaceBibArtwork, requireCsrfProtection, controller.postPartnerLogos);
 router.post('/events/:eventId/bib-design/preview', requireCsrfProtection, controller.postPreview);
 router.post('/events/:eventId/bib-design/copy', requireCsrfProtection, controller.postCopy);
 router.post('/events/:eventId/bib-design/publish', requireCsrfProtection, controller.postPublish);

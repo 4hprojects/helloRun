@@ -5,16 +5,31 @@
 
 ## Delivered behavior
 
-HelloRun now has one `landscape_v1` bib renderer for organizer previews,
-personalized PNG files, and printable PDF files. It uses an 1800 × 1080 canvas,
-managed event or custom artwork, crop controls, fixed text regions, a high-contrast
-number panel, and a solid fallback. PDFKit embeds the PNG produced by Sharp, so
-preview and print share one layout.
+HelloRun now has a structured template creator with three controlled families:
+legacy `landscape_v1`/`photo_split_v1`, `festival_header_v1`, and
+`classic_race_v1`. Existing `landscape_v1` snapshots keep their original layout.
+New drafts default to `festival_header_v1`. Each family uses the same 1800 × 1080
+print canvas for organizer previews, personalized PNG files, and printable PDF
+files. PDFKit embeds the PNG produced by Sharp, so preview and print share one
+layout.
+
+Templates provide bounded slots for event identity, participation label, category,
+location, runner name, date, tagline, entry badge, footer note, one primary logo,
+and up to three ordered partner logos. Managed artwork retains focal-point and zoom
+controls. Inter, Archivo Black, and Fredoka are bundled locally with measured text
+fitting. Missing artwork falls back to a solid theme. Contrast, overflow,
+print-safe, and missing-asset checks appear in the editor.
+
+Optional social export wraps the unchanged print bib in an 1800 × 1800 event-colored
+frame. Its CTA and URL never enter printable PNG, PDF, or organizer batch output.
+Social downloads use the same ownership, guest-token, eligibility, runner-name, and
+private-cache rules as printable output.
 
 Organizers can save a mutable draft, publish immutable versions, and separately
 release one version. Event settings remain disabled by default. Copying transfers
-layout, crop, display, color, and print settings only. Destination event assets and
-identity are resolved again.
+layout and presentation settings only. Destination event assets and identity are
+resolved again. Custom artwork, uploaded logos, CTA copy, published versions,
+release state, and assignments never copy.
 
 Virtual numbers use the authoritative PostgreSQL `bib_assignments` ledger. Migration
 `029_race_bib_generator.sql` adds bib kind and event range policies. Allocation locks
@@ -94,10 +109,11 @@ The following checks ran against repository files or loopback-only development
 services:
 
 - syntax, format, documentation, and `git diff --check`: pass;
-- full unit suite: 2,715/2,715 pass;
+- full unit suite: pass, including 18 focused race-bib checks;
 - full integration suite: 551/551 pass;
 - isolated smoke workflows: 61/61 pass;
-- race-bib unit checks: 12/12 pass;
+- race-bib template checks cover all families, bundled fonts, 1-, 4-, 6-, and
+  12-digit numbers, long text, missing art, deterministic output, and social wrapping;
 - isolated issuance and hybrid-policy integration checks: 2/2 pass;
 - existing on-site and payment regression integration checks: 25/25 pass;
 - route modules load without startup errors;
@@ -107,10 +123,14 @@ services:
 - preview PNG: 1800 × 1080; PDF: one 254 × 152.4 mm page;
 - PDF raster at 180 DPI: 1800 × 1080, matching PNG bounds with mean absolute
   channel difference 1.16.
+- rendered-EJS Chromium checks at 375, 768, and 1200 pixels confirm responsive
+  control ordering and the desktop sticky-preview layout;
+- generated visual proofs exist under `tmp/race-bib-template-proof/` for all three
+  template families and the square social frame.
 
 The test runner now executes unit, integration, and smoke groups with the correct
-database and visibility isolation. A real authenticated Chromium pass at 375, 768,
-and 1200 pixels was not run.
+database and visibility isolation. The responsive Chromium pass used the actual EJS
+and CSS with fixture data, not an authenticated organizer session.
 
 No production release, backfill, data read, or setting change was performed.
 Production 2027k counts therefore remain unknown until an authorized operator runs the

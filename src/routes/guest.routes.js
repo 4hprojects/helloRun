@@ -33,7 +33,7 @@ const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibil
 const { getOnsiteStateForRegistrations } = require('../services/onsite-roster.service');
 const { renderBibQrCode } = require('../services/bib-qr-token.service');
 const { resolveBibForRegistration } = require('../services/race-bib-assignment.service');
-const { renderRaceBibPng, renderRaceBibPdf } = require('../services/race-bib-renderer.service');
+const { renderRaceBibPng, renderRaceBibSocialPng, renderRaceBibPdf } = require('../services/race-bib-renderer.service');
 const { _renderData: buildBibRenderData } = require('../controllers/raceBib.controller');
 
 // Unauthenticated writes, so tighter than the signed-in equivalents.
@@ -257,6 +257,23 @@ router.get('/guest/registrations/:token/bib.:format(png|pdf)', guestLookupLimite
       'Content-Type': isPdf ? 'application/pdf' : 'image/png',
       'Cache-Control': 'private, no-store',
       'Content-Disposition': `${req.query.inline === '1' ? 'inline' : 'attachment'}; filename="${context.event.slug}-bib-${context.assignment.bib_number}.${isPdf ? 'pdf' : 'png'}"`
+    });
+    return res.send(buffer);
+  } catch (error) { return next(error); }
+});
+
+router.get('/guest/registrations/:token/bib-share.png', guestLookupLimiter, async (req, res, next) => {
+  try {
+    const result = await resolveGuestBib(req);
+    if (!result) return res.status(404).send('Bib not found.');
+    const { context } = result;
+    if (!context.eligibility.eligible || !context.assignment || !context.design) return res.status(409).send('Bib is not available.');
+    if (!context.design.social?.enabled) return res.status(409).send('Social bib sharing is not enabled for this event.');
+    const buffer = await renderRaceBibSocialPng(buildBibRenderData(context));
+    res.set({
+      'Content-Type': 'image/png',
+      'Cache-Control': 'private, no-store',
+      'Content-Disposition': `attachment; filename="${context.event.slug}-bib-${context.assignment.bib_number}-share.png"`
     });
     return res.send(buffer);
   } catch (error) { return next(error); }

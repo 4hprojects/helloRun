@@ -11,12 +11,19 @@ const {
   normalizeDesignInput,
   saveDraft,
   applyCustomArtwork,
+  applyPartnerLogos,
   publishDraft,
   copyDesign,
   releaseDesign,
   pauseBibs
 } = require('../services/race-bib-design.service');
-const { renderRaceBibPng, renderRaceBibPdf, renderRaceBibBatchPdf } = require('../services/race-bib-renderer.service');
+const {
+  renderRaceBibPng,
+  renderRaceBibSocialPng,
+  renderRaceBibPdf,
+  renderRaceBibBatchPdf,
+  analyzeRaceBibDesign
+} = require('../services/race-bib-renderer.service');
 const { resolveBibForRegistration, getBibAssignmentsForRegistrations } = require('../services/race-bib-assignment.service');
 const { evaluateBibEligibility } = require('../services/race-bib-eligibility.service');
 
@@ -55,6 +62,7 @@ exports.getDesign = async (req, res, next) => {
       event,
       draft,
       versions,
+      designWarnings: analyzeRaceBibDesign(draft.toObject()),
       message: req.query.msg ? { type: req.query.type === 'error' ? 'error' : 'success', text: String(req.query.msg).slice(0, 220) } : null
     });
   } catch (error) { return next(error); }
@@ -87,6 +95,22 @@ exports.postArtwork = async (req, res, next) => {
   } catch (error) { return next(error); }
 };
 
+exports.postPartnerLogos = async (req, res, next) => {
+  try {
+    const event = await accessibleEvent(req);
+    if (!event) return res.status(404).send('Event not found.');
+    if (req.uploadError) return res.redirect(redirect(event._id, 'error', req.uploadError));
+    const draft = await getOrCreateDraft(event);
+    const uploaded = await uploadService.uploadRaceBibPartnerLogosToR2({
+      userId: req.session.userId,
+      eventId: event._id,
+      files: req.files?.partnerLogoFiles || []
+    });
+    await applyPartnerLogos(draft, uploaded);
+    return res.redirect(redirect(event._id, 'success', `${uploaded.length} partner logo${uploaded.length === 1 ? '' : 's'} uploaded.`));
+  } catch (error) { return next(error); }
+};
+
 exports.postPreview = async (req, res, next) => {
   try {
     const event = await accessibleEvent(req);
@@ -99,17 +123,46 @@ exports.postPreview = async (req, res, next) => {
     if (source === 'banner') design.artwork = { source, url: event.bannerImageUrl || '' };
     if (source === 'poster') design.artwork = { source, url: event.posterImageUrl || '' };
     if (source === 'solid') design.artwork = { source };
-    const png = await renderRaceBibPng({
-      design,
-      data: {
-        eventTitle: normalized.content.eventTitle || event.title,
+    design.branding = design.branding || {};
+    design.branding.primaryLogo = { url: event.logoUrl || '' };
+    const sampleCases = {
+      one: { bibNumber: '7', runnerName: 'Alex Reyes', category: '5K' },
+      four: { bibNumber: '2027', runnerName: 'Alex Reyes', category: '21K' },
+      six: { bibNumber: '999999', runnerName: 'Alex Reyes', category: 'Open category' },
+      longName: { bibNumber: '1085', runnerName: 'Alexandria-Marguerite Villanueva-Santos', category: '21K' },
+      longTitle: { bibNumber: '5000', runnerName: 'Alex Reyes', category: '5K' }
+    };
+    const sample = sampleCases[req.body.sampleCase] || sampleCases.six;
+    const sampleData = {
+        eventTitle: req.body.sampleCase === 'longTitle'
+          ? 'A Very Long Community Challenge Title That Must Stay Inside Its Safe Area'
+          : normalized.content.eventTitle || event.title,
         participationLabel: normalized.content.participationLabel,
-        category: req.body.sampleCategory || 'Open category',
-        runnerName: req.body.sampleRunnerName || 'Alexandria-Marguerite Villanueva-Santos',
-        bibNumber: req.body.sampleBibNumber || '999999'
-      }
+        category: req.body.sampleCategory || sample.category,
+        runnerName: req.body.sampleRunnerName || sample.runnerName,
+        bibNumber: req.body.sampleBibNumber || sample.bibNumber,
+        location: normalized.content.location,
+        tagline: normalized.content.tagline,
+        entryBadge: normalized.content.entryBadge,
+        footerNote: normalized.content.footerNote,
+        eventDate: normalized.content.eventDate
+    };
+    const input = {
+      design,
+      data: sampleData,
+      editorGuides: req.body.showGuides === '1' || req.body.showGuides === 'on',
+      grayscale: req.body.grayscale === '1' || req.body.grayscale === 'on'
+    };
+    const png = req.body.previewVariant === 'social'
+      ? await renderRaceBibSocialPng(input)
+      : await renderRaceBibPng(input);
+    const warnings = analyzeRaceBibDesign(design, sampleData);
+    res.set({
+      'Content-Type': 'image/png',
+      'Cache-Control': 'private, no-store',
+      'Content-Disposition': 'inline; filename="bib-preview.png"',
+      'X-HelloRun-Design-Warnings': warnings.join(',')
     });
-    res.set({ 'Content-Type': 'image/png', 'Cache-Control': 'private, no-store', 'Content-Disposition': 'inline; filename="bib-preview.png"' });
     return res.send(png);
   } catch (error) { return next(error); }
 };
@@ -236,7 +289,11 @@ function renderData(context) {
       category: context.registration.pricingSnapshot?.raceCategoryName || context.registration.raceDistance,
       runnerName: [participant.firstName, participant.lastName].filter(Boolean).join(' '),
       bibNumber: context.assignment.bib_number,
-      eventDate: context.design.content?.eventDate
+      eventDate: context.design.content?.eventDate,
+      location: context.design.content?.location || context.event.venueName,
+      tagline: context.design.content?.tagline,
+      entryBadge: context.design.content?.entryBadge,
+      footerNote: context.design.content?.footerNote
     }
   };
 }
@@ -266,6 +323,23 @@ exports.getRunnerBibFile = async (req, res, next) => {
       'Content-Type': isPdf ? 'application/pdf' : 'image/png',
       'Cache-Control': 'private, no-store',
       'Content-Disposition': `${req.query.inline === '1' ? 'inline' : 'attachment'}; filename="${context.event.slug}-bib-${context.assignment.bib_number}.${isPdf ? 'pdf' : 'png'}"`
+    });
+    return res.send(buffer);
+  } catch (error) { return next(error); }
+};
+
+exports.getRunnerBibShare = async (req, res, next) => {
+  try {
+    const registration = await ownedRegistration(req);
+    if (!registration) return res.status(404).send('Bib not found.');
+    const context = await resolveBibForRegistration(registration._id);
+    if (!context.eligibility.eligible || !context.assignment || !context.design) return res.status(409).send('Bib is not available.');
+    if (!context.design.social?.enabled) return res.status(409).send('Social bib sharing is not enabled for this event.');
+    const buffer = await renderRaceBibSocialPng(renderData(context));
+    res.set({
+      'Content-Type': 'image/png',
+      'Cache-Control': 'private, no-store',
+      'Content-Disposition': `attachment; filename="${context.event.slug}-bib-${context.assignment.bib_number}-share.png"`
     });
     return res.send(buffer);
   } catch (error) { return next(error); }
